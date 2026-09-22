@@ -6,6 +6,12 @@ Eski `interaktif_harita.py` sadece statik nokta/çizgi çiziyordu. Bu modül:
   - Popup'larda gerçek uçuş bilgisi (uçuş no, icao24, kalkış/varış, EDR proxy)
   - Renk skalası için bir lejant
 sağlar.
+
+DÜZELTME: CartoDB'nin tüm tile URL'leri (hem folium kısayolu hem de eski
+"anahtarsız" basemaps.cartocdn.com adresi) artık API anahtarı istiyor.
+Kayıt/anahtar gerektirmeyen standart OpenStreetMap tile'larına geçildi.
+İstersen ücretsiz bir CARTO anahtarı alıp (https://carto.com/basemaps/apikey/)
+tekrar koyu temaya dönebilirsin -- aşağıda nasıl yapılacağı yorum olarak var.
 """
 
 import folium
@@ -61,7 +67,18 @@ def zaman_kaydiricili_harita_olustur(rota_df, dosya_adi="turbulans_haritasi.html
     """
     merkez_enlem = rota_df["enlem"].mean()
     merkez_boylam = rota_df["boylam"].mean()
-    harita = folium.Map(location=[merkez_enlem, merkez_boylam], zoom_start=7, tiles="CartoDB dark_matter")
+
+    # NOT: Standart OpenStreetMap tile sunucuları, file:// üzerinden açılan
+    # yerel HTML dosyalarını "politika ihlali" (Access blocked) sayıp
+    # engelleyebiliyor -- referrer bilgisi eksik/tanımsız geldiği için.
+    # Esri'nin anahtar gerektirmeyen ve bu tür kullanıma izin veren tile
+    # sunucusuna geçildi.
+    harita = folium.Map(
+        location=[merkez_enlem, merkez_boylam],
+        zoom_start=7,
+        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+        attr="Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ",
+    )
 
     # --- Statik rota çizgisi (referans için) ---
     koordinatlar = list(zip(rota_df["enlem"], rota_df["boylam"]))

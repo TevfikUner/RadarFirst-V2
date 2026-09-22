@@ -3,19 +3,24 @@ veri_yukleme.py
 -----------------
 İki veri kaynağını yüklemek için gereken fonksiyonlar:
   1. Copernicus/ERA5 hava durumu veri küpü (NetCDF -> xarray.Dataset)
-  2. OpenSky (Trino) üzerinden GERÇEK uçuş verisi, artık UÇUŞ NUMARASINA
-     (callsign) göre sorgulanabiliyor.
+  2. OpenSky (Trino) üzerinden GERÇEK uçuş verisi, callsign'a göre sorgulanır.
 
-Eski `trino_baglanti.py`'de sadece sabit bir enlem/boylam/zaman kutusu
-sorgulanıyordu ve tek bir uçuşu hedeflemek mümkün değildi. Burada
-`flights_data4` tablosu üzerinden callsign -> icao24 eşlemesi yapılıyor,
-sonra o icao24 için state_vectors_data4'ten rota çekiliyor.
+ÖNEMLİ GÜNCELLEME (bkz. https://openskynetwork.github.io/opensky-api/trino.html):
+  - OpenSky 2024'te yeni backend'e geçti. Trino artık kullanıcı adı/şifre
+    (BasicAuthentication) KABUL ETMİYOR; tarayıcı üzerinden giriş yaptıran
+    OAuth2/"external authentication" akışı kullanıyor. Eski koddaki
+    BasicAuthentication bu yüzden her zaman "401 Access Denied" veriyordu --
+    bu, kimlik bilgilerinin yanlış olmasıyla ilgili değildi.
+  - Catalog "opensky" değil "minio"; schema "osky" olmalı.
+  - state_vectors_data4 gibi tablolarda artık 'hour' partition sütununda
+    filtre ZORUNLU (filtresiz sorgular Trino tarafından otomatik reddediliyor
+    ve tekrarlanan ihlaller hesap askıya alınmasına yol açabiliyor).
 """
 
 import xarray as xr
 import pandas as pd
 import trino
-from trino.auth import BasicAuthentication
+from trino.auth import OAuth2Authentication
 import config
 from kimlik_dogrulama import kimlik_bilgilerini_al
 
@@ -40,17 +45,37 @@ def hava_durumu_yukle(dosya_yolu=config.HAVA_DURUMU_DOSYASI):
 # ---------------------------------------------------------------------------
 
 def trino_baglantisi_olustur():
-    kullanici_adi, sifre = kimlik_bilgilerini_al()
-    
+    """
+    OpenSky'nin Trino kümesine OAuth2 (external authentication) ile bağlanır.
+
+    NOT: Bu artık kullanıcı adı/şifre ile DOĞRUDAN kimlik doğrulaması yapmaz.
+    İlk sorgu çalıştırıldığında bir tarayıcı penceresi açılır (veya konsola
+    bir URL basılır) ve OpenSky hesabınla web üzerinden giriş yapman istenir.
+    Bu, senin CLI'da denediğin '--external-authentication' bayrağının Python
+    karşılığıdır.
+    """
+    kullanici_adi, _ = kimlik_bilgilerini_al()
+    # OpenSky kullanıcı adları küçük harfle saklanıyor; bağlanırken büyük/
+    # küçük harf uyuşmazlığı sorun çıkarabiliyor.
+    kullanici_adi = kullanici_adi.lower()
+
+    print(
+        "[Bilgi] Trino'ya OAuth2 ile bağlanılıyor. Bir tarayıcı penceresi "
+        "açılabilir veya konsolda bir giriş linki görebilirsin -- OpenSky "
+        "hesabınla (web arayüzündeki ile AYNI hesap) giriş yap."
+    )
+
     baglanti = trino.dbapi.connect(
         host=config.TRINO_HOST,
         port=config.TRINO_PORT,
         user=kullanici_adi,
-        auth=BasicAuthentication(kullanici_adi, sifre),
+        auth=OAuth2Authentication(),
         http_scheme='https',
-        catalog=config.TRINO_CATALOG
+        catalog=config.TRINO_CATALOG,
+        schema=config.TRINO_SCHEMA,
     )
     return baglanti
+
 
 def _sorgu_calistir(baglanti, sorgu, sutunlar):
     imlec = baglanti.cursor()
@@ -65,9 +90,8 @@ def ucus_numarasindan_icao24_bul(baglanti, ucus_numarasi, tarih_str):
 
     NOT: OpenSky'da callsign alanı sabit 8 karakter uzunluğunda, boşlukla
     doldurulmuş (padded) olarak saklanır — bu yüzden tam eşleşme için
-    `ljust(8)` uyguluyoruz. `day` sütunu, günün başlangıcına denk gelen
-    UNIX zaman damgasıdır (Trino tarafında `date_trunc('day', ...)` ile
-    de filtrelenebilir).
+    `ljust(8)` uyguluyoruz. `day` sütunu flights_data4'ün ZORUNLU partition
+    sütunudur.
 
     tarih_str: 'YYYY-MM-DD' formatında, aranacak gün.
     Dönüş: eşleşen uçuşları içeren DataFrame (birden fazla olabilir,
@@ -100,11 +124,20 @@ def ucus_rotasini_cek(baglanti, icao24, baslangic_ts, bitis_ts):
     """
     Belirli bir icao24 adresi ve zaman aralığı için ham state vector
     (konum, hız, irtifa) verisini çeker.
+
+    ÖNEMLİ: state_vectors_data4'ün partition sütunu 'hour' -- saatin
+    başlangıcına denk gelen unix timestamp. Bu filtre artık ZORUNLU,
+    yoksa Trino sorguyu reddediyor. `time` filtresi tek başına yeterli
+    DEĞİL, `hour` filtresi de eklenmeli.
     """
+    baslangic_saat = (baslangic_ts // 3600) * 3600
+    bitis_saat = (bitis_ts // 3600) * 3600
+
     sorgu = f"""
     SELECT time, icao24, lat, lon, velocity, heading, vertrate, geoaltitude, baroaltitude
     FROM state_vectors_data4
     WHERE icao24 = '{icao24}'
+    AND hour >= {baslangic_saat} AND hour <= {bitis_saat}
     AND time >= {baslangic_ts} AND time <= {bitis_ts}
     AND lat IS NOT NULL AND lon IS NOT NULL
     ORDER BY time
