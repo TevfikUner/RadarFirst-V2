@@ -18,11 +18,21 @@ config.py                 -> sabitler, eşik değerleri
 kimlik_dogrulama.py        -> .env'den güvenli kimlik bilgisi okuma
 .env.example                -> kopyalanacak şifre şablonu
 birim_donusumleri.py       -> irtifa <-> basınç dönüşümleri
-turbulans_indeksleri.py    -> Ellrod TI1 hesabı + EDR-proxy ölçekleme
+turbulans_indeksleri.py    -> Ellrod TI1 + Richardson sayısı hesabı + EDR-proxy ölçekleme
 veri_yukleme.py             -> NetCDF yükleme + OpenSky/Trino sorguları
-eslestirme.py                -> uçuş rotası <-> hava durumu grid eşleştirme
+eslestirme.py                -> uçuş rotası <-> hava durumu grid eşleştirme (vektörel)
 harita.py                    -> zaman kaydırıcılı Folium haritası
 main.py                      -> uçtan uca çalıştırma
+ornek_ucus_bul.py           -> OpenSky'da kayıtlı gerçek callsign'ları listeler
+veri_kontrol.py              -> veri küpü çözünürlüğünü / TI1 çeşitliliğini kontrol eder
+kimlik_kontrol.py           -> .env'in doğru okunduğunu kontrol eder
+kalibrasyon.py               -> gerçek PIREP/AMDAR verisiyle EDR ölçekleme katsayısını kalibre eder
+toplu_analiz.py              -> bir CSV listesindeki birden fazla uçuşu sırayla analiz eder
+web_arayuzu.py               -> tarayıcıdan kullanılabilir basit arayüz (Streamlit)
+hata_yardimcisi.py           -> ham Python hatalarını anlaşılır Türkçe mesaja çevirir
+veri_indirme.py              -> ERA5 verisi otomatik indirme ALTYAPISI (bkz. aşağıdaki uyarı)
+konsol_kurulumu.py           -> Windows konsolunda Türkçe/özel karakterlerin çökmesini önler
+tests/                        -> pytest birim testleri (ağ/veri gerektirmeyen kısımlar için)
 ```
 
 ## Kullanım
@@ -32,6 +42,59 @@ pip install -r requirements.txt
 cp .env.example .env          # sonra .env içine kendi OpenSky bilgilerini yaz
 python main.py THY1234 2019-01-01
 ```
+
+Her script `--help` ile kullanım bilgisi verir, örn. `python main.py --help`,
+`python ornek_ucus_bul.py --help`.
+
+### Web arayüzü
+
+Terminal yerine tarayıcıdan kullanmak için:
+
+```bash
+streamlit run web_arayuzu.py
+```
+
+Uçuş numarası ve tarihi bir kutuya yazıp "Analiz Et"e basman yeterli; sonuç
+tablosu ve zaman kaydırıcılı harita direkt sayfada görünür. Arkada hâlâ aynı
+`main.py` mantığı (gerçek OpenSky sorgusu + hava durumu eşleştirmesi) çalışır
+-- bu sadece görsel bir ön yüz.
+
+### Birden fazla uçuşu birden analiz etmek
+
+```bash
+python toplu_analiz.py ucuslar.csv
+```
+
+`ucuslar.csv` en az `ucus_numarasi` ve `tarih` sütunlarını içermeli. Her uçuş
+kendi CSV/HTML çıktısını normal şekilde üretir; script ayrıca hepsinin kısa
+bir özetini (`toplu_analiz_ozeti.csv`) tek tabloda toplar. Bir uçuşta hata
+olursa diğerlerinin analizi durmaz.
+
+### ERA5 verisini otomatik indirme -- ŞU AN AKTİF DEĞİL
+
+`veri_indirme.py`, ileride hava durumu verisini elle indirip klasöre koyma
+işini otomatikleştirmek için hazırlanmış bir ALTYAPI dosyasıdır. **Şu an
+gerçek bir indirme yapmaz** -- OpenSky ve Copernicus gibi servisler çok
+büyük/geniş istek gönderen hesapları geçici ya da kalıcı olarak
+engelleyebildiği (rate limit / ban) için, bilinçli olarak sadece "kuru
+deneme" (ne isteneceğini gösterip göndermeme) modunda çalışır. Kod
+içindeki sabit güvenlik sınırları (en fazla 10x10 derecelik bölge, en fazla
+3 günlük veri) aşan hiçbir istek, gerçekten indirmeye çalışılsa bile
+gönderilmez. Gerçek indirmeyi açmak (`--gercekten-indir`) için ayrıca
+`pip install cdsapi` ve bir Copernicus hesabı/`~/.cdsapirc` gerekir --
+bunlar bu projede kurulu değildir ve kullanıcı açıkça onay vermeden devreye
+girmez.
+
+### Testleri çalıştırmak
+
+```bash
+pip install -r requirements-dev.txt
+python -m pytest tests/
+```
+
+`tests/test_eslestirme.py`, gerçek `ocak_2019_turbulans.nc` dosyasını
+bulamazsa otomatik olarak atlanır (dosya `.gitignore`'da, repoya dahil
+değildir).
 
 ## Bilinmesi gerekenler / sınırlamalar
 
@@ -44,15 +107,33 @@ python main.py THY1234 2019-01-01
   enlem/boylam grid'ine ihtiyaç var (tek nokta yetmiyor) — `eslestirme.py`
   bunu `differentiate()` ile grid üzerinde hesaplayıp sonra noktaya en yakın
   hücreyi okuyor.
-- Bu ortamda `ocak_2019_turbulans.nc` dosyası ve OpenSky ağ bağlantısı
-  mevcut olmadığı için kod, yalnızca birim/matematik fonksiyonları (numpy)
-  seviyesinde test edildi; `xarray`/`trino` gerektiren kısımlar sözdizimi
-  (syntax) düzeyinde doğrulandı. Kendi ortamında `.nc` dosyanla çalıştırıp
-  kontrol etmen gerekiyor.
+- Proje gerçek bir uçuşla (OpenSky/Trino bağlantısı + gerçek `.nc` verisi)
+  uçtan uca test edildi ve çalıştığı doğrulandı.
 
 ## Sonraki adımlar için fikirler
 
-- Deformasyon/kayma hesabını tüm grid üzerinde vektörel olarak önceden hesaplayıp
-  `.sel()` ile hızlandırmak (şu an her rota noktası için yeniden hesaplanıyor).
-- Richardson sayısı gibi ek kararlılık indeksleri ekleyip TI1 ile birleştirmek.
-- Gerçek PIREP verisiyle karşılaştırıp `EDR_PROXY_OLCEKLENDIRME_KATSAYISI`'nı kalibre etmek.
+- ~~Deformasyon/kayma hesabını tüm grid üzerinde vektörel olarak önceden
+  hesaplayıp `.sel()` ile hızlandırmak.~~ Yapıldı: `eslestirme.py` artık tüm
+  rotayı tek seferde vektörel eşleştiriyor (gerçek veriyle ölçülen kazanç:
+  ~250x, bkz. modülün başındaki not).
+- ~~Richardson sayısı gibi ek kararlılık indeksleri ekleyip TI1 ile
+  birleştirmek.~~ Yapıldı: `turbulans_indeksleri.richardson_sayisi_hesapla`
+  bilerek TI1'e keyfi bir katsayıyla karıştırılmadan, ayrı bir
+  `richardson_sayisi`/`dinamik_kararsizlik` sütunu olarak ekleniyor.
+- ~~Gerçek PIREP verisiyle karşılaştırıp ölçekleme katsayısını kalibre
+  etmek.~~ Kısmen yapıldı: `kalibrasyon.py` bunun için bir araç sağlıyor,
+  ama gerçek PIREP/AMDAR gözlem verisi bu depoda YOK -- kalibrasyonu
+  çalıştırmak için kullanıcının kendi gözlem CSV'sini sağlaması gerekiyor.
+- Trino/OpenSky sorgularının başarısız senaryoları (rate limit, OAuth2
+  zaman aşımı) için yeniden deneme (retry) mantığı eklemek.
+- ~~Terminal yerine tarayıcıdan kullanılabilir basit bir arayüz.~~ Yapıldı:
+  `web_arayuzu.py` (`streamlit run web_arayuzu.py`).
+- ~~Birden fazla uçuşu tek seferde analiz edebilmek.~~ Yapıldı:
+  `toplu_analiz.py`.
+- ~~Hata mesajlarını daha anlaşılır hale getirmek.~~ Yapıldı:
+  `hata_yardimcisi.py`, `main.py`/`toplu_analiz.py`/`web_arayuzu.py`
+  tarafından kullanılıyor.
+- ~~Hava durumu verisini otomatik indirme.~~ Sadece ALTYAPISI hazırlandı
+  (`veri_indirme.py`) -- rate-limit/ban riski nedeniyle gerçek indirme
+  bilinçli olarak kapalı, bkz. yukarıdaki "ERA5 verisini otomatik indirme"
+  bölümü.

@@ -1,7 +1,6 @@
 
 # config.py
 HAVA_DURUMU_DOSYASI = "ocak_2019_turbulans.nc"
-irtifa_hpa = 250.0
 
 # OpenSky Trino Veritabanı Ayarları
 # ÖNEMLİ: OpenSky 2024'te yeni backend'e geçti. Catalog "opensky" DEĞİL,

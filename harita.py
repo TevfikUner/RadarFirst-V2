@@ -103,11 +103,16 @@ def zaman_kaydiricili_harita_olustur(rota_df, dosya_adi="turbulans_haritasi.html
         if "basinc_hpa" in satir and not pd_isna(satir.get("basinc_hpa")):
             aciklama_parcalari.append(f"<b>Basınç Seviyesi:</b> {satir['basinc_hpa']:.0f} hPa")
         aciklama_parcalari.append(
-            f"<b>TI1 İndeksi:</b> {ti1_degeri:.2e} s⁻²" if not pd_isna(ti1_degeri) else "<b>TI1 İndeksi:</b> veri yok"
+            f"<b>TI1 İndeksi:</b> {ti1_degeri:.2e} s^-2" if not pd_isna(ti1_degeri) else "<b>TI1 İndeksi:</b> veri yok"
         )
         aciklama_parcalari.append(
             f"<b>EDR Proxy (0-1):</b> {edr_degeri:.3f}" if not pd_isna(edr_degeri) else "<b>EDR Proxy (0-1):</b> veri yok"
         )
+        richardson_degeri = satir.get("richardson_sayisi", float("nan"))
+        if not pd_isna(richardson_degeri):
+            kararsiz_mi = bool(satir.get("dinamik_kararsizlik"))
+            etiket = " (dinamik kararsız!)" if kararsiz_mi else ""
+            aciklama_parcalari.append(f"<b>Richardson Sayısı:</b> {richardson_degeri:.2f}{etiket}")
 
         ozellikler.append({
             "type": "Feature",

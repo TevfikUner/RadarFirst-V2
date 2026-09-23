@@ -18,13 +18,19 @@ Eşleştirme başarısız olursa (uçuş bulunamazsa, veri küpü eksikse vb.)
 pipeline çökmek yerine açıklayıcı bir mesajla nazikçe durur.
 """
 
-import sys
+import argparse
+
+from konsol_kurulumu import konsolu_utf8_yap
+
+konsolu_utf8_yap()
 
 import config
 from veri_yukleme import hava_durumu_yukle, trino_baglantisi_olustur, ucus_numarasi_ile_rota_cek
 from eslestirme import rotayi_hava_durumuyla_eslestir
 from harita import zaman_kaydiricili_harita_olustur
+from hata_yardimcisi import dostane_hata_mesaji
 from kimlik_dogrulama import KimlikBilgisiEksikHatasi
+from turbulans_indeksleri import DINAMIK_KARARSIZLIK_ESIGI
 
 
 def _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str):
@@ -48,7 +54,7 @@ def _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str):
     print(f"Kapsanan süre              : {sure_saat:.2f} saat ({sure_saniye:.0f} saniye)")
     if gecerli_sayisi > 0:
         print(f"Ortalama örnekleme aralığı : {sure_saniye / max(nokta_sayisi - 1, 1):.1f} saniye/nokta")
-        print(f"TI1 min / ortalama / maks  : {ti1_gecerli.min():.3e} / {ti1_gecerli.mean():.3e} / {ti1_gecerli.max():.3e} s⁻²")
+        print(f"TI1 min / ortalama / maks  : {ti1_gecerli.min():.3e} / {ti1_gecerli.mean():.3e} / {ti1_gecerli.max():.3e} s^-2")
         print(f"TI1 eşikleri (config.py)  : hafif < {config.TI1_ESIK_HAFIF:.0e} < orta-şiddetli < {config.TI1_ESIK_ORTA_SIDDETLI:.0e}")
         hafif_alti = (ti1_gecerli < config.TI1_ESIK_HAFIF).sum()
         orta = ((ti1_gecerli >= config.TI1_ESIK_HAFIF) & (ti1_gecerli < config.TI1_ESIK_ORTA_SIDDETLI)).sum()
@@ -56,6 +62,14 @@ def _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str):
         print(f"Sakin/hafif altı (yeşil)  : {hafif_alti} nokta ({hafif_alti/gecerli_sayisi*100:.1f}%)")
         print(f"Hafif-orta (turuncu)      : {orta} nokta ({orta/gecerli_sayisi*100:.1f}%)")
         print(f"Orta-şiddetli (kırmızı)   : {siddetli} nokta ({siddetli/gecerli_sayisi*100:.1f}%)")
+
+        if "dinamik_kararsizlik" in eslesmis_df.columns:
+            kararsiz_sayisi = eslesmis_df["dinamik_kararsizlik"].fillna(False).astype(bool).sum()
+            print(
+                f"Richardson < {DINAMIK_KARARSIZLIK_ESIGI:.2f} "
+                f"(dinamik kararsızlık, TI1'den BAĞIMSIZ ek gösterge): "
+                f"{kararsiz_sayisi} nokta ({kararsiz_sayisi/gecerli_sayisi*100:.1f}%)"
+            )
     print("=" * 60 + "\n")
 
 
@@ -102,14 +116,36 @@ def calistir(ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None):
     return eslesmis_df
 
 
-if __name__ == "__main__":
-    # Örnek kullanım: python main.py THY1234 2019-01-01
-    if len(sys.argv) >= 3:
-        ucus_no = sys.argv[1]
-        tarih = sys.argv[2]
-    else:
-        ucus_no = "THY1234"   # örnek değer - kendi uçuş numaranla değiştir
-        tarih = "2019-01-01"
-        print(f"[Bilgi] Argüman verilmedi, örnek değerler kullanılıyor: {ucus_no} / {tarih}")
+def _argumanlari_ayristir(argv=None):
+    ayristirici = argparse.ArgumentParser(
+        description="Bir uçuşun gerçek rotasını türbülans şiddetiyle (Ellrod TI1 + Richardson) eşleştirir "
+                     "ve zaman kaydırıcılı interaktif bir harita üretir.",
+    )
+    ayristirici.add_argument(
+        "ucus_numarasi", nargs="?", default="THY1234",
+        help="OpenSky callsign, örn. THY1234 (varsayılan: THY1234 -- örnek uçuş için ornek_ucus_bul.py kullan)",
+    )
+    ayristirici.add_argument(
+        "tarih", nargs="?", default="2019-01-01",
+        help="YYYY-MM-DD formatında tarih (varsayılan: 2019-01-01)",
+    )
+    ayristirici.add_argument(
+        "--cikti", default=None, metavar="DOSYA.html",
+        help="Harita çıktısının kaydedileceği dosya adı (varsayılan: turbulans_haritasi_<uçuş>_<tarih>.html)",
+    )
+    return ayristirici.parse_args(argv)
 
-    calistir(ucus_no, tarih)
+
+if __name__ == "__main__":
+    argumanlar = _argumanlari_ayristir()
+    if argumanlar.ucus_numarasi == "THY1234" and argumanlar.tarih == "2019-01-01":
+        print(
+            "[Bilgi] Argüman verilmedi, örnek değerler kullanılıyor: THY1234 / 2019-01-01 "
+            "(gerçek bir uçuş için: python ornek_ucus_bul.py)"
+        )
+
+    try:
+        calistir(argumanlar.ucus_numarasi, argumanlar.tarih, cikti_dosyasi=argumanlar.cikti)
+    except Exception as hata:
+        print(f"\n[Hata] {dostane_hata_mesaji(hata)}")
+        raise SystemExit(1) from hata

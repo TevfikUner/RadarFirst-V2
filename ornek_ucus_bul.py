@@ -14,7 +14,12 @@ Kullanim:
                                                 Turkish Airlines icin "THY")
 """
 
-import sys
+import argparse
+
+from konsol_kurulumu import konsolu_utf8_yap
+
+konsolu_utf8_yap()
+
 import pandas as pd
 
 from veri_yukleme import trino_baglantisi_olustur, _sorgu_calistir
@@ -44,11 +49,25 @@ def ornek_ucuslari_getir(tarih_str="2019-01-15", onek=None, adet=20):
     return df
 
 
-if __name__ == "__main__":
-    tarih = sys.argv[1] if len(sys.argv) >= 2 else "2019-01-15"
-    onek = sys.argv[2] if len(sys.argv) >= 3 else None
+def _argumanlari_ayristir(argv=None):
+    ayristirici = argparse.ArgumentParser(
+        description="Ocak 2019'dan gerçek, OpenSky'da kayıtlı callsign'lar çekip listeler "
+                     "(main.py'yi çalıştırmak için hangi uçuşun mevcut olduğunu tahmin etmene gerek kalmaz).",
+    )
+    ayristirici.add_argument("tarih", nargs="?", default="2019-01-15", help="YYYY-MM-DD (varsayılan: 2019-01-15)")
+    ayristirici.add_argument(
+        "onek", nargs="?", default=None,
+        help="Yalnızca bu önekle başlayan callsign'lar, örn. THY (Turkish Airlines)",
+    )
+    ayristirici.add_argument("--adet", type=int, default=20, help="Kaç sonuç listelenecek (varsayılan: 20)")
+    return ayristirici.parse_args(argv)
 
-    sonuc = ornek_ucuslari_getir(tarih, onek)
+
+if __name__ == "__main__":
+    argumanlar = _argumanlari_ayristir()
+    tarih, onek = argumanlar.tarih, argumanlar.onek
+
+    sonuc = ornek_ucuslari_getir(tarih, onek, adet=argumanlar.adet)
 
     if sonuc.empty:
         print(f"[Uyarı] {tarih} için hiç uçuş bulunamadı. Farklı bir tarih dene.")

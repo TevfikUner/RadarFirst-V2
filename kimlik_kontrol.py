@@ -8,6 +8,11 @@ anlarsin.
 """
 
 import os
+
+from konsol_kurulumu import konsolu_utf8_yap
+
+konsolu_utf8_yap()
+
 from dotenv import load_dotenv
 
 yuklendi_mi = load_dotenv(verbose=True)
