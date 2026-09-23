@@ -3,4 +3,6 @@ __pycache__/
 *.pyc
 *.nc
 *.jar
-turbulans_haritasi.html
+*.zip
+turbulans_haritasi*.html
+eslesme_sonuclari_*.csv

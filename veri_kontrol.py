@@ -9,7 +9,12 @@ Kullanim:
     python veri_kontrol.py eslesme_sonuclari_N10VZ_2019-01-15.csv
 """
 
-import sys
+import argparse
+
+from konsol_kurulumu import konsolu_utf8_yap
+
+konsolu_utf8_yap()
+
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -83,9 +88,22 @@ def csv_sonuclarini_incele(csv_yolu):
         print(f"  Kullanilan basinc seviyeleri: {sorted(df['basinc_hpa'].dropna().unique())}")
 
 
+def _argumanlari_ayristir(argv=None):
+    ayristirici = argparse.ArgumentParser(
+        description="Hava durumu veri kupunun cozunurlugunu ve main.py'nin urettigi CSV'deki "
+                     "TI1 degerlerinin cesitliligini kontrol eder.",
+    )
+    ayristirici.add_argument(
+        "csv_yolu", nargs="?", default=None,
+        help="main.py tarafindan uretilen eslesme_sonuclari_*.csv dosyasinin yolu (opsiyonel)",
+    )
+    return ayristirici.parse_args(argv)
+
+
 if __name__ == "__main__":
+    argumanlar = _argumanlari_ayristir()
     nc_dosyasini_incele()
-    if len(sys.argv) >= 2:
-        csv_sonuclarini_incele(sys.argv[1])
+    if argumanlar.csv_yolu:
+        csv_sonuclarini_incele(argumanlar.csv_yolu)
     else:
         print("Ipucu: 'python veri_kontrol.py eslesme_sonuclari_N10VZ_2019-01-15.csv' seklinde CSV yolu da ver.")
