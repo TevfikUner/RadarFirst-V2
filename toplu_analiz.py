@@ -21,6 +21,7 @@ DURMAZ -- sadece o uçuş "başarısız" olarak işaretlenip bir sonrakine geçi
 """
 
 import argparse
+import time
 
 from konsol_kurulumu import konsolu_utf8_yap
 
@@ -28,6 +29,7 @@ konsolu_utf8_yap()
 
 import pandas as pd
 
+import config
 from hata_yardimcisi import dostane_hata_mesaji
 from main import calistir
 
@@ -41,6 +43,10 @@ def toplu_analiz_calistir(ucus_listesi_df: pd.DataFrame) -> pd.DataFrame:
     toplam = len(ucus_listesi_df)
 
     for i, satir in ucus_listesi_df.iterrows():
+        if i > 0 and config.TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE > 0:
+            # OpenSky'yi art arda isteklerle yormamak için uçuşlar arasında bekle.
+            time.sleep(config.TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE)
+
         ucus_no = str(satir["ucus_numarasi"]).strip()
         tarih = str(satir["tarih"]).strip()
 

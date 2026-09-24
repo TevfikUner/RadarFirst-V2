@@ -32,6 +32,10 @@ web_arayuzu.py               -> tarayıcıdan kullanılabilir basit arayüz (Str
 hata_yardimcisi.py           -> ham Python hatalarını anlaşılır Türkçe mesaja çevirir
 veri_indirme.py              -> ERA5 verisi otomatik indirme ALTYAPISI (bkz. aşağıdaki uyarı)
 konsol_kurulumu.py           -> Windows konsolunda Türkçe/özel karakterlerin çökmesini önler
+veritabani.py                 -> PostgreSQL entegrasyonu: ucuslar/edr_olcumleri tabloları
+api_servisi.py                -> FastAPI REST API iskeleti (JSON çıktı + analiz tetikleme)
+mcp_postgres_sunucusu.py      -> Claude Code/Desktop için salt okunur PostgreSQL MCP sunucusu
+.mcp.json                       -> Claude Code'un mcp_postgres_sunucusu.py'yi otomatik tanıması için
 tests/                        -> pytest birim testleri (ağ/veri gerektirmeyen kısımlar için)
 ```
 
@@ -39,12 +43,79 @@ tests/                        -> pytest birim testleri (ağ/veri gerektirmeyen k
 
 ```bash
 pip install -r requirements.txt
-cp .env.example .env          # sonra .env içine kendi OpenSky bilgilerini yaz
+cp .env.example .env          # sonra .env içine OpenSky + PostgreSQL bilgilerini yaz
 python main.py THY1234 2019-01-01
 ```
 
 Her script `--help` ile kullanım bilgisi verir, örn. `python main.py --help`,
 `python ornek_ucus_bul.py --help`.
+
+### PostgreSQL entegrasyonu
+
+Analiz sonuçları artık lokal CSV yerine PostgreSQL'e yazılıyor. `.env`
+dosyasına şu değişkenleri ekle (bkz. `.env.example`):
+
+```
+POSTGRES_HOST=localhost
+POSTGRES_PORT=5432
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=...
+POSTGRES_DB=Turbulence-db
+```
+
+`main.py` her çalıştırmada `veritabani.py` üzerinden `ucuslar` ve
+`edr_olcumleri` tablolarını (yoksa) otomatik oluşturur ve sonucu yazar; aynı
+(uçuş numarası, tarih) tekrar analiz edilirse eski kayıt silinip yeniden
+yazılır. Veritabanına yazma başarısız olursa (bağlantı yok, `.env` eksik
+vb.) pipeline durmaz -- bir uyarı basılır ve harita yine de üretilir, sadece
+o çalıştırma kalıcı olarak saklanmaz.
+
+Not: Görev tanımında verilen bağlantı bilgileri `Turbulence-db` adlı, halen
+sunucuda var olan bir veritabanını gösteriyordu; PostgreSQL entegrasyonu
+maddesinde ayrıca geçen `radar_first_db` ismi bu sunucuda bulunmadığından,
+gerçekten var olan `Turbulence-db` kullanıldı. Farklı bir veritabanı adı
+istenirse `.env`'deki `POSTGRES_DB` değerini değiştirmek yeterli.
+
+### FastAPI servis katmanı
+
+```bash
+uvicorn api_servisi:app --reload --port 8000
+```
+
+Uç noktalar:
+- `GET /saglik` -- basit sağlık kontrolü
+- `GET /ucuslar` -- veritabanına kaydedilmiş uçuşları listeler
+- `GET /ucuslar/{ucus_numarasi}/{tarih}` -- bir uçuşun tüm EDR/TI1 ölçüm noktalarını JSON döndürür
+- `POST /analiz/ucus` (`{"ucus_numarasi": "...", "tarih": "YYYY-MM-DD"}`) -- `main.py` ile aynı analizi arka planda başlatır, `gorev_id` döner
+- `POST /analiz/toplu` (`{"ucuslar": [{"ucus_numarasi": "...", "tarih": "..."}, ...]}`) -- `toplu_analiz.py` ile aynı toplu analizi arka planda başlatır
+- `GET /analiz/durum/{gorev_id}` -- tetiklenen bir analizin durumunu sorgular
+
+Bu bir İSKELETtir: görev durumu bellek içinde tutulur (süreç yeniden
+başlarsa sıfırlanır); kalıcı bir görev kuyruğu gerekiyorsa ileride eklenebilir.
+
+### n8n ile periyodik otomasyon
+
+`toplu_analiz.py`'yi doğrudan n8n'e bağlamak yerine, üstteki FastAPI uç
+noktaları kullanılıyor -- n8n'in bir **Schedule Trigger**'ı, bir **HTTP
+Request** node'uyla `POST /analiz/toplu`'yu periyodik çağırır, ardından
+`GET /analiz/durum/{gorev_id}` ile tamamlanmayı bekleyip sonucu
+`GET /ucuslar/...`'dan okuyabilir. Bu, n8n'in Execute Command node'uyla
+yerel Python scriptleri çalıştırmasından daha taşınabilir (n8n ve proje
+aynı makinede olmak zorunda değil).
+
+`veri_indirme.py` BİLİNÇLİ OLARAK bu otomasyona dahil edilmedi: gerçek ERA5
+indirmesi hâlâ sadece elle, `--gercekten-indir` bayrağıyla çalışır --
+periyodik/otomatik hale getirmek, OpenSky/Copernicus'u rate-limit/ban
+riskine sokmamak için alınmış bilinçli bir güvenlik kararını bozar.
+
+### Claude Code'dan veritabanına MCP ile bağlanmak
+
+Proje kökündeki `.mcp.json`, `mcp_postgres_sunucusu.py`'yi Claude Code'a
+tanıtır (ilk kullanımda onay istenir). Sunucu salt okunur -- sadece
+`tablolari_listele`, `ucuslar_listesi`, `ucus_detayi` ve
+`salt_okunur_sorgu_calistir` (sadece tek bir SELECT, yazma ifadeleri
+reddedilir) araçlarını sunar. Bağlantı bilgileri `.mcp.json`'da DEĞİL,
+`.env`'de tutulur -- `.mcp.json` repoya güvenle commitlenebilir.
 
 ### Web arayüzü
 
@@ -66,9 +137,11 @@ python toplu_analiz.py ucuslar.csv
 ```
 
 `ucuslar.csv` en az `ucus_numarasi` ve `tarih` sütunlarını içermeli. Her uçuş
-kendi CSV/HTML çıktısını normal şekilde üretir; script ayrıca hepsinin kısa
-bir özetini (`toplu_analiz_ozeti.csv`) tek tabloda toplar. Bir uçuşta hata
-olursa diğerlerinin analizi durmaz.
+sonucunu PostgreSQL'e yazar ve kendi HTML haritasını normal şekilde üretir;
+script ayrıca hepsinin kısa bir özetini (`toplu_analiz_ozeti.csv`) tek
+tabloda toplar -- bu özet dosyası, PostgreSQL'e taşınan ham ölçüm verisinden
+farklı, sadece bu çalıştırmaya özel bir rapor olduğu için CSV olarak kalmaya
+devam ediyor. Bir uçuşta hata olursa diğerlerinin analizi durmaz.
 
 ### ERA5 verisini otomatik indirme -- ŞU AN AKTİF DEĞİL
 
@@ -109,6 +182,10 @@ değildir).
   hücreyi okuyor.
 - Proje gerçek bir uçuşla (OpenSky/Trino bağlantısı + gerçek `.nc` verisi)
   uçtan uca test edildi ve çalıştığı doğrulandı.
+- `config.EDR_OLCEKLENDIRME_KATSAYISI` kalibre edilene kadar (bkz.
+  `kalibrasyon.py`) her çalıştırmanın sonunda `main.py` "kalibre edilmedi"
+  uyarısı basar -- EDR proxy değerlerinin hâlâ keyfi bir katsayıya
+  dayandığını unutmamak için.
 
 ## Sonraki adımlar için fikirler
 
@@ -124,8 +201,14 @@ değildir).
   etmek.~~ Kısmen yapıldı: `kalibrasyon.py` bunun için bir araç sağlıyor,
   ama gerçek PIREP/AMDAR gözlem verisi bu depoda YOK -- kalibrasyonu
   çalıştırmak için kullanıcının kendi gözlem CSV'sini sağlaması gerekiyor.
-- Trino/OpenSky sorgularının başarısız senaryoları (rate limit, OAuth2
-  zaman aşımı) için yeniden deneme (retry) mantığı eklemek.
+- ~~Trino/OpenSky sorgularının başarısız senaryoları (rate limit, OAuth2
+  zaman aşımı) için yeniden deneme (retry) mantığı eklemek.~~ Yapıldı:
+  `veri_yukleme.py` artık `tenacity` ile SADECE geçici ağ/sunucu
+  hatalarında (bağlantı kopması, 502/503/504, dahili Trino hatası), üstel
+  artan aralarla (2s, 4s, 8s) ve en fazla 3 denemeyle yeniden deniyor --
+  OpenSky'yi art arda isteklerle yormamak için deneme sayısı bilerek düşük.
+  Ayrıca `toplu_analiz.py` artık uçuşlar arasına
+  `config.TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE` kadar bekleme koyuyor.
 - ~~Terminal yerine tarayıcıdan kullanılabilir basit bir arayüz.~~ Yapıldı:
   `web_arayuzu.py` (`streamlit run web_arayuzu.py`).
 - ~~Birden fazla uçuşu tek seferde analiz edebilmek.~~ Yapıldı:
@@ -137,3 +220,15 @@ değildir).
   (`veri_indirme.py`) -- rate-limit/ban riski nedeniyle gerçek indirme
   bilinçli olarak kapalı, bkz. yukarıdaki "ERA5 verisini otomatik indirme"
   bölümü.
+- ~~PostgreSQL entegrasyonu.~~ Yapıldı: `veritabani.py`, lokal CSV çıktısının
+  yerine `ucuslar`/`edr_olcumleri` tablolarına yazıyor, bkz. "PostgreSQL
+  entegrasyonu" bölümü.
+- ~~FastAPI REST API iskeleti.~~ Yapıldı: `api_servisi.py`, bkz. "FastAPI
+  servis katmanı" bölümü.
+- ~~n8n gibi bir araçla periyodik otomasyon.~~ Yapıldı (HTTP tabanlı):
+  `toplu_analiz.py` doğrudan değil, `api_servisi.py`'nin `/analiz/*` uç
+  noktaları üzerinden -- bkz. "n8n ile periyodik otomasyon" bölümü.
+  `veri_indirme.py` bilinçli olarak otomasyona dahil edilmedi.
+- ~~Claude Code'dan veritabanına MCP ile bağlanmak.~~ Yapıldı:
+  `mcp_postgres_sunucusu.py` + proje kökündeki `.mcp.json`, bkz. "Claude
+  Code'dan veritabanına MCP ile bağlanmak" bölümü.

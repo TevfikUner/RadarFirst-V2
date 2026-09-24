@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "turbulans-postgres": {
+      "type": "stdio",
+      "command": "python",
+      "args": ["${CLAUDE_PROJECT_DIR}/mcp_postgres_sunucusu.py"]
+    }
+  }
+}

@@ -6,3 +6,9 @@ folium
 trino
 python-dotenv
 streamlit
+tenacity
+sqlalchemy
+psycopg2-binary
+fastapi
+uvicorn[standard]
+mcp
