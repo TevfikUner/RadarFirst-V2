@@ -61,3 +61,29 @@ class GorevDurumYaniti(BaseModel):
     tarih: str | None = None
     aciklama: str | None = None
     ozet: list[dict] | None = None
+
+
+class EsiklerYaniti(BaseModel):
+    """harita3d.html gibi istemcilerin, config.py'deki renklendirme
+    eşiklerini Python tarafındaki değerlerle bire bir aynı tutması için."""
+
+    ti1_esik_hafif: float
+    ti1_esik_orta_siddetli: float
+
+
+class SigmetYaniti(BaseModel):
+    etiket: str | None = None
+    baslangic: str
+    bitis: str
+    poligon: list[tuple[float, float]]
+
+
+class SigmetDogrulamaYaniti(BaseModel):
+    """sigmet_dogrulama.py'nin ürettiği karşılaştırma raporu -- bkz. o
+    modülün docstring'i (SADECE ABD hava sahası için gerçek veri döner)."""
+
+    toplam_turbulans_sigmeti: int
+    orta_siddetli_nokta_sayisi: int
+    sigmetle_ortusen_nokta_sayisi: int
+    ortusme_orani: float | None = None
+    sigmetler: list[SigmetYaniti]

@@ -328,3 +328,65 @@ async def test_analiz_durumu_dahili_alani_sizdirmiyor(istemci, api_anahtari, mon
             break
         await asyncio.sleep(0.05)
     assert "_olusturulma" not in durum.json()
+
+
+# --- Eşikler, SIGMET doğrulama ve 3D harita önyüzü ---
+
+
+async def test_esikler_config_ile_ayni(istemci, api_anahtari):
+    yanit = await istemci.get("/api/v1/esikler", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 200
+    govde = yanit.json()
+    assert govde["ti1_esik_hafif"] == config.TI1_ESIK_HAFIF
+    assert govde["ti1_esik_orta_siddetli"] == config.TI1_ESIK_ORTA_SIDDETLI
+
+
+async def test_sigmet_dogrulama_olmayan_ucus_404(istemci, api_anahtari):
+    yanit = await istemci.get(
+        "/api/v1/ucuslar/YOKUCUS1/1999-01-01/sigmet-dogrulama", headers={"X-API-Key": api_anahtari}
+    )
+    assert yanit.status_code == 404
+
+
+async def test_sigmet_dogrulama_gercek_http_istegi_yapmadan_calisir(istemci, api_anahtari, monkeypatch):
+    """Gerçek IEM servisine bağlanmamak için sigmet_dogrulama sahteleniyor."""
+    sahte_sonuc = {
+        "toplam_turbulans_sigmeti": 1,
+        "orta_siddetli_nokta_sayisi": 2,
+        "sigmetle_ortusen_nokta_sayisi": 1,
+        "ortusme_orani": 0.5,
+        "sigmetler": [
+            {
+                "etiket": "TEST",
+                "baslangic": "2019-01-15T00:00:00Z",
+                "bitis": "2019-01-15T04:00:00Z",
+                "poligon": [[40.0, 30.0], [41.0, 30.0], [41.0, 31.0]],
+            }
+        ],
+    }
+    monkeypatch.setattr(api_servisi, "ucus_sigmet_ile_karsilastir", lambda df: sahte_sonuc)
+
+    df = pd.DataFrame(
+        {
+            "zaman": pd.to_datetime(["2019-01-15T01:00:00Z"]),
+            "enlem": [40.5],
+            "boylam": [30.5],
+            "ti1_indeksi": [1e-6],
+        }
+    )
+    vt.ucus_ve_olcumleri_kaydet(df, "SIGTEST1", "2019-01-15")
+    try:
+        yanit = await istemci.get(
+            "/api/v1/ucuslar/SIGTEST1/2019-01-15/sigmet-dogrulama", headers={"X-API-Key": api_anahtari}
+        )
+        assert yanit.status_code == 200
+        assert yanit.json() == sahte_sonuc
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi = 'SIGTEST1'"))
+
+
+async def test_harita3d_sayfasi_sunuluyor(istemci):
+    yanit = await istemci.get("/harita/harita3d.html")
+    assert yanit.status_code == 200
+    assert "maplibregl" in yanit.text

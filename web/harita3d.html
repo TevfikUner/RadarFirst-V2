@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Türbülans Radar — 3D Canlı Harita</title>
+<!--
+  Tek dosyalık, build aracı gerektirmeyen bir MapLibre GL JS önyüzü.
+  api_servisi.py tarafından /harita/harita3d.html olarak sunulur (bkz.
+  app.mount("/harita", ...)) -- API ile AYNI origin'de olduğu için
+  fetch()/WebSocket çağrıları CORS'a takılmaz.
+
+  MapLibre v4.7.1'e BİLEREK sabitlendi (daha yeni sürümler -- örn. 6.x --
+  UMD paketini kaldırıp sadece ES module dağıtıyor; 4.x hem klasik
+  <script> ile çalışıyor hem de "globe" projeksiyonunu (3D küre görünümü)
+  zaten destekliyor). Harita karosu (tile) kaynağı, harita.py'de daha önce
+  CartoDB'nin anahtar istemeye başlamasıyla yaşanan sorunu tekrarlamamak
+  için, YİNE anahtarsız Esri World Street Map kullanıyor.
+-->
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, sans-serif; }
+  #harita { position: absolute; inset: 0; }
+  .panel {
+    position: absolute; z-index: 5; background: rgba(20, 22, 26, 0.9); color: #eee;
+    border-radius: 8px; padding: 12px 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    font-size: 13px;
+  }
+  #kontrol-paneli { top: 12px; left: 12px; width: 260px; }
+  #kontrol-paneli input { width: 100%; box-sizing: border-box; margin: 3px 0 8px; padding: 5px 7px;
+    border-radius: 4px; border: 1px solid #444; background: #1c1e22; color: #eee; }
+  #kontrol-paneli label { font-size: 11px; color: #aaa; }
+  #kontrol-paneli button { width: 100%; padding: 7px; border-radius: 4px; border: none;
+    background: #3388ff; color: white; font-weight: 600; cursor: pointer; }
+  #kontrol-paneli button:hover { background: #2a6fd6; }
+  #durum { margin-top: 8px; font-size: 12px; line-height: 1.4; white-space: pre-wrap; }
+  #durum.hata { color: #ff8080; }
+  #durum.bilgi { color: #9fd6ff; }
+  #zaman-kontrolu { bottom: 16px; left: 12px; right: 12px; display: flex; align-items: center; gap: 10px; }
+  #zaman-kontrolu input[type=range] { flex: 1; }
+  #zaman-etiketi { min-width: 60px; text-align: center; font-variant-numeric: tabular-nums; }
+  #lejant { bottom: 70px; right: 12px; width: 230px; }
+  #lejant div { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+  #lejant .nokta { width: 12px; height: 12px; border-radius: 50%; display: inline-block; border: 1px solid #000; }
+  #uyari-toast {
+    position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 10;
+    background: #b02a2a; color: white; padding: 10px 18px; border-radius: 8px;
+    font-weight: 600; display: none; box-shadow: 0 2px 12px rgba(0,0,0,0.5);
+  }
+  a { color: #9fd6ff; }
+</style>
+</head>
+<body>
+<div id="harita"></div>
+
+<div id="kontrol-paneli" class="panel">
+  <b>✈️ Türbülans Radar</b>
+  <div style="margin-top:8px">
+    <label>Uçuş numarası</label>
+    <input id="giris-ucus" placeholder="THY1234" value="THY1234">
+    <label>Tarih (YYYY-MM-DD)</label>
+    <input id="giris-tarih" placeholder="2019-01-01" value="2019-01-01">
+    <label>API anahtarı (X-API-Key)</label>
+    <input id="giris-anahtar" type="password" placeholder="API_ANAHTARI">
+    <button id="yukle-buton">Yükle</button>
+  </div>
+  <div id="durum"></div>
+</div>
+
+<div id="lejant" class="panel">
+  <b>Ellrod TI1 İndeksi</b>
+  <div><span class="nokta" style="background:#2ecc71"></span> Sakin/Hafif altı</div>
+  <div><span class="nokta" style="background:#e67e22"></span> Hafif-Orta</div>
+  <div><span class="nokta" style="background:#e74c3c"></span> Orta-Şiddetli</div>
+  <div><span class="nokta" style="background:#95a5a6"></span> Veri yok</div>
+  <div style="margin-top:6px; border-top:1px solid #444; padding-top:6px;">
+    <span class="nokta" style="background:#ffcc00; opacity:0.5; border-radius:3px;"></span> Gerçek SIGMET alanı
+    <div style="font-size:11px; color:#999; margin-top:3px;">
+      Sadece ABD hava sahası için gerçek veri (bkz. sigmet_dogrulama.py)
+    </div>
+  </div>
+</div>
+
+<div id="zaman-kontrolu" class="panel" style="display:none;">
+  <span id="zaman-etiketi">--:--</span>
+  <input type="range" id="zaman-kaydirici" min="0" max="100" value="100">
+</div>
+
+<div id="uyari-toast"></div>
+
+<script>
+const API_TABANI = "";  // aynı origin -- göreli yollar yeterli
+
+function anahtarAl() {
+  return document.getElementById("giris-anahtar").value || localStorage.getItem("tr_api_anahtari") || "";
+}
+
+function durumGoster(mesaj, tur) {
+  const el = document.getElementById("durum");
+  el.textContent = mesaj;
+  el.className = tur || "";
+}
+
+async function apiIste(yol) {
+  const anahtar = anahtarAl();
+  const yanit = await fetch(API_TABANI + yol, { headers: { "X-API-Key": anahtar } });
+  if (!yanit.ok) {
+    let detay = yanit.statusText;
+    try { detay = (await yanit.json()).detail || detay; } catch (e) {}
+    const hata = new Error(detay);
+    hata.durumKodu = yanit.status;
+    throw hata;
+  }
+  return yanit.json();
+}
+
+function turbulansRengi(ti1, esikler) {
+  if (ti1 === null || ti1 === undefined) return "#95a5a6";
+  if (ti1 < esikler.ti1_esik_hafif) return "#2ecc71";
+  if (ti1 < esikler.ti1_esik_orta_siddetli) return "#e67e22";
+  return "#e74c3c";
+}
+
+let harita, esikler = { ti1_esik_hafif: 4e-7, ti1_esik_orta_siddetli: 8e-7 };
+let tumNoktalar = [];
+
+function haritayiHazirla() {
+  harita = new maplibregl.Map({
+    container: "harita",
+    style: {
+      version: 8,
+      sources: {
+        "esri-yol": {
+          type: "raster",
+          tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"],
+          tileSize: 256,
+          attribution: "Tiles &copy; Esri",
+        },
+      },
+      layers: [{ id: "esri-yol", type: "raster", source: "esri-yol" }],
+    },
+    center: [30, 40],
+    zoom: 4,
+    pitch: 30,
+  });
+  // "globe" projeksiyonu (3D küre) MapLibre v4+'ta var; eski/uyumsuz bir
+  // sürüm CDN'den gelirse sayfanın tamamen çökmemesi için sessizce yut.
+  try { harita.setProjection({ type: "globe" }); } catch (e) { console.warn("globe projeksiyonu kullanılamadı", e); }
+  harita.addControl(new maplibregl.NavigationControl());
+}
+
+function rotaKatmaniniGuncelle(noktalar) {
+  const cizgi = {
+    type: "Feature", geometry: { type: "LineString", coordinates: noktalar.map(n => [n.boylam, n.enlem]) },
+  };
+  const noktaKoleksiyonu = {
+    type: "FeatureCollection",
+    features: noktalar.map(n => ({
+      type: "Feature",
+      geometry: { type: "Point", coordinates: [n.boylam, n.enlem] },
+      properties: { renk: turbulansRengi(n.ti1_indeksi, esikler), zaman: n.zaman, ti1: n.ti1_indeksi },
+    })),
+  };
+
+  if (harita.getSource("rota-cizgi")) {
+    harita.getSource("rota-cizgi").setData(cizgi);
+    harita.getSource("rota-noktalari").setData(noktaKoleksiyonu);
+  } else {
+    harita.addSource("rota-cizgi", { type: "geojson", data: cizgi });
+    harita.addLayer({ id: "rota-cizgi", type: "line", source: "rota-cizgi",
+      paint: { "line-color": "#3388ff", "line-width": 2, "line-opacity": 0.6 } });
+
+    harita.addSource("rota-noktalari", { type: "geojson", data: noktaKoleksiyonu });
+    harita.addLayer({ id: "rota-noktalari", type: "circle", source: "rota-noktalari",
+      paint: {
+        "circle-radius": 6, "circle-color": ["get", "renk"],
+        "circle-stroke-width": 1, "circle-stroke-color": "#000",
+      } });
+
+    harita.on("click", "rota-noktalari", (e) => {
+      const p = e.features[0].properties;
+      const ti1Metni = p.ti1 !== null ? Number(p.ti1).toExponential(2) + " s^-2" : "veri yok";
+      new maplibregl.Popup().setLngLat(e.lngLat)
+        .setHTML(`<b>Saat:</b> ${new Date(p.zaman).toISOString().slice(11,16)}<br><b>TI1:</b> ${ti1Metni}`)
+        .addTo(harita);
+    });
+  }
+
+  if (noktalar.length) {
+    const enlemler = noktalar.map(n => n.enlem), boylamlar = noktalar.map(n => n.boylam);
+    harita.fitBounds([[Math.min(...boylamlar), Math.min(...enlemler)], [Math.max(...boylamlar), Math.max(...enlemler)]],
+      { padding: 60, maxZoom: 8 });
+  }
+}
+
+function sigmetKatmaniniGuncelle(sigmetler) {
+  const koleksiyon = {
+    type: "FeatureCollection",
+    features: sigmetler.map(s => ({
+      type: "Feature",
+      geometry: { type: "Polygon", coordinates: [s.poligon.map(([lat, lon]) => [lon, lat]).concat([[s.poligon[0][1], s.poligon[0][0]]])] },
+      properties: { etiket: s.etiket },
+    })),
+  };
+  if (harita.getSource("sigmetler")) {
+    harita.getSource("sigmetler").setData(koleksiyon);
+  } else {
+    harita.addSource("sigmetler", { type: "geojson", data: koleksiyon });
+    harita.addLayer({ id: "sigmetler-dolgu", type: "fill", source: "sigmetler",
+      paint: { "fill-color": "#ffcc00", "fill-opacity": 0.25 } });
+    harita.addLayer({ id: "sigmetler-cizgi", type: "line", source: "sigmetler",
+      paint: { "line-color": "#ffcc00", "line-width": 2 } });
+  }
+}
+
+function zamanKaydiricisiniHazirla(noktalar) {
+  const kontrolDiv = document.getElementById("zaman-kontrolu");
+  const kaydirici = document.getElementById("zaman-kaydirici");
+  const etiket = document.getElementById("zaman-etiketi");
+  if (!noktalar.length) { kontrolDiv.style.display = "none"; return; }
+
+  kontrolDiv.style.display = "flex";
+  kaydirici.min = 0; kaydirici.max = noktalar.length - 1; kaydirici.value = noktalar.length - 1;
+
+  const guncelle = () => {
+    const i = Number(kaydirici.value);
+    etiket.textContent = new Date(noktalar[i].zaman).toISOString().slice(11, 16);
+    rotaKatmaniniGuncelle(noktalar.slice(0, i + 1));
+  };
+  kaydirici.oninput = guncelle;
+  guncelle();
+}
+
+async function ucusuYukle() {
+  const ucus = document.getElementById("giris-ucus").value.trim();
+  const tarih = document.getElementById("giris-tarih").value.trim();
+  const anahtar = anahtarAl();
+  if (!ucus || !tarih || !anahtar) {
+    durumGoster("Uçuş numarası, tarih ve API anahtarı gerekli.", "hata");
+    return;
+  }
+  localStorage.setItem("tr_api_anahtari", anahtar);
+
+  durumGoster("Yükleniyor...", "bilgi");
+  try {
+    esikler = await apiIste("/api/v1/esikler");
+    const detay = await apiIste(`/api/v1/ucuslar/${encodeURIComponent(ucus)}/${tarih}?olcum_limit=5000`);
+    tumNoktalar = detay.olcumler;
+    rotaKatmaniniGuncelle(tumNoktalar);
+    zamanKaydiricisiniHazirla(tumNoktalar);
+    durumGoster(`${detay.toplam_olcum_sayisi} nokta yüklendi.`, "bilgi");
+
+    try {
+      const sigmet = await apiIste(`/api/v1/ucuslar/${encodeURIComponent(ucus)}/${tarih}/sigmet-dogrulama`);
+      sigmetKatmaniniGuncelle(sigmet.sigmetler);
+      if (sigmet.toplam_turbulans_sigmeti === 0) {
+        durumGoster(durumEl().textContent + "\nSIGMET: bu bölge/tarih için ABD arşivinde kayıt yok (beklenen bir durum, bkz. sigmet_dogrulama.py).", "bilgi");
+      } else {
+        durumGoster(durumEl().textContent + `\nSIGMET: ${sigmet.toplam_turbulans_sigmeti} türbülans uyarısı, ${sigmet.sigmetle_ortusen_nokta_sayisi}/${sigmet.orta_siddetli_nokta_sayisi} nokta örtüşüyor.`, "bilgi");
+      }
+    } catch (e) {
+      console.warn("SIGMET doğrulaması alınamadı", e);
+    }
+  } catch (e) {
+    if (e.durumKodu === 401) durumGoster("API anahtarı geçersiz.", "hata");
+    else if (e.durumKodu === 404) durumGoster("Uçuş bulunamadı. Önce POST /api/v1/analiz/ucus ile analiz tetikle.", "hata");
+    else durumGoster("Hata: " + e.message, "hata");
+  }
+}
+
+function durumEl() { return document.getElementById("durum"); }
+
+function canliUyarilariDinle() {
+  const anahtar = anahtarAl();
+  if (!anahtar) return;
+  const protokol = location.protocol === "https:" ? "wss:" : "ws:";
+  const ws = new WebSocket(`${protokol}//${location.host}/ws/uyarilar?api_key=${encodeURIComponent(anahtar)}`);
+  ws.onmessage = (olay) => {
+    const veri = JSON.parse(olay.data);
+    if (veri.tip !== "turbulans_uyarisi") return;
+    const toast = document.getElementById("uyari-toast");
+    toast.textContent = `🚨 ${veri.ucus_numarasi} (${veri.tarih}): ${veri.orta_siddetli_nokta_sayisi} orta-şiddetli nokta, maks TI1 ${Number(veri.maks_ti1).toExponential(2)}`;
+    toast.style.display = "block";
+    setTimeout(() => { toast.style.display = "none"; }, 8000);
+  };
+  ws.onerror = () => console.warn("Canlı uyarı WebSocket bağlantısı kurulamadı.");
+}
+
+document.getElementById("giris-anahtar").value = localStorage.getItem("tr_api_anahtari") || "";
+document.getElementById("yukle-buton").addEventListener("click", () => { ucusuYukle(); canliUyarilariDinle(); });
+haritayiHazirla();
+</script>
+</body>
+</html>
