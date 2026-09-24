@@ -1,0 +1,29 @@
+[tool.ruff]
+line-length = 120
+target-version = "py312"
+exclude = ["migrations/versions"]
+
+[tool.ruff.lint]
+# Bilinçli olarak dar bir kural seti: gerçek hataları (F: pyflakes -- kullanılmayan
+# import/değişken, tanımsız isim vb.) ve temel stil sorunlarını (E/W: pycodestyle)
+# yakalar. Docstring/tip-ipucu zorunluluğu gibi daha ağır kural setleri (D, ANN)
+# bilinçli olarak açılmadı -- bu proje Türkçe, açıklayıcı docstring'lere zaten
+# önem veriyor ama bunu bir linter kuralıyla zorunlu kılmak gereksiz sürtünme
+# yaratır.
+select = ["E", "F", "W", "I"]
+ignore = [
+    "E501",  # satır uzunluğu: line-length zaten 120, bazı SQL/HTML şablon
+             # string'leri bunu aşabiliyor -- otomatik hata yerine elle karar.
+    "E402",  # Windows konsolunun Türkçe/özel karakterlerde çökmesini önlemek
+             # için birçok CLI script'i BİLEREK `konsolu_utf8_yap()`'i diğer
+             # importlardan (özellikle print() üretebilecek olanlardan) önce
+             # çağırıyor (bkz. konsol_kurulumu.py) -- bu, importları dosya
+             # başına taşımaktan daha önemli, kasıtlı bir tasarım kararı.
+]
+
+[tool.ruff.lint.isort]
+known-first-party = [
+    "config", "veri_yukleme", "eslestirme", "harita", "hata_yardimcisi",
+    "kimlik_dogrulama", "turbulans_indeksleri", "veritabani", "models",
+    "birim_donusumleri", "konsol_kurulumu", "loglama",
+]

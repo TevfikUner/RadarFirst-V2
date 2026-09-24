@@ -41,21 +41,25 @@ import xarray as xr
 
 import config
 from birim_donusumleri import (
-    irtifa_metre_to_basinc_hpa,
     basinc_hpa_to_irtifa_metre,
+    irtifa_metre_to_basinc_hpa,
 )
 from turbulans_indeksleri import (
-    yatay_deformasyon_hesapla,
+    DINAMIK_KARARSIZLIK_ESIGI,
     dusey_ruzgar_kaymasi_hesapla,
-    ti1_indeksi_hesapla,
-    ti1_den_edr_proxy_olcegine_cevir,
     potansiyel_sicaklik_hesapla,
     richardson_sayisi_hesapla,
-    DINAMIK_KARARSIZLIK_ESIGI,
+    ti1_den_edr_proxy_olcegine_cevir,
+    ti1_indeksi_hesapla,
+    yatay_deformasyon_hesapla,
 )
 
 _SONUC_SUTUNLARI = [
-    "basinc_hpa", "ti1_indeksi", "edr_proxy", "richardson_sayisi", "dinamik_kararsizlik",
+    "basinc_hpa",
+    "ti1_indeksi",
+    "edr_proxy",
+    "richardson_sayisi",
+    "dinamik_kararsizlik",
 ]
 
 
@@ -73,8 +77,9 @@ def _zamanlari_veri_kupune_uydur(zaman_serisi):
     return zaman_serisi
 
 
-def _kapsam_disi_maskesi_hesapla(veri_kupu, enlemler, boylamlar, zaman_uyumlu_dizisi,
-                                  tolerans_derece=1.0, tolerans_zaman=pd.Timedelta(hours=3)):
+def _kapsam_disi_maskesi_hesapla(
+    veri_kupu, enlemler, boylamlar, zaman_uyumlu_dizisi, tolerans_derece=1.0, tolerans_zaman=pd.Timedelta(hours=3)
+):
     """
     Her noktanın veri küpünün GERÇEKTEN kapsadığı enlem/boylam/zaman
     aralığında olup olmadığını vektörel olarak kontrol eder. xarray'in
@@ -87,16 +92,17 @@ def _kapsam_disi_maskesi_hesapla(veri_kupu, enlemler, boylamlar, zaman_uyumlu_di
     lon_min, lon_maks = float(veri_kupu["longitude"].min()), float(veri_kupu["longitude"].max())
 
     kapsam_disi = (
-        (enlemler < lat_min - tolerans_derece) | (enlemler > lat_maks + tolerans_derece)
-        | (boylamlar < lon_min - tolerans_derece) | (boylamlar > lon_maks + tolerans_derece)
+        (enlemler < lat_min - tolerans_derece)
+        | (enlemler > lat_maks + tolerans_derece)
+        | (boylamlar < lon_min - tolerans_derece)
+        | (boylamlar > lon_maks + tolerans_derece)
     )
 
     if "valid_time" in veri_kupu.dims:
         zaman_min = pd.Timestamp(veri_kupu["valid_time"].min().values)
         zaman_maks = pd.Timestamp(veri_kupu["valid_time"].max().values)
-        zaman_disi = (
-            (zaman_uyumlu_dizisi < zaman_min - tolerans_zaman)
-            | (zaman_uyumlu_dizisi > zaman_maks + tolerans_zaman)
+        zaman_disi = (zaman_uyumlu_dizisi < zaman_min - tolerans_zaman) | (
+            zaman_uyumlu_dizisi > zaman_maks + tolerans_zaman
         )
         kapsam_disi = kapsam_disi | zaman_disi.to_numpy()
 
@@ -129,13 +135,15 @@ def _deformasyon_degerlerini_hesapla(veri_kupu, seviyeler, zaman_serisi, enlemle
     """
     zaman_izgaraya_yuvarlanmis = _zamanlari_veri_kupu_izgarasina_yuvarla(veri_kupu, zaman_serisi)
 
-    anahtar_df = pd.DataFrame({
-        "seviye": seviyeler,
-        "zaman": zaman_izgaraya_yuvarlanmis,
-        "enlem": enlemler,
-        "boylam": boylamlar,
-        "sira": np.arange(len(seviyeler)),
-    })
+    anahtar_df = pd.DataFrame(
+        {
+            "seviye": seviyeler,
+            "zaman": zaman_izgaraya_yuvarlanmis,
+            "enlem": enlemler,
+            "boylam": boylamlar,
+            "sira": np.arange(len(seviyeler)),
+        }
+    )
 
     sonuc = np.full(len(seviyeler), np.nan)
     for (seviye, zaman), grup in anahtar_df.groupby(["seviye", "zaman"]):
@@ -167,16 +175,13 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
     basinc_seviyeleri_sirali = np.sort(veri_kupu[config.BASINC_BOYUTU].values)
     if len(basinc_seviyeleri_sirali) < 2:
         raise ValueError(
-            "Veri küpünde en az 2 basınç seviyesi olmalı, düşey rüzgar kayması "
-            "(ve Richardson sayısı) hesaplanamaz."
+            "Veri küpünde en az 2 basınç seviyesi olmalı, düşey rüzgar kayması (ve Richardson sayısı) hesaplanamaz."
         )
 
     n = len(rota_df)
     basinc_hpa = irtifa_metre_to_basinc_hpa(rota_df["geo_irtifa_m"].to_numpy(dtype=float))
 
-    en_yakin_indeksleri = np.abs(
-        basinc_seviyeleri_sirali[None, :] - basinc_hpa[:, None]
-    ).argmin(axis=1)
+    en_yakin_indeksleri = np.abs(basinc_seviyeleri_sirali[None, :] - basinc_hpa[:, None]).argmin(axis=1)
     alt_indeksleri = np.maximum(en_yakin_indeksleri - 1, 0)
     ust_indeksleri = np.minimum(en_yakin_indeksleri + 1, len(basinc_seviyeleri_sirali) - 1)
 
@@ -219,13 +224,13 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
     dilim_alt = _seviye_dilimi_sec(alt_seviyeler)
     dilim_ust = _seviye_dilimi_sec(ust_seviyeler)
 
-    yukseklik_farki_m = (
-        basinc_hpa_to_irtifa_metre(ust_seviyeler) - basinc_hpa_to_irtifa_metre(alt_seviyeler)
-    )
+    yukseklik_farki_m = basinc_hpa_to_irtifa_metre(ust_seviyeler) - basinc_hpa_to_irtifa_metre(alt_seviyeler)
 
     vws = dusey_ruzgar_kaymasi_hesapla(
-        u_ust=dilim_ust["u"].values, v_ust=dilim_ust["v"].values,
-        u_alt=dilim_alt["u"].values, v_alt=dilim_alt["v"].values,
+        u_ust=dilim_ust["u"].values,
+        v_ust=dilim_ust["v"].values,
+        u_alt=dilim_alt["u"].values,
+        v_alt=dilim_alt["v"].values,
         yukseklik_farki_m=yukseklik_farki_m,
     )
 
@@ -234,14 +239,17 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
     )
 
     ti1 = ti1_indeksi_hesapla(vws, deformasyon)
-    edr_proxy = ti1_den_edr_proxy_olcegine_cevir(ti1)
+    edr_proxy = ti1_den_edr_proxy_olcegine_cevir(ti1, config.EDR_OLCEKLENDIRME_KATSAYISI)
 
     theta_ust = potansiyel_sicaklik_hesapla(dilim_ust["t"].values, ust_seviyeler)
     theta_alt = potansiyel_sicaklik_hesapla(dilim_alt["t"].values, alt_seviyeler)
     richardson = richardson_sayisi_hesapla(
-        theta_ust, theta_alt,
-        u_ust=dilim_ust["u"].values, v_ust=dilim_ust["v"].values,
-        u_alt=dilim_alt["u"].values, v_alt=dilim_alt["v"].values,
+        theta_ust,
+        theta_alt,
+        u_ust=dilim_ust["u"].values,
+        v_ust=dilim_ust["v"].values,
+        u_alt=dilim_alt["u"].values,
+        v_alt=dilim_alt["v"].values,
         yukseklik_farki_m=yukseklik_farki_m,
     )
     dinamik_kararsizlik = richardson < DINAMIK_KARARSIZLIK_ESIGI
@@ -252,12 +260,15 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
     dinamik_kararsizlik = dinamik_kararsizlik.astype(object)
     dinamik_kararsizlik[kapsam_disi] = None
 
-    eslesme_df = pd.DataFrame({
-        "basinc_hpa": basinc_hpa_sonuc,
-        "ti1_indeksi": ti1,
-        "edr_proxy": edr_proxy,
-        "richardson_sayisi": richardson,
-        "dinamik_kararsizlik": dinamik_kararsizlik,
-    }, index=rota_df.index)
+    eslesme_df = pd.DataFrame(
+        {
+            "basinc_hpa": basinc_hpa_sonuc,
+            "ti1_indeksi": ti1,
+            "edr_proxy": edr_proxy,
+            "richardson_sayisi": richardson,
+            "dinamik_kararsizlik": dinamik_kararsizlik,
+        },
+        index=rota_df.index,
+    )
 
     return pd.concat([rota_df, eslesme_df], axis=1)

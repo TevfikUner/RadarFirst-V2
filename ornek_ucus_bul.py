@@ -1,17 +1,17 @@
 """
 ornek_ucus_bul.py
 -------------------
-Ocak 2019'dan GERÇEK, veritabaninda kayitli callsign'lar cekip listeler.
-Bu sayede main.py'yi calistirmak icin "havada olsun mu olmasin mi" diye
-tahmin etmene gerek kalmiyor -- zaten OpenSky'da kaydi olan bir ucusu
-seciyorsun.
+Ocak 2019'dan GERÇEK, veritabanında kayıtlı callsign'lar çekip listeler.
+Bu sayede main.py'yi çalıştırmak için "havada olsun mu olmasın mı" diye
+tahmin etmene gerek kalmıyor -- zaten OpenSky'da kaydı olan bir uçuşu
+seçiyorsun.
 
-Kullanim:
-    python ornek_ucus_bul.py                # varsayilan: 2019-01-15
-    python ornek_ucus_bul.py 2019-01-03      # farkli bir gun
-    python ornek_ucus_bul.py 2019-01-15 THY  # sadece belirli bir onekle
-                                                baslayan callsign'lar (örn.
-                                                Turkish Airlines icin "THY")
+Kullanım:
+    python ornek_ucus_bul.py                # varsayılan: 2019-01-15
+    python ornek_ucus_bul.py 2019-01-03      # farklı bir gün
+    python ornek_ucus_bul.py 2019-01-15 THY  # sadece belirli bir önekle
+                                                başlayan callsign'lar (örn.
+                                                Turkish Airlines için "THY")
 """
 
 import argparse
@@ -22,41 +22,48 @@ konsolu_utf8_yap()
 
 import pandas as pd
 
-from veri_yukleme import trino_baglantisi_olustur, _sorgu_calistir
+from veri_yukleme import _sorgu_calistir, trino_baglantisi_olustur
 
 
 def ornek_ucuslari_getir(tarih_str="2019-01-15", onek=None, adet=20):
     gun_baslangic_ts = int(pd.Timestamp(tarih_str, tz="UTC").timestamp())
 
-    onek_filtresi = ""
+    # NOT: onek/adet kullanıcı girdisi f-string ile SQL'e gömülmüyor --
+    # SQL enjeksiyonuna karşı '?' yer tutucuları + parametre listesi
+    # kullanılıyor (bkz. veri_yukleme._sorgu_calistir). LIMIT, adet tam
+    # sayıya çevrilip (int(adet)) doğrulandıktan sonra yazılıyor.
+    onek_filtresi = "AND TRIM(callsign) LIKE ?" if onek else ""
+    parametreler = [gun_baslangic_ts]
     if onek:
-        onek_filtresi = f"AND TRIM(callsign) LIKE '{onek.upper()}%'"
+        parametreler.append(f"{onek.upper()}%")
 
     sorgu = f"""
     SELECT DISTINCT TRIM(callsign) AS callsign, icao24,
            estdepartureairport, estarrivalairport
     FROM flights_data4
-    WHERE day = {gun_baslangic_ts}
+    WHERE day = ?
     AND callsign IS NOT NULL AND TRIM(callsign) != ''
     {onek_filtresi}
-    LIMIT {adet}
+    LIMIT {int(adet)}
     """
     sutunlar = ["callsign", "icao24", "kalkis", "varis"]
 
     print(f"[Bilgi] {tarih_str} tarihi için Trino'ya bağlanılıyor (OAuth2 tarayıcı girişi gerekebilir)...")
     baglanti = trino_baglantisi_olustur()
-    df = _sorgu_calistir(baglanti, sorgu, sutunlar)
+    df = _sorgu_calistir(baglanti, sorgu, sutunlar, parametreler)
     return df
 
 
 def _argumanlari_ayristir(argv=None):
     ayristirici = argparse.ArgumentParser(
         description="Ocak 2019'dan gerçek, OpenSky'da kayıtlı callsign'lar çekip listeler "
-                     "(main.py'yi çalıştırmak için hangi uçuşun mevcut olduğunu tahmin etmene gerek kalmaz).",
+        "(main.py'yi çalıştırmak için hangi uçuşun mevcut olduğunu tahmin etmene gerek kalmaz).",
     )
     ayristirici.add_argument("tarih", nargs="?", default="2019-01-15", help="YYYY-MM-DD (varsayılan: 2019-01-15)")
     ayristirici.add_argument(
-        "onek", nargs="?", default=None,
+        "onek",
+        nargs="?",
+        default=None,
         help="Yalnızca bu önekle başlayan callsign'lar, örn. THY (Turkish Airlines)",
     )
     ayristirici.add_argument("--adet", type=int, default=20, help="Kaç sonuç listelenecek (varsayılan: 20)")

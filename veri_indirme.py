@@ -31,8 +31,8 @@ from konsol_kurulumu import konsolu_utf8_yap
 konsolu_utf8_yap()
 
 # --- Güvenlik sınırları -- bunları büyütmeden önce iki kere düşün ---
-MAKS_ENLEM_BOYLAM_ARALIGI_DERECE = 10.0   # bölge en fazla 10x10 derece olabilir
-MAKS_GUN_SAYISI = 3                        # tek istekte en fazla 3 gün
+MAKS_ENLEM_BOYLAM_ARALIGI_DERECE = 10.0  # bölge en fazla 10x10 derece olabilir
+MAKS_GUN_SAYISI = 3  # tek istekte en fazla 3 gün
 MAKS_BASINC_SEVIYESI_SAYISI = 5
 
 VARSAYILAN_BASINC_SEVIYELERI = [300, 250, 200]  # hPa
@@ -40,12 +40,13 @@ VARSAYILAN_BASINC_SEVIYELERI = [300, 250, 200]  # hPa
 
 class IstekSinirAsimiHatasi(Exception):
     """İstenen indirme, güvenlik sınırlarının dışında olduğu için reddedildi."""
+
     pass
 
 
-def istek_boyutunu_dogrula(enlem_min, enlem_maks, boylam_min, boylam_maks,
-                            baslangic_tarih: date, bitis_tarih: date,
-                            basinc_seviyeleri=None):
+def istek_boyutunu_dogrula(
+    enlem_min, enlem_maks, boylam_min, boylam_maks, baslangic_tarih: date, bitis_tarih: date, basinc_seviyeleri=None
+):
     """
     İstenen bölge/tarih/basınç seviyesi kombinasyonunun sabit güvenlik
     sınırları içinde olup olmadığını kontrol eder. Sınır aşılırsa
@@ -87,8 +88,9 @@ def istek_boyutunu_dogrula(enlem_min, enlem_maks, boylam_min, boylam_maks,
         )
 
 
-def _cds_istegini_olustur(enlem_min, enlem_maks, boylam_min, boylam_maks,
-                           baslangic_tarih, bitis_tarih, basinc_seviyeleri):
+def _cds_istegini_olustur(
+    enlem_min, enlem_maks, boylam_min, boylam_maks, baslangic_tarih, bitis_tarih, basinc_seviyeleri
+):
     """Copernicus CDS API'sinin beklediği istek sözlüğünü hazırlar (gönderilmez)."""
     gunler = []
     gun = baslangic_tarih
@@ -107,10 +109,17 @@ def _cds_istegini_olustur(enlem_min, enlem_maks, boylam_min, boylam_maks,
     }
 
 
-def era5_veri_indir(enlem_min, enlem_maks, boylam_min, boylam_maks,
-                     baslangic_tarih: date, bitis_tarih: date,
-                     basinc_seviyeleri=None, cikti_dosyasi="indirilen_veri.nc",
-                     gercekten_indir=False):
+def era5_veri_indir(
+    enlem_min,
+    enlem_maks,
+    boylam_min,
+    boylam_maks,
+    baslangic_tarih: date,
+    bitis_tarih: date,
+    basinc_seviyeleri=None,
+    cikti_dosyasi="indirilen_veri.nc",
+    gercekten_indir=False,
+):
     """
     ERA5 hava durumu verisini indirmek için tek giriş noktası.
 
@@ -123,20 +132,22 @@ def era5_veri_indir(enlem_min, enlem_maks, boylam_min, boylam_maks,
         proje tarafından otomatik olarak ÇAĞRILMAZ -- yalnızca kullanıcının
         açıkça bu bayrağı vermesiyle çalışır.
     """
-    istek_boyutunu_dogrula(enlem_min, enlem_maks, boylam_min, boylam_maks,
-                            baslangic_tarih, bitis_tarih, basinc_seviyeleri)
+    istek_boyutunu_dogrula(
+        enlem_min, enlem_maks, boylam_min, boylam_maks, baslangic_tarih, bitis_tarih, basinc_seviyeleri
+    )
 
     basinc_seviyeleri = basinc_seviyeleri or VARSAYILAN_BASINC_SEVIYELERI
-    istek = _cds_istegini_olustur(enlem_min, enlem_maks, boylam_min, boylam_maks,
-                                   baslangic_tarih, bitis_tarih, basinc_seviyeleri)
+    istek = _cds_istegini_olustur(
+        enlem_min, enlem_maks, boylam_min, boylam_maks, baslangic_tarih, bitis_tarih, basinc_seviyeleri
+    )
 
     if not gercekten_indir:
         print("[Kuru deneme] Aşağıdaki istek güvenlik sınırlarını GEÇTİ ama GÖNDERİLMEDİ:")
         for anahtar, deger in istek.items():
             print(f"  {anahtar}: {deger}")
         print(
-            f"\nGerçekten indirmek için era5_veri_indir(..., gercekten_indir=True) çağır "
-            f"(cdsapi kurulu ve ~/.cdsapirc ayarlı olmalı)."
+            "\nGerçekten indirmek için era5_veri_indir(..., gercekten_indir=True) çağır "
+            "(cdsapi kurulu ve ~/.cdsapirc ayarlı olmalı)."
         )
         return None
 
@@ -160,7 +171,7 @@ def _tarih_ayristir(metin):
 def _argumanlari_ayristir(argv=None):
     ayristirici = argparse.ArgumentParser(
         description="ERA5 hava durumu verisi indirme altyapısı. VARSAYILAN OLARAK sadece kuru deneme yapar, "
-                     "Copernicus'a hiçbir şey göndermez.",
+        "Copernicus'a hiçbir şey göndermez.",
     )
     ayristirici.add_argument("enlem_min", type=float)
     ayristirici.add_argument("enlem_maks", type=float)
@@ -170,7 +181,8 @@ def _argumanlari_ayristir(argv=None):
     ayristirici.add_argument("bitis_tarih", type=_tarih_ayristir, help="YYYY-MM-DD")
     ayristirici.add_argument("--cikti", default="indirilen_veri.nc")
     ayristirici.add_argument(
-        "--gercekten-indir", action="store_true",
+        "--gercekten-indir",
+        action="store_true",
         help="Verilmezse SADECE kuru deneme yapılır. Verilirse ve sınırlar içindeyse GERÇEK indirme başlar.",
     )
     return ayristirici.parse_args(argv)
@@ -180,9 +192,12 @@ if __name__ == "__main__":
     argumanlar = _argumanlari_ayristir()
     try:
         era5_veri_indir(
-            argumanlar.enlem_min, argumanlar.enlem_maks,
-            argumanlar.boylam_min, argumanlar.boylam_maks,
-            argumanlar.baslangic_tarih, argumanlar.bitis_tarih,
+            argumanlar.enlem_min,
+            argumanlar.enlem_maks,
+            argumanlar.boylam_min,
+            argumanlar.boylam_maks,
+            argumanlar.baslangic_tarih,
+            argumanlar.bitis_tarih,
             cikti_dosyasi=argumanlar.cikti,
             gercekten_indir=argumanlar.gercekten_indir,
         )
