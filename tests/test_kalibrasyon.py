@@ -17,11 +17,13 @@ def test_bilinen_katsayidan_uretilen_veride_ayni_katsayiyi_bulur():
 
 def test_bos_girdi_hata_verir():
     import pytest
+
     with pytest.raises(ValueError):
         katsayi_kalibre_et([], [])
 
 
 def test_uzunluk_uyusmazligi_hata_verir():
     import pytest
+
     with pytest.raises(ValueError):
         katsayi_kalibre_et([1e-7, 2e-7], [0.1])

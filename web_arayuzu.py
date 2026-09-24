@@ -54,7 +54,9 @@ if gonder:
         eslesmis_df = None
         hata = None
 
-        with st.spinner("Analiz ediliyor -- OpenSky'a bağlanılıyor ve hava durumuyla eşleştiriliyor, biraz sürebilir..."):
+        with st.spinner(
+            "Analiz ediliyor -- OpenSky'a bağlanılıyor ve hava durumuyla eşleştiriliyor, biraz sürebilir..."
+        ):
             try:
                 with contextlib.redirect_stdout(gunluk):
                     eslesmis_df = calistir(ucus_numarasi.strip(), tarih.strip())

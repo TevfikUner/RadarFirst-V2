@@ -24,7 +24,7 @@ import re
 from mcp.server.mcpserver import MCPServer
 from sqlalchemy import text
 
-from veritabani import motor_al, ucuslari_listele, ucus_detayini_getir
+from veritabani import motor_al, ucus_detayini_getir, ucuslari_listele
 
 sunucu = MCPServer("turbulans-postgres")
 

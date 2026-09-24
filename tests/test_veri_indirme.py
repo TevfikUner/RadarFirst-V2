@@ -3,11 +3,11 @@ from datetime import date
 import pytest
 
 from veri_indirme import (
-    istek_boyutunu_dogrula,
-    era5_veri_indir,
-    IstekSinirAsimiHatasi,
     MAKS_ENLEM_BOYLAM_ARALIGI_DERECE,
     MAKS_GUN_SAYISI,
+    IstekSinirAsimiHatasi,
+    era5_veri_indir,
+    istek_boyutunu_dogrula,
 )
 
 
@@ -18,14 +18,16 @@ def test_sinirlar_icindeki_istek_kabul_edilir():
 
 def test_cok_genis_enlem_araligi_reddedilir():
     with pytest.raises(IstekSinirAsimiHatasi):
-        istek_boyutunu_dogrula(0.0, MAKS_ENLEM_BOYLAM_ARALIGI_DERECE + 5, 26.0, 30.0,
-                                date(2019, 1, 1), date(2019, 1, 1))
+        istek_boyutunu_dogrula(
+            0.0, MAKS_ENLEM_BOYLAM_ARALIGI_DERECE + 5, 26.0, 30.0, date(2019, 1, 1), date(2019, 1, 1)
+        )
 
 
 def test_cok_genis_boylam_araligi_reddedilir():
     with pytest.raises(IstekSinirAsimiHatasi):
-        istek_boyutunu_dogrula(36.0, 40.0, 0.0, MAKS_ENLEM_BOYLAM_ARALIGI_DERECE + 5,
-                                date(2019, 1, 1), date(2019, 1, 1))
+        istek_boyutunu_dogrula(
+            36.0, 40.0, 0.0, MAKS_ENLEM_BOYLAM_ARALIGI_DERECE + 5, date(2019, 1, 1), date(2019, 1, 1)
+        )
 
 
 def test_tum_turkiye_gibi_asiri_genis_bolge_reddedilir():
@@ -36,8 +38,7 @@ def test_tum_turkiye_gibi_asiri_genis_bolge_reddedilir():
 
 def test_cok_uzun_tarih_araligi_reddedilir():
     with pytest.raises(IstekSinirAsimiHatasi):
-        istek_boyutunu_dogrula(36.0, 40.0, 26.0, 30.0,
-                                date(2019, 1, 1), date(2019, 1, 1 + MAKS_GUN_SAYISI + 5))
+        istek_boyutunu_dogrula(36.0, 40.0, 26.0, 30.0, date(2019, 1, 1), date(2019, 1, 1 + MAKS_GUN_SAYISI + 5))
 
 
 def test_bir_yillik_veri_reddedilir():

@@ -14,7 +14,8 @@ PIREP/AMDAR verisini (örn. Iowa Environmental Mesonet PIREP arşivi) rota ve
 zaman bazında CSV'deki TI1 değerleriyle eşleştirmen gerekiyor.
 
 Beklenen girdi CSV formatı (en az şu iki sütun):
-    ti1_indeksi   -- main.py'nin ürettiği eslesme_sonuclari_*.csv'den
+    ti1_indeksi   -- main.py'nin PostgreSQL'e yazdığı edr_olcumleri
+                      tablosundan (bkz. veri_kontrol.py, veritabani.py)
     pirep_edr     -- aynı nokta/zaman için gözlemlenen türbülans şiddeti,
                       0 (sakin) ile 1 (şiddetli) arasında normalize edilmiş
 
@@ -67,14 +68,18 @@ def katsayi_kalibre_et(ti1_degerleri, pirep_edr_degerleri, arama_araligi=(0.01, 
 def _argumanlari_ayristir(argv=None):
     ayristirici = argparse.ArgumentParser(
         description="Gerçek PIREP/AMDAR gözlemleriyle TI1->EDR proxy ölçeklendirme katsayısını kalibre eder. "
-                     "Bu depoda gerçek gözlem verisi YOKTUR -- kendi eşleştirdiğin CSV'yi vermen gerekir.",
+        "Bu depoda gerçek gözlem verisi YOKTUR -- kendi eşleştirdiğin CSV'yi vermen gerekir.",
     )
     ayristirici.add_argument(
         "gozlem_csv",
         help="En az 'ti1_indeksi' ve 'pirep_edr' (0-1 arası) sütunlarını içeren CSV dosyası",
     )
     ayristirici.add_argument(
-        "--arama-araligi", type=float, nargs=2, default=(0.01, 20.0), metavar=("MIN", "MAKS"),
+        "--arama-araligi",
+        type=float,
+        nargs=2,
+        default=(0.01, 20.0),
+        metavar=("MIN", "MAKS"),
         help="Katsayı için taranacak aralık (varsayılan: 0.01 20.0)",
     )
     return ayristirici.parse_args(argv)
@@ -96,7 +101,8 @@ if __name__ == "__main__":
         raise SystemExit("[Hata] Geçerli (NaN olmayan) satır kalmadı.")
 
     katsayi, hata = katsayi_kalibre_et(
-        df["ti1_indeksi"].to_numpy(), df["pirep_edr"].to_numpy(),
+        df["ti1_indeksi"].to_numpy(),
+        df["pirep_edr"].to_numpy(),
         arama_araligi=tuple(argumanlar.arama_araligi),
     )
 

@@ -21,6 +21,7 @@ import os
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     # python-dotenv kurulu değilse, sistem ortam değişkenlerine güveniriz.
@@ -29,6 +30,7 @@ except ImportError:
 
 class KimlikBilgisiEksikHatasi(Exception):
     """Kimlik bilgileri bulunamadığında veya eksik girildiğinde fırlatılacak özel hata sınıfı."""
+
     pass
 
 

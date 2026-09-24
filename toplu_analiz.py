@@ -59,36 +59,53 @@ def toplu_analiz_calistir(ucus_listesi_df: pd.DataFrame) -> pd.DataFrame:
             eslesmis_df = calistir(ucus_no, tarih)
         except Exception as hata:
             print(f"[Hata] {dostane_hata_mesaji(hata)}")
-            sonuclar.append({
-                "ucus_numarasi": ucus_no, "tarih": tarih, "durum": "hata",
-                "aciklama": dostane_hata_mesaji(hata),
-                "nokta_sayisi": None, "eslesen_nokta_sayisi": None,
-                "ti1_ortalama": None, "dinamik_kararsizlik_sayisi": None,
-            })
+            sonuclar.append(
+                {
+                    "ucus_numarasi": ucus_no,
+                    "tarih": tarih,
+                    "durum": "hata",
+                    "aciklama": dostane_hata_mesaji(hata),
+                    "nokta_sayisi": None,
+                    "eslesen_nokta_sayisi": None,
+                    "ti1_ortalama": None,
+                    "dinamik_kararsizlik_sayisi": None,
+                }
+            )
             continue
 
         if eslesmis_df is None:
-            sonuclar.append({
-                "ucus_numarasi": ucus_no, "tarih": tarih, "durum": "başarısız",
-                "aciklama": "Uçuş/veri eşleştirilemedi (yukarıdaki konsol mesajlarına bak).",
-                "nokta_sayisi": None, "eslesen_nokta_sayisi": None,
-                "ti1_ortalama": None, "dinamik_kararsizlik_sayisi": None,
-            })
+            sonuclar.append(
+                {
+                    "ucus_numarasi": ucus_no,
+                    "tarih": tarih,
+                    "durum": "başarısız",
+                    "aciklama": "Uçuş/veri eşleştirilemedi (yukarıdaki konsol mesajlarına bak).",
+                    "nokta_sayisi": None,
+                    "eslesen_nokta_sayisi": None,
+                    "ti1_ortalama": None,
+                    "dinamik_kararsizlik_sayisi": None,
+                }
+            )
             continue
 
         ti1_gecerli = eslesmis_df["ti1_indeksi"].dropna()
         dinamik_kararsizlik_sayisi = (
             int(eslesmis_df["dinamik_kararsizlik"].fillna(False).astype(bool).sum())
-            if "dinamik_kararsizlik" in eslesmis_df.columns else None
+            if "dinamik_kararsizlik" in eslesmis_df.columns
+            else None
         )
-        sonuclar.append({
-            "ucus_numarasi": ucus_no, "tarih": tarih, "durum": "başarılı",
-            "aciklama": "",
-            "nokta_sayisi": len(eslesmis_df),
-            "eslesen_nokta_sayisi": len(ti1_gecerli),
-            "ti1_ortalama": float(ti1_gecerli.mean()) if len(ti1_gecerli) > 0 else None,
-            "dinamik_kararsizlik_sayisi": dinamik_kararsizlik_sayisi,
-        })
+        sonuclar.append(
+            {
+                "ucus_numarasi": ucus_no,
+                "tarih": tarih,
+                "durum": "başarılı",
+                "aciklama": "",
+                "nokta_sayisi": len(eslesmis_df),
+                "eslesen_nokta_sayisi": len(ti1_gecerli),
+                "ti1_ortalama": float(ti1_gecerli.mean()) if len(ti1_gecerli) > 0 else None,
+                "dinamik_kararsizlik_sayisi": dinamik_kararsizlik_sayisi,
+            }
+        )
 
     return pd.DataFrame(sonuclar)
 
@@ -102,7 +119,9 @@ def _argumanlari_ayristir(argv=None):
         help="'ucus_numarasi' ve 'tarih' sütunlarını içeren CSV dosyası",
     )
     ayristirici.add_argument(
-        "--cikti", default=None, metavar="DOSYA.csv",
+        "--cikti",
+        default=None,
+        metavar="DOSYA.csv",
         help=f"Özet tablosunun kaydedileceği dosya (varsayılan: {config.CIKTI_KLASORU}/toplu_analiz_ozeti.csv)",
     )
     return ayristirici.parse_args(argv)

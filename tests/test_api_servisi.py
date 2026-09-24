@@ -132,13 +132,18 @@ async def test_nan_degerler_null_olarak_donuyor(istemci, api_anahtari):
     JSON 'null' olarak dönmeli -- 'Out of range float' hatası vermemeli."""
     import numpy as np
 
-    df = pd.DataFrame({
-        "zaman": pd.to_datetime(["2019-01-01T00:00:00Z"]),
-        "enlem": [40.0], "boylam": [30.0],
-        "ti1_indeksi": [np.nan], "edr_proxy": [np.nan],
-        "richardson_sayisi": [np.nan], "dinamik_kararsizlik": [None],
-        "basinc_hpa": [np.nan],
-    })
+    df = pd.DataFrame(
+        {
+            "zaman": pd.to_datetime(["2019-01-01T00:00:00Z"]),
+            "enlem": [40.0],
+            "boylam": [30.0],
+            "ti1_indeksi": [np.nan],
+            "edr_proxy": [np.nan],
+            "richardson_sayisi": [np.nan],
+            "dinamik_kararsizlik": [None],
+            "basinc_hpa": [np.nan],
+        }
+    )
     vt.ucus_ve_olcumleri_kaydet(df, "NANAPI", "2019-01-01")
     try:
         yanit = await istemci.get("/api/v1/ucuslar/NANAPI/2019-01-01", headers={"X-API-Key": api_anahtari})
@@ -153,11 +158,14 @@ async def test_nan_degerler_null_olarak_donuyor(istemci, api_anahtari):
 
 async def test_olcum_sayfalama(istemci, api_anahtari):
 
-    df = pd.DataFrame({
-        "zaman": pd.to_datetime([f"2019-01-01T00:0{i}:00Z" for i in range(3)]),
-        "enlem": [40.0, 40.1, 40.2], "boylam": [30.0, 30.1, 30.2],
-        "ti1_indeksi": [1e-7, 2e-7, 3e-7],
-    })
+    df = pd.DataFrame(
+        {
+            "zaman": pd.to_datetime([f"2019-01-01T00:0{i}:00Z" for i in range(3)]),
+            "enlem": [40.0, 40.1, 40.2],
+            "boylam": [30.0, 30.1, 30.2],
+            "ti1_indeksi": [1e-7, 2e-7, 3e-7],
+        }
+    )
     vt.ucus_ve_olcumleri_kaydet(df, "SAYFAAPI", "2019-01-01")
     try:
         yanit = await istemci.get(
@@ -177,11 +185,15 @@ async def test_analiz_tetikleme_ve_durum_sorgulama(istemci, api_anahtari, monkey
     """Gerçek OpenSky/Trino'ya bağlanmamak için tek_ucus_analiz_et sahteleniyor."""
 
     def sahte_analiz(ucus_numarasi, tarih):
-        return pd.DataFrame({
-            "zaman": pd.to_datetime(["2019-01-01T00:00:00Z"]),
-            "enlem": [40.0], "boylam": [30.0],
-            "ti1_indeksi": [1e-7], "edr_proxy": [0.1],
-        })
+        return pd.DataFrame(
+            {
+                "zaman": pd.to_datetime(["2019-01-01T00:00:00Z"]),
+                "enlem": [40.0],
+                "boylam": [30.0],
+                "ti1_indeksi": [1e-7],
+                "edr_proxy": [0.1],
+            }
+        )
 
     monkeypatch.setattr(api_servisi, "tek_ucus_analiz_et", sahte_analiz)
 
@@ -227,6 +239,7 @@ async def test_bilinmeyen_gorev_id_404(istemci, api_anahtari):
 # yönetir, asyncpg engine'e dokunmadığı için yukarıdaki event-loop sorunu
 # burada geçerli değil). ---
 
+
 def test_websocket_anahtarsiz_reddedilir(api_anahtari):
     istemci = TestClient(api_servisi.app)
     with pytest.raises(Exception):
@@ -268,6 +281,7 @@ async def test_dusuk_riskli_noktalar_yayinlanmaz(monkeypatch):
 
 
 # --- Görev kaydı temizliği (bellek sızıntısı düzeltmesi) ---
+
 
 def test_eski_bitmis_gorev_temizlenir():
     api_servisi._gorevler["eski"] = {

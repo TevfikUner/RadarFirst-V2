@@ -17,19 +17,20 @@ veri_yukleme.py
     ve tekrarlanan ihlaller hesap askıya alınmasına yol açabiliyor).
 """
 
-import xarray as xr
 import pandas as pd
 import trino
+import xarray as xr
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 from trino.auth import OAuth2Authentication
 from trino.exceptions import (
-    TrinoConnectionError,
-    TrinoExternalError,
-    TrinoInternalError,
     Http502Error,
     Http503Error,
     Http504Error,
+    TrinoConnectionError,
+    TrinoExternalError,
+    TrinoInternalError,
 )
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+
 import config
 from kimlik_dogrulama import kimlik_bilgilerini_al
 
@@ -61,14 +62,14 @@ _yeniden_dene = retry(
 # 1) Copernicus / ERA5 veri küpü
 # ---------------------------------------------------------------------------
 
+
 def hava_durumu_yukle(dosya_yolu=config.HAVA_DURUMU_DOSYASI):
     """NetCDF veri küpünü açar. Dosya bulunamazsa açıklayıcı hata verir."""
     try:
         return xr.open_dataset(dosya_yolu)
     except FileNotFoundError as e:
         raise FileNotFoundError(
-            f"'{dosya_yolu}' bulunamadı. Copernicus veri küpünü indirip proje "
-            f"klasörüne koyduğundan emin ol."
+            f"'{dosya_yolu}' bulunamadı. Copernicus veri küpünü indirip proje klasörüne koyduğundan emin ol."
         ) from e
 
 
@@ -121,7 +122,7 @@ def trino_baglantisi_olustur():
         port=config.TRINO_PORT,
         user=kullanici_adi,
         auth=_oauth2_kimlik_dogrulamasini_al(),
-        http_scheme='https',
+        http_scheme="https",
         catalog=config.TRINO_CATALOG,
         schema=config.TRINO_SCHEMA,
     )
@@ -207,10 +208,11 @@ def ucus_rotasini_cek(baglanti, icao24, baslangic_ts, bitis_ts):
     ORDER BY time
     LIMIT {config.MAKS_STATE_VECTOR_SATIRI}
     """
-    sutunlar = ["zaman_unix", "icao24", "enlem", "boylam", "hiz", "yon",
-                "dikey_hiz", "geo_irtifa_m", "baro_irtifa_m"]
+    sutunlar = ["zaman_unix", "icao24", "enlem", "boylam", "hiz", "yon", "dikey_hiz", "geo_irtifa_m", "baro_irtifa_m"]
     df = _sorgu_calistir(
-        baglanti, sorgu, sutunlar,
+        baglanti,
+        sorgu,
+        sutunlar,
         [icao24, baslangic_saat, bitis_saat, baslangic_ts, bitis_ts],
     )
     if not df.empty:
