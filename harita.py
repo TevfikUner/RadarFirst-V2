@@ -15,6 +15,7 @@ tekrar koyu temaya dönebilirsin -- aşağıda nasıl yapılacağı yorum olarak
 """
 
 import folium
+import pandas as pd
 from folium.plugins import TimestampedGeoJson
 
 import config
@@ -34,11 +35,10 @@ def _turbulans_rengi(ti1_degeri):
 
 
 def pd_isna(x):
-    import math
-    try:
-        return math.isnan(x)
-    except (TypeError, ValueError):
-        return x is None
+    """pandas'ın kendi pd.isna()'sına ince bir sarmalayıcı -- NaN/None/NaT'ı
+    hepsini tanır (eski sürüm sadece math.isnan ile NaN'ı yakalayıp None'ı
+    ayrı bir dala düşürüyordu; pd.isna() zaten hepsini kapsıyor)."""
+    return bool(pd.isna(x))
 
 
 def _lejant_ekle(harita):
@@ -58,12 +58,21 @@ def _lejant_ekle(harita):
     harita.get_root().html.add_child(folium.Element(lejant_html))
 
 
-def zaman_kaydiricili_harita_olustur(rota_df, dosya_adi="turbulans_haritasi.html"):
+def zaman_kaydiricili_harita_olustur(
+    rota_df,
+    dosya_adi="turbulans_haritasi.html",
+    maks_animasyon_noktasi=config.HARITA_MAKS_ANIMASYON_NOKTASI,
+):
     """
     rota_df: eslestirme.rotayi_hava_durumuyla_eslestir(...) çıktısı.
              Gerekli sütunlar: zaman, enlem, boylam, edr_proxy
              Varsa kullanılan opsiyonel sütunlar: ucus_numarasi, icao24,
              kalkis_havaalani, varis_havaalani, basinc_hpa
+
+    maks_animasyon_noktasi: rota bundan uzunsa, TimestampedGeoJson
+        animasyonundaki nokta sayısı eşit aralıklarla bu sayıya indirilir
+        (tarayıcıyı yormamak için) -- statik rota çizgisi yine TAM rotayı
+        kullanır, sadece animasyon noktaları seyreltilir.
     """
     merkez_enlem = rota_df["enlem"].mean()
     merkez_boylam = rota_df["boylam"].mean()
@@ -85,8 +94,18 @@ def zaman_kaydiricili_harita_olustur(rota_df, dosya_adi="turbulans_haritasi.html
     folium.PolyLine(koordinatlar, color="#3388ff", weight=2, opacity=0.5).add_to(harita)
 
     # --- Zamana bağlı animasyonlu noktalar (TimestampedGeoJson) ---
+    if len(rota_df) > maks_animasyon_noktasi:
+        adim = -(-len(rota_df) // maks_animasyon_noktasi)  # tavana yuvarlanmış bölme
+        animasyon_df = rota_df.iloc[::adim]
+        print(
+            f"[Bilgi] Rota {len(rota_df)} nokta içeriyor, harita animasyonu için "
+            f"{len(animasyon_df)} noktaya seyreltildi (adım={adim}). Ham veri PostgreSQL'de tam haliyle duruyor."
+        )
+    else:
+        animasyon_df = rota_df
+
     ozellikler = []
-    for _, satir in rota_df.iterrows():
+    for _, satir in animasyon_df.iterrows():
         edr_degeri = satir.get("edr_proxy", float("nan"))
         ti1_degeri = satir.get("ti1_indeksi", float("nan"))
         renk = _turbulans_rengi(ti1_degeri)
@@ -106,7 +125,9 @@ def zaman_kaydiricili_harita_olustur(rota_df, dosya_adi="turbulans_haritasi.html
             f"<b>TI1 İndeksi:</b> {ti1_degeri:.2e} s^-2" if not pd_isna(ti1_degeri) else "<b>TI1 İndeksi:</b> veri yok"
         )
         aciklama_parcalari.append(
-            f"<b>EDR Proxy (0-1):</b> {edr_degeri:.3f}" if not pd_isna(edr_degeri) else "<b>EDR Proxy (0-1):</b> veri yok"
+            f"<b>EDR Proxy (0-1):</b> {edr_degeri:.3f}"
+            if not pd_isna(edr_degeri)
+            else "<b>EDR Proxy (0-1):</b> veri yok"
         )
         richardson_degeri = satir.get("richardson_sayisi", float("nan"))
         if not pd_isna(richardson_degeri):
@@ -114,19 +135,25 @@ def zaman_kaydiricili_harita_olustur(rota_df, dosya_adi="turbulans_haritasi.html
             etiket = " (dinamik kararsız!)" if kararsiz_mi else ""
             aciklama_parcalari.append(f"<b>Richardson Sayısı:</b> {richardson_degeri:.2f}{etiket}")
 
-        ozellikler.append({
-            "type": "Feature",
-            "geometry": {"type": "Point", "coordinates": [satir["boylam"], satir["enlem"]]},
-            "properties": {
-                "time": pd_to_iso(satir["zaman"]),
-                "popup": "<br>".join(aciklama_parcalari),
-                "icon": "circle",
-                "iconstyle": {
-                    "fillColor": renk, "fillOpacity": 0.9,
-                    "stroke": True, "color": "black", "weight": 1, "radius": 7,
+        ozellikler.append(
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [satir["boylam"], satir["enlem"]]},
+                "properties": {
+                    "time": pd_to_iso(satir["zaman"]),
+                    "popup": "<br>".join(aciklama_parcalari),
+                    "icon": "circle",
+                    "iconstyle": {
+                        "fillColor": renk,
+                        "fillOpacity": 0.9,
+                        "stroke": True,
+                        "color": "black",
+                        "weight": 1,
+                        "radius": 7,
+                    },
                 },
-            },
-        })
+            }
+        )
 
     TimestampedGeoJson(
         {"type": "FeatureCollection", "features": ozellikler},
@@ -156,4 +183,5 @@ def pd_to_iso(zaman_degeri):
         return zaman_degeri.isoformat()
     except AttributeError:
         import pandas as pd
+
         return pd.to_datetime(zaman_degeri).isoformat()

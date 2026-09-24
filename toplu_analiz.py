@@ -21,6 +21,8 @@ DURMAZ -- sadece o uçuş "başarısız" olarak işaretlenip bir sonrakine geçi
 """
 
 import argparse
+import os
+import time
 
 from konsol_kurulumu import konsolu_utf8_yap
 
@@ -28,6 +30,7 @@ konsolu_utf8_yap()
 
 import pandas as pd
 
+import config
 from hata_yardimcisi import dostane_hata_mesaji
 from main import calistir
 
@@ -41,6 +44,10 @@ def toplu_analiz_calistir(ucus_listesi_df: pd.DataFrame) -> pd.DataFrame:
     toplam = len(ucus_listesi_df)
 
     for i, satir in ucus_listesi_df.iterrows():
+        if i > 0 and config.TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE > 0:
+            # OpenSky'yi art arda isteklerle yormamak için uçuşlar arasında bekle.
+            time.sleep(config.TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE)
+
         ucus_no = str(satir["ucus_numarasi"]).strip()
         tarih = str(satir["tarih"]).strip()
 
@@ -52,36 +59,53 @@ def toplu_analiz_calistir(ucus_listesi_df: pd.DataFrame) -> pd.DataFrame:
             eslesmis_df = calistir(ucus_no, tarih)
         except Exception as hata:
             print(f"[Hata] {dostane_hata_mesaji(hata)}")
-            sonuclar.append({
-                "ucus_numarasi": ucus_no, "tarih": tarih, "durum": "hata",
-                "aciklama": dostane_hata_mesaji(hata),
-                "nokta_sayisi": None, "eslesen_nokta_sayisi": None,
-                "ti1_ortalama": None, "dinamik_kararsizlik_sayisi": None,
-            })
+            sonuclar.append(
+                {
+                    "ucus_numarasi": ucus_no,
+                    "tarih": tarih,
+                    "durum": "hata",
+                    "aciklama": dostane_hata_mesaji(hata),
+                    "nokta_sayisi": None,
+                    "eslesen_nokta_sayisi": None,
+                    "ti1_ortalama": None,
+                    "dinamik_kararsizlik_sayisi": None,
+                }
+            )
             continue
 
         if eslesmis_df is None:
-            sonuclar.append({
-                "ucus_numarasi": ucus_no, "tarih": tarih, "durum": "başarısız",
-                "aciklama": "Uçuş/veri eşleştirilemedi (yukarıdaki konsol mesajlarına bak).",
-                "nokta_sayisi": None, "eslesen_nokta_sayisi": None,
-                "ti1_ortalama": None, "dinamik_kararsizlik_sayisi": None,
-            })
+            sonuclar.append(
+                {
+                    "ucus_numarasi": ucus_no,
+                    "tarih": tarih,
+                    "durum": "başarısız",
+                    "aciklama": "Uçuş/veri eşleştirilemedi (yukarıdaki konsol mesajlarına bak).",
+                    "nokta_sayisi": None,
+                    "eslesen_nokta_sayisi": None,
+                    "ti1_ortalama": None,
+                    "dinamik_kararsizlik_sayisi": None,
+                }
+            )
             continue
 
         ti1_gecerli = eslesmis_df["ti1_indeksi"].dropna()
         dinamik_kararsizlik_sayisi = (
             int(eslesmis_df["dinamik_kararsizlik"].fillna(False).astype(bool).sum())
-            if "dinamik_kararsizlik" in eslesmis_df.columns else None
+            if "dinamik_kararsizlik" in eslesmis_df.columns
+            else None
         )
-        sonuclar.append({
-            "ucus_numarasi": ucus_no, "tarih": tarih, "durum": "başarılı",
-            "aciklama": "",
-            "nokta_sayisi": len(eslesmis_df),
-            "eslesen_nokta_sayisi": len(ti1_gecerli),
-            "ti1_ortalama": float(ti1_gecerli.mean()) if len(ti1_gecerli) > 0 else None,
-            "dinamik_kararsizlik_sayisi": dinamik_kararsizlik_sayisi,
-        })
+        sonuclar.append(
+            {
+                "ucus_numarasi": ucus_no,
+                "tarih": tarih,
+                "durum": "başarılı",
+                "aciklama": "",
+                "nokta_sayisi": len(eslesmis_df),
+                "eslesen_nokta_sayisi": len(ti1_gecerli),
+                "ti1_ortalama": float(ti1_gecerli.mean()) if len(ti1_gecerli) > 0 else None,
+                "dinamik_kararsizlik_sayisi": dinamik_kararsizlik_sayisi,
+            }
+        )
 
     return pd.DataFrame(sonuclar)
 
@@ -95,8 +119,10 @@ def _argumanlari_ayristir(argv=None):
         help="'ucus_numarasi' ve 'tarih' sütunlarını içeren CSV dosyası",
     )
     ayristirici.add_argument(
-        "--cikti", default="toplu_analiz_ozeti.csv", metavar="DOSYA.csv",
-        help="Özet tablosunun kaydedileceği dosya (varsayılan: toplu_analiz_ozeti.csv)",
+        "--cikti",
+        default=None,
+        metavar="DOSYA.csv",
+        help=f"Özet tablosunun kaydedileceği dosya (varsayılan: {config.CIKTI_KLASORU}/toplu_analiz_ozeti.csv)",
     )
     return ayristirici.parse_args(argv)
 
@@ -117,13 +143,18 @@ if __name__ == "__main__":
             )
 
     ozet_df = toplu_analiz_calistir(ucus_listesi_df)
-    ozet_df.to_csv(argumanlar.cikti, index=False)
+
+    cikti_dosyasi = argumanlar.cikti
+    if cikti_dosyasi is None:
+        os.makedirs(config.CIKTI_KLASORU, exist_ok=True)
+        cikti_dosyasi = os.path.join(config.CIKTI_KLASORU, "toplu_analiz_ozeti.csv")
+    ozet_df.to_csv(cikti_dosyasi, index=False)
 
     print(f"\n{'=' * 60}")
     print("TOPLU ANALİZ ÖZETİ")
     print("=" * 60)
     print(ozet_df.to_string(index=False))
-    print(f"\nÖzet kaydedildi: {argumanlar.cikti}")
+    print(f"\nÖzet kaydedildi: {cikti_dosyasi}")
 
     basarili_sayisi = (ozet_df["durum"] == "başarılı").sum()
     print(f"{basarili_sayisi}/{len(ozet_df)} uçuş başarıyla analiz edildi.")

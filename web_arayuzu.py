@@ -17,10 +17,12 @@ bu sadece görsel bir ön yüz, hesaplama mantığı aynı.
 
 import contextlib
 import io
+import os
 
 import streamlit as st
 import streamlit.components.v1 as components
 
+import config
 from hata_yardimcisi import dostane_hata_mesaji
 from konsol_kurulumu import konsolu_utf8_yap
 from main import calistir
@@ -52,7 +54,9 @@ if gonder:
         eslesmis_df = None
         hata = None
 
-        with st.spinner("Analiz ediliyor -- OpenSky'a bağlanılıyor ve hava durumuyla eşleştiriliyor, biraz sürebilir..."):
+        with st.spinner(
+            "Analiz ediliyor -- OpenSky'a bağlanılıyor ve hava durumuyla eşleştiriliyor, biraz sürebilir..."
+        ):
             try:
                 with contextlib.redirect_stdout(gunluk):
                     eslesmis_df = calistir(ucus_numarasi.strip(), tarih.strip())
@@ -78,7 +82,9 @@ if gonder:
                     kararsiz_sayisi = int(eslesmis_df["dinamik_kararsizlik"].fillna(False).astype(bool).sum())
                     sutun3.metric("Dinamik kararsız nokta", kararsiz_sayisi)
 
-            harita_dosyasi = f"turbulans_haritasi_{ucus_numarasi.strip()}_{tarih.strip()}.html"
+            harita_dosyasi = os.path.join(
+                config.CIKTI_KLASORU, f"turbulans_haritasi_{ucus_numarasi.strip()}_{tarih.strip()}.html"
+            )
             try:
                 with open(harita_dosyasi, encoding="utf-8") as f:
                     st.subheader("Türbülans Haritası")

@@ -1,14 +1,14 @@
 import math
 
 import numpy as np
-import xarray as xr
 import pytest
+import xarray as xr
 
 from turbulans_indeksleri import (
-    yatay_deformasyon_hesapla,
     dusey_ruzgar_kaymasi_hesapla,
-    ti1_indeksi_hesapla,
     ti1_den_edr_proxy_olcegine_cevir,
+    ti1_indeksi_hesapla,
+    yatay_deformasyon_hesapla,
 )
 
 

@@ -19,20 +19,20 @@ xr = pytest.importorskip("xarray")
 
 import config
 from birim_donusumleri import (
-    irtifa_metre_to_basinc_hpa,
     basinc_hpa_to_irtifa_metre,
     en_yakin_basinc_seviyesi,
-)
-from turbulans_indeksleri import (
-    yatay_deformasyon_hesapla,
-    dusey_ruzgar_kaymasi_hesapla,
-    ti1_indeksi_hesapla,
-    ti1_den_edr_proxy_olcegine_cevir,
-    potansiyel_sicaklik_hesapla,
-    richardson_sayisi_hesapla,
-    DINAMIK_KARARSIZLIK_ESIGI,
+    irtifa_metre_to_basinc_hpa,
 )
 from eslestirme import rotayi_hava_durumuyla_eslestir
+from turbulans_indeksleri import (
+    DINAMIK_KARARSIZLIK_ESIGI,
+    dusey_ruzgar_kaymasi_hesapla,
+    potansiyel_sicaklik_hesapla,
+    richardson_sayisi_hesapla,
+    ti1_den_edr_proxy_olcegine_cevir,
+    ti1_indeksi_hesapla,
+    yatay_deformasyon_hesapla,
+)
 
 NC_YOLU = config.HAVA_DURUMU_DOSYASI
 
@@ -70,8 +70,10 @@ def _referans_nokta_nokta_hesapla(rota_df, veri_kupu):
 
         yukseklik_farki_m = float(basinc_hpa_to_irtifa_metre(ust_seviye) - basinc_hpa_to_irtifa_metre(alt_seviye))
         vws = dusey_ruzgar_kaymasi_hesapla(
-            u_ust=float(dilim_ust["u"].values), v_ust=float(dilim_ust["v"].values),
-            u_alt=float(dilim_alt["u"].values), v_alt=float(dilim_alt["v"].values),
+            u_ust=float(dilim_ust["u"].values),
+            v_ust=float(dilim_ust["v"].values),
+            u_alt=float(dilim_alt["u"].values),
+            v_alt=float(dilim_alt["v"].values),
             yukseklik_farki_m=yukseklik_farki_m,
         )
         ti1 = ti1_indeksi_hesapla(vws, deformasyon)
@@ -80,9 +82,12 @@ def _referans_nokta_nokta_hesapla(rota_df, veri_kupu):
         theta_ust = potansiyel_sicaklik_hesapla(float(dilim_ust["t"].values), ust_seviye)
         theta_alt = potansiyel_sicaklik_hesapla(float(dilim_alt["t"].values), alt_seviye)
         ri = richardson_sayisi_hesapla(
-            theta_ust, theta_alt,
-            u_ust=float(dilim_ust["u"].values), v_ust=float(dilim_ust["v"].values),
-            u_alt=float(dilim_alt["u"].values), v_alt=float(dilim_alt["v"].values),
+            theta_ust,
+            theta_alt,
+            u_ust=float(dilim_ust["u"].values),
+            v_ust=float(dilim_ust["v"].values),
+            u_alt=float(dilim_alt["u"].values),
+            v_alt=float(dilim_alt["v"].values),
             yukseklik_farki_m=yukseklik_farki_m,
         )
         referans.append((en_yakin_seviye, ti1, edr_proxy, ri, ri < DINAMIK_KARARSIZLIK_ESIGI))
@@ -99,12 +104,14 @@ def _sentetik_rota_uret(veri_kupu, n=200, tohum=42):
     t_min, t_max = veri_kupu.valid_time.min().values, veri_kupu.valid_time.max().values
 
     zamanlar = pd.to_datetime(rng.integers(t_min.astype("int64"), t_max.astype("int64"), n)).tz_localize("UTC")
-    return pd.DataFrame({
-        "zaman": zamanlar,
-        "enlem": rng.uniform(lat_min, lat_max, n),
-        "boylam": rng.uniform(lon_min, lon_max, n),
-        "geo_irtifa_m": rng.uniform(9000, 12000, n),
-    })
+    return pd.DataFrame(
+        {
+            "zaman": zamanlar,
+            "enlem": rng.uniform(lat_min, lat_max, n),
+            "boylam": rng.uniform(lon_min, lon_max, n),
+            "geo_irtifa_m": rng.uniform(9000, 12000, n),
+        }
+    )
 
 
 def test_vektorel_eslestirme_nokta_nokta_referansla_birebir_ayni(veri_kupu):
@@ -132,12 +139,14 @@ def test_kapsam_disi_noktalar_nan_birakilir(veri_kupu):
 
 
 def test_bos_rota_bos_ama_dogru_sutunlu_sonuc_dondurur(veri_kupu):
-    bos_df = pd.DataFrame({
-        "zaman": pd.Series([], dtype="datetime64[ns, UTC]"),
-        "enlem": pd.Series([], dtype="float64"),
-        "boylam": pd.Series([], dtype="float64"),
-        "geo_irtifa_m": pd.Series([], dtype="float64"),
-    })
+    bos_df = pd.DataFrame(
+        {
+            "zaman": pd.Series([], dtype="datetime64[ns, UTC]"),
+            "enlem": pd.Series([], dtype="float64"),
+            "boylam": pd.Series([], dtype="float64"),
+            "geo_irtifa_m": pd.Series([], dtype="float64"),
+        }
+    )
     sonuc = rotayi_hava_durumuyla_eslestir(bos_df, veri_kupu)
 
     assert len(sonuc) == 0

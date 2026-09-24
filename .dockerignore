@@ -1,0 +1,17 @@
+.git
+.github
+.env
+.env.example
+__pycache__
+*.pyc
+.pytest_cache
+ciktilar/
+*.nc
+*.jar
+*.zip
+turbulans_haritasi*.html
+eslesme_sonuclari_*.csv
+toplu_analiz_ozeti.csv
+tests/
+.venv
+venv
