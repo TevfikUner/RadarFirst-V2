@@ -103,6 +103,7 @@ if __name__ == "__main__":
     print(f"{len(df)} gözlem kullanıldı.")
     print(f"Kalibre edilmiş olceklendirme_katsayisi: {katsayi:.4f}  (ortalama karesel hata: {hata:.4f})")
     print(
-        "\nBu değeri turbulans_indeksleri.ti1_den_edr_proxy_olcegine_cevir()'in "
-        "'olceklendirme_katsayisi' varsayılanına (şu an 1.5) elle uygulayabilirsin."
+        "\nBu değeri config.py içindeki EDR_OLCEKLENDIRME_KATSAYISI'ye yaz ve "
+        "EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI'yi True yap -- böylece "
+        "main.py artık 'kalibre edilmedi' uyarısı vermez."
     )

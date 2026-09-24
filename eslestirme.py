@@ -234,7 +234,7 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
     )
 
     ti1 = ti1_indeksi_hesapla(vws, deformasyon)
-    edr_proxy = ti1_den_edr_proxy_olcegine_cevir(ti1)
+    edr_proxy = ti1_den_edr_proxy_olcegine_cevir(ti1, config.EDR_OLCEKLENDIRME_KATSAYISI)
 
     theta_ust = potansiyel_sicaklik_hesapla(dilim_ust["t"].values, ust_seviyeler)
     theta_alt = potansiyel_sicaklik_hesapla(dilim_alt["t"].values, alt_seviyeler)

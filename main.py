@@ -9,9 +9,10 @@ Projenin uçtan uca akışı:
   3. Copernicus/ERA5 veri küpünü yükle.
   4. Rotadaki her noktayı en yakın hava durumu hücresiyle eşleştir ve
      Ellrod TI1 tabanlı EDR-proxy türbülans şiddetini hesapla.
-  5. Sonucu bir CSV'ye kaydet ve özet istatistik yazdır (süre, TI1 dağılımı)
-     -- böylece haritadaki renklerin "gerçek mi yoksa şüpheli mi" olduğunu
-     tahmin etmek yerine sayılarla kontrol edebiliyoruz.
+  5. Sonucu PostgreSQL'e (ucuslar + edr_olcumleri tabloları) kaydet ve özet
+     istatistik yazdır (süre, TI1 dağılımı) -- böylece haritadaki renklerin
+     "gerçek mi yoksa şüpheli mi" olduğunu tahmin etmek yerine sayılarla
+     kontrol edebiliyoruz.
   6. Zaman kaydırıcılı interaktif haritayı üret.
 
 Eşleştirme başarısız olursa (uçuş bulunamazsa, veri küpü eksikse vb.)
@@ -31,6 +32,7 @@ from harita import zaman_kaydiricili_harita_olustur
 from hata_yardimcisi import dostane_hata_mesaji
 from kimlik_dogrulama import KimlikBilgisiEksikHatasi
 from turbulans_indeksleri import DINAMIK_KARARSIZLIK_ESIGI
+from veritabani import ucus_ve_olcumleri_kaydet
 
 
 def _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str):
@@ -70,6 +72,14 @@ def _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str):
                 f"(dinamik kararsızlık, TI1'den BAĞIMSIZ ek gösterge): "
                 f"{kararsiz_sayisi} nokta ({kararsiz_sayisi/gecerli_sayisi*100:.1f}%)"
             )
+    if not config.EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI:
+        print(
+            f"[Uyarı] EDR proxy ölçeklendirme katsayısı ({config.EDR_OLCEKLENDIRME_KATSAYISI}) "
+            f"HENÜZ GERÇEK PIREP/AMDAR VERİSİYLE KALİBRE EDİLMEDİ -- keyfi bir başlangıç "
+            f"değeridir. Kalibre etmek için kalibrasyon.py'yi kullan, sonucu "
+            f"config.EDR_OLCEKLENDIRME_KATSAYISI'ye yaz ve "
+            f"EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI = True yap."
+        )
     print("=" * 60 + "\n")
 
 
@@ -78,7 +88,6 @@ def calistir(ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None):
         # Her uçuş/tarih için ayrı dosya adı -- farklı uçuşları denerken
         # birbirinin üzerine yazmasın diye.
         cikti_dosyasi = f"turbulans_haritasi_{ucus_numarasi}_{tarih_str}.html"
-    csv_dosyasi = f"eslesme_sonuclari_{ucus_numarasi}_{tarih_str}.csv"
 
     print(f"1. '{ucus_numarasi}' uçuşu {tarih_str} tarihi için OpenSky'da aranıyor...")
     try:
@@ -104,8 +113,12 @@ def calistir(ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None):
     print("3. Rota, hava durumu verisiyle eşleştiriliyor ve türbülans şiddeti hesaplanıyor...")
     eslesmis_df = rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu)
 
-    eslesmis_df.to_csv(csv_dosyasi, index=False)
-    print(f"   -> Ham sonuçlar kaydedildi: {csv_dosyasi} (Excel'de açıp inceleyebilirsin)")
+    try:
+        ucus_ve_olcumleri_kaydet(eslesmis_df, ucus_numarasi, tarih_str)
+        print(f"   -> Ham sonuçlar PostgreSQL'e kaydedildi (ucus_numarasi={ucus_numarasi}, tarih={tarih_str}).")
+    except Exception as hata:
+        print(f"[Uyarı] Sonuçlar veritabanına kaydedilemedi: {dostane_hata_mesaji(hata)}")
+        print("   -> Harita yine de üretilecek, ama bu çalıştırma kalıcı olarak saklanmadı.")
 
     _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str)
 

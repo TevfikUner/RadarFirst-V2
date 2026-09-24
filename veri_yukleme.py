@@ -21,8 +21,40 @@ import xarray as xr
 import pandas as pd
 import trino
 from trino.auth import OAuth2Authentication
+from trino.exceptions import (
+    TrinoConnectionError,
+    TrinoExternalError,
+    TrinoInternalError,
+    Http502Error,
+    Http503Error,
+    Http504Error,
+)
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 import config
 from kimlik_dogrulama import kimlik_bilgilerini_al
+
+# OpenSky'yi rate-limit/ban riskine sokmamak için SADECE geçici (transient)
+# ağ/sunucu hatalarında (bağlantı kopması, 502/503/504, dahili Trino hatası)
+# yeniden deniyoruz -- kimlik hatası veya hatalı sorgu gibi kalıcı hatalarda
+# retry YAPILMAZ. Deneme sayısı bilerek düşük (3) ve aralar üstel artan
+# (2s, 4s, 8s...) tutuluyor; sunucuyu art arda isteklerle yormamak için.
+_GECICI_HATALAR = (
+    TrinoConnectionError,
+    TrinoExternalError,
+    TrinoInternalError,
+    Http502Error,
+    Http503Error,
+    Http504Error,
+    ConnectionError,
+    TimeoutError,
+)
+
+_yeniden_dene = retry(
+    retry=retry_if_exception_type(_GECICI_HATALAR),
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=2, min=2, max=30),
+    reraise=True,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -44,6 +76,7 @@ def hava_durumu_yukle(dosya_yolu=config.HAVA_DURUMU_DOSYASI):
 # 2) OpenSky / Trino bağlantısı
 # ---------------------------------------------------------------------------
 
+@_yeniden_dene
 def trino_baglantisi_olustur():
     """
     OpenSky'nin Trino kümesine OAuth2 (external authentication) ile bağlanır.
@@ -77,6 +110,7 @@ def trino_baglantisi_olustur():
     return baglanti
 
 
+@_yeniden_dene
 def _sorgu_calistir(baglanti, sorgu, sutunlar):
     imlec = baglanti.cursor()
     imlec.execute(sorgu)
