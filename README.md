@@ -32,10 +32,12 @@ web_arayuzu.py               -> tarayıcıdan kullanılabilir basit arayüz (Str
 hata_yardimcisi.py           -> ham Python hatalarını anlaşılır Türkçe mesaja çevirir
 veri_indirme.py              -> ERA5 verisi otomatik indirme ALTYAPISI (bkz. aşağıdaki uyarı)
 konsol_kurulumu.py           -> Windows konsolunda Türkçe/özel karakterlerin çökmesini önler
-veritabani.py                 -> PostgreSQL entegrasyonu: ucuslar/edr_olcumleri tabloları
-api_servisi.py                -> FastAPI REST API iskeleti (JSON çıktı + analiz tetikleme)
+models.py                     -> PostgreSQL tabloları için SQLAlchemy ORM modelleri (Ucus, EdrOlcumu)
+veritabani.py                 -> PostgreSQL entegrasyonu: senkron (main.py) + asenkron (api_servisi.py) erişim
+api_servisi.py                -> FastAPI REST API'si (API anahtarlı, /api/v1, async, WebSocket, webhook)
 mcp_postgres_sunucusu.py      -> Claude Code/Desktop için salt okunur PostgreSQL MCP sunucusu
 .mcp.json                       -> Claude Code'un mcp_postgres_sunucusu.py'yi otomatik tanıması için
+pytest.ini                     -> pytest-asyncio ayarları (async testler tek event loop paylaşır)
 tests/                        -> pytest birim testleri (ağ/veri gerektirmeyen kısımlar için)
 ```
 
@@ -63,7 +65,8 @@ POSTGRES_PASSWORD=...
 POSTGRES_DB=Turbulence-db
 ```
 
-`main.py` her çalıştırmada `veritabani.py` üzerinden `ucuslar` ve
+`main.py` her çalıştırmada `veritabani.py` üzerinden (ki bu artık ham SQL
+değil, `models.py`'deki SQLAlchemy ORM modellerini kullanıyor) `ucuslar` ve
 `edr_olcumleri` tablolarını (yoksa) otomatik oluşturur ve sonucu yazar; aynı
 (uçuş numarası, tarih) tekrar analiz edilirse eski kayıt silinip yeniden
 yazılır. Veritabanına yazma başarısız olursa (bağlantı yok, `.env` eksik
@@ -80,28 +83,66 @@ istenirse `.env`'deki `POSTGRES_DB` değerini değiştirmek yeterli.
 
 ```bash
 uvicorn api_servisi:app --reload --port 8000
+# Swagger/OpenAPI dokümantasyonu: http://localhost:8000/docs
 ```
 
-Uç noktalar:
-- `GET /saglik` -- basit sağlık kontrolü
-- `GET /ucuslar` -- veritabanına kaydedilmiş uçuşları listeler
-- `GET /ucuslar/{ucus_numarasi}/{tarih}` -- bir uçuşun tüm EDR/TI1 ölçüm noktalarını JSON döndürür
-- `POST /analiz/ucus` (`{"ucus_numarasi": "...", "tarih": "YYYY-MM-DD"}`) -- `main.py` ile aynı analizi arka planda başlatır, `gorev_id` döner
-- `POST /analiz/toplu` (`{"ucuslar": [{"ucus_numarasi": "...", "tarih": "..."}, ...]}`) -- `toplu_analiz.py` ile aynı toplu analizi arka planda başlatır
-- `GET /analiz/durum/{gorev_id}` -- tetiklenen bir analizin durumunu sorgular
+**Güvenlik:** `/api/v1/*` altındaki TÜM uç noktalar `X-API-Key` başlığı
+gerektirir; değer `.env`'deki `API_ANAHTARI`'dan okunur (üretmek için:
+`python -c "import secrets; print(secrets.token_urlsafe(32))"`). Anahtar
+yanlış/eksikse 401, sunucuda hiç tanımlı değilse 503 döner. `/saglik`
+kasıtlı olarak anahtarsız (yaygın health-check pratiği).
 
-Bu bir İSKELETtir: görev durumu bellek içinde tutulur (süreç yeniden
-başlarsa sıfırlanır); kalıcı bir görev kuyruğu gerekiyorsa ileride eklenebilir.
+**Sürümleme:** tüm veri/analiz uç noktaları `/api/v1` altında -- ileride
+`/api/v2` eklenirse mevcut istemciler bozulmaz. Uç noktalar:
+- `GET /saglik` -- anahtarsız sağlık kontrolü
+- `GET /api/v1/ucuslar` -- veritabanına kaydedilmiş uçuşları listeler (asenkron, asyncpg)
+- `GET /api/v1/ucuslar/{ucus_numarasi}/{tarih}` -- bir uçuşun tüm EDR/TI1 ölçüm noktalarını JSON döndürür
+- `POST /api/v1/analiz/ucus` (`{"ucus_numarasi", "tarih", "bildirim_webhook_url"?}`) -- `main.py` ile aynı analizi arka planda başlatır, `gorev_id` döner
+- `POST /api/v1/analiz/toplu` (`{"ucuslar": [...], "bildirim_webhook_url"?}`) -- `toplu_analiz.py` ile aynı toplu analizi arka planda başlatır
+- `GET /api/v1/analiz/durum/{gorev_id}` -- tetiklenen bir analizin durumunu sorgular
+- `WS /ws/uyarilar?api_key=...` -- bir analiz sırasında Ellrod TI1 "orta-şiddetli" eşiğini aşan nokta bulunursa bağlı istemcilere anlık uyarı yayınlar
+
+**Asenkron:** okuma uç noktaları `veritabani.py`'nin `asyncpg` tabanlı async
+fonksiyonlarını kullanır, event loop'u bloklamaz. Analiz tetikleme uç
+noktaları, `main.py`/`toplu_analiz.py`'deki AYNI (bloklayan) mantığı
+`asyncio.to_thread` ile ayrı bir thread'de çalıştırır -- o dosyaları yeniden
+yazmaya gerek kalmadan.
+
+**Hata yönetimi:** özel exception handler'lar `VeritabaniAyarlariEksikHatasi`
+ve veritabanı bağlantı hatalarını 503'e, geçersiz girdiyi (`ValueError`)
+400'e, beklenmeyen hataları `dostane_hata_mesaji` ile 500'e çevirir.
+`/api/v1/analiz/*` uç noktaları ayrıca kendi başına basit bir hız sınırlayıcı
+içerir (varsayılan: 60 saniyede en fazla 5 istek) -- dışarıdan gelen aşırı
+istekle OpenSky'yi dolaylı olarak yormamak için; aşılırsa 429 döner.
+
+**Hız sınırlama:** `POST /api/v1/analiz/*`, kendi API'sini kötüye kullanıma
+karşı bellek-içi bir pencere sayaçla korur (429 Too Many Requests) --
+OpenSky'ye giden isteklerin dış dünyadan tetiklenen bir döngüyle
+katlanmasını önlemek için.
+
+**Webhook bildirimi:** `bildirim_webhook_url` verilirse, analiz bitince
+sonuç oraya POST edilir -- n8n'in Webhook node'u bunu dinleyip
+`GET /api/v1/analiz/durum/{gorev_id}`'yi periyodik yoklamaya (polling)
+gerek kalmadan tetiklenebilir.
+
+Görev durumu bellek içinde tutulur (süreç yeniden başlarsa sıfırlanır);
+kalıcı bir görev kuyruğu (Celery/RQ) gerekiyorsa ileride eklenebilir. Tek
+kullanıcılı/dahili bir araç için statik API anahtarı yeterli görüldü; çok
+kullanıcılı bir sürüme geçilirse JWT/OAuth2'ye yükseltilebilir.
 
 ### n8n ile periyodik otomasyon
 
 `toplu_analiz.py`'yi doğrudan n8n'e bağlamak yerine, üstteki FastAPI uç
 noktaları kullanılıyor -- n8n'in bir **Schedule Trigger**'ı, bir **HTTP
-Request** node'uyla `POST /analiz/toplu`'yu periyodik çağırır, ardından
-`GET /analiz/durum/{gorev_id}` ile tamamlanmayı bekleyip sonucu
-`GET /ucuslar/...`'dan okuyabilir. Bu, n8n'in Execute Command node'uyla
-yerel Python scriptleri çalıştırmasından daha taşınabilir (n8n ve proje
-aynı makinede olmak zorunda değil).
+Request** node'uyla `POST /api/v1/analiz/toplu`'yu periyodik çağırır,
+ardından ya `bildirim_webhook_url` ile anlık bildirim alır ya da
+`GET /api/v1/analiz/durum/{gorev_id}` ile yoklayıp sonucu
+`GET /api/v1/ucuslar/...`'dan okuyabilir. Bu tasarım -- betikleri n8n'in
+Execute Command node'uyla doğrudan çalıştırmak yerine HTTP sınırı arkasına
+koymak -- otomasyon tarafının projenin Python iç yapısını hiç bilmesine
+gerek bırakmaz: `api_servisi.py`, sadece `.env`'den beslenen, `uvicorn` ile
+başlatılan bağımsız bir süreçtir; n8n (veya başka bir istemci) onunla
+SADECE HTTP üzerinden konuşur.
 
 `veri_indirme.py` BİLİNÇLİ OLARAK bu otomasyona dahil edilmedi: gerçek ERA5
 indirmesi hâlâ sadece elle, `--gercekten-indir` bayrağıyla çalışır --
@@ -167,7 +208,13 @@ python -m pytest tests/
 
 `tests/test_eslestirme.py`, gerçek `ocak_2019_turbulans.nc` dosyasını
 bulamazsa otomatik olarak atlanır (dosya `.gitignore`'da, repoya dahil
-değildir).
+değildir). Aynı şekilde `tests/test_veritabani.py` ve
+`tests/test_api_servisi.py`, gerçek bir PostgreSQL bağlantısı kurulamazsa
+atlanır. `pytest.ini`, async testlerin (`test_api_servisi.py`) TEK bir event
+loop paylaşmasını sağlar -- gerçek bir `uvicorn` sürecini (tek event loop)
+taklit etmek için; aksi halde `veritabani.py`'deki `asyncpg` engine
+singleton'ı testler arası "Event loop is closed" hatası verir (bu bir kod
+hatası değil, sadece test izolasyonuyla ilgili bir ayrıntı).
 
 ## Bilinmesi gerekenler / sınırlamalar
 
@@ -232,3 +279,19 @@ değildir).
 - ~~Claude Code'dan veritabanına MCP ile bağlanmak.~~ Yapıldı:
   `mcp_postgres_sunucusu.py` + proje kökündeki `.mcp.json`, bkz. "Claude
   Code'dan veritabanına MCP ile bağlanmak" bölümü.
+- ~~API güvenliği (statik anahtar), asenkron uç noktalar, yapılandırılmış
+  hata yönetimi, ORM modelleri, API sürümleme/Swagger, WebSocket ile canlı
+  uyarı, n8n için webhook bildirimi.~~ Yapıldı -- bkz. "FastAPI servis
+  katmanı" ve "n8n ile periyodik otomasyon" bölümleri, `models.py`.
+- **Bilinçli olarak YAPILMADI -- Offline-first Flutter mobil arayüz:**
+  projede hiç Flutter/mobil kod yok; bu, ayrı bir mobil uygulama
+  geliştirme projesi gerektirir (sadece backend'e bir özellik eklemek
+  değil). API tarafı (JSON uç noktaları + WebSocket canlı uyarı) buna
+  hazır durumda; mobil istemci ayrı bir iş olarak ele alınmalı.
+- **Bilinçli olarak YAPILMADI -- Yapay zeka destekli tahmin modeli:**
+  `kalibrasyon.py`'nin başındaki notta da açıkça yazdığı gibi, bu depoda
+  GERÇEK PIREP/AMDAR gözlem verisi YOK. Etiketlenmiş gerçek veri olmadan
+  bir ML modeli "eğitmek", projenin başında eleştirilip düzeltilen
+  "uydurma katsayı" hatasının bir versiyonunu (bu sefer sahte bir model
+  görünümü altında) tekrarlamak olurdu. Gerçek gözlem verisi sağlanırsa
+  (bkz. `kalibrasyon.py`), üzerine bir tahmin modeli kurmak anlamlı hale gelir.
