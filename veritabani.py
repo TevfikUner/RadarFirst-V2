@@ -20,13 +20,19 @@ Her ikisi de AYNI tablolara bakar; sadece bağlantı sürücüsü farklıdır
 
 Aynı uçuş/tarih tekrar analiz edilirse eski kayıtlar silinip yeniden
 yazılır -- CSV'de olduğu gibi "üzerine yaz" davranışı korunur.
+
+ŞEMA YÖNETİMİ: Tablolar artık burada (kod içinde, örtük olarak) DEĞİL,
+Alembic migration'larıyla (bkz. migrations/, README) oluşturulur/güncellenir
+-- tek seferlik kurulum: `alembic upgrade head`. `tablolari_olustur()`
+fonksiyonu hâlâ burada duruyor ama sadece testler için (bkz. fonksiyonun
+kendi docstring'i).
 """
 
 import os
 from datetime import date
 
 import pandas as pd
-from sqlalchemy import create_engine, delete, func, select
+from sqlalchemy import create_engine, delete, func, insert, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session
 
@@ -42,22 +48,6 @@ except ImportError:
 class VeritabaniAyarlariEksikHatasi(Exception):
     """PostgreSQL bağlantı bilgileri eksik olduğunda fırlatılır."""
     pass
-
-
-def _nan_ise_none(deger):
-    """NaN'ı None'a çevirir. eslesmis_df'teki (ti1_indeksi, edr_proxy, ...)
-    kapsam-dışı noktalar NaN olarak geliyor; PostgreSQL bunu 'NaN' float
-    değeri olarak SAKLAYABİLİR ama standart JSON bunu TEMSİL EDEMEZ --
-    sanitize edilmeden yazılırsa, o satır daha sonra API'den okunmaya
-    çalışıldığında 'Out of range float values are not JSON compliant'
-    hatasıyla sunucu hatasına yol açıyordu. Bu yüzden NULL'a çevirip
-    veritabanına öyle yazıyoruz (JSON'da da doğru şekilde 'null' olur)."""
-    try:
-        if pd.isna(deger):
-            return None
-    except (TypeError, ValueError):
-        pass
-    return deger
 
 
 def _tarihe_cevir(tarih_str):
@@ -123,8 +113,56 @@ def async_oturum_al():
 
 
 def tablolari_olustur(motor=None):
+    """
+    Base.metadata.create_all() ile şemayı oluşturur.
+
+    ÜRETİMDE ARTIK KULLANILMIYOR: Şema kurulumu artık Alembic migration'ları
+    (bkz. migrations/, README'deki "Veritabanı şeması" bölümü) ile yapılıyor
+    -- `alembic upgrade head` tek seferlik kurulum adımı, sonraki şema
+    değişiklikleri de yeni migration'larla takip ediliyor. create_all()'un
+    aksine Alembic şema DEĞİŞİKLİKLERİNİ (sütun ekleme/silme vb.) de
+    uygulayabiliyor; create_all() sadece hiç var olmayan tabloları oluşturur.
+
+    Bu fonksiyon YİNE DE burada duruyor -- testlerin hızlıca (migration
+    çalıştırmadan) geçici bir test veritabanı kurması için kullanışlı; bu,
+    "testler create_all, üretim Alembic kullanır" ayrımı birçok gerçek
+    SQLAlchemy+Alembic projesinde standart bir pratiktir.
+    """
     motor = motor or motor_al()
     Base.metadata.create_all(motor)
+
+
+_OLCUM_SUTUNLARI = [
+    "zaman", "enlem", "boylam", "ti1_indeksi", "edr_proxy",
+    "richardson_sayisi", "dinamik_kararsizlik", "basinc_hpa",
+]
+
+
+def _olcum_kayitlarini_hazirla(eslesmis_df, ucus_id):
+    """
+    eslesmis_df'i, EdrOlcumu için toplu (bulk) INSERT'te kullanılacak bir
+    sözlük listesine çevirir.
+
+    ÖNCEKİ SÜRÜM eslesmis_df.iterrows() ile HER SATIR için ayrı bir ORM
+    nesnesi (+ Session.add_all) oluşturuyordu -- 50.000 satırlık bir uçuşta
+    bu hem Python tarafında (nesne oluşturma, pd.isna() satır satır çağrısı)
+    hem SQLAlchemy'nin unit-of-work'ünde (identity map'e 50.000 nesne
+    eklemek) yavaştı. Burada tüm tablo TEK seferde (vektörel) NaN -> None'a
+    çevrilip düz sözlüklere dönüştürülüyor ve tek bir INSERT ifadesiyle
+    (executemany) yazılıyor -- çok daha hızlı, ORM nesnesi/identity map
+    yükü yok.
+    """
+    calisma_df = pd.DataFrame(
+        {sutun: eslesmis_df[sutun] if sutun in eslesmis_df.columns else None for sutun in _OLCUM_SUTUNLARI},
+        index=eslesmis_df.index,
+    )
+    gecerlilik_maskesi = calisma_df.notna()
+    calisma_df = calisma_df.astype(object).where(gecerlilik_maskesi, None)
+
+    kayitlar = calisma_df.to_dict(orient="records")
+    for kayit in kayitlar:
+        kayit["ucus_id"] = ucus_id
+    return kayitlar
 
 
 def ucus_ve_olcumleri_kaydet(eslesmis_df, ucus_numarasi, tarih_str, motor=None):
@@ -136,7 +174,6 @@ def ucus_ve_olcumleri_kaydet(eslesmis_df, ucus_numarasi, tarih_str, motor=None):
     Dönüş: eklenen 'ucuslar' satırının id'si.
     """
     motor = motor or motor_al()
-    tablolari_olustur(motor)
 
     bos_ise_al = lambda sutun: (
         eslesmis_df[sutun].iloc[0] if sutun in eslesmis_df.columns and not eslesmis_df.empty else None
@@ -158,21 +195,7 @@ def ucus_ve_olcumleri_kaydet(eslesmis_df, ucus_numarasi, tarih_str, motor=None):
         oturum.flush()  # ucus.id'yi almak için
 
         if not eslesmis_df.empty:
-            olcum_sutunlari = [
-                "zaman", "enlem", "boylam", "ti1_indeksi", "edr_proxy",
-                "richardson_sayisi", "dinamik_kararsizlik", "basinc_hpa",
-            ]
-            olcumler = [
-                EdrOlcumu(
-                    ucus_id=ucus.id,
-                    **{
-                        sutun: _nan_ise_none(satir[sutun]) if sutun in eslesmis_df.columns else None
-                        for sutun in olcum_sutunlari
-                    },
-                )
-                for _, satir in eslesmis_df.iterrows()
-            ]
-            oturum.add_all(olcumler)
+            oturum.execute(insert(EdrOlcumu), _olcum_kayitlarini_hazirla(eslesmis_df, ucus.id))
 
         oturum.commit()
         return ucus.id
@@ -252,6 +275,33 @@ async def ucus_detayini_getir_async(ucus_numarasi, tarih_str, olcum_limit=1000, 
             "toplam_olcum_sayisi": toplam_olcum_sayisi,
             "olcumler": [_olcum_sozluge_cevir(o) for o in olcum_sonucu.scalars().all()],
         }
+
+
+def ucus_olcumlerini_dataframe_olarak_getir(ucus_numarasi, tarih_str, motor=None):
+    """
+    Bir uçuşun TÜM ölçüm noktalarını (yukarıdaki _OLCUM_LIMIT_TAVANI/sayfalama
+    OLMADAN) bir pandas DataFrame olarak döndürür.
+
+    ucus_detayini_getir()'deki tavan/sayfalama, API'nin DIŞARIYA (ağa) açık
+    olması ve tek istekte devasa bir yanıt dönmesini engellemek için bilerek
+    konuldu. Bu fonksiyon ise SADECE yerel/güvenilir araçlar içindir (örn.
+    veri_kontrol.py'nin çözünürlük/çeşitlilik teşhisi) -- rotanın SADECE ilk
+    N noktasını değil TAMAMINI görmesi gerekir, yoksa örnekleme yanlılığı
+    (örn. uçuşun sadece ilk %10'unu inceleyip "çözünürlük düşük" yanılgısına
+    varmak) oluşabilir.
+    """
+    motor = motor or motor_al()
+    with Session(motor) as oturum:
+        ucus = oturum.execute(
+            select(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == _tarihe_cevir(tarih_str))
+        ).scalars().first()
+        if ucus is None:
+            return None
+
+        olcumler = oturum.execute(
+            select(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id).order_by(EdrOlcumu.zaman)
+        ).scalars().all()
+        return pd.DataFrame([_olcum_sozluge_cevir(o) for o in olcumler])
 
 
 def _ucus_sozluge_cevir(u: Ucus):

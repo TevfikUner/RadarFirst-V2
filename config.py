@@ -44,3 +44,17 @@ EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI = False
 # rate-limit/ban riskiyle karşı karşıya bırakabildiği için, uçuşlar arasına
 # bilerek küçük bir bekleme koyuyoruz.
 TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE = 2.0
+
+# Üretilen dosyaların (harita HTML'leri, toplu analiz özet CSV'si) yazıldığı
+# klasör. Önceden bunlar proje köküne (kaynak koduyla aynı yere) yazılıyordu
+# -- her çalıştırma proje klasörünü biraz daha dağıtıyordu. Artık hepsi tek
+# bir alt klasörde toplanıyor (main.py/toplu_analiz.py bu klasörü yoksa
+# otomatik oluşturur).
+CIKTI_KLASORU = "ciktilar"
+
+# harita.py'nin ürettiği zaman kaydırıcılı animasyon (TimestampedGeoJson),
+# nokta sayısı arttıkça ağırlaşan bir HTML üretir -- 50.000 noktalık bir
+# uçuşta tarayıcı gözle görülür şekilde yavaşlıyordu. Rota bu sayıdan uzunsa,
+# SADECE animasyon noktaları eşit aralıklarla seyreltilir (ham veri zaten
+# PostgreSQL'de tam haliyle duruyor, bu sadece görselleştirme içindir).
+HARITA_MAKS_ANIMASYON_NOKTASI = 2000

@@ -16,7 +16,9 @@ ederek) yazıldı.
 Gerçek bir PostgreSQL bağlantısı gerektirir; bağlanılamazsa atlanır (skip).
 """
 
+import asyncio
 import os
+import time
 
 import httpx
 import pandas as pd
@@ -129,7 +131,6 @@ async def test_nan_degerler_null_olarak_donuyor(istemci, api_anahtari):
     """Kapsam dışı noktalardaki NaN, veritabanına None olarak yazılıp API'den
     JSON 'null' olarak dönmeli -- 'Out of range float' hatası vermemeli."""
     import numpy as np
-    import pandas as pd
 
     df = pd.DataFrame({
         "zaman": pd.to_datetime(["2019-01-01T00:00:00Z"]),
@@ -151,7 +152,6 @@ async def test_nan_degerler_null_olarak_donuyor(istemci, api_anahtari):
 
 
 async def test_olcum_sayfalama(istemci, api_anahtari):
-    import pandas as pd
 
     df = pd.DataFrame({
         "zaman": pd.to_datetime([f"2019-01-01T00:0{i}:00Z" for i in range(3)]),
@@ -175,7 +175,6 @@ async def test_olcum_sayfalama(istemci, api_anahtari):
 
 async def test_analiz_tetikleme_ve_durum_sorgulama(istemci, api_anahtari, monkeypatch):
     """Gerçek OpenSky/Trino'ya bağlanmamak için tek_ucus_analiz_et sahteleniyor."""
-    import pandas as pd
 
     def sahte_analiz(ucus_numarasi, tarih):
         return pd.DataFrame({
@@ -197,7 +196,6 @@ async def test_analiz_tetikleme_ve_durum_sorgulama(istemci, api_anahtari, monkey
     # BackgroundTasks yanıt döndükten hemen sonra çalışır; anahtar burada
     # gerçek zamanlama garantisi vermez ama sahte fonksiyon anlık olduğu için
     # pratikte tamamlanmış olur.
-    import asyncio
     for _ in range(20):
         durum = await istemci.get(f"/api/v1/analiz/durum/{gorev_id}", headers={"X-API-Key": api_anahtari})
         if durum.json().get("durum") in ("tamamlandi", "hata", "basarisiz"):
@@ -267,3 +265,52 @@ async def test_dusuk_riskli_noktalar_yayinlanmaz(monkeypatch):
     df_sakin = pd.DataFrame({"ti1_indeksi": [config.TI1_ESIK_HAFIF / 2]})
     await api_servisi._yuksek_riskli_noktalari_yayinla(df_sakin, "TESTX", "2019-01-01")
     assert yayinlanan == []
+
+
+# --- Görev kaydı temizliği (bellek sızıntısı düzeltmesi) ---
+
+def test_eski_bitmis_gorev_temizlenir():
+    api_servisi._gorevler["eski"] = {
+        "durum": "tamamlandi",
+        "_olusturulma": time.monotonic() - api_servisi._GOREV_SAKLAMA_SANIYE - 1,
+    }
+    api_servisi._eski_gorevleri_temizle()
+    assert "eski" not in api_servisi._gorevler
+
+
+def test_yeni_bitmis_gorev_silinmez():
+    api_servisi._gorevler["yeni"] = {"durum": "tamamlandi", "_olusturulma": time.monotonic()}
+    api_servisi._eski_gorevleri_temizle()
+    assert "yeni" in api_servisi._gorevler
+
+
+def test_calisan_eski_gorev_silinmez():
+    """'calisiyor' durumundaki bir görev, ne kadar eski olursa olsun silinmemeli."""
+    api_servisi._gorevler["calisiyor"] = {
+        "durum": "calisiyor",
+        "_olusturulma": time.monotonic() - api_servisi._GOREV_SAKLAMA_SANIYE - 1,
+    }
+    api_servisi._eski_gorevleri_temizle()
+    assert "calisiyor" in api_servisi._gorevler
+
+
+def test_gorev_disari_ver_dahili_alani_gizler():
+    disari = api_servisi._gorev_disari_ver({"durum": "tamamlandi", "_olusturulma": 123.0})
+    assert "_olusturulma" not in disari
+    assert disari == {"durum": "tamamlandi"}
+
+
+async def test_analiz_durumu_dahili_alani_sizdirmiyor(istemci, api_anahtari, monkeypatch):
+    monkeypatch.setattr(api_servisi, "tek_ucus_analiz_et", lambda un, t: None)
+    yanit = await istemci.post(
+        "/api/v1/analiz/ucus",
+        json={"ucus_numarasi": "TESTX", "tarih": "2019-01-01"},
+        headers={"X-API-Key": api_anahtari},
+    )
+    gorev_id = yanit.json()["gorev_id"]
+    for _ in range(20):
+        durum = await istemci.get(f"/api/v1/analiz/durum/{gorev_id}", headers={"X-API-Key": api_anahtari})
+        if durum.json().get("durum") != "calisiyor":
+            break
+        await asyncio.sleep(0.05)
+    assert "_olusturulma" not in durum.json()

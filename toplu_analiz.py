@@ -21,6 +21,7 @@ DURMAZ -- sadece o uçuş "başarısız" olarak işaretlenip bir sonrakine geçi
 """
 
 import argparse
+import os
 import time
 
 from konsol_kurulumu import konsolu_utf8_yap
@@ -101,8 +102,8 @@ def _argumanlari_ayristir(argv=None):
         help="'ucus_numarasi' ve 'tarih' sütunlarını içeren CSV dosyası",
     )
     ayristirici.add_argument(
-        "--cikti", default="toplu_analiz_ozeti.csv", metavar="DOSYA.csv",
-        help="Özet tablosunun kaydedileceği dosya (varsayılan: toplu_analiz_ozeti.csv)",
+        "--cikti", default=None, metavar="DOSYA.csv",
+        help=f"Özet tablosunun kaydedileceği dosya (varsayılan: {config.CIKTI_KLASORU}/toplu_analiz_ozeti.csv)",
     )
     return ayristirici.parse_args(argv)
 
@@ -123,13 +124,18 @@ if __name__ == "__main__":
             )
 
     ozet_df = toplu_analiz_calistir(ucus_listesi_df)
-    ozet_df.to_csv(argumanlar.cikti, index=False)
+
+    cikti_dosyasi = argumanlar.cikti
+    if cikti_dosyasi is None:
+        os.makedirs(config.CIKTI_KLASORU, exist_ok=True)
+        cikti_dosyasi = os.path.join(config.CIKTI_KLASORU, "toplu_analiz_ozeti.csv")
+    ozet_df.to_csv(cikti_dosyasi, index=False)
 
     print(f"\n{'=' * 60}")
     print("TOPLU ANALİZ ÖZETİ")
     print("=" * 60)
     print(ozet_df.to_string(index=False))
-    print(f"\nÖzet kaydedildi: {argumanlar.cikti}")
+    print(f"\nÖzet kaydedildi: {cikti_dosyasi}")
 
     basarili_sayisi = (ozet_df["durum"] == "başarılı").sum()
     print(f"{basarili_sayisi}/{len(ozet_df)} uçuş başarıyla analiz edildi.")
