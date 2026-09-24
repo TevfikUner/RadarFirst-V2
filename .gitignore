@@ -4,5 +4,10 @@ __pycache__/
 *.nc
 *.jar
 *.zip
+
+# Üretilen çıktılar artık ciktilar/ altına yazılıyor (bkz. config.CIKTI_KLASORU).
+ciktilar/
+# Eski sürümlerde proje köküne yazılmış kalıntı dosyalar için (geriye dönük):
 turbulans_haritasi*.html
 eslesme_sonuclari_*.csv
+toplu_analiz_ozeti.csv

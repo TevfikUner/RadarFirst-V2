@@ -24,7 +24,7 @@ eslestirme.py                -> uçuş rotası <-> hava durumu grid eşleştirme
 harita.py                    -> zaman kaydırıcılı Folium haritası
 main.py                      -> uçtan uca çalıştırma
 ornek_ucus_bul.py           -> OpenSky'da kayıtlı gerçek callsign'ları listeler
-veri_kontrol.py              -> veri küpü çözünürlüğünü / TI1 çeşitliliğini kontrol eder
+veri_kontrol.py              -> veri küpü çözünürlüğünü / TI1 çeşitliliğini kontrol eder (PostgreSQL'den okur)
 kimlik_kontrol.py           -> .env'in doğru okunduğunu kontrol eder
 kalibrasyon.py               -> gerçek PIREP/AMDAR verisiyle EDR ölçekleme katsayısını kalibre eder
 toplu_analiz.py              -> bir CSV listesindeki birden fazla uçuşu sırayla analiz eder
@@ -34,10 +34,13 @@ veri_indirme.py              -> ERA5 verisi otomatik indirme ALTYAPISI (bkz. aş
 konsol_kurulumu.py           -> Windows konsolunda Türkçe/özel karakterlerin çökmesini önler
 models.py                     -> PostgreSQL tabloları için SQLAlchemy ORM modelleri (Ucus, EdrOlcumu)
 veritabani.py                 -> PostgreSQL entegrasyonu: senkron (main.py) + asenkron (api_servisi.py) erişim
+migrations/, alembic.ini      -> Alembic veritabanı şema migration'ları (bkz. "Veritabanı şeması" bölümü)
+loglama.py                     -> api_servisi.py için ortak logging yapılandırması (LOG_SEVIYESI, LOG_DOSYASI)
 api_servisi.py                -> FastAPI REST API'si (API anahtarlı, /api/v1, async, WebSocket, webhook)
 mcp_postgres_sunucusu.py      -> Claude Code/Desktop için salt okunur PostgreSQL MCP sunucusu
 .mcp.json                       -> Claude Code'un mcp_postgres_sunucusu.py'yi otomatik tanıması için
 pytest.ini                     -> pytest-asyncio ayarları (async testler tek event loop paylaşır)
+ciktilar/                       -> üretilen harita HTML'leri ve toplu analiz özet CSV'si (git'e dahil değil)
 tests/                        -> pytest birim testleri (ağ/veri gerektirmeyen kısımlar için)
 ```
 
@@ -46,6 +49,7 @@ tests/                        -> pytest birim testleri (ağ/veri gerektirmeyen k
 ```bash
 pip install -r requirements.txt
 cp .env.example .env          # sonra .env içine OpenSky + PostgreSQL bilgilerini yaz
+alembic upgrade head          # veritabanı şemasını kur (tek seferlik, bkz. "Veritabanı şeması")
 python main.py THY1234 2019-01-01
 ```
 
@@ -66,18 +70,43 @@ POSTGRES_DB=Turbulence-db
 ```
 
 `main.py` her çalıştırmada `veritabani.py` üzerinden (ki bu artık ham SQL
-değil, `models.py`'deki SQLAlchemy ORM modellerini kullanıyor) `ucuslar` ve
-`edr_olcumleri` tablolarını (yoksa) otomatik oluşturur ve sonucu yazar; aynı
+değil, `models.py`'deki SQLAlchemy ORM modellerini kullanıyor, ve tekli
+satır ekleme yerine TOPLU/bulk INSERT yapıyor -- 5000 satırlık bir uçuşta
+~0.5 saniye) `ucuslar` ve `edr_olcumleri` tablolarına sonucu yazar; aynı
 (uçuş numarası, tarih) tekrar analiz edilirse eski kayıt silinip yeniden
-yazılır. Veritabanına yazma başarısız olursa (bağlantı yok, `.env` eksik
-vb.) pipeline durmaz -- bir uyarı basılır ve harita yine de üretilir, sadece
-o çalıştırma kalıcı olarak saklanmaz.
+yazılır. Veritabanına yazma başarısız olursa (bağlantı yok, şema kurulu
+değil vb.) pipeline durmaz -- bir uyarı basılır ve harita yine de üretilir,
+sadece o çalıştırma kalıcı olarak saklanmaz.
 
 Not: Görev tanımında verilen bağlantı bilgileri `Turbulence-db` adlı, halen
 sunucuda var olan bir veritabanını gösteriyordu; PostgreSQL entegrasyonu
 maddesinde ayrıca geçen `radar_first_db` ismi bu sunucuda bulunmadığından,
 gerçekten var olan `Turbulence-db` kullanıldı. Farklı bir veritabanı adı
 istenirse `.env`'deki `POSTGRES_DB` değerini değiştirmek yeterli.
+
+### Veritabanı şeması (Alembic)
+
+Tablolar artık kod içinde örtük olarak (`create_all`) DEĞİL, Alembic
+migration'larıyla yönetiliyor:
+
+```bash
+alembic upgrade head      # şemayı kur/güncelle (tek seferlik + her yeni migration'da)
+alembic current            # veritabanının hangi migration'da olduğunu gösterir
+alembic history             # tüm migration geçmişini listeler
+```
+
+Bağlantı bilgisi `alembic.ini`'ye YAZILMAZ (o dosya git'e commitlenir) --
+`migrations/env.py`, tıpkı `veritabani.py` gibi, bağlantı dizesini `.env`
+dosyasından okur. Şemada değişiklik yapman gerekirse (`models.py`'ye yeni
+bir sütun/tablo eklemek gibi), yeni bir migration oluştur:
+
+```bash
+alembic revision --autogenerate -m "kisa aciklama"
+alembic upgrade head
+```
+
+`veritabani.tablolari_olustur()` (`create_all`) hâlâ kod içinde duruyor ama
+SADECE testler için -- production/gerçek kurulum artık migration kullanır.
 
 ### FastAPI servis katmanı
 
@@ -125,10 +154,24 @@ sonuç oraya POST edilir -- n8n'in Webhook node'u bunu dinleyip
 `GET /api/v1/analiz/durum/{gorev_id}`'yi periyodik yoklamaya (polling)
 gerek kalmadan tetiklenebilir.
 
-Görev durumu bellek içinde tutulur (süreç yeniden başlarsa sıfırlanır);
-kalıcı bir görev kuyruğu (Celery/RQ) gerekiyorsa ileride eklenebilir. Tek
-kullanıcılı/dahili bir araç için statik API anahtarı yeterli görüldü; çok
-kullanıcılı bir sürüme geçilirse JWT/OAuth2'ye yükseltilebilir.
+Görev durumu bellek içinde tutulur (süreç yeniden başlarsa sıfırlanır) ve
+artık kendiliğinden temizleniyor: bitmiş (tamamlandı/hata/başarısız)
+görevler 1 saat sonra otomatik silinir, ayrıca sözlük 5000 kaydı aşarsa en
+eski bitmiş görevler öncelikle temizlenir -- eskiden bu kayıt hiç
+temizlenmiyordu ve uzun süre ayakta kalan bir süreçte (özellikle n8n
+periyodik tetikledikçe) sınırsız büyüyordu. Kalıcı bir görev kuyruğu
+(Celery/RQ) gerekiyorsa ileride eklenebilir. Tek kullanıcılı/dahili bir araç
+için statik API anahtarı yeterli görüldü; çok kullanıcılı bir sürüme
+geçilirse JWT/OAuth2'ye yükseltilebilir.
+
+**Loglama:** `api_servisi.py`'nin kendi tanı/hata mesajları artık `print()`
+değil `logging` (bkz. `loglama.py`) ile yazılıyor -- seviye `LOG_SEVIYESI`
+ortam değişkeniyle ayarlanır (varsayılan `INFO`), `LOG_DOSYASI` verilirse
+loglar ayrıca bir dosyaya da yazılır. Çıktı akışı bilerek **stderr**'dir,
+stdout değil -- `main.py`/`toplu_analiz.py`/`web_arayuzu.py` gibi CLI/UI
+araçlarının insan için tasarlanmış adım adım çıktısı (ve `web_arayuzu.py`'nin
+bu çıktıyı yakalayıp arayüzde göstermesi) bilerek `print()` olarak kaldı --
+bunlar loglanacak bir "olay" değil, aracın doğrudan ürettiği sonuçtur.
 
 ### n8n ile periyodik otomasyon
 
@@ -183,6 +226,18 @@ script ayrıca hepsinin kısa bir özetini (`toplu_analiz_ozeti.csv`) tek
 tabloda toplar -- bu özet dosyası, PostgreSQL'e taşınan ham ölçüm verisinden
 farklı, sadece bu çalıştırmaya özel bir rapor olduğu için CSV olarak kalmaya
 devam ediyor. Bir uçuşta hata olursa diğerlerinin analizi durmaz.
+
+### Çıktı klasörü ve büyük rotalar
+
+Üretilen harita HTML'leri ve `toplu_analiz_ozeti.csv`, artık proje köküne
+değil `config.CIKTI_KLASORU` (`ciktilar/`) altına yazılıyor -- eskiden her
+çalıştırma proje klasörünü biraz daha dağıtıyordu. Bu klasör `.gitignore`'da.
+
+Çok uzun rotalarda (`config.HARITA_MAKS_ANIMASYON_NOKTASI`'ndan, varsayılan
+2000, fazla nokta) `harita.py`'nin ürettiği zaman kaydırıcılı animasyon,
+tarayıcıyı yormaması için eşit aralıklarla seyreltilir -- 50.000 noktalık bir
+uçuş artık ağır bir HTML üretmiyor. Bu SADECE görselleştirme için; ham veri
+PostgreSQL'de (ve haritadaki statik rota çizgisinde) tam haliyle duruyor.
 
 ### ERA5 verisini otomatik indirme -- ŞU AN AKTİF DEĞİL
 
@@ -240,9 +295,9 @@ Bir kod incelemesinde bulunan 6 sorun giderildi:
 
 1. **NaN → NULL:** Veri küpünün kapsamı dışındaki noktalar (`ti1_indeksi`,
    `edr_proxy`, ...) `NaN` olarak hesaplanıyor; bunlar veritabanına artık
-   `NULL` olarak yazılıyor (`veritabani._nan_ise_none`). Önceden `NaN` olarak
-   yazılan bir satır API'den okunduğunda "Out of range float values are not
-   JSON compliant" hatasıyla 500'e düşüyordu.
+   `NULL` olarak yazılıyor (`veritabani._olcum_kayitlarini_hazirla`). Önceden
+   `NaN` olarak yazılan bir satır API'den okunduğunda "Out of range float
+   values are not JSON compliant" hatasıyla 500'e düşüyordu.
 2. **SQL enjeksiyonu:** `veri_yukleme.py` ve `ornek_ucus_bul.py`, uçuş
    numarası/icao24/önek gibi değerleri artık f-string ile SQL'e gömmüyor;
    Trino'nun parametreli sorgu desteğini (`?` yer tutucuları +
@@ -268,6 +323,36 @@ Bir kod incelemesinde bulunan 6 sorun giderildi:
 6. **Zamanlamaya dayanıklı anahtar karşılaştırması:** API anahtarı artık
    `==` yerine `secrets.compare_digest` ile karşılaştırılıyor (timing
    attack'e karşı).
+
+Aynı incelemeden 7 sorun daha giderildi:
+
+7. **Yavaş veritabanı yazımı:** `ucus_ve_olcumleri_kaydet`, `eslesmis_df.
+   iterrows()` ile her satır için ayrı bir ORM nesnesi oluşturmak yerine
+   artık tüm tabloyu vektörel olarak sözlük listesine çevirip TEK bir toplu
+   (bulk) `INSERT` ifadesiyle yazıyor (`_olcum_kayitlarini_hazirla`) --
+   gerçek veriyle ölçüldü: 5000 satır ~0.5 saniyede yazılıyor.
+8. **`print()` yerine `logging`:** `api_servisi.py`'nin kendi tanı/hata
+   mesajları artık `loglama.py` üzerinden seviyeli/filtrelenebilir
+   (`LOG_SEVIYESI`) ve isteğe bağlı dosyaya da yazılabilir (`LOG_DOSYASI`)
+   `logging` kullanıyor -- bkz. "FastAPI servis katmanı" bölümündeki
+   "Loglama" notu (CLI araçlarının insan için tasarlanmış çıktısı bilinçli
+   olarak `print()` olarak kaldı, orada da açıklandı).
+9. **Veritabanı migration'ı (Alembic):** Şema artık kod içinde örtük
+   (`create_all`) değil, `migrations/` altındaki Alembic migration'larıyla
+   yönetiliyor -- bkz. "Veritabanı şeması (Alembic)" bölümü.
+10. **Görev kaydı bellek sızıntısı:** `api_servisi.py`'deki `_gorevler`
+    sözlüğü artık kendiliğinden temizleniyor -- bkz. "FastAPI servis
+    katmanı" bölümündeki görev durumu notu.
+11. **`veri_kontrol.py` güncellendi:** Artık üretilmeyen
+    `eslesme_sonuclari_*.csv` yerine doğrudan PostgreSQL'den okuyor
+    (`python veri_kontrol.py N10VZ 2019-01-15`) -- ve örnekleme yanlılığı
+    olmaması için (API'nin aksine) TÜM ölçüm noktalarını inceliyor
+    (`veritabani.ucus_olcumlerini_dataframe_olarak_getir`).
+12. **Çıktı klasörü:** Harita HTML'leri ve toplu analiz özeti artık proje
+    köküne değil `ciktilar/` altına yazılıyor -- bkz. "Çıktı klasörü ve
+    büyük rotalar" bölümü.
+13. **Büyük rotalarda ağır harita:** `harita.py`'nin animasyonu artık çok
+    uzun rotalarda (>2000 nokta) seyreltiliyor -- bkz. aynı bölüm.
 
 ## Sonraki adımlar için fikirler
 

@@ -45,8 +45,7 @@ BİLİNÇLİ OLARAK EKLENMEDİ:
 import asyncio
 import os
 import secrets
-import sys
-import traceback
+import time
 import uuid
 from datetime import date
 
@@ -67,6 +66,7 @@ from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.exc import SQLAlchemyError
 
 import config
+import loglama
 from main import calistir as tek_ucus_analiz_et
 from toplu_analiz import toplu_analiz_calistir
 from veritabani import (
@@ -75,6 +75,9 @@ from veritabani import (
     ucuslari_listele_async,
 )
 from hata_yardimcisi import dostane_hata_mesaji
+
+loglama.ayarla()
+_logger = loglama.logger_al(__name__)
 
 app = FastAPI(
     title="Türbülans Radar API",
@@ -115,7 +118,6 @@ _analiz_istek_zamanlari: dict[str, list[float]] = {}
 
 
 def _hiz_sinirini_kontrol_et(anahtar: str):
-    import time
     simdi = time.monotonic()
     gecmis = [t for t in _analiz_istek_zamanlari.get(anahtar, []) if simdi - t < _ANALIZ_PENCERE_SANIYE]
     if len(gecmis) >= _ANALIZ_PENCERE_BASINA_MAKS_ISTEK:
@@ -141,8 +143,10 @@ def _hiz_sinirini_kontrol_et(anahtar: str):
 # ---------------------------------------------------------------------------
 
 def _hatayi_sunucu_tarafinda_logla(hata: Exception, baglam: str = ""):
-    print(f"[Sunucu Hatası]{' ' + baglam if baglam else ''}", file=sys.stderr)
-    traceback.print_exception(type(hata), hata, hata.__traceback__, file=sys.stderr)
+    # exc_info=hata: logging tam traceback'i kendisi formatlar (manuel
+    # traceback.print_exception'a göre daha az kod, aynı sonuç) ve seviye/
+    # zaman damgası gibi diğer log alanlarıyla tutarlı biçimlenir.
+    _logger.error("Sunucu hatası%s", f" ({baglam})" if baglam else "", exc_info=hata)
 
 
 @app.exception_handler(VeritabaniAyarlariEksikHatasi)
@@ -241,7 +245,7 @@ async def _webhooku_bildir(webhook_url, govde):
         async with httpx.AsyncClient(timeout=10) as istemci:
             await istemci.post(webhook_url, json=govde)
     except Exception as hata:
-        print(f"[Uyarı] Webhook bildirimi gönderilemedi ({webhook_url}): {dostane_hata_mesaji(hata)}")
+        _logger.warning("Webhook bildirimi gönderilemedi (%s): %s", webhook_url, dostane_hata_mesaji(hata))
 
 
 # ---------------------------------------------------------------------------
@@ -252,7 +256,41 @@ v1 = APIRouter(prefix="/api/v1", dependencies=[Depends(api_anahtarini_dogrula)])
 
 # Süreç yeniden başlarsa sıfırlanan basit bellek-içi görev durumu takibi --
 # iskelet amaçlı; kalıcı bir görev kuyruğu (Celery/RQ) gerekirse eklenebilir.
+#
+# ÖNEMLİ: Bu sözlük eskiden HİÇ temizlenmiyordu -- süreç uzun süre ayakta
+# kaldıkça (özellikle n8n gibi bir araç periyodik olarak analiz tetikledikçe)
+# sınırsız büyüyüp bir bellek sızıntısına yol açıyordu. Artık her yeni görev
+# oluşturulmadan önce, belirli bir süre önce BİTMİŞ (çalışmakta olan değil)
+# görevler otomatik temizleniyor; ayrıca sözlük büyüklüğüne sabit bir tavan
+# konarak (aşırı istek/hız sınırı aşımı gibi uç durumlarda bile) sınırsız
+# büyüme kesin olarak engelleniyor.
 _gorevler: dict[str, dict] = {}
+_GOREV_SAKLAMA_SANIYE = 3600  # bitmiş görevler 1 saat sonra siliniyor
+_GOREV_SAYISI_TAVANI = 5000
+
+
+def _eski_gorevleri_temizle():
+    simdi = time.monotonic()
+    bitmis_durumlar = ("tamamlandi", "hata", "basarisiz")
+    for gid in [g for g, v in _gorevler.items() if v.get("durum") in bitmis_durumlar
+                and simdi - v.get("_olusturulma", simdi) > _GOREV_SAKLAMA_SANIYE]:
+        del _gorevler[gid]
+
+    # Süre dolmadan bile sözlük çok büyürse (örn. çok kısa aralıklarla çok
+    # sayıda görev tetiklenirse) en eski bitmiş görevleri silerek tavanı koru.
+    if len(_gorevler) > _GOREV_SAYISI_TAVANI:
+        bitmis_gorevler = sorted(
+            (g for g in _gorevler.items() if g[1].get("durum") in bitmis_durumlar),
+            key=lambda g: g[1].get("_olusturulma", 0),
+        )
+        fazlalik = len(_gorevler) - _GOREV_SAYISI_TAVANI
+        for gid, _ in bitmis_gorevler[:fazlalik]:
+            del _gorevler[gid]
+
+
+def _gorev_disari_ver(gorev: dict) -> dict:
+    """Dışa dönen yanıttan '_olusturulma' gibi dahili alanları çıkarır."""
+    return {k: v for k, v in gorev.items() if not k.startswith("_")}
 
 
 # OpenSky callsign'ları en fazla 8 karakter, harf/rakamdan oluşur (bkz.
@@ -310,7 +348,10 @@ async def ucus_detayi(
 
 
 async def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih, webhook_url):
-    _gorevler[gorev_id] = {"durum": "calisiyor", "ucus_numarasi": ucus_numarasi, "tarih": tarih}
+    _gorevler[gorev_id] = {
+        "durum": "calisiyor", "ucus_numarasi": ucus_numarasi, "tarih": tarih,
+        "_olusturulma": time.monotonic(),
+    }
     try:
         sonuc = await asyncio.to_thread(tek_ucus_analiz_et, ucus_numarasi, tarih)
         _gorevler[gorev_id]["durum"] = "tamamlandi" if sonuc is not None else "basarisiz"
@@ -318,12 +359,13 @@ async def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih, webhook_url)
     except Exception as hata:
         _gorevler[gorev_id]["durum"] = "hata"
         _gorevler[gorev_id]["aciklama"] = dostane_hata_mesaji(hata)
-    await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **_gorevler[gorev_id]})
+    await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **_gorev_disari_ver(_gorevler[gorev_id])})
 
 
 @v1.post("/analiz/ucus", status_code=status.HTTP_202_ACCEPTED)
 async def ucus_analizi_baslat(istek: UcusAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
     _hiz_sinirini_kontrol_et("tek_ucus")
+    _eski_gorevleri_temizle()
     gorev_id = str(uuid.uuid4())
     arkaplan_gorevleri.add_task(
         _tek_ucus_arkaplan_gorevi, gorev_id, istek.ucus_numarasi, istek.tarih, istek.bildirim_webhook_url
@@ -332,7 +374,7 @@ async def ucus_analizi_baslat(istek: UcusAnalizIstegi, arkaplan_gorevleri: Backg
 
 
 async def _toplu_arkaplan_gorevi(gorev_id, ucus_listesi_df, webhook_url):
-    _gorevler[gorev_id] = {"durum": "calisiyor"}
+    _gorevler[gorev_id] = {"durum": "calisiyor", "_olusturulma": time.monotonic()}
     try:
         ozet_df = await asyncio.to_thread(toplu_analiz_calistir, ucus_listesi_df)
         _gorevler[gorev_id]["durum"] = "tamamlandi"
@@ -340,12 +382,13 @@ async def _toplu_arkaplan_gorevi(gorev_id, ucus_listesi_df, webhook_url):
     except Exception as hata:
         _gorevler[gorev_id]["durum"] = "hata"
         _gorevler[gorev_id]["aciklama"] = dostane_hata_mesaji(hata)
-    await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **_gorevler[gorev_id]})
+    await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **_gorev_disari_ver(_gorevler[gorev_id])})
 
 
 @v1.post("/analiz/toplu", status_code=status.HTTP_202_ACCEPTED)
 async def toplu_analiz_baslat(istek: TopluAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
     _hiz_sinirini_kontrol_et("toplu")
+    _eski_gorevleri_temizle()
     if not istek.ucuslar:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="'ucuslar' listesi boş olamaz.")
     ucus_listesi_df = pd.DataFrame([u.model_dump(exclude={"bildirim_webhook_url"}) for u in istek.ucuslar])
@@ -359,7 +402,7 @@ async def analiz_durumu(gorev_id: str):
     gorev = _gorevler.get(gorev_id)
     if gorev is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bilinmeyen gorev_id.")
-    return gorev
+    return _gorev_disari_ver(gorev)
 
 
 app.include_router(v1)

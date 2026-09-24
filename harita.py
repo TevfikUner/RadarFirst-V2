@@ -58,12 +58,19 @@ def _lejant_ekle(harita):
     harita.get_root().html.add_child(folium.Element(lejant_html))
 
 
-def zaman_kaydiricili_harita_olustur(rota_df, dosya_adi="turbulans_haritasi.html"):
+def zaman_kaydiricili_harita_olustur(
+    rota_df, dosya_adi="turbulans_haritasi.html", maks_animasyon_noktasi=config.HARITA_MAKS_ANIMASYON_NOKTASI,
+):
     """
     rota_df: eslestirme.rotayi_hava_durumuyla_eslestir(...) çıktısı.
              Gerekli sütunlar: zaman, enlem, boylam, edr_proxy
              Varsa kullanılan opsiyonel sütunlar: ucus_numarasi, icao24,
              kalkis_havaalani, varis_havaalani, basinc_hpa
+
+    maks_animasyon_noktasi: rota bundan uzunsa, TimestampedGeoJson
+        animasyonundaki nokta sayısı eşit aralıklarla bu sayıya indirilir
+        (tarayıcıyı yormamak için) -- statik rota çizgisi yine TAM rotayı
+        kullanır, sadece animasyon noktaları seyreltilir.
     """
     merkez_enlem = rota_df["enlem"].mean()
     merkez_boylam = rota_df["boylam"].mean()
@@ -85,8 +92,18 @@ def zaman_kaydiricili_harita_olustur(rota_df, dosya_adi="turbulans_haritasi.html
     folium.PolyLine(koordinatlar, color="#3388ff", weight=2, opacity=0.5).add_to(harita)
 
     # --- Zamana bağlı animasyonlu noktalar (TimestampedGeoJson) ---
+    if len(rota_df) > maks_animasyon_noktasi:
+        adim = -(-len(rota_df) // maks_animasyon_noktasi)  # tavana yuvarlanmış bölme
+        animasyon_df = rota_df.iloc[::adim]
+        print(
+            f"[Bilgi] Rota {len(rota_df)} nokta içeriyor, harita animasyonu için "
+            f"{len(animasyon_df)} noktaya seyreltildi (adım={adim}). Ham veri PostgreSQL'de tam haliyle duruyor."
+        )
+    else:
+        animasyon_df = rota_df
+
     ozellikler = []
-    for _, satir in rota_df.iterrows():
+    for _, satir in animasyon_df.iterrows():
         edr_degeri = satir.get("edr_proxy", float("nan"))
         ti1_degeri = satir.get("ti1_indeksi", float("nan"))
         renk = _turbulans_rengi(ti1_degeri)

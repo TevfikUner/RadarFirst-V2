@@ -20,6 +20,7 @@ pipeline çökmek yerine açıklayıcı bir mesajla nazikçe durur.
 """
 
 import argparse
+import os
 
 from konsol_kurulumu import konsolu_utf8_yap
 
@@ -84,10 +85,12 @@ def _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str):
 
 
 def calistir(ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None):
+    os.makedirs(config.CIKTI_KLASORU, exist_ok=True)
     if cikti_dosyasi is None:
         # Her uçuş/tarih için ayrı dosya adı -- farklı uçuşları denerken
-        # birbirinin üzerine yazmasın diye.
-        cikti_dosyasi = f"turbulans_haritasi_{ucus_numarasi}_{tarih_str}.html"
+        # birbirinin üzerine yazmasın diye. ciktilar/ altına yazılır --
+        # proje kökü artık her çalıştırmada yeni bir HTML'le dolmuyor.
+        cikti_dosyasi = os.path.join(config.CIKTI_KLASORU, f"turbulans_haritasi_{ucus_numarasi}_{tarih_str}.html")
 
     print(f"1. '{ucus_numarasi}' uçuşu {tarih_str} tarihi için OpenSky'da aranıyor...")
     try:
