@@ -4,6 +4,27 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## GitHub yıldızlarından esinlenilen özellikler: SIGMET doğrulama + 3D harita
+
+Projenin sahibinin GitHub yıldızları (uçuş takibi, havacılık meteorolojisi
+ve türbülans tahmini üzerine ~46 depo) incelenip iki fikir hayata geçirildi:
+
+- **SIGMET/AIRMET doğrulaması (`sigmet_dogrulama.py`):** Hesaplanan TI1
+  "orta-şiddetli" noktaları, Iowa Environmental Mesonet'in arşivlediği
+  gerçek ABD Aviation Weather Center SIGMET kayıtlarıyla (poligon içi +
+  zaman penceresi eşleşmesi) karşılaştırılıyor -- gerçek PIREP verisi
+  olmasa da, gerçek bir operasyonel uyarı kaynağıyla dürüst bir
+  karşılaştırma. SADECE ABD hava sahası için anlamlı sonuç verir; bu
+  depodaki Türkiye örnek verisi için (beklenen şekilde) örtüşme çıkmaz.
+- **3D/canlı harita önyüzü (`web/harita3d.html`):** MapLibre GL JS ile
+  build aracı gerektirmeyen tek dosyalık bir 3D küre (globe) haritası --
+  rotayı TI1 şiddetine göre renklendirir, gerçek SIGMET poligonlarını
+  overlay olarak gösterir, zaman kaydırıcısıyla oynatılabilir ve
+  `/ws/uyarilar` WebSocket'inden canlı uyarı toast'ları gösterir.
+- Bu ikisini API'ye bağlamak için `GET /api/v1/esikler` ve
+  `GET /api/v1/ucuslar/{ucus}/{tarih}/sigmet-dogrulama` uç noktaları,
+  `semalar.py`'ye karşılık gelen Pydantic modelleri eklendi.
+
 ## Kod kalitesi ve dağıtım araçları
 
 - **ruff + pre-commit:** `pyproject.toml`'da lint kuralları (E/F/W/I);

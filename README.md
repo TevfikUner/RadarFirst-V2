@@ -66,6 +66,8 @@ models.py                         -> PostgreSQL tabloları için SQLAlchemy ORM 
 veritabani.py                     -> PostgreSQL erişimi: senkron (CLI) + asenkron (API)
 migrations/, alembic.ini          -> Alembic veritabanı şema migration'ları
 semalar.py                        -> api_servisi.py için Pydantic yanıt (response) modelleri
+sigmet_dogrulama.py               -> TI1'i gerçek AWC SIGMET uyarılarıyla karşılaştırır (SADECE ABD hava sahası)
+web/harita3d.html                 -> tek dosyalık MapLibre GL 3D/canlı harita önyüzü (api_servisi.py sunar)
 api_servisi.py                    -> FastAPI REST API'si (API anahtarlı, /api/v1, async, WebSocket)
 mcp_postgres_sunucusu.py         -> Claude Code/Desktop için salt okunur PostgreSQL MCP sunucusu
 .mcp.json                          -> Claude Code'un mcp_postgres_sunucusu.py'yi tanıması için
@@ -170,7 +172,10 @@ uvicorn api_servisi:app --reload --port 8000
 | POST | `/api/v1/analiz/ucus` | Tek bir uçuşu arka planda analiz eder, `gorev_id` döner |
 | POST | `/api/v1/analiz/toplu` | Birden fazla uçuşu arka planda analiz eder |
 | GET | `/api/v1/analiz/durum/{gorev_id}` | Tetiklenen bir analizin durumunu sorgular |
+| GET | `/api/v1/esikler` | TI1 renklendirme eşiklerini döner (web/harita3d.html bunları kullanır) |
+| GET | `/api/v1/ucuslar/{ucus_numarasi}/{tarih}/sigmet-dogrulama` | TI1'i gerçek AWC SIGMET'leriyle karşılaştırır |
 | WS | `/ws/uyarilar?api_key=...` | TI1 "orta-şiddetli" eşiği aşılınca canlı uyarı yayınlar |
+| GET | `/harita/harita3d.html` | 3D/canlı harita önyüzü (statik, tarayıcıda açılır) |
 
 Örnek:
 
@@ -214,6 +219,66 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
 tetikleyen bir uç nokta (rate-limit/ban riski), JWT/OAuth2 kullanıcı girişi
 (tek kullanıcılı/dahili bir araç için statik anahtar yeterli görüldü, çok
 kullanıcılı bir sürüme geçilirse yükseltilebilir).
+
+## 3D/canlı harita önyüzü
+
+```bash
+uvicorn api_servisi:app --reload --port 8000
+# tarayıcıda aç: http://localhost:8000/harita/harita3d.html
+```
+
+`web/harita3d.html`, build aracı gerektirmeyen tek dosyalık bir MapLibre GL
+JS sayfasıdır -- `api_servisi.py` tarafından API ile AYNI origin'de sunulur
+(`app.mount("/harita", ...)`), bu yüzden `fetch()`/WebSocket çağrıları
+CORS'a takılmaz. Sayfaya uçuş numarası, tarih ve API anahtarını (bir kez
+girilir, `localStorage`'da tutulur) yazıp "Yükle"ye basman yeterli:
+
+- Rota, `GET /api/v1/ucuslar/{ucus}/{tarih}`'ten çekilip TI1 şiddetine göre
+  renklendirilmiş noktalar + çizgi olarak "globe" (3D küre) projeksiyonunda
+  gösterilir; alttaki zaman kaydırıcısı ile rota an be an oynatılabilir.
+- `GET /api/v1/ucuslar/{ucus}/{tarih}/sigmet-dogrulama`'dan gelen gerçek
+  SIGMET poligonları (varsa) sarı bir katman olarak haritaya eklenir.
+- `/ws/uyarilar`'a bağlanıp, bir analiz sırasında orta-şiddetli türbülans
+  tespit edilirse ekranda anlık bir uyarı (toast) gösterir.
+- Harita karosu (tile), `harita.py`'de daha önce yaşanan "CartoDB anahtar
+  istemeye başladı" sorununu tekrarlamamak için YİNE anahtarsız Esri World
+  Street Map'i kullanır; MapLibre CDN sürümü (4.7.1) BİLEREK sabitlendi
+  (daha yeni sürümler -- 6.x -- klasik `<script>` ile çalışan UMD paketini
+  kaldırıp sadece ES module dağıtıyor).
+
+Bu sayfa gerçek bir tarayıcıda test EDİLEMEDİ (bu ortamda tarayıcı/Docker
+yok) -- FastAPI üzerinden sunulduğu, tüm uç noktaları doğru çağırdığı ve
+JS'in sözdizimsel olarak geçerli olduğu doğrulandı, ama gerçek render/
+WebGL davranışını görmek için tarayıcıda açıp denemen gerekiyor.
+
+## SIGMET/AIRMET doğrulaması
+
+Gerçek PIREP/AMDAR gözlem verisi bu depoda yok (bkz. `kalibrasyon.py`) --
+ama SIGMET'ler (Significant Meteorological Information) de gerçek,
+operasyonel "burada tehlikeli hava durumu var" uyarılarıdır ve halka açık,
+ücretsiz bir arşivden çekilebilirler. `sigmet_dogrulama.py`, hesaplanan TI1
+"orta-şiddetli" noktalarını, Iowa Environmental Mesonet'in (IEM) 2005'ten
+bugüne arşivlediği ABD Aviation Weather Center (AWC) SIGMET kayıtlarıyla
+karşılaştırır -- gerçek zaman/konum eşleşmesi (poligon içi + geçerlilik
+penceresi) kontrol edilir, sadece TÜRBÜLANSLA ilgili SIGMET'ler (metninde
+"TURB" geçenler) dikkate alınır.
+
+```bash
+python sigmet_dogrulama.py THY1234 2019-01-01
+# veya API üzerinden:
+curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01/sigmet-dogrulama \
+  -H "X-API-Key: $API_ANAHTARI"
+```
+
+**ÖNEMLİ SINIRLAMA:** Bu arşiv SADECE ABD'nin meteorolojik sorumluluk
+sahasını (CONUS + New York/Oakland/Anchorage Oceanic FIR'ları gibi ABD
+kontrolündeki okyanus bölgeleri) kapsar. Bu depodaki örnek veri kümesi
+(Türkiye/Doğu Akdeniz, Ocak 2019) için GERÇEKTEN eşleşen bir SIGMET
+bulunmaz -- bu bir hata değil, beklenen ve dürüst bir sonuçtur
+(`sigmetle_ortusen_nokta_sayisi=0` döner). Özellik, ABD hava sahasında
+geçen herhangi bir uçuş/tarih için gerçek anlamda doğrulama sağlar (bkz.
+modülün kendi docstring'indeki örnek: Anchorage FIR, 2019-01-15, gerçek bir
+"OCNL SEV TURB" SIGMET'i ile doğrulandı).
 
 ## n8n ile periyodik otomasyon
 
@@ -282,6 +347,13 @@ PostgreSQL servis konteyneriyle) çalıştırır.
 - Bu ortamda Docker daemon'ı kurulu olmadığından `Dockerfile`/
   `docker-compose.yml` YAML olarak doğrulandı ama `docker compose up
   --build` ile uçtan uca denenemedi.
+- `sigmet_dogrulama.py`, SADECE ABD Aviation Weather Center'ın sorumlu
+  olduğu hava sahaları için gerçek veri döner -- bu depodaki örnek veri
+  kümesi (Türkiye) için örtüşme çıkmaması beklenen bir durumdur (yukarıya
+  bakın).
+- `web/harita3d.html` gerçek bir tarayıcıda test EDİLEMEDİ (bu ortamda
+  tarayıcı yok) -- API entegrasyonu ve JS sözdizimi doğrulandı, gerçek
+  render davranışı için tarayıcıda denenmesi gerekir.
 
 ## Değişiklik geçmişi
 

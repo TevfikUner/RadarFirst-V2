@@ -74,6 +74,7 @@ from fastapi import (
 )
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -82,16 +83,20 @@ import loglama
 from hata_yardimcisi import dostane_hata_mesaji
 from main import calistir as tek_ucus_analiz_et
 from semalar import (
+    EsiklerYaniti,
     GorevBaslatildiYaniti,
     GorevDurumYaniti,
     SaglikYaniti,
+    SigmetDogrulamaYaniti,
     UcusDetayYaniti,
     UcusYaniti,
 )
+from sigmet_dogrulama import ucus_sigmet_ile_karsilastir
 from toplu_analiz import toplu_analiz_calistir
 from veritabani import (
     VeritabaniAyarlariEksikHatasi,
     ucus_detayini_getir_async,
+    ucus_olcumlerini_dataframe_olarak_getir,
     ucuslari_listele_async,
 )
 
@@ -118,6 +123,11 @@ if _cors_kaynaklari:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+# 3D/canlı harita önyüzü (bkz. web/harita3d.html) -- ayrı bir build aracı
+# gerektirmeyen tek dosyalık bir MapLibre GL sayfası. API ile aynı origin'de
+# sunulur ki fetch()/WebSocket çağrıları CORS'a takılmasın.
+app.mount("/harita", StaticFiles(directory="web", html=True), name="harita")
 
 
 # ---------------------------------------------------------------------------
@@ -366,6 +376,17 @@ class TopluAnalizIstegi(BaseModel):
     bildirim_webhook_url: str | None = None
 
 
+@v1.get("/esikler", response_model=EsiklerYaniti)
+async def esikleri_getir():
+    """web/harita3d.html gibi istemcilerin, renklendirme eşiklerini
+    config.py ile bire bir aynı tutabilmesi için (sabitleri JS'e
+    kopyalamak yerine tek kaynaktan okumak)."""
+    return {
+        "ti1_esik_hafif": config.TI1_ESIK_HAFIF,
+        "ti1_esik_orta_siddetli": config.TI1_ESIK_ORTA_SIDDETLI,
+    }
+
+
 @v1.get("/ucuslar", response_model=list[UcusYaniti])
 async def ucuslar_listesi(limit: int = Query(default=100, ge=1, le=500)):
     return await ucuslari_listele_async(limit=limit)
@@ -387,6 +408,24 @@ async def ucus_detayi(
             detail="Uçuş bulunamadı. Önce POST /api/v1/analiz/ucus ile analiz tetikle.",
         )
     return detay
+
+
+@v1.get("/ucuslar/{ucus_numarasi}/{tarih}/sigmet-dogrulama", response_model=SigmetDogrulamaYaniti)
+async def ucus_sigmet_dogrulamasi(
+    ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
+    tarih: date = Path(...),
+):
+    """Hesaplanan TI1 'orta-şiddetli' noktalarını gerçek AWC SIGMET
+    uyarılarıyla karşılaştırır (bkz. sigmet_dogrulama.py). SADECE ABD hava
+    sahası için gerçek bir örtüşme çıkar; başka bölgeler için boş/sıfır
+    sonuç dönmesi beklenen, dürüst bir durumdur -- hata değildir."""
+    df = await asyncio.to_thread(ucus_olcumlerini_dataframe_olarak_getir, ucus_numarasi, tarih.isoformat())
+    if df is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Uçuş bulunamadı. Önce POST /api/v1/analiz/ucus ile analiz tetikle.",
+        )
+    return await asyncio.to_thread(ucus_sigmet_ile_karsilastir, df)
 
 
 async def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih, webhook_url):
