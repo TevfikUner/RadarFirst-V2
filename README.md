@@ -1,417 +1,293 @@
-# Türbülans Radar Projesi — Geliştirilmiş Sürüm
+# Türbülans Radar
 
-## Ne değişti?
+Gerçek bir uçuşun (OpenSky/Trino) rotasını, gerçek bir hava durumu veri
+küpüyle (Copernicus/ERA5) eşleştirip Ellrod TI1 indeksi ve bulk Richardson
+sayısıyla türbülans şiddeti/dinamik kararsızlık tahmini üreten uçtan uca bir
+sistem. Sonuçlar PostgreSQL'e yazılır, zaman kaydırıcılı bir Folium
+haritasında görselleştirilir, bir FastAPI servisi ve MCP sunucusu üzerinden
+JSON/veritabanı olarak dışarıya açılır.
 
-| Eski | Yeni |
-|---|---|
-| `edr_hesaplama.py` ve `interaktif_harita.py`'de iki farklı, keyfi katsayılı EDR formülü | `turbulans_indeksleri.py`: Ellrod TI1 indeksi (Ellrod & Knapp, 1992) — havacılık meteorolojisinde CAT tahmini için gerçekten kullanılan yöntem |
-| `trino_baglanti.py`'de şifre düz metin kod içinde | `kimlik_dogrulama.py` + `.env`: kimlik bilgileri ortam değişkeninden okunuyor, `.gitignore`'da korunuyor |
-| `kucuk_simulasyon.py`: `np.linspace` ile UYDURULMUŞ rota | `veri_yukleme.py`: `flights_data4` üzerinden **uçuş numarasından (callsign) gerçek rota** çekiliyor |
-| Sabit tek nokta sorgusu, koordinat filtresi | `ucus_numarasi_ile_rota_cek()`: callsign → icao24 → state_vectors_data4 zinciri |
-| Statik harita, tek zaman anı | `harita.py`: `TimestampedGeoJson` ile zaman kaydırıcılı animasyon, gerçek uçuş bilgisi popup'ları, lejant |
-| Basınç/irtifa birim karışıklığı | `birim_donusumleri.py`: ISA barometrik formülüyle metre ↔ hPa dönüşümü |
+**Önemli sınırlama:** TI1/EDR proxy, sertifikalı bir EDR (Eddy Dissipation
+Rate) değeri DEĞİLDİR -- ~25-30 km çözünürlüklü reanaliz verisinden
+hesaplanan bir araştırma/görselleştirme göstergesidir. Gerçek operasyonel
+kullanım için PIREP/AMDAR gözlemleriyle kalibre edilmesi gerekir (bkz.
+[Sınırlamalar](#bilinmesi-gerekenler--sınırlamalar), `kalibrasyon.py`).
 
-## Dosya yapısı
+## Mimari
 
 ```
-config.py                 -> sabitler, eşik değerleri
-kimlik_dogrulama.py        -> .env'den güvenli kimlik bilgisi okuma
-.env.example                -> kopyalanacak şifre şablonu
-birim_donusumleri.py       -> irtifa <-> basınç dönüşümleri
-turbulans_indeksleri.py    -> Ellrod TI1 + Richardson sayısı hesabı + EDR-proxy ölçekleme
-veri_yukleme.py             -> NetCDF yükleme + OpenSky/Trino sorguları
-eslestirme.py                -> uçuş rotası <-> hava durumu grid eşleştirme (vektörel)
-harita.py                    -> zaman kaydırıcılı Folium haritası
-main.py                      -> uçtan uca çalıştırma
-ornek_ucus_bul.py           -> OpenSky'da kayıtlı gerçek callsign'ları listeler
-veri_kontrol.py              -> veri küpü çözünürlüğünü / TI1 çeşitliliğini kontrol eder (PostgreSQL'den okur)
-kimlik_kontrol.py           -> .env'in doğru okunduğunu kontrol eder
-kalibrasyon.py               -> gerçek PIREP/AMDAR verisiyle EDR ölçekleme katsayısını kalibre eder
-toplu_analiz.py              -> bir CSV listesindeki birden fazla uçuşu sırayla analiz eder
-web_arayuzu.py               -> tarayıcıdan kullanılabilir basit arayüz (Streamlit)
-hata_yardimcisi.py           -> ham Python hatalarını anlaşılır Türkçe mesaja çevirir
-veri_indirme.py              -> ERA5 verisi otomatik indirme ALTYAPISI (bkz. aşağıdaki uyarı)
-konsol_kurulumu.py           -> Windows konsolunda Türkçe/özel karakterlerin çökmesini önler
-models.py                     -> PostgreSQL tabloları için SQLAlchemy ORM modelleri (Ucus, EdrOlcumu)
-veritabani.py                 -> PostgreSQL entegrasyonu: senkron (main.py) + asenkron (api_servisi.py) erişim
-migrations/, alembic.ini      -> Alembic veritabanı şema migration'ları (bkz. "Veritabanı şeması" bölümü)
-loglama.py                     -> api_servisi.py için ortak logging yapılandırması (LOG_SEVIYESI, LOG_DOSYASI)
-api_servisi.py                -> FastAPI REST API'si (API anahtarlı, /api/v1, async, WebSocket, webhook)
-mcp_postgres_sunucusu.py      -> Claude Code/Desktop için salt okunur PostgreSQL MCP sunucusu
-.mcp.json                       -> Claude Code'un mcp_postgres_sunucusu.py'yi otomatik tanıması için
-pytest.ini                     -> pytest-asyncio ayarları (async testler tek event loop paylaşır)
-ciktilar/                       -> üretilen harita HTML'leri ve toplu analiz özet CSV'si (git'e dahil değil)
-tests/                        -> pytest birim testleri (ağ/veri gerektirmeyen kısımlar için)
+                         ┌─────────────────┐
+  OpenSky/Trino ────────►│  veri_yukleme.py │
+  (callsign→icao24→rota) └────────┬─────────┘
+                                  │
+  Copernicus/ERA5 (.nc) ──────────┤
+                                  ▼
+                          ┌───────────────┐      ┌────────────────────┐
+                          │ eslestirme.py │─────►│ turbulans_indeksleri│
+                          │ (TI1+Richard.)│      │ (Ellrod TI1, Ri)    │
+                          └───────┬───────┘      └────────────────────┘
+                                  │
+                    ┌─────────────┼─────────────┐
+                    ▼             ▼             ▼
+             veritabani.py   harita.py      main.py /
+             (PostgreSQL,    (Folium HTML)  toplu_analiz.py /
+              models.py)                    web_arayuzu.py (CLI/UI)
+                    │
+      ┌─────────────┼─────────────────┐
+      ▼             ▼                 ▼
+api_servisi.py  mcp_postgres_    (Alembic ile
+(FastAPI REST   sunucusu.py      şema yönetimi)
+ + WebSocket)   (Claude Code
+                 için salt okunur)
 ```
+
+Dosya dosya kısa açıklama:
+
+```
+config.py                     -> sabitler, eşik değerleri (ortam değişkeniyle ezilebilir)
+kimlik_dogrulama.py            -> .env'den güvenli OpenSky kimlik bilgisi okuma
+birim_donusumleri.py           -> irtifa <-> basınç dönüşümleri (ISA formülü)
+turbulans_indeksleri.py        -> Ellrod TI1 + Richardson sayısı hesabı + EDR-proxy ölçekleme
+veri_yukleme.py                 -> NetCDF yükleme + OpenSky/Trino sorguları (parametreli, retry'li)
+eslestirme.py                    -> uçuş rotası <-> hava durumu grid eşleştirme (vektörel)
+harita.py                        -> zaman kaydırıcılı Folium haritası (büyük rotalarda seyreltilir)
+main.py                          -> uçtan uca çalıştırma (CLI)
+ornek_ucus_bul.py               -> OpenSky'da kayıtlı gerçek callsign'ları listeler
+veri_kontrol.py                  -> veri küpü çözünürlüğünü / TI1 çeşitliliğini kontrol eder
+kimlik_kontrol.py               -> .env'in doğru okunduğunu kontrol eder
+kalibrasyon.py                   -> gerçek PIREP/AMDAR verisiyle EDR ölçekleme katsayısını kalibre eder
+toplu_analiz.py                  -> bir CSV listesindeki birden fazla uçuşu sırayla analiz eder
+web_arayuzu.py                   -> tarayıcıdan kullanılabilir arayüz (Streamlit)
+hata_yardimcisi.py               -> ham Python hatalarını anlaşılır Türkçe mesaja çevirir
+veri_indirme.py                  -> ERA5 verisi otomatik indirme ALTYAPISI (gerçek indirme kapalı)
+konsol_kurulumu.py               -> Windows konsolunda Türkçe/özel karakter çökmesini önler
+loglama.py                        -> api_servisi.py için ortak logging yapılandırması
+models.py                         -> PostgreSQL tabloları için SQLAlchemy ORM modelleri
+veritabani.py                     -> PostgreSQL erişimi: senkron (CLI) + asenkron (API)
+migrations/, alembic.ini          -> Alembic veritabanı şema migration'ları
+semalar.py                        -> api_servisi.py için Pydantic yanıt (response) modelleri
+api_servisi.py                    -> FastAPI REST API'si (API anahtarlı, /api/v1, async, WebSocket)
+mcp_postgres_sunucusu.py         -> Claude Code/Desktop için salt okunur PostgreSQL MCP sunucusu
+.mcp.json                          -> Claude Code'un mcp_postgres_sunucusu.py'yi tanıması için
+Dockerfile, docker-compose.yml     -> tek komutla (Postgres + API) çalıştırma
+.github/workflows/ci.yml           -> lint + test GitHub Actions iş akışı
+pyproject.toml, .pre-commit-config.yaml -> ruff lint/format + pre-commit ayarları
+tests/, pytest.ini                 -> pytest birim testleri (async testler tek event loop paylaşır)
+ciktilar/                           -> üretilen harita HTML'leri ve özet CSV (git'e dahil değil)
+```
+
+## Kurulum
+
+```bash
+git clone <bu-repo>
+cd files
+pip install -r requirements.txt
+cp .env.example .env          # OpenSky + PostgreSQL + API_ANAHTARI bilgilerini gir
+alembic upgrade head          # veritabanı şemasını kur (tek seferlik)
+```
+
+`.env`'e girilmesi gerekenler (bkz. `.env.example`): `OPENSKY_USERNAME`/
+`OPENSKY_PASSWORD` (OpenSky hesabı, tarihsel veri erişimi onaylanmış
+olmalı -- https://opensky-network.org/my-opensky/request-data),
+`POSTGRES_*` (host/port/kullanıcı/şifre/veritabanı), `API_ANAHTARI`
+(`python -c "import secrets; print(secrets.token_urlsafe(32))"` ile üret).
+
+Hava durumu veri küpünü (`ocak_2019_turbulans.nc`, Copernicus/ERA5'ten
+manuel indirilmiş) proje köküne koyman gerekir -- büyük olduğu için
+`.gitignore`'da, repoya dahil değildir.
+
+### Docker ile çalıştırma (alternatif)
+
+```bash
+docker compose up --build
+```
+
+Bu, PostgreSQL'i ve `api_servisi.py`'yi (önce `alembic upgrade head`
+çalıştırıp) tek komutla ayağa kaldırır. `.env` dosyanın hazır olması
+gerekir; `POSTGRES_HOST` konteynerler arası iletişim için otomatik olarak
+compose servis adına (`db`) çevrilir. API `http://localhost:8000`'de,
+Swagger `http://localhost:8000/docs`'ta olur.
 
 ## Kullanım
 
-```bash
-pip install -r requirements.txt
-cp .env.example .env          # sonra .env içine OpenSky + PostgreSQL bilgilerini yaz
-alembic upgrade head          # veritabanı şemasını kur (tek seferlik, bkz. "Veritabanı şeması")
-python main.py THY1234 2019-01-01
-```
-
-Her script `--help` ile kullanım bilgisi verir, örn. `python main.py --help`,
-`python ornek_ucus_bul.py --help`.
-
-### PostgreSQL entegrasyonu
-
-Analiz sonuçları artık lokal CSV yerine PostgreSQL'e yazılıyor. `.env`
-dosyasına şu değişkenleri ekle (bkz. `.env.example`):
-
-```
-POSTGRES_HOST=localhost
-POSTGRES_PORT=5432
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=...
-POSTGRES_DB=Turbulence-db
-```
-
-`main.py` her çalıştırmada `veritabani.py` üzerinden (ki bu artık ham SQL
-değil, `models.py`'deki SQLAlchemy ORM modellerini kullanıyor, ve tekli
-satır ekleme yerine TOPLU/bulk INSERT yapıyor -- 5000 satırlık bir uçuşta
-~0.5 saniye) `ucuslar` ve `edr_olcumleri` tablolarına sonucu yazar; aynı
-(uçuş numarası, tarih) tekrar analiz edilirse eski kayıt silinip yeniden
-yazılır. Veritabanına yazma başarısız olursa (bağlantı yok, şema kurulu
-değil vb.) pipeline durmaz -- bir uyarı basılır ve harita yine de üretilir,
-sadece o çalıştırma kalıcı olarak saklanmaz.
-
-Not: Görev tanımında verilen bağlantı bilgileri `Turbulence-db` adlı, halen
-sunucuda var olan bir veritabanını gösteriyordu; PostgreSQL entegrasyonu
-maddesinde ayrıca geçen `radar_first_db` ismi bu sunucuda bulunmadığından,
-gerçekten var olan `Turbulence-db` kullanıldı. Farklı bir veritabanı adı
-istenirse `.env`'deki `POSTGRES_DB` değerini değiştirmek yeterli.
-
-### Veritabanı şeması (Alembic)
-
-Tablolar artık kod içinde örtük olarak (`create_all`) DEĞİL, Alembic
-migration'larıyla yönetiliyor:
+### Tek bir uçuşu analiz etmek (CLI)
 
 ```bash
-alembic upgrade head      # şemayı kur/güncelle (tek seferlik + her yeni migration'da)
-alembic current            # veritabanının hangi migration'da olduğunu gösterir
-alembic history             # tüm migration geçmişini listeler
+python ornek_ucus_bul.py                    # gerçek, o gün kayıtlı bir callsign bul
+python main.py THY1234 2019-01-01           # analiz et -- PostgreSQL'e yazar + harita üretir
 ```
 
-Bağlantı bilgisi `alembic.ini`'ye YAZILMAZ (o dosya git'e commitlenir) --
-`migrations/env.py`, tıpkı `veritabani.py` gibi, bağlantı dizesini `.env`
-dosyasından okur. Şemada değişiklik yapman gerekirse (`models.py`'ye yeni
-bir sütun/tablo eklemek gibi), yeni bir migration oluştur:
-
-```bash
-alembic revision --autogenerate -m "kisa aciklama"
-alembic upgrade head
-```
-
-`veritabani.tablolari_olustur()` (`create_all`) hâlâ kod içinde duruyor ama
-SADECE testler için -- production/gerçek kurulum artık migration kullanır.
-
-### FastAPI servis katmanı
-
-```bash
-uvicorn api_servisi:app --reload --port 8000
-# Swagger/OpenAPI dokümantasyonu: http://localhost:8000/docs
-```
-
-**Güvenlik:** `/api/v1/*` altındaki TÜM uç noktalar `X-API-Key` başlığı
-gerektirir; değer `.env`'deki `API_ANAHTARI`'dan okunur (üretmek için:
-`python -c "import secrets; print(secrets.token_urlsafe(32))"`). Anahtar
-yanlış/eksikse 401, sunucuda hiç tanımlı değilse 503 döner. `/saglik`
-kasıtlı olarak anahtarsız (yaygın health-check pratiği).
-
-**Sürümleme:** tüm veri/analiz uç noktaları `/api/v1` altında -- ileride
-`/api/v2` eklenirse mevcut istemciler bozulmaz. Uç noktalar:
-- `GET /saglik` -- anahtarsız sağlık kontrolü
-- `GET /api/v1/ucuslar` -- veritabanına kaydedilmiş uçuşları listeler (asenkron, asyncpg)
-- `GET /api/v1/ucuslar/{ucus_numarasi}/{tarih}` -- bir uçuşun tüm EDR/TI1 ölçüm noktalarını JSON döndürür
-- `POST /api/v1/analiz/ucus` (`{"ucus_numarasi", "tarih", "bildirim_webhook_url"?}`) -- `main.py` ile aynı analizi arka planda başlatır, `gorev_id` döner
-- `POST /api/v1/analiz/toplu` (`{"ucuslar": [...], "bildirim_webhook_url"?}`) -- `toplu_analiz.py` ile aynı toplu analizi arka planda başlatır
-- `GET /api/v1/analiz/durum/{gorev_id}` -- tetiklenen bir analizin durumunu sorgular
-- `WS /ws/uyarilar?api_key=...` -- bir analiz sırasında Ellrod TI1 "orta-şiddetli" eşiğini aşan nokta bulunursa bağlı istemcilere anlık uyarı yayınlar
-
-**Asenkron:** okuma uç noktaları `veritabani.py`'nin `asyncpg` tabanlı async
-fonksiyonlarını kullanır, event loop'u bloklamaz. Analiz tetikleme uç
-noktaları, `main.py`/`toplu_analiz.py`'deki AYNI (bloklayan) mantığı
-`asyncio.to_thread` ile ayrı bir thread'de çalıştırır -- o dosyaları yeniden
-yazmaya gerek kalmadan.
-
-**Hata yönetimi:** özel exception handler'lar `VeritabaniAyarlariEksikHatasi`
-ve veritabanı bağlantı hatalarını 503'e, geçersiz girdiyi (`ValueError`)
-400'e, beklenmeyen hataları `dostane_hata_mesaji` ile 500'e çevirir.
-`/api/v1/analiz/*` uç noktaları ayrıca kendi başına basit bir hız sınırlayıcı
-içerir (varsayılan: 60 saniyede en fazla 5 istek) -- dışarıdan gelen aşırı
-istekle OpenSky'yi dolaylı olarak yormamak için; aşılırsa 429 döner.
-
-**Hız sınırlama:** `POST /api/v1/analiz/*`, kendi API'sini kötüye kullanıma
-karşı bellek-içi bir pencere sayaçla korur (429 Too Many Requests) --
-OpenSky'ye giden isteklerin dış dünyadan tetiklenen bir döngüyle
-katlanmasını önlemek için.
-
-**Webhook bildirimi:** `bildirim_webhook_url` verilirse, analiz bitince
-sonuç oraya POST edilir -- n8n'in Webhook node'u bunu dinleyip
-`GET /api/v1/analiz/durum/{gorev_id}`'yi periyodik yoklamaya (polling)
-gerek kalmadan tetiklenebilir.
-
-Görev durumu bellek içinde tutulur (süreç yeniden başlarsa sıfırlanır) ve
-artık kendiliğinden temizleniyor: bitmiş (tamamlandı/hata/başarısız)
-görevler 1 saat sonra otomatik silinir, ayrıca sözlük 5000 kaydı aşarsa en
-eski bitmiş görevler öncelikle temizlenir -- eskiden bu kayıt hiç
-temizlenmiyordu ve uzun süre ayakta kalan bir süreçte (özellikle n8n
-periyodik tetikledikçe) sınırsız büyüyordu. Kalıcı bir görev kuyruğu
-(Celery/RQ) gerekiyorsa ileride eklenebilir. Tek kullanıcılı/dahili bir araç
-için statik API anahtarı yeterli görüldü; çok kullanıcılı bir sürüme
-geçilirse JWT/OAuth2'ye yükseltilebilir.
-
-**Loglama:** `api_servisi.py`'nin kendi tanı/hata mesajları artık `print()`
-değil `logging` (bkz. `loglama.py`) ile yazılıyor -- seviye `LOG_SEVIYESI`
-ortam değişkeniyle ayarlanır (varsayılan `INFO`), `LOG_DOSYASI` verilirse
-loglar ayrıca bir dosyaya da yazılır. Çıktı akışı bilerek **stderr**'dir,
-stdout değil -- `main.py`/`toplu_analiz.py`/`web_arayuzu.py` gibi CLI/UI
-araçlarının insan için tasarlanmış adım adım çıktısı (ve `web_arayuzu.py`'nin
-bu çıktıyı yakalayıp arayüzde göstermesi) bilerek `print()` olarak kaldı --
-bunlar loglanacak bir "olay" değil, aracın doğrudan ürettiği sonuçtur.
-
-### n8n ile periyodik otomasyon
-
-`toplu_analiz.py`'yi doğrudan n8n'e bağlamak yerine, üstteki FastAPI uç
-noktaları kullanılıyor -- n8n'in bir **Schedule Trigger**'ı, bir **HTTP
-Request** node'uyla `POST /api/v1/analiz/toplu`'yu periyodik çağırır,
-ardından ya `bildirim_webhook_url` ile anlık bildirim alır ya da
-`GET /api/v1/analiz/durum/{gorev_id}` ile yoklayıp sonucu
-`GET /api/v1/ucuslar/...`'dan okuyabilir. Bu tasarım -- betikleri n8n'in
-Execute Command node'uyla doğrudan çalıştırmak yerine HTTP sınırı arkasına
-koymak -- otomasyon tarafının projenin Python iç yapısını hiç bilmesine
-gerek bırakmaz: `api_servisi.py`, sadece `.env`'den beslenen, `uvicorn` ile
-başlatılan bağımsız bir süreçtir; n8n (veya başka bir istemci) onunla
-SADECE HTTP üzerinden konuşur.
-
-`veri_indirme.py` BİLİNÇLİ OLARAK bu otomasyona dahil edilmedi: gerçek ERA5
-indirmesi hâlâ sadece elle, `--gercekten-indir` bayrağıyla çalışır --
-periyodik/otomatik hale getirmek, OpenSky/Copernicus'u rate-limit/ban
-riskine sokmamak için alınmış bilinçli bir güvenlik kararını bozar.
-
-### Claude Code'dan veritabanına MCP ile bağlanmak
-
-Proje kökündeki `.mcp.json`, `mcp_postgres_sunucusu.py`'yi Claude Code'a
-tanıtır (ilk kullanımda onay istenir). Sunucu salt okunur -- sadece
-`tablolari_listele`, `ucuslar_listesi`, `ucus_detayi` ve
-`salt_okunur_sorgu_calistir` (sadece tek bir SELECT, yazma ifadeleri
-reddedilir) araçlarını sunar. Bağlantı bilgileri `.mcp.json`'da DEĞİL,
-`.env`'de tutulur -- `.mcp.json` repoya güvenle commitlenebilir.
+Her script `--help` ile kullanım bilgisi verir. Sonuç `ucuslar`/
+`edr_olcumleri` tablolarına yazılır (aynı uçuş/tarih tekrar analiz
+edilirse eski kayıt silinip yenisiyle değiştirilir); harita
+`ciktilar/turbulans_haritasi_<uçuş>_<tarih>.html`'e kaydedilir.
 
 ### Web arayüzü
-
-Terminal yerine tarayıcıdan kullanmak için:
 
 ```bash
 streamlit run web_arayuzu.py
 ```
 
-Uçuş numarası ve tarihi bir kutuya yazıp "Analiz Et"e basman yeterli; sonuç
-tablosu ve zaman kaydırıcılı harita direkt sayfada görünür. Arkada hâlâ aynı
-`main.py` mantığı (gerçek OpenSky sorgusu + hava durumu eşleştirmesi) çalışır
--- bu sadece görsel bir ön yüz.
+Uçuş numarası ve tarihi bir kutuya yazıp "Analiz Et"e basman yeterli;
+sonuç tablosu ve harita direkt sayfada görünür. Arkada aynı `main.py`
+mantığı çalışır -- bu sadece görsel bir ön yüz.
 
 ### Birden fazla uçuşu birden analiz etmek
 
 ```bash
-python toplu_analiz.py ucuslar.csv
+python toplu_analiz.py ucuslar.csv     # en az ucus_numarasi, tarih sütunları
 ```
 
-`ucuslar.csv` en az `ucus_numarasi` ve `tarih` sütunlarını içermeli. Her uçuş
-sonucunu PostgreSQL'e yazar ve kendi HTML haritasını normal şekilde üretir;
-script ayrıca hepsinin kısa bir özetini (`toplu_analiz_ozeti.csv`) tek
-tabloda toplar -- bu özet dosyası, PostgreSQL'e taşınan ham ölçüm verisinden
-farklı, sadece bu çalıştırmaya özel bir rapor olduğu için CSV olarak kalmaya
-devam ediyor. Bir uçuşta hata olursa diğerlerinin analizi durmaz.
+Her uçuş kendi kaydını PostgreSQL'e yazar ve kendi haritasını üretir; ayrıca
+hepsinin özetini `ciktilar/toplu_analiz_ozeti.csv`'de toplar. Bir uçuşta
+hata olursa diğerlerinin analizi durmaz; OpenSky'yi yormamak için uçuşlar
+arasına kısa bir bekleme konur.
 
-### Çıktı klasörü ve büyük rotalar
+### Veri kalitesini kontrol etmek
 
-Üretilen harita HTML'leri ve `toplu_analiz_ozeti.csv`, artık proje köküne
-değil `config.CIKTI_KLASORU` (`ciktilar/`) altına yazılıyor -- eskiden her
-çalıştırma proje klasörünü biraz daha dağıtıyordu. Bu klasör `.gitignore`'da.
+```bash
+python veri_kontrol.py N10VZ 2019-01-15     # önce main.py ile analiz etmiş olman gerekir
+```
 
-Çok uzun rotalarda (`config.HARITA_MAKS_ANIMASYON_NOKTASI`'ndan, varsayılan
-2000, fazla nokta) `harita.py`'nin ürettiği zaman kaydırıcılı animasyon,
-tarayıcıyı yormaması için eşit aralıklarla seyreltilir -- 50.000 noktalık bir
-uçuş artık ağır bir HTML üretmiyor. Bu SADECE görselleştirme için; ham veri
-PostgreSQL'de (ve haritadaki statik rota çizgisinde) tam haliyle duruyor.
+Veri küpünün çözünürlüğünü (grid/zaman adımı) ve PostgreSQL'deki TI1
+değerlerinin ne kadar çeşitli olduğunu (çok az benzersiz değer varsa veri
+küpü muhtemelen çok kaba) kontrol eder.
 
-### ERA5 verisini otomatik indirme -- ŞU AN AKTİF DEĞİL
+## FastAPI servis katmanı
 
-`veri_indirme.py`, ileride hava durumu verisini elle indirip klasöre koyma
-işini otomatikleştirmek için hazırlanmış bir ALTYAPI dosyasıdır. **Şu an
-gerçek bir indirme yapmaz** -- OpenSky ve Copernicus gibi servisler çok
-büyük/geniş istek gönderen hesapları geçici ya da kalıcı olarak
-engelleyebildiği (rate limit / ban) için, bilinçli olarak sadece "kuru
-deneme" (ne isteneceğini gösterip göndermeme) modunda çalışır. Kod
-içindeki sabit güvenlik sınırları (en fazla 10x10 derecelik bölge, en fazla
-3 günlük veri) aşan hiçbir istek, gerçekten indirmeye çalışılsa bile
-gönderilmez. Gerçek indirmeyi açmak (`--gercekten-indir`) için ayrıca
-`pip install cdsapi` ve bir Copernicus hesabı/`~/.cdsapirc` gerekir --
-bunlar bu projede kurulu değildir ve kullanıcı açıkça onay vermeden devreye
-girmez.
+```bash
+uvicorn api_servisi:app --reload --port 8000
+# Swagger/OpenAPI: http://localhost:8000/docs
+```
 
-### Testleri çalıştırmak
+### Uç noktalar
+
+| Metod | Yol | Açıklama |
+|---|---|---|
+| GET | `/saglik` | Anahtarsız sağlık kontrolü |
+| GET | `/api/v1/ucuslar` | Kaydedilmiş uçuşları listeler (`limit`, 1-500) |
+| GET | `/api/v1/ucuslar/{ucus_numarasi}/{tarih}` | Bir uçuşun ölçüm noktaları (`olcum_limit`/`olcum_offset` ile sayfalı) |
+| POST | `/api/v1/analiz/ucus` | Tek bir uçuşu arka planda analiz eder, `gorev_id` döner |
+| POST | `/api/v1/analiz/toplu` | Birden fazla uçuşu arka planda analiz eder |
+| GET | `/api/v1/analiz/durum/{gorev_id}` | Tetiklenen bir analizin durumunu sorgular |
+| WS | `/ws/uyarilar?api_key=...` | TI1 "orta-şiddetli" eşiği aşılınca canlı uyarı yayınlar |
+
+Örnek:
+
+```bash
+curl -X POST http://localhost:8000/api/v1/analiz/ucus \
+  -H "X-API-Key: $API_ANAHTARI" -H "Content-Type: application/json" \
+  -d '{"ucus_numarasi": "THY1234", "tarih": "2019-01-01"}'
+
+curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
+  -H "X-API-Key: $API_ANAHTARI"
+```
+
+### Güvenlik ve sağlamlık
+
+- **API anahtarı:** `/api/v1/*` altındaki tüm uç noktalar `X-API-Key`
+  başlığı gerektirir (`.env` -> `API_ANAHTARI`), sabit zamanlı
+  (`secrets.compare_digest`) karşılaştırılır. Anahtar yanlış/eksikse 401,
+  sunucuda hiç tanımlı değilse 503.
+- **Girdi doğrulama:** `tarih` gerçek bir tarih olarak, `ucus_numarasi`
+  harf/rakam + en fazla 8 karakter olarak doğrulanır (422 döner).
+- **Hata gizliliği:** 500/503 yanıtları ham exception mesajını (SQL,
+  bağlantı dizesi vb.) istemciye döndürmez; tam ayrıntı sunucu tarafında
+  (stderr, `loglama.py`) loglanır.
+- **Hız sınırlama:** `/api/v1/analiz/*`, kendi API'sini kötüye kullanıma
+  karşı bellek-içi bir pencere sayaçla korur (varsayılan: 60 saniyede en
+  fazla 5 istek, aşılırsa 429) -- dışarıdan tetiklenen aşırı istekle
+  OpenSky'yi dolaylı yormamak için.
+- **Asenkron:** okuma uç noktaları `asyncpg` tabanlı, event loop'u
+  bloklamaz. Analiz tetikleme, `main.py`/`toplu_analiz.py`'deki aynı
+  (bloklayan) mantığı `asyncio.to_thread` ile ayrı bir thread'de çalıştırır.
+- **CORS:** varsayılan kapalı; `.env`'deki `CORS_IZIN_VERILEN_KAYNAKLAR`
+  (virgülle ayrılmış origin listesi) ile açılır.
+- **Görev durumu** bellek içinde tutulur ve kendiliğinden temizlenir
+  (bitmiş görevler 1 saat sonra, sözlük 5000'i aşarsa en eskiler önce
+  silinir). Kalıcı bir görev kuyruğu (Celery/RQ) gerekiyorsa eklenebilir.
+- **Webhook bildirimi:** `bildirim_webhook_url` verilirse, analiz bitince
+  sonuç oraya POST edilir -- n8n'in Webhook node'u bunu dinleyip
+  `/api/v1/analiz/durum/{gorev_id}`'yi periyodik yoklamaya gerek bırakmaz.
+
+**Bilinçli olarak eklenmedi:** `veri_indirme.py`'nin gerçek ERA5 indirmesini
+tetikleyen bir uç nokta (rate-limit/ban riski), JWT/OAuth2 kullanıcı girişi
+(tek kullanıcılı/dahili bir araç için statik anahtar yeterli görüldü, çok
+kullanıcılı bir sürüme geçilirse yükseltilebilir).
+
+## n8n ile periyodik otomasyon
+
+`toplu_analiz.py`'yi doğrudan çağırmak yerine, n8n'in bir **Schedule
+Trigger**'ı bir **HTTP Request** node'uyla `POST /api/v1/analiz/toplu`'yu
+periyodik çağırır; ardından ya `bildirim_webhook_url` ile anlık bildirim
+alır ya da `GET /api/v1/analiz/durum/{gorev_id}`'yi yoklar. Bu tasarım,
+otomasyon tarafının projenin Python iç yapısını hiç bilmesine gerek
+bırakmaz -- `api_servisi.py` sadece `.env`'den beslenen, `uvicorn`/Docker
+ile başlatılan bağımsız bir HTTP servisidir.
+
+## Claude Code'dan veritabanına MCP ile bağlanmak
+
+Proje kökündeki `.mcp.json`, `mcp_postgres_sunucusu.py`'yi Claude Code'a
+tanıtır (ilk kullanımda onay istenir). Sunucu **salt okunur** -- sadece
+`tablolari_listele`, `ucuslar_listesi`, `ucus_detayi` ve
+`salt_okunur_sorgu_calistir` (sadece tek bir `SELECT`, yazma ifadeleri
+reddedilir) araçlarını sunar. Bağlantı bilgileri `.mcp.json`'da DEĞİL,
+`.env`'de tutulur.
+
+## Veritabanı şeması (Alembic)
+
+```bash
+alembic upgrade head       # şemayı kur/güncelle
+alembic current             # hangi migration'da olduğunu gösterir
+alembic revision --autogenerate -m "kisa aciklama"   # yeni migration
+```
+
+Bağlantı bilgisi `alembic.ini`'ye yazılmaz; `migrations/env.py`, tıpkı
+`veritabani.py` gibi, `.env`'den okur.
+
+## Testleri çalıştırmak
 
 ```bash
 pip install -r requirements-dev.txt
-python -m pytest tests/
+pytest tests/
 ```
 
-`tests/test_eslestirme.py`, gerçek `ocak_2019_turbulans.nc` dosyasını
-bulamazsa otomatik olarak atlanır (dosya `.gitignore`'da, repoya dahil
-değildir). Aynı şekilde `tests/test_veritabani.py` ve
-`tests/test_api_servisi.py`, gerçek bir PostgreSQL bağlantısı kurulamazsa
-atlanır. `pytest.ini`, async testlerin (`test_api_servisi.py`) TEK bir event
-loop paylaşmasını sağlar -- gerçek bir `uvicorn` sürecini (tek event loop)
-taklit etmek için; aksi halde `veritabani.py`'deki `asyncpg` engine
-singleton'ı testler arası "Event loop is closed" hatası verir (bu bir kod
-hatası değil, sadece test izolasyonuyla ilgili bir ayrıntı).
+`test_eslestirme.py` gerçek `.nc` dosyasını, `test_veritabani.py`/
+`test_api_servisi.py` gerçek bir PostgreSQL bağlantısını bulamazsa
+otomatik atlanır (skip) -- CI'da Postgres bir servis konteyneriyle
+sağlanır, `.nc` dosyası (büyük olduğu için) sağlanmaz.
+
+## Geliştirme araçları
+
+```bash
+ruff check .              # lint
+ruff format .              # biçimlendir
+pre-commit install         # her commit'te otomatik çalıştır
+```
+
+`.github/workflows/ci.yml`, her push/PR'da lint ve testleri (gerçek bir
+PostgreSQL servis konteyneriyle) çalıştırır.
 
 ## Bilinmesi gerekenler / sınırlamalar
 
-- **TI1/EDR proxy, sertifikalı bir EDR değeri değildir.** ERA5 benzeri ~25-30 km
-  çözünürlüklü reanaliz verisinden hesaplanan bir türbülans olasılık göstergesidir.
-  Gerçek operasyonel kullanım için PIREP/AMDAR gözlemleriyle kalibre edilmesi gerekir.
-- `flights_data4` tablosunda `callsign` alanı 8 karakter, boşlukla doldurulmuş
-  (padded) saklanır; eşleştirme bunu otomatik yapıyor.
+- **TI1/EDR proxy, sertifikalı bir EDR değeri değildir** -- yukarıya bakın.
+- `flights_data4` tablosunda `callsign` alanı 8 karakter, boşlukla
+  doldurulmuş (padded) saklanır; eşleştirme bunu otomatik yapar.
 - Yatay deformasyon hesabı için veri kübünün ilgili zaman dilimindeki tüm
-  enlem/boylam grid'ine ihtiyaç var (tek nokta yetmiyor) — `eslestirme.py`
-  bunu `differentiate()` ile grid üzerinde hesaplayıp sonra noktaya en yakın
-  hücreyi okuyor.
-- Proje gerçek bir uçuşla (OpenSky/Trino bağlantısı + gerçek `.nc` verisi)
-  uçtan uca test edildi ve çalıştığı doğrulandı.
+  enlem/boylam grid'ine ihtiyaç var (tek nokta yetmiyor).
 - `config.EDR_OLCEKLENDIRME_KATSAYISI` kalibre edilene kadar (bkz.
-  `kalibrasyon.py`) her çalıştırmanın sonunda `main.py` "kalibre edilmedi"
-  uyarısı basar -- EDR proxy değerlerinin hâlâ keyfi bir katsayıya
-  dayandığını unutmamak için.
+  `kalibrasyon.py`) `main.py` her çalıştırma sonunda uyarı basar.
+- Proje gerçek bir uçuşla (OpenSky/Trino + gerçek `.nc` verisi) uçtan uca
+  test edildi.
+- Bu ortamda Docker daemon'ı kurulu olmadığından `Dockerfile`/
+  `docker-compose.yml` YAML olarak doğrulandı ama `docker compose up
+  --build` ile uçtan uca denenemedi.
 
-## Kod incelemesinden gelen düzeltmeler
+## Değişiklik geçmişi
 
-Bir kod incelemesinde bulunan 6 sorun giderildi:
+Projenin geçmiş halinden bugüne kadarki tüm önemli değişiklikler için bkz.
+[CHANGELOG.md](CHANGELOG.md).
 
-1. **NaN → NULL:** Veri küpünün kapsamı dışındaki noktalar (`ti1_indeksi`,
-   `edr_proxy`, ...) `NaN` olarak hesaplanıyor; bunlar veritabanına artık
-   `NULL` olarak yazılıyor (`veritabani._olcum_kayitlarini_hazirla`). Önceden
-   `NaN` olarak yazılan bir satır API'den okunduğunda "Out of range float
-   values are not JSON compliant" hatasıyla 500'e düşüyordu.
-2. **SQL enjeksiyonu:** `veri_yukleme.py` ve `ornek_ucus_bul.py`, uçuş
-   numarası/icao24/önek gibi değerleri artık f-string ile SQL'e gömmüyor;
-   Trino'nun parametreli sorgu desteğini (`?` yer tutucuları +
-   `cursor.execute(sorgu, parametreler)`) kullanıyor. Bu değerler artık
-   `api_servisi.py` üzerinden dışarıdan da tetiklenebildiği için önemliydi.
-3. **Gereksiz OAuth2 girişi:** `trino_baglantisi_olustur()` her çağrıda YENİ
-   bir `OAuth2Authentication()` oluşturuyordu; bu, trino kütüphanesinin
-   token önbelleğini sıfırlayıp her analiz için ayrı bir tarayıcı girişi
-   istenmesine yol açıyordu (toplu analizde veya API'den ardışık istekte
-   özellikle sorunluydu). Artık süreç boyunca tek bir örnek yeniden
-   kullanılıyor (`veri_yukleme._oauth2_kimlik_dogrulamasini_al`).
-4. **Hata mesajı sızıntısı:** API'nin 500/503 yanıtları artık ham exception
-   mesajını (SQL, bağlantı dizesi vb. içerebilir) istemciye DÖNDÜRMÜYOR --
-   genel, güvenli bir mesaj döner; tam ayrıntı (traceback dahil) sunucu
-   tarafında (stderr) loglanır.
-5. **Girdi doğrulama:** `tarih` artık gerçek bir tarih olarak doğrulanıyor
-   (path parametresinde `date` tipi, istek gövdesinde pydantic validator),
-   `ucus_numarasi` harf/rakam ve en fazla 8 karakterle sınırlı, `GET
-   /api/v1/ucuslar`'ın `limit`i 1-500 aralığına sabitlendi, ölçüm listesi
-   artık `olcum_limit`/`olcum_offset` ile sayfalanıyor (`toplam_olcum_sayisi`
-   alanıyla birlikte) -- daha önce 50.000 noktalık bir uçuş tek seferde
-   dönüyordu.
-6. **Zamanlamaya dayanıklı anahtar karşılaştırması:** API anahtarı artık
-   `==` yerine `secrets.compare_digest` ile karşılaştırılıyor (timing
-   attack'e karşı).
+## Lisans
 
-Aynı incelemeden 7 sorun daha giderildi:
-
-7. **Yavaş veritabanı yazımı:** `ucus_ve_olcumleri_kaydet`, `eslesmis_df.
-   iterrows()` ile her satır için ayrı bir ORM nesnesi oluşturmak yerine
-   artık tüm tabloyu vektörel olarak sözlük listesine çevirip TEK bir toplu
-   (bulk) `INSERT` ifadesiyle yazıyor (`_olcum_kayitlarini_hazirla`) --
-   gerçek veriyle ölçüldü: 5000 satır ~0.5 saniyede yazılıyor.
-8. **`print()` yerine `logging`:** `api_servisi.py`'nin kendi tanı/hata
-   mesajları artık `loglama.py` üzerinden seviyeli/filtrelenebilir
-   (`LOG_SEVIYESI`) ve isteğe bağlı dosyaya da yazılabilir (`LOG_DOSYASI`)
-   `logging` kullanıyor -- bkz. "FastAPI servis katmanı" bölümündeki
-   "Loglama" notu (CLI araçlarının insan için tasarlanmış çıktısı bilinçli
-   olarak `print()` olarak kaldı, orada da açıklandı).
-9. **Veritabanı migration'ı (Alembic):** Şema artık kod içinde örtük
-   (`create_all`) değil, `migrations/` altındaki Alembic migration'larıyla
-   yönetiliyor -- bkz. "Veritabanı şeması (Alembic)" bölümü.
-10. **Görev kaydı bellek sızıntısı:** `api_servisi.py`'deki `_gorevler`
-    sözlüğü artık kendiliğinden temizleniyor -- bkz. "FastAPI servis
-    katmanı" bölümündeki görev durumu notu.
-11. **`veri_kontrol.py` güncellendi:** Artık üretilmeyen
-    `eslesme_sonuclari_*.csv` yerine doğrudan PostgreSQL'den okuyor
-    (`python veri_kontrol.py N10VZ 2019-01-15`) -- ve örnekleme yanlılığı
-    olmaması için (API'nin aksine) TÜM ölçüm noktalarını inceliyor
-    (`veritabani.ucus_olcumlerini_dataframe_olarak_getir`).
-12. **Çıktı klasörü:** Harita HTML'leri ve toplu analiz özeti artık proje
-    köküne değil `ciktilar/` altına yazılıyor -- bkz. "Çıktı klasörü ve
-    büyük rotalar" bölümü.
-13. **Büyük rotalarda ağır harita:** `harita.py`'nin animasyonu artık çok
-    uzun rotalarda (>2000 nokta) seyreltiliyor -- bkz. aynı bölüm.
-
-## Sonraki adımlar için fikirler
-
-- ~~Deformasyon/kayma hesabını tüm grid üzerinde vektörel olarak önceden
-  hesaplayıp `.sel()` ile hızlandırmak.~~ Yapıldı: `eslestirme.py` artık tüm
-  rotayı tek seferde vektörel eşleştiriyor (gerçek veriyle ölçülen kazanç:
-  ~250x, bkz. modülün başındaki not).
-- ~~Richardson sayısı gibi ek kararlılık indeksleri ekleyip TI1 ile
-  birleştirmek.~~ Yapıldı: `turbulans_indeksleri.richardson_sayisi_hesapla`
-  bilerek TI1'e keyfi bir katsayıyla karıştırılmadan, ayrı bir
-  `richardson_sayisi`/`dinamik_kararsizlik` sütunu olarak ekleniyor.
-- ~~Gerçek PIREP verisiyle karşılaştırıp ölçekleme katsayısını kalibre
-  etmek.~~ Kısmen yapıldı: `kalibrasyon.py` bunun için bir araç sağlıyor,
-  ama gerçek PIREP/AMDAR gözlem verisi bu depoda YOK -- kalibrasyonu
-  çalıştırmak için kullanıcının kendi gözlem CSV'sini sağlaması gerekiyor.
-- ~~Trino/OpenSky sorgularının başarısız senaryoları (rate limit, OAuth2
-  zaman aşımı) için yeniden deneme (retry) mantığı eklemek.~~ Yapıldı:
-  `veri_yukleme.py` artık `tenacity` ile SADECE geçici ağ/sunucu
-  hatalarında (bağlantı kopması, 502/503/504, dahili Trino hatası), üstel
-  artan aralarla (2s, 4s, 8s) ve en fazla 3 denemeyle yeniden deniyor --
-  OpenSky'yi art arda isteklerle yormamak için deneme sayısı bilerek düşük.
-  Ayrıca `toplu_analiz.py` artık uçuşlar arasına
-  `config.TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE` kadar bekleme koyuyor.
-- ~~Terminal yerine tarayıcıdan kullanılabilir basit bir arayüz.~~ Yapıldı:
-  `web_arayuzu.py` (`streamlit run web_arayuzu.py`).
-- ~~Birden fazla uçuşu tek seferde analiz edebilmek.~~ Yapıldı:
-  `toplu_analiz.py`.
-- ~~Hata mesajlarını daha anlaşılır hale getirmek.~~ Yapıldı:
-  `hata_yardimcisi.py`, `main.py`/`toplu_analiz.py`/`web_arayuzu.py`
-  tarafından kullanılıyor.
-- ~~Hava durumu verisini otomatik indirme.~~ Sadece ALTYAPISI hazırlandı
-  (`veri_indirme.py`) -- rate-limit/ban riski nedeniyle gerçek indirme
-  bilinçli olarak kapalı, bkz. yukarıdaki "ERA5 verisini otomatik indirme"
-  bölümü.
-- ~~PostgreSQL entegrasyonu.~~ Yapıldı: `veritabani.py`, lokal CSV çıktısının
-  yerine `ucuslar`/`edr_olcumleri` tablolarına yazıyor, bkz. "PostgreSQL
-  entegrasyonu" bölümü.
-- ~~FastAPI REST API iskeleti.~~ Yapıldı: `api_servisi.py`, bkz. "FastAPI
-  servis katmanı" bölümü.
-- ~~n8n gibi bir araçla periyodik otomasyon.~~ Yapıldı (HTTP tabanlı):
-  `toplu_analiz.py` doğrudan değil, `api_servisi.py`'nin `/analiz/*` uç
-  noktaları üzerinden -- bkz. "n8n ile periyodik otomasyon" bölümü.
-  `veri_indirme.py` bilinçli olarak otomasyona dahil edilmedi.
-- ~~Claude Code'dan veritabanına MCP ile bağlanmak.~~ Yapıldı:
-  `mcp_postgres_sunucusu.py` + proje kökündeki `.mcp.json`, bkz. "Claude
-  Code'dan veritabanına MCP ile bağlanmak" bölümü.
-- ~~API güvenliği (statik anahtar), asenkron uç noktalar, yapılandırılmış
-  hata yönetimi, ORM modelleri, API sürümleme/Swagger, WebSocket ile canlı
-  uyarı, n8n için webhook bildirimi.~~ Yapıldı -- bkz. "FastAPI servis
-  katmanı" ve "n8n ile periyodik otomasyon" bölümleri, `models.py`.
-- **Bilinçli olarak YAPILMADI -- Offline-first Flutter mobil arayüz:**
-  projede hiç Flutter/mobil kod yok; bu, ayrı bir mobil uygulama
-  geliştirme projesi gerektirir (sadece backend'e bir özellik eklemek
-  değil). API tarafı (JSON uç noktaları + WebSocket canlı uyarı) buna
-  hazır durumda; mobil istemci ayrı bir iş olarak ele alınmalı.
-- **Bilinçli olarak YAPILMADI -- Yapay zeka destekli tahmin modeli:**
-  `kalibrasyon.py`'nin başındaki notta da açıkça yazdığı gibi, bu depoda
-  GERÇEK PIREP/AMDAR gözlem verisi YOK. Etiketlenmiş gerçek veri olmadan
-  bir ML modeli "eğitmek", projenin başında eleştirilip düzeltilen
-  "uydurma katsayı" hatasının bir versiyonunu (bu sefer sahte bir model
-  görünümü altında) tekrarlamak olurdu. Gerçek gözlem verisi sağlanırsa
-  (bkz. `kalibrasyon.py`), üzerine bir tahmin modeli kurmak anlamlı hale gelir.
+[MIT](LICENSE)
