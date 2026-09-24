@@ -1,4 +1,3 @@
-import math
 import os
 import tempfile
 
@@ -6,7 +5,7 @@ import numpy as np
 import pandas as pd
 
 import config
-from harita import _turbulans_rengi, pd_isna, pd_to_str, pd_to_iso, zaman_kaydiricili_harita_olustur
+from harita import _turbulans_rengi, pd_isna, pd_to_iso, pd_to_str, zaman_kaydiricili_harita_olustur
 
 
 def test_turbulans_rengi_esik_altinda_yesil():
@@ -51,13 +50,15 @@ def test_pd_to_iso_zaman_formatlar():
 
 
 def _ornek_rota_df(n):
-    return pd.DataFrame({
-        "zaman": pd.date_range("2019-01-15", periods=n, freq="s", tz="UTC"),
-        "enlem": np.linspace(40.0, 41.0, n),
-        "boylam": np.linspace(29.0, 30.0, n),
-        "ti1_indeksi": np.random.rand(n) * 1e-6,
-        "edr_proxy": np.random.rand(n),
-    })
+    return pd.DataFrame(
+        {
+            "zaman": pd.date_range("2019-01-15", periods=n, freq="s", tz="UTC"),
+            "enlem": np.linspace(40.0, 41.0, n),
+            "boylam": np.linspace(29.0, 30.0, n),
+            "ti1_indeksi": np.random.rand(n) * 1e-6,
+            "edr_proxy": np.random.rand(n),
+        }
+    )
 
 
 def _uretilen_html_deki_nokta_sayisi(dosya_yolu):

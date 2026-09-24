@@ -51,6 +51,7 @@ from datetime import date
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     pass
@@ -58,23 +59,41 @@ except ImportError:
 import httpx
 import pandas as pd
 from fastapi import (
-    APIRouter, BackgroundTasks, Depends, FastAPI, Header, HTTPException,
-    Path, Query, Request, WebSocket, WebSocketDisconnect, status,
+    APIRouter,
+    BackgroundTasks,
+    Depends,
+    FastAPI,
+    Header,
+    HTTPException,
+    Path,
+    Query,
+    Request,
+    WebSocket,
+    WebSocketDisconnect,
+    status,
 )
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.exc import SQLAlchemyError
 
 import config
 import loglama
+from hata_yardimcisi import dostane_hata_mesaji
 from main import calistir as tek_ucus_analiz_et
+from semalar import (
+    GorevBaslatildiYaniti,
+    GorevDurumYaniti,
+    SaglikYaniti,
+    UcusDetayYaniti,
+    UcusYaniti,
+)
 from toplu_analiz import toplu_analiz_calistir
 from veritabani import (
     VeritabaniAyarlariEksikHatasi,
     ucus_detayini_getir_async,
     ucuslari_listele_async,
 )
-from hata_yardimcisi import dostane_hata_mesaji
 
 loglama.ayarla()
 _logger = loglama.logger_al(__name__)
@@ -85,10 +104,26 @@ app = FastAPI(
     version="1.0.0",
 )
 
+# CORS: bir web/mobil istemcinin tarayıcıdan doğrudan bu API'ye istek
+# atabilmesi için gereklidir (aksi halde tarayıcı Cross-Origin isteği
+# engeller). Güvenli varsayılan: hiçbir kaynağa izin verilmez (ortam
+# değişkeni verilmezse middleware hiç eklenmez); izin verilecek kaynaklar
+# '.env'deki CORS_IZIN_VERILEN_KAYNAKLAR'a virgülle ayrılmış olarak yazılır.
+_cors_kaynaklari = [k.strip() for k in os.environ.get("CORS_IZIN_VERILEN_KAYNAKLAR", "").split(",") if k.strip()]
+if _cors_kaynaklari:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=_cors_kaynaklari,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
 
 # ---------------------------------------------------------------------------
 # Güvenlik: statik API anahtarı ('.env' -> API_ANAHTARI)
 # ---------------------------------------------------------------------------
+
 
 def api_anahtarini_dogrula(x_api_key: str | None = Header(default=None, alias="X-API-Key")):
     beklenen = os.environ.get("API_ANAHTARI")
@@ -142,6 +177,7 @@ def _hiz_sinirini_kontrol_et(anahtar: str):
 # istemci göremez.
 # ---------------------------------------------------------------------------
 
+
 def _hatayi_sunucu_tarafinda_logla(hata: Exception, baglam: str = ""):
     # exc_info=hata: logging tam traceback'i kendisi formatlar (manuel
     # traceback.print_exception'a göre daha az kod, aynı sonuç) ve seviye/
@@ -186,6 +222,7 @@ async def genel_hata_isle(request: Request, hata: Exception):
 # WebSocket ile canlı türbülans uyarıları
 # ---------------------------------------------------------------------------
 
+
 class _BaglantiYoneticisi:
     def __init__(self):
         self.baglantilar: list[WebSocket] = []
@@ -229,13 +266,15 @@ async def _yuksek_riskli_noktalari_yayinla(eslesmis_df, ucus_numarasi, tarih):
     riskli = eslesmis_df[eslesmis_df["ti1_indeksi"] >= config.TI1_ESIK_ORTA_SIDDETLI]
     if riskli.empty:
         return
-    await baglanti_yoneticisi.yayinla({
-        "tip": "turbulans_uyarisi",
-        "ucus_numarasi": ucus_numarasi,
-        "tarih": tarih,
-        "orta_siddetli_nokta_sayisi": int(len(riskli)),
-        "maks_ti1": float(riskli["ti1_indeksi"].max()),
-    })
+    await baglanti_yoneticisi.yayinla(
+        {
+            "tip": "turbulans_uyarisi",
+            "ucus_numarasi": ucus_numarasi,
+            "tarih": tarih,
+            "orta_siddetli_nokta_sayisi": int(len(riskli)),
+            "maks_ti1": float(riskli["ti1_indeksi"].max()),
+        }
+    )
 
 
 async def _webhooku_bildir(webhook_url, govde):
@@ -272,8 +311,11 @@ _GOREV_SAYISI_TAVANI = 5000
 def _eski_gorevleri_temizle():
     simdi = time.monotonic()
     bitmis_durumlar = ("tamamlandi", "hata", "basarisiz")
-    for gid in [g for g, v in _gorevler.items() if v.get("durum") in bitmis_durumlar
-                and simdi - v.get("_olusturulma", simdi) > _GOREV_SAKLAMA_SANIYE]:
+    for gid in [
+        g
+        for g, v in _gorevler.items()
+        if v.get("durum") in bitmis_durumlar and simdi - v.get("_olusturulma", simdi) > _GOREV_SAKLAMA_SANIYE
+    ]:
         del _gorevler[gid]
 
     # Süre dolmadan bile sözlük çok büyürse (örn. çok kısa aralıklarla çok
@@ -324,12 +366,12 @@ class TopluAnalizIstegi(BaseModel):
     bildirim_webhook_url: str | None = None
 
 
-@v1.get("/ucuslar")
+@v1.get("/ucuslar", response_model=list[UcusYaniti])
 async def ucuslar_listesi(limit: int = Query(default=100, ge=1, le=500)):
     return await ucuslari_listele_async(limit=limit)
 
 
-@v1.get("/ucuslar/{ucus_numarasi}/{tarih}")
+@v1.get("/ucuslar/{ucus_numarasi}/{tarih}", response_model=UcusDetayYaniti)
 async def ucus_detayi(
     ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
     tarih: date = Path(...),
@@ -349,7 +391,9 @@ async def ucus_detayi(
 
 async def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih, webhook_url):
     _gorevler[gorev_id] = {
-        "durum": "calisiyor", "ucus_numarasi": ucus_numarasi, "tarih": tarih,
+        "durum": "calisiyor",
+        "ucus_numarasi": ucus_numarasi,
+        "tarih": tarih,
         "_olusturulma": time.monotonic(),
     }
     try:
@@ -362,7 +406,7 @@ async def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih, webhook_url)
     await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **_gorev_disari_ver(_gorevler[gorev_id])})
 
 
-@v1.post("/analiz/ucus", status_code=status.HTTP_202_ACCEPTED)
+@v1.post("/analiz/ucus", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti)
 async def ucus_analizi_baslat(istek: UcusAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
     _hiz_sinirini_kontrol_et("tek_ucus")
     _eski_gorevleri_temizle()
@@ -385,7 +429,7 @@ async def _toplu_arkaplan_gorevi(gorev_id, ucus_listesi_df, webhook_url):
     await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **_gorev_disari_ver(_gorevler[gorev_id])})
 
 
-@v1.post("/analiz/toplu", status_code=status.HTTP_202_ACCEPTED)
+@v1.post("/analiz/toplu", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti)
 async def toplu_analiz_baslat(istek: TopluAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
     _hiz_sinirini_kontrol_et("toplu")
     _eski_gorevleri_temizle()
@@ -397,7 +441,7 @@ async def toplu_analiz_baslat(istek: TopluAnalizIstegi, arkaplan_gorevleri: Back
     return {"gorev_id": gorev_id, "durum": "baslatildi"}
 
 
-@v1.get("/analiz/durum/{gorev_id}")
+@v1.get("/analiz/durum/{gorev_id}", response_model=GorevDurumYaniti)
 async def analiz_durumu(gorev_id: str):
     gorev = _gorevler.get(gorev_id)
     if gorev is None:
@@ -408,7 +452,7 @@ async def analiz_durumu(gorev_id: str):
 app.include_router(v1)
 
 
-@app.get("/saglik")
+@app.get("/saglik", response_model=SaglikYaniti)
 def saglik_kontrolu():
     """Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği)."""
     return {"durum": "ayakta"}

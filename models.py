@@ -13,8 +13,17 @@ tablo var, ORM sadece onların Python tarafındaki tanımı.
 """
 
 from sqlalchemy import (
-    BigInteger, Boolean, Date, DateTime, Float, ForeignKey, Index, Integer,
-    String, UniqueConstraint, func,
+    BigInteger,
+    Boolean,
+    Date,
+    DateTime,
+    Float,
+    ForeignKey,
+    Index,
+    Integer,
+    String,
+    UniqueConstraint,
+    func,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -36,7 +45,9 @@ class Ucus(Base):
     olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     olcumler: Mapped[list["EdrOlcumu"]] = relationship(
-        back_populates="ucus", cascade="all, delete-orphan", passive_deletes=True,
+        back_populates="ucus",
+        cascade="all, delete-orphan",
+        passive_deletes=True,
     )
 
 

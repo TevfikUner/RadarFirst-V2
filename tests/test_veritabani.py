@@ -36,19 +36,21 @@ def motor():
 
 
 def _ornek_df():
-    return pd.DataFrame({
-        "zaman": pd.to_datetime(["2000-01-01T00:00:00Z", "2000-01-01T00:10:00Z"]),
-        "enlem": [40.0, 40.1],
-        "boylam": [30.0, 30.1],
-        "ti1_indeksi": [1e-7, 5e-7],
-        "edr_proxy": [0.1, 0.3],
-        "richardson_sayisi": [0.5, 0.1],
-        "dinamik_kararsizlik": [False, True],
-        "basinc_hpa": [250.0, 250.0],
-        "icao24": ["test123", "test123"],
-        "kalkis_havaalani": ["AAAA", "AAAA"],
-        "varis_havaalani": ["BBBB", "BBBB"],
-    })
+    return pd.DataFrame(
+        {
+            "zaman": pd.to_datetime(["2000-01-01T00:00:00Z", "2000-01-01T00:10:00Z"]),
+            "enlem": [40.0, 40.1],
+            "boylam": [30.0, 30.1],
+            "ti1_indeksi": [1e-7, 5e-7],
+            "edr_proxy": [0.1, 0.3],
+            "richardson_sayisi": [0.5, 0.1],
+            "dinamik_kararsizlik": [False, True],
+            "basinc_hpa": [250.0, 250.0],
+            "icao24": ["test123", "test123"],
+            "kalkis_havaalani": ["AAAA", "AAAA"],
+            "varis_havaalani": ["BBBB", "BBBB"],
+        }
+    )
 
 
 def test_ucus_ve_olcumleri_kaydet_ve_geri_oku(motor):

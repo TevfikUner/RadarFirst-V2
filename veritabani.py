@@ -40,6 +40,7 @@ from models import Base, EdrOlcumu, Ucus
 
 try:
     from dotenv import load_dotenv
+
     load_dotenv()
 except ImportError:
     pass
@@ -47,6 +48,7 @@ except ImportError:
 
 class VeritabaniAyarlariEksikHatasi(Exception):
     """PostgreSQL bağlantı bilgileri eksik olduğunda fırlatılır."""
+
     pass
 
 
@@ -133,8 +135,14 @@ def tablolari_olustur(motor=None):
 
 
 _OLCUM_SUTUNLARI = [
-    "zaman", "enlem", "boylam", "ti1_indeksi", "edr_proxy",
-    "richardson_sayisi", "dinamik_kararsizlik", "basinc_hpa",
+    "zaman",
+    "enlem",
+    "boylam",
+    "ti1_indeksi",
+    "edr_proxy",
+    "richardson_sayisi",
+    "dinamik_kararsizlik",
+    "basinc_hpa",
 ]
 
 
@@ -175,15 +183,12 @@ def ucus_ve_olcumleri_kaydet(eslesmis_df, ucus_numarasi, tarih_str, motor=None):
     """
     motor = motor or motor_al()
 
-    bos_ise_al = lambda sutun: (
-        eslesmis_df[sutun].iloc[0] if sutun in eslesmis_df.columns and not eslesmis_df.empty else None
-    )
+    def bos_ise_al(sutun):
+        return eslesmis_df[sutun].iloc[0] if sutun in eslesmis_df.columns and not eslesmis_df.empty else None
 
     tarih = _tarihe_cevir(tarih_str)
     with Session(motor) as oturum:
-        oturum.execute(
-            delete(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == tarih)
-        )
+        oturum.execute(delete(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == tarih))
         ucus = Ucus(
             ucus_numarasi=ucus_numarasi,
             tarih=tarih,
@@ -212,9 +217,7 @@ def ucuslari_listele(motor=None, limit=100):
     limit = max(1, min(limit, _LISTE_LIMIT_TAVANI))
     motor = motor or motor_al()
     with Session(motor) as oturum:
-        ucuslar = oturum.execute(
-            select(Ucus).order_by(Ucus.olusturulma_zamani.desc()).limit(limit)
-        ).scalars().all()
+        ucuslar = oturum.execute(select(Ucus).order_by(Ucus.olusturulma_zamani.desc()).limit(limit)).scalars().all()
         return [_ucus_sozluge_cevir(u) for u in ucuslar]
 
 
@@ -223,19 +226,30 @@ def ucus_detayini_getir(ucus_numarasi, tarih_str, motor=None, olcum_limit=1000, 
     olcum_offset = max(0, olcum_offset)
     motor = motor or motor_al()
     with Session(motor) as oturum:
-        ucus = oturum.execute(
-            select(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == _tarihe_cevir(tarih_str))
-        ).scalars().first()
+        ucus = (
+            oturum.execute(
+                select(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == _tarihe_cevir(tarih_str))
+            )
+            .scalars()
+            .first()
+        )
         if ucus is None:
             return None
 
         toplam_olcum_sayisi = oturum.execute(
             select(func.count()).select_from(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id)
         ).scalar_one()
-        olcumler = oturum.execute(
-            select(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id).order_by(EdrOlcumu.zaman)
-            .limit(olcum_limit).offset(olcum_offset)
-        ).scalars().all()
+        olcumler = (
+            oturum.execute(
+                select(EdrOlcumu)
+                .where(EdrOlcumu.ucus_id == ucus.id)
+                .order_by(EdrOlcumu.zaman)
+                .limit(olcum_limit)
+                .offset(olcum_offset)
+            )
+            .scalars()
+            .all()
+        )
         return {
             "ucus": _ucus_sozluge_cevir(ucus),
             "toplam_olcum_sayisi": toplam_olcum_sayisi,
@@ -246,9 +260,7 @@ def ucus_detayini_getir(ucus_numarasi, tarih_str, motor=None, olcum_limit=1000, 
 async def ucuslari_listele_async(limit=100):
     limit = max(1, min(limit, _LISTE_LIMIT_TAVANI))
     async with async_oturum_al() as oturum:
-        sonuc = await oturum.execute(
-            select(Ucus).order_by(Ucus.olusturulma_zamani.desc()).limit(limit)
-        )
+        sonuc = await oturum.execute(select(Ucus).order_by(Ucus.olusturulma_zamani.desc()).limit(limit))
         return [_ucus_sozluge_cevir(u) for u in sonuc.scalars().all()]
 
 
@@ -263,12 +275,15 @@ async def ucus_detayini_getir_async(ucus_numarasi, tarih_str, olcum_limit=1000, 
         if ucus is None:
             return None
 
-        toplam_olcum_sayisi = (await oturum.execute(
-            select(func.count()).select_from(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id)
-        )).scalar_one()
+        toplam_olcum_sayisi = (
+            await oturum.execute(select(func.count()).select_from(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id))
+        ).scalar_one()
         olcum_sonucu = await oturum.execute(
-            select(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id).order_by(EdrOlcumu.zaman)
-            .limit(olcum_limit).offset(olcum_offset)
+            select(EdrOlcumu)
+            .where(EdrOlcumu.ucus_id == ucus.id)
+            .order_by(EdrOlcumu.zaman)
+            .limit(olcum_limit)
+            .offset(olcum_offset)
         )
         return {
             "ucus": _ucus_sozluge_cevir(ucus),
@@ -292,15 +307,21 @@ def ucus_olcumlerini_dataframe_olarak_getir(ucus_numarasi, tarih_str, motor=None
     """
     motor = motor or motor_al()
     with Session(motor) as oturum:
-        ucus = oturum.execute(
-            select(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == _tarihe_cevir(tarih_str))
-        ).scalars().first()
+        ucus = (
+            oturum.execute(
+                select(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == _tarihe_cevir(tarih_str))
+            )
+            .scalars()
+            .first()
+        )
         if ucus is None:
             return None
 
-        olcumler = oturum.execute(
-            select(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id).order_by(EdrOlcumu.zaman)
-        ).scalars().all()
+        olcumler = (
+            oturum.execute(select(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id).order_by(EdrOlcumu.zaman))
+            .scalars()
+            .all()
+        )
         return pd.DataFrame([_olcum_sozluge_cevir(o) for o in olcumler])
 
 

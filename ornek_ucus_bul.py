@@ -1,17 +1,17 @@
 """
 ornek_ucus_bul.py
 -------------------
-Ocak 2019'dan GERÇEK, veritabaninda kayitli callsign'lar cekip listeler.
-Bu sayede main.py'yi calistirmak icin "havada olsun mu olmasin mi" diye
-tahmin etmene gerek kalmiyor -- zaten OpenSky'da kaydi olan bir ucusu
-seciyorsun.
+Ocak 2019'dan GERÇEK, veritabanında kayıtlı callsign'lar çekip listeler.
+Bu sayede main.py'yi çalıştırmak için "havada olsun mu olmasın mı" diye
+tahmin etmene gerek kalmıyor -- zaten OpenSky'da kaydı olan bir uçuşu
+seçiyorsun.
 
-Kullanim:
-    python ornek_ucus_bul.py                # varsayilan: 2019-01-15
-    python ornek_ucus_bul.py 2019-01-03      # farkli bir gun
-    python ornek_ucus_bul.py 2019-01-15 THY  # sadece belirli bir onekle
-                                                baslayan callsign'lar (örn.
-                                                Turkish Airlines icin "THY")
+Kullanım:
+    python ornek_ucus_bul.py                # varsayılan: 2019-01-15
+    python ornek_ucus_bul.py 2019-01-03      # farklı bir gün
+    python ornek_ucus_bul.py 2019-01-15 THY  # sadece belirli bir önekle
+                                                başlayan callsign'lar (örn.
+                                                Turkish Airlines için "THY")
 """
 
 import argparse
@@ -22,7 +22,7 @@ konsolu_utf8_yap()
 
 import pandas as pd
 
-from veri_yukleme import trino_baglantisi_olustur, _sorgu_calistir
+from veri_yukleme import _sorgu_calistir, trino_baglantisi_olustur
 
 
 def ornek_ucuslari_getir(tarih_str="2019-01-15", onek=None, adet=20):
@@ -57,11 +57,13 @@ def ornek_ucuslari_getir(tarih_str="2019-01-15", onek=None, adet=20):
 def _argumanlari_ayristir(argv=None):
     ayristirici = argparse.ArgumentParser(
         description="Ocak 2019'dan gerçek, OpenSky'da kayıtlı callsign'lar çekip listeler "
-                     "(main.py'yi çalıştırmak için hangi uçuşun mevcut olduğunu tahmin etmene gerek kalmaz).",
+        "(main.py'yi çalıştırmak için hangi uçuşun mevcut olduğunu tahmin etmene gerek kalmaz).",
     )
     ayristirici.add_argument("tarih", nargs="?", default="2019-01-15", help="YYYY-MM-DD (varsayılan: 2019-01-15)")
     ayristirici.add_argument(
-        "onek", nargs="?", default=None,
+        "onek",
+        nargs="?",
+        default=None,
         help="Yalnızca bu önekle başlayan callsign'lar, örn. THY (Turkish Airlines)",
     )
     ayristirici.add_argument("--adet", type=int, default=20, help="Kaç sonuç listelenecek (varsayılan: 20)")

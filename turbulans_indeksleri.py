@@ -65,7 +65,7 @@ def yatay_deformasyon_hesapla(u, v, enlem_boyutu="latitude", boylam_boyutu="long
 
     gerilme = dudx - dvdy
     kayma = dvdx + dudy
-    return np.sqrt(gerilme ** 2 + kayma ** 2)
+    return np.sqrt(gerilme**2 + kayma**2)
 
 
 def dusey_ruzgar_kaymasi_hesapla(u_ust, v_ust, u_alt, v_alt, yukseklik_farki_m):
@@ -80,7 +80,7 @@ def dusey_ruzgar_kaymasi_hesapla(u_ust, v_ust, u_alt, v_alt, yukseklik_farki_m):
 
     du = np.asarray(u_ust, dtype=float) - np.asarray(u_alt, dtype=float)
     dv = np.asarray(v_ust, dtype=float) - np.asarray(v_alt, dtype=float)
-    sonuc = np.sqrt(du ** 2 + dv ** 2) / np.abs(yukseklik_farki_m)
+    sonuc = np.sqrt(du**2 + dv**2) / np.abs(yukseklik_farki_m)
     return float(sonuc) if sonuc.ndim == 0 else sonuc
 
 
@@ -109,9 +109,10 @@ def potansiyel_sicaklik_hesapla(sicaklik_kelvin, basinc_hpa, referans_basinc_hpa
     alacağı sıcaklık. Farklı basınç seviyelerindeki sıcaklıkları doğrudan
     kıyaslayabilmek (ve Richardson sayısını hesaplayabilmek) için gereklidir.
     """
-    return np.asarray(sicaklik_kelvin, dtype=float) * (
-        referans_basinc_hpa / np.asarray(basinc_hpa, dtype=float)
-    ) ** R_CP_KURU_HAVA
+    return (
+        np.asarray(sicaklik_kelvin, dtype=float)
+        * (referans_basinc_hpa / np.asarray(basinc_hpa, dtype=float)) ** R_CP_KURU_HAVA
+    )
 
 
 def richardson_sayisi_hesapla(theta_ust, theta_alt, u_ust, v_ust, u_alt, v_alt, yukseklik_farki_m):
@@ -141,6 +142,6 @@ def richardson_sayisi_hesapla(theta_ust, theta_alt, u_ust, v_ust, u_alt, v_alt, 
     dv = np.asarray(v_ust, dtype=float) - np.asarray(v_alt, dtype=float)
 
     with np.errstate(divide="ignore", invalid="ignore"):
-        sonuc = (YERCEKIMI_IVMESI * d_theta * yukseklik_farki_m) / (theta_ortalama * (du ** 2 + dv ** 2))
+        sonuc = (YERCEKIMI_IVMESI * d_theta * yukseklik_farki_m) / (theta_ortalama * (du**2 + dv**2))
 
     return float(sonuc) if sonuc.ndim == 0 else sonuc

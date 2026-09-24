@@ -27,19 +27,19 @@ from veritabani import VeritabaniAyarlariEksikHatasi, ucus_olcumlerini_dataframe
 
 def nc_dosyasini_incele():
     print("=" * 60)
-    print(f"1) HAVA DURUMU VERI KUPU: {config.HAVA_DURUMU_DOSYASI}")
+    print(f"1) HAVA DURUMU VERİ KÜPÜ: {config.HAVA_DURUMU_DOSYASI}")
     print("=" * 60)
     try:
         ds = xr.open_dataset(config.HAVA_DURUMU_DOSYASI)
     except FileNotFoundError:
-        print("Dosya bulunamadi, bu kismi atliyorum.")
+        print("Dosya bulunamadı, bu kısmı atlıyorum.")
         return
 
     for boyut_adi in ds.dims:
         boyut_degerleri = ds[boyut_adi].values
-        print(f"  Boyut '{boyut_adi}': {len(boyut_degerleri)} adet deger")
+        print(f"  Boyut '{boyut_adi}': {len(boyut_degerleri)} adet değer")
         if len(boyut_degerleri) <= 10:
-            print(f"    -> Degerler: {boyut_degerleri}")
+            print(f"    -> Değerler: {boyut_degerleri}")
         else:
             print(f"    -> Min: {boyut_degerleri.min()}  Maks: {boyut_degerleri.max()}")
 
@@ -47,69 +47,71 @@ def nc_dosyasini_incele():
     if "latitude" in ds.dims and "longitude" in ds.dims:
         lat_araligi = float(ds["latitude"].max() - ds["latitude"].min())
         lon_araligi = float(ds["longitude"].max() - ds["longitude"].min())
-        print(f"  Kapsanan enlem araligi : {lat_araligi:.2f} derece")
-        print(f"  Kapsanan boylam araligi: {lon_araligi:.2f} derece")
+        print(f"  Kapsanan enlem aralığı : {lat_araligi:.2f} derece")
+        print(f"  Kapsanan boylam aralığı: {lon_araligi:.2f} derece")
         if len(ds["latitude"]) <= 3 or len(ds["longitude"]) <= 3:
-            print("  !!! UYARI: Enlem/boylam grid'i cok seyrek (3 veya daha az nokta).")
-            print("      Bu, farkli konumlarin ayni hucreye 'yuvarlanmasina' ve")
-            print("      butun rotanin ayni TI1 degerini almasina yol acabilir.")
+            print("  !!! UYARI: Enlem/boylam grid'i çok seyrek (3 veya daha az nokta).")
+            print("      Bu, farklı konumların aynı hücreye 'yuvarlanmasına' ve")
+            print("      bütün rotanın aynı TI1 değerini almasına yol açabilir.")
     if "valid_time" in ds.dims:
         if len(ds["valid_time"]) <= 2:
-            print("  !!! UYARI: Sadece 1-2 zaman adimi var.")
-            print("      Ucus suresince ruzgar alani hic 'guncellenmiyor' demektir --")
-            print("      butun ucus tek bir anlik goruntuye gore hesaplaniyor.")
+            print("  !!! UYARI: Sadece 1-2 zaman adımı var.")
+            print("      Uçuş süresince rüzgar alanı hiç 'güncellenmiyor' demektir --")
+            print("      bütün uçuş tek bir anlık görüntüye göre hesaplanıyor.")
     print()
 
 
 def ucus_sonuclarini_incele(ucus_numarasi, tarih_str):
     print("=" * 60)
-    print(f"2) HESAPLANAN SONUCLAR (PostgreSQL): {ucus_numarasi} / {tarih_str}")
+    print(f"2) HESAPLANAN SONUÇLAR (PostgreSQL): {ucus_numarasi} / {tarih_str}")
     print("=" * 60)
     try:
         df = ucus_olcumlerini_dataframe_olarak_getir(ucus_numarasi, tarih_str)
     except VeritabaniAyarlariEksikHatasi as hata:
-        print(f"Veritabanina erisilemedi: {hata}")
+        print(f"Veritabanına erişilemedi: {hata}")
         return
 
     if df is None:
-        print(f"'{ucus_numarasi}' / {tarih_str} icin kayit bulunamadi. Once main.py ile analiz calistir.")
+        print(f"'{ucus_numarasi}' / {tarih_str} için kayıt bulunamadı. Önce main.py ile analiz çalıştır.")
         return
     if df.empty or "ti1_indeksi" not in df.columns:
-        print("Kayitli olcum yok ya da 'ti1_indeksi' sutunu bulunamadi.")
+        print("Kayıtlı ölçüm yok ya da 'ti1_indeksi' sütunu bulunamadı.")
         return
 
     ti1 = df["ti1_indeksi"].dropna()
     if ti1.empty:
-        print("Hicbir noktada gecerli TI1 degeri yok (hepsi veri kupu kapsami disinda kalmis olabilir).")
+        print("Hiçbir noktada geçerli TI1 değeri yok (hepsi veri küpü kapsamı dışında kalmış olabilir).")
         return
 
     benzersiz_sayisi = ti1.nunique()
-    print(f"  Toplam nokta            : {len(df)}")
-    print(f"  Gecerli TI1 degeri      : {len(ti1)}")
-    print(f"  Benzersiz TI1 degeri    : {benzersiz_sayisi}")
+    print(f"  Toplam nokta             : {len(df)}")
+    print(f"  Geçerli TI1 değeri       : {len(ti1)}")
+    print(f"  Benzersiz TI1 değeri     : {benzersiz_sayisi}")
     print(f"  TI1 min / ortalama / maks: {ti1.min():.3e} / {ti1.mean():.3e} / {ti1.max():.3e}")
-    print(f"  TI1 standart sapma      : {ti1.std():.3e}")
+    print(f"  TI1 standart sapma       : {ti1.std():.3e}")
 
     if benzersiz_sayisi < len(ti1) * 0.1:
-        print("\n  !!! UYARI: Benzersiz deger sayisi, toplam nokta sayisinin")
-        print("      %10'undan az. Bircok farkli rota noktasi AYNI hava durumu")
-        print("      hucresine denk geliyor demektir -- veri kupu coz. muhtemelen")
-        print("      cok kaba (dar alan/az zaman adimi ile indirilmis).")
+        print("\n  !!! UYARI: Benzersiz değer sayısı, toplam nokta sayısının")
+        print("      %10'undan az. Birçok farklı rota noktası AYNI hava durumu")
+        print("      hücresine denk geliyor demektir -- veri küpü çözünürlüğü muhtemelen")
+        print("      çok kaba (dar alan/az zaman adımı ile indirilmiş).")
 
     if "basinc_hpa" in df.columns:
         basinc_benzersiz = df["basinc_hpa"].nunique()
-        print(f"\n  Rota boyunca kullanilan farkli basinc seviyesi sayisi: {basinc_benzersiz}")
-        print(f"  Kullanilan basinc seviyeleri: {sorted(df['basinc_hpa'].dropna().unique())}")
+        print(f"\n  Rota boyunca kullanılan farklı basınç seviyesi sayısı: {basinc_benzersiz}")
+        print(f"  Kullanılan basınç seviyeleri: {sorted(df['basinc_hpa'].dropna().unique())}")
 
 
 def _argumanlari_ayristir(argv=None):
     ayristirici = argparse.ArgumentParser(
-        description="Hava durumu veri kupunun cozunurlugunu ve PostgreSQL'deki (veritabani.py) "
-                     "TI1 degerlerinin cesitliligini kontrol eder.",
+        description="Hava durumu veri küpünün çözünürlüğünü ve PostgreSQL'deki (veritabani.py) "
+        "TI1 değerlerinin çeşitliliğini kontrol eder.",
     )
     ayristirici.add_argument(
-        "ucus_numarasi", nargs="?", default=None,
-        help="main.py ile daha once analiz edilmis bir ucus numarasi (opsiyonel)",
+        "ucus_numarasi",
+        nargs="?",
+        default=None,
+        help="main.py ile daha önce analiz edilmiş bir uçuş numarası (opsiyonel)",
     )
     ayristirici.add_argument("tarih", nargs="?", default=None, help="YYYY-MM-DD (opsiyonel)")
     return ayristirici.parse_args(argv)
@@ -121,5 +123,7 @@ if __name__ == "__main__":
     if argumanlar.ucus_numarasi and argumanlar.tarih:
         ucus_sonuclarini_incele(argumanlar.ucus_numarasi, argumanlar.tarih)
     else:
-        print("Ipucu: 'python veri_kontrol.py N10VZ 2019-01-15' seklinde ucus numarasi + tarih de ver "
-              "(once main.py ile o ucusu analiz etmis olman gerekir).")
+        print(
+            "İpucu: 'python veri_kontrol.py N10VZ 2019-01-15' şeklinde uçuş numarası + tarih de ver "
+            "(önce main.py ile o uçuşu analiz etmiş olman gerekir)."
+        )
