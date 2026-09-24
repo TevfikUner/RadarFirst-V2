@@ -87,8 +87,90 @@ async def test_v1_dogru_anahtar_200(istemci, api_anahtari):
 
 
 async def test_olmayan_ucus_404(istemci, api_anahtari):
-    yanit = await istemci.get("/api/v1/ucuslar/HICBIRZAMAN/1999-01-01", headers={"X-API-Key": api_anahtari})
+    yanit = await istemci.get("/api/v1/ucuslar/YOKUCUS1/1999-01-01", headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 404
+
+
+async def test_gecersiz_ucus_numarasi_formati_422(istemci, api_anahtari):
+    """8 karakterden uzun / alfanumerik olmayan ucus_numarasi 422 ile reddedilmeli."""
+    yanit = await istemci.get("/api/v1/ucuslar/COKUZUNBIRUCUSNUMARASI/1999-01-01", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 422
+
+
+async def test_gecersiz_tarih_formati_422(istemci, api_anahtari):
+    yanit = await istemci.get("/api/v1/ucuslar/TESTX/gecersiz-tarih", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 422
+
+
+async def test_limit_ust_siniri_asilinca_422(istemci, api_anahtari):
+    yanit = await istemci.get("/api/v1/ucuslar?limit=999999", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 422
+
+
+async def test_analiz_istegi_gecersiz_ucus_numarasi_422(istemci, api_anahtari):
+    yanit = await istemci.post(
+        "/api/v1/analiz/ucus",
+        json={"ucus_numarasi": "COKUZUNBIRUCUSNUMARASI", "tarih": "2019-01-01"},
+        headers={"X-API-Key": api_anahtari},
+    )
+    assert yanit.status_code == 422
+
+
+async def test_analiz_istegi_gecersiz_tarih_422(istemci, api_anahtari):
+    yanit = await istemci.post(
+        "/api/v1/analiz/ucus",
+        json={"ucus_numarasi": "TESTX", "tarih": "01-01-2019"},
+        headers={"X-API-Key": api_anahtari},
+    )
+    assert yanit.status_code == 422
+
+
+async def test_nan_degerler_null_olarak_donuyor(istemci, api_anahtari):
+    """Kapsam dışı noktalardaki NaN, veritabanına None olarak yazılıp API'den
+    JSON 'null' olarak dönmeli -- 'Out of range float' hatası vermemeli."""
+    import numpy as np
+    import pandas as pd
+
+    df = pd.DataFrame({
+        "zaman": pd.to_datetime(["2019-01-01T00:00:00Z"]),
+        "enlem": [40.0], "boylam": [30.0],
+        "ti1_indeksi": [np.nan], "edr_proxy": [np.nan],
+        "richardson_sayisi": [np.nan], "dinamik_kararsizlik": [None],
+        "basinc_hpa": [np.nan],
+    })
+    vt.ucus_ve_olcumleri_kaydet(df, "NANAPI", "2019-01-01")
+    try:
+        yanit = await istemci.get("/api/v1/ucuslar/NANAPI/2019-01-01", headers={"X-API-Key": api_anahtari})
+        assert yanit.status_code == 200
+        govde = yanit.json()
+        assert govde["olcumler"][0]["ti1_indeksi"] is None
+        assert govde["toplam_olcum_sayisi"] == 1
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi = 'NANAPI'"))
+
+
+async def test_olcum_sayfalama(istemci, api_anahtari):
+    import pandas as pd
+
+    df = pd.DataFrame({
+        "zaman": pd.to_datetime([f"2019-01-01T00:0{i}:00Z" for i in range(3)]),
+        "enlem": [40.0, 40.1, 40.2], "boylam": [30.0, 30.1, 30.2],
+        "ti1_indeksi": [1e-7, 2e-7, 3e-7],
+    })
+    vt.ucus_ve_olcumleri_kaydet(df, "SAYFAAPI", "2019-01-01")
+    try:
+        yanit = await istemci.get(
+            "/api/v1/ucuslar/SAYFAAPI/2019-01-01?olcum_limit=2&olcum_offset=1",
+            headers={"X-API-Key": api_anahtari},
+        )
+        assert yanit.status_code == 200
+        govde = yanit.json()
+        assert govde["toplam_olcum_sayisi"] == 3
+        assert len(govde["olcumler"]) == 2
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi = 'SAYFAAPI'"))
 
 
 async def test_analiz_tetikleme_ve_durum_sorgulama(istemci, api_anahtari, monkeypatch):

@@ -44,7 +44,11 @@ BİLİNÇLİ OLARAK EKLENMEDİ:
 
 import asyncio
 import os
+import secrets
+import sys
+import traceback
 import uuid
+from datetime import date
 
 try:
     from dotenv import load_dotenv
@@ -56,10 +60,10 @@ import httpx
 import pandas as pd
 from fastapi import (
     APIRouter, BackgroundTasks, Depends, FastAPI, Header, HTTPException,
-    Request, WebSocket, WebSocketDisconnect, status,
+    Path, Query, Request, WebSocket, WebSocketDisconnect, status,
 )
 from fastapi.responses import JSONResponse
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlalchemy.exc import SQLAlchemyError
 
 import config
@@ -90,7 +94,10 @@ def api_anahtarini_dogrula(x_api_key: str | None = Header(default=None, alias="X
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Sunucuda API_ANAHTARI tanımlı değil -- '.env' dosyasına ekle.",
         )
-    if x_api_key != beklenen:
+    # secrets.compare_digest: '==' karakter karakter kısa devre yaptığı için
+    # yanıt süresinden doğru anahtarın ilk kaç karakterinin tutturulduğunu
+    # sızdırabilir (timing attack); sabit zamanlı karşılaştırma bunu önler.
+    if not x_api_key or not secrets.compare_digest(x_api_key, beklenen):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Geçersiz veya eksik API anahtarı ('X-API-Key' başlığı gerekli).",
@@ -125,31 +132,49 @@ def _hiz_sinirini_kontrol_et(anahtar: str):
 
 # ---------------------------------------------------------------------------
 # Hata -> HTTP durum kodu eşlemesi
+#
+# ÖNEMLİ: 500/503 yanıtları istemciye ham exception mesajını (SQL, bağlantı
+# dizesi, dosya yolu vb. içerebilir) DÖNMEZ -- sadece genel, güvenli bir
+# mesaj döner. Tam ayrıntı (traceback dahil) sunucu tarafında (stderr)
+# loglanır; işletmeni yapan kişi konsoldan/loglardan görebilir, dışarıdaki
+# istemci göremez.
 # ---------------------------------------------------------------------------
+
+def _hatayi_sunucu_tarafinda_logla(hata: Exception, baglam: str = ""):
+    print(f"[Sunucu Hatası]{' ' + baglam if baglam else ''}", file=sys.stderr)
+    traceback.print_exception(type(hata), hata, hata.__traceback__, file=sys.stderr)
+
 
 @app.exception_handler(VeritabaniAyarlariEksikHatasi)
 async def veritabani_ayar_hatasi_isle(request: Request, hata: VeritabaniAyarlariEksikHatasi):
+    # Bu mesaj bilerek operatöre yönelik ve güvenli (sır içermiyor):
+    # ".env eksik" gibi bir kurulum talimatı, dahili bir hata detayı değil.
     return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"detail": str(hata)})
 
 
 @app.exception_handler(SQLAlchemyError)
 async def veritabani_baglanti_hatasi_isle(request: Request, hata: SQLAlchemyError):
+    _hatayi_sunucu_tarafinda_logla(hata, f"{request.method} {request.url.path}")
     return JSONResponse(
         status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-        content={"detail": f"Veritabanına ulaşılamadı: {dostane_hata_mesaji(hata)}"},
+        content={"detail": "Veritabanına şu anda ulaşılamıyor. Lütfen daha sonra tekrar dene."},
     )
 
 
 @app.exception_handler(ValueError)
 async def deger_hatasi_isle(request: Request, hata: ValueError):
+    # ValueError burada neredeyse hep uygulamanın KENDİSİ tarafından, bilerek
+    # ve güvenli bir mesajla fırlatılıyor (örn. "'ucuslar' listesi boş
+    # olamaz") -- bu yüzden mesajı doğrudan göstermek güvenli.
     return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(hata)})
 
 
 @app.exception_handler(Exception)
 async def genel_hata_isle(request: Request, hata: Exception):
+    _hatayi_sunucu_tarafinda_logla(hata, f"{request.method} {request.url.path}")
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-        content={"detail": dostane_hata_mesaji(hata)},
+        content={"detail": "Sunucuda beklenmeyen bir hata oluştu. Sorun devam ederse yöneticiyle iletişime geç."},
     )
 
 
@@ -183,7 +208,7 @@ baglanti_yoneticisi = _BaglantiYoneticisi()
 @app.websocket("/ws/uyarilar")
 async def uyarilar_websocket(websocket: WebSocket, api_key: str | None = None):
     beklenen = os.environ.get("API_ANAHTARI")
-    if beklenen and api_key != beklenen:
+    if beklenen and (not api_key or not secrets.compare_digest(api_key, beklenen)):
         await websocket.close(code=4401)
         return
     await baglanti_yoneticisi.baglan(websocket)
@@ -230,10 +255,30 @@ v1 = APIRouter(prefix="/api/v1", dependencies=[Depends(api_anahtarini_dogrula)])
 _gorevler: dict[str, dict] = {}
 
 
+# OpenSky callsign'ları en fazla 8 karakter, harf/rakamdan oluşur (bkz.
+# veri_yukleme.py'deki ljust(8) notu). Bu desen hem anlamsız girdiyi erkenden
+# 422 ile reddeder hem de SQL enjeksiyonuna karşı ikinci bir savunma katmanı
+# sağlar (birincil savunma: veri_yukleme.py artık parametreli sorgu kullanıyor).
+_UCUS_NUMARASI_DESENI = r"^[A-Za-z0-9]{1,8}$"
+
+
+def _tarihi_dogrula(deger: str) -> str:
+    try:
+        date.fromisoformat(deger)
+    except ValueError:
+        raise ValueError("tarih 'YYYY-MM-DD' formatında geçerli bir tarih olmalı.")
+    return deger
+
+
 class UcusAnalizIstegi(BaseModel):
-    ucus_numarasi: str
+    ucus_numarasi: str = Field(pattern=_UCUS_NUMARASI_DESENI)
     tarih: str  # YYYY-MM-DD
     bildirim_webhook_url: str | None = None
+
+    @field_validator("tarih")
+    @classmethod
+    def _tarih_gecerli_mi(cls, deger):
+        return _tarihi_dogrula(deger)
 
 
 class TopluAnalizIstegi(BaseModel):
@@ -242,13 +287,20 @@ class TopluAnalizIstegi(BaseModel):
 
 
 @v1.get("/ucuslar")
-async def ucuslar_listesi(limit: int = 100):
+async def ucuslar_listesi(limit: int = Query(default=100, ge=1, le=500)):
     return await ucuslari_listele_async(limit=limit)
 
 
 @v1.get("/ucuslar/{ucus_numarasi}/{tarih}")
-async def ucus_detayi(ucus_numarasi: str, tarih: str):
-    detay = await ucus_detayini_getir_async(ucus_numarasi, tarih)
+async def ucus_detayi(
+    ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
+    tarih: date = Path(...),
+    olcum_limit: int = Query(default=1000, ge=1, le=5000),
+    olcum_offset: int = Query(default=0, ge=0),
+):
+    detay = await ucus_detayini_getir_async(
+        ucus_numarasi, tarih.isoformat(), olcum_limit=olcum_limit, olcum_offset=olcum_offset
+    )
     if detay is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,

@@ -25,7 +25,8 @@ yazılır -- CSV'de olduğu gibi "üzerine yaz" davranışı korunur.
 import os
 from datetime import date
 
-from sqlalchemy import create_engine, delete, select
+import pandas as pd
+from sqlalchemy import create_engine, delete, func, select
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session
 
@@ -41,6 +42,22 @@ except ImportError:
 class VeritabaniAyarlariEksikHatasi(Exception):
     """PostgreSQL bağlantı bilgileri eksik olduğunda fırlatılır."""
     pass
+
+
+def _nan_ise_none(deger):
+    """NaN'ı None'a çevirir. eslesmis_df'teki (ti1_indeksi, edr_proxy, ...)
+    kapsam-dışı noktalar NaN olarak geliyor; PostgreSQL bunu 'NaN' float
+    değeri olarak SAKLAYABİLİR ama standart JSON bunu TEMSİL EDEMEZ --
+    sanitize edilmeden yazılırsa, o satır daha sonra API'den okunmaya
+    çalışıldığında 'Out of range float values are not JSON compliant'
+    hatasıyla sunucu hatasına yol açıyordu. Bu yüzden NULL'a çevirip
+    veritabanına öyle yazıyoruz (JSON'da da doğru şekilde 'null' olur)."""
+    try:
+        if pd.isna(deger):
+            return None
+    except (TypeError, ValueError):
+        pass
+    return deger
 
 
 def _tarihe_cevir(tarih_str):
@@ -148,7 +165,10 @@ def ucus_ve_olcumleri_kaydet(eslesmis_df, ucus_numarasi, tarih_str, motor=None):
             olcumler = [
                 EdrOlcumu(
                     ucus_id=ucus.id,
-                    **{sutun: (satir[sutun] if sutun in eslesmis_df.columns else None) for sutun in olcum_sutunlari},
+                    **{
+                        sutun: _nan_ise_none(satir[sutun]) if sutun in eslesmis_df.columns else None
+                        for sutun in olcum_sutunlari
+                    },
                 )
                 for _, satir in eslesmis_df.iterrows()
             ]
@@ -158,7 +178,15 @@ def ucus_ve_olcumleri_kaydet(eslesmis_df, ucus_numarasi, tarih_str, motor=None):
         return ucus.id
 
 
+# Tek istekte döndürülebilecek en fazla satır sayısı -- çağıran taraf daha
+# büyük bir limit isterse bile burada sabit bir tavana çekilir (API
+# katmanındaki Query(le=...) sınırının yanında ikinci bir savunma katmanı).
+_LISTE_LIMIT_TAVANI = 500
+_OLCUM_LIMIT_TAVANI = 5000
+
+
 def ucuslari_listele(motor=None, limit=100):
+    limit = max(1, min(limit, _LISTE_LIMIT_TAVANI))
     motor = motor or motor_al()
     with Session(motor) as oturum:
         ucuslar = oturum.execute(
@@ -167,7 +195,9 @@ def ucuslari_listele(motor=None, limit=100):
         return [_ucus_sozluge_cevir(u) for u in ucuslar]
 
 
-def ucus_detayini_getir(ucus_numarasi, tarih_str, motor=None):
+def ucus_detayini_getir(ucus_numarasi, tarih_str, motor=None, olcum_limit=1000, olcum_offset=0):
+    olcum_limit = max(1, min(olcum_limit, _OLCUM_LIMIT_TAVANI))
+    olcum_offset = max(0, olcum_offset)
     motor = motor or motor_al()
     with Session(motor) as oturum:
         ucus = oturum.execute(
@@ -176,16 +206,22 @@ def ucus_detayini_getir(ucus_numarasi, tarih_str, motor=None):
         if ucus is None:
             return None
 
+        toplam_olcum_sayisi = oturum.execute(
+            select(func.count()).select_from(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id)
+        ).scalar_one()
         olcumler = oturum.execute(
             select(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id).order_by(EdrOlcumu.zaman)
+            .limit(olcum_limit).offset(olcum_offset)
         ).scalars().all()
         return {
             "ucus": _ucus_sozluge_cevir(ucus),
+            "toplam_olcum_sayisi": toplam_olcum_sayisi,
             "olcumler": [_olcum_sozluge_cevir(o) for o in olcumler],
         }
 
 
 async def ucuslari_listele_async(limit=100):
+    limit = max(1, min(limit, _LISTE_LIMIT_TAVANI))
     async with async_oturum_al() as oturum:
         sonuc = await oturum.execute(
             select(Ucus).order_by(Ucus.olusturulma_zamani.desc()).limit(limit)
@@ -193,7 +229,9 @@ async def ucuslari_listele_async(limit=100):
         return [_ucus_sozluge_cevir(u) for u in sonuc.scalars().all()]
 
 
-async def ucus_detayini_getir_async(ucus_numarasi, tarih_str):
+async def ucus_detayini_getir_async(ucus_numarasi, tarih_str, olcum_limit=1000, olcum_offset=0):
+    olcum_limit = max(1, min(olcum_limit, _OLCUM_LIMIT_TAVANI))
+    olcum_offset = max(0, olcum_offset)
     async with async_oturum_al() as oturum:
         sonuc = await oturum.execute(
             select(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == _tarihe_cevir(tarih_str))
@@ -202,11 +240,16 @@ async def ucus_detayini_getir_async(ucus_numarasi, tarih_str):
         if ucus is None:
             return None
 
+        toplam_olcum_sayisi = (await oturum.execute(
+            select(func.count()).select_from(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id)
+        )).scalar_one()
         olcum_sonucu = await oturum.execute(
             select(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id).order_by(EdrOlcumu.zaman)
+            .limit(olcum_limit).offset(olcum_offset)
         )
         return {
             "ucus": _ucus_sozluge_cevir(ucus),
+            "toplam_olcum_sayisi": toplam_olcum_sayisi,
             "olcumler": [_olcum_sozluge_cevir(o) for o in olcum_sonucu.scalars().all()],
         }
 

@@ -234,6 +234,41 @@ hatası değil, sadece test izolasyonuyla ilgili bir ayrıntı).
   uyarısı basar -- EDR proxy değerlerinin hâlâ keyfi bir katsayıya
   dayandığını unutmamak için.
 
+## Kod incelemesinden gelen düzeltmeler
+
+Bir kod incelemesinde bulunan 6 sorun giderildi:
+
+1. **NaN → NULL:** Veri küpünün kapsamı dışındaki noktalar (`ti1_indeksi`,
+   `edr_proxy`, ...) `NaN` olarak hesaplanıyor; bunlar veritabanına artık
+   `NULL` olarak yazılıyor (`veritabani._nan_ise_none`). Önceden `NaN` olarak
+   yazılan bir satır API'den okunduğunda "Out of range float values are not
+   JSON compliant" hatasıyla 500'e düşüyordu.
+2. **SQL enjeksiyonu:** `veri_yukleme.py` ve `ornek_ucus_bul.py`, uçuş
+   numarası/icao24/önek gibi değerleri artık f-string ile SQL'e gömmüyor;
+   Trino'nun parametreli sorgu desteğini (`?` yer tutucuları +
+   `cursor.execute(sorgu, parametreler)`) kullanıyor. Bu değerler artık
+   `api_servisi.py` üzerinden dışarıdan da tetiklenebildiği için önemliydi.
+3. **Gereksiz OAuth2 girişi:** `trino_baglantisi_olustur()` her çağrıda YENİ
+   bir `OAuth2Authentication()` oluşturuyordu; bu, trino kütüphanesinin
+   token önbelleğini sıfırlayıp her analiz için ayrı bir tarayıcı girişi
+   istenmesine yol açıyordu (toplu analizde veya API'den ardışık istekte
+   özellikle sorunluydu). Artık süreç boyunca tek bir örnek yeniden
+   kullanılıyor (`veri_yukleme._oauth2_kimlik_dogrulamasini_al`).
+4. **Hata mesajı sızıntısı:** API'nin 500/503 yanıtları artık ham exception
+   mesajını (SQL, bağlantı dizesi vb. içerebilir) istemciye DÖNDÜRMÜYOR --
+   genel, güvenli bir mesaj döner; tam ayrıntı (traceback dahil) sunucu
+   tarafında (stderr) loglanır.
+5. **Girdi doğrulama:** `tarih` artık gerçek bir tarih olarak doğrulanıyor
+   (path parametresinde `date` tipi, istek gövdesinde pydantic validator),
+   `ucus_numarasi` harf/rakam ve en fazla 8 karakterle sınırlı, `GET
+   /api/v1/ucuslar`'ın `limit`i 1-500 aralığına sabitlendi, ölçüm listesi
+   artık `olcum_limit`/`olcum_offset` ile sayfalanıyor (`toplam_olcum_sayisi`
+   alanıyla birlikte) -- daha önce 50.000 noktalık bir uçuş tek seferde
+   dönüyordu.
+6. **Zamanlamaya dayanıklı anahtar karşılaştırması:** API anahtarı artık
+   `==` yerine `secrets.compare_digest` ile karşılaştırılıyor (timing
+   attack'e karşı).
+
 ## Sonraki adımlar için fikirler
 
 - ~~Deformasyon/kayma hesabını tüm grid üzerinde vektörel olarak önceden
