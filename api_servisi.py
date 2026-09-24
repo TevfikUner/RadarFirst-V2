@@ -2,34 +2,74 @@
 api_servisi.py
 -----------------
 Hava durumu eşleştirme sonuçlarını (Ellrod TI1, Richardson, EDR proxy) JSON
-olarak dışarıya sunan FastAPI servis katmanı -- REST API İSKELETİdir.
+olarak dışarıya sunan FastAPI servis katmanı.
 
-Okuma uç noktaları (/ucuslar/*) PostgreSQL'deki (veritabani.py) kayıtları
-döndürür. Tetikleme uç noktaları (/analiz/*) main.py/toplu_analiz.py ile
-AYNI mantığı arka planda (BackgroundTasks) çalıştırır -- n8n gibi bir
-otomasyon aracı, bir Cron/Schedule Trigger'dan bu uç noktaları HTTP Request
-node'uyla periyodik olarak çağırıp sonucu /analiz/durum/{gorev_id} ve
-/ucuslar/* ile takip edebilir.
+Güvenlik: /api/v1/* altındaki TÜM uç noktalar 'X-API-Key' başlığıyla
+korunur (bkz. api_anahtarini_dogrula). Anahtar '.env'deki API_ANAHTARI
+değişkeninden okunur -- kod içine yazılmaz. /saglik kasıtlı olarak açık
+bırakıldı (yaygın pratik: yük dengeleyici/monitoring health-check'i).
 
-BİLİNÇLİ OLARAK EKLENMEDİ: veri_indirme.py'nin GERÇEK ERA5 indirmesini
-tetikleyen bir uç nokta. O modül, OpenSky/Copernicus'u rate-limit/ban
-riskine sokmamak için kasıtlı olarak sadece elle, açık onayla
-(--gercekten-indir) çalışacak şekilde tasarlandı -- bunu periyodik/otomatik
-hale getirmek o güvenlik kararını bozar.
+Sürümleme: tüm veri/analiz uç noktaları /api/v1 altında (bkz. Kurumsal API
+dokümantasyonu isteği) -- ileride /api/v2 eklenirse mevcut istemciler
+bozulmaz. İnteraktif Swagger dokümantasyonu FastAPI'nin ürettiği /docs
+adresinde otomatik olarak hazır.
+
+Asenkron: okuma uç noktaları (GET) veritabani.py'nin asyncpg tabanlı async
+fonksiyonlarını kullanır (event loop'u bloklamaz). Analiz tetikleme uç
+noktaları (POST /analiz/*), main.py/toplu_analiz.py'deki AYNI (senkron,
+bloklayan) mantığı `asyncio.to_thread` ile ayrı bir thread'de çalıştırır --
+event loop'u bloklamadan, main.py'yi yeniden yazmaya gerek kalmadan.
+
+Otomasyon (n8n): /analiz/* uç noktaları isteğe bağlı bir
+'bildirim_webhook_url' alanı kabul eder -- analiz bitince sonucu oraya POST
+eder (n8n'in Webhook node'u). Bu, n8n'in /analiz/durum/{gorev_id}'yi
+periyodik olarak yoklamasına (polling) gerek bırakmaz.
+
+Canlı uyarılar: /ws/uyarilar WebSocket'i, bir analiz sırasında Ellrod TI1
+"orta-şiddetli" eşiğini aşan nokta bulunduğunda bağlı istemcilere anlık
+bildirim yayınlar (örn. ileride bir mobil/masaüstü istemci bunu dinleyebilir).
+
+BİLİNÇLİ OLARAK EKLENMEDİ:
+  - veri_indirme.py'nin GERÇEK ERA5 indirmesini tetikleyen bir uç nokta --
+    o modül, OpenSky/Copernicus'u rate-limit/ban riskine sokmamak için
+    kasıtlı olarak sadece elle, açık onayla (--gercekten-indir) çalışacak
+    şekilde tasarlandı; bunu otomatikleştirmek o güvenlik kararını bozar.
+  - JWT/OAuth2 tabanlı kullanıcı girişi -- tek kullanıcılı/dahili bir araç
+    için statik API anahtarı yeterli; çok kullanıcılı bir sürüme geçilirse
+    burası JWT'ye yükseltilebilir.
 
 Çalıştırma:
     uvicorn api_servisi:app --reload --port 8000
 """
 
+import asyncio
+import os
 import uuid
 
-import pandas as pd
-from fastapi import FastAPI, HTTPException, BackgroundTasks
-from pydantic import BaseModel
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
+import httpx
+import pandas as pd
+from fastapi import (
+    APIRouter, BackgroundTasks, Depends, FastAPI, Header, HTTPException,
+    Request, WebSocket, WebSocketDisconnect, status,
+)
+from fastapi.responses import JSONResponse
+from pydantic import BaseModel
+from sqlalchemy.exc import SQLAlchemyError
+
+import config
 from main import calistir as tek_ucus_analiz_et
 from toplu_analiz import toplu_analiz_calistir
-from veritabani import ucuslari_listele, ucus_detayini_getir, VeritabaniAyarlariEksikHatasi
+from veritabani import (
+    VeritabaniAyarlariEksikHatasi,
+    ucus_detayini_getir_async,
+    ucuslari_listele_async,
+)
 from hata_yardimcisi import dostane_hata_mesaji
 
 app = FastAPI(
@@ -38,89 +78,242 @@ app = FastAPI(
     version="1.0.0",
 )
 
-# Basit bellek-içi görev durumu takibi -- iskelet amaçlı. Süreç yeniden
-# başlarsa (örn. deploy) sıfırlanır; kalıcı bir görev kuyruğu (Celery/RQ)
-# gerekiyorsa ileride buraya eklenebilir.
-_gorevler = {}
+
+# ---------------------------------------------------------------------------
+# Güvenlik: statik API anahtarı ('.env' -> API_ANAHTARI)
+# ---------------------------------------------------------------------------
+
+def api_anahtarini_dogrula(x_api_key: str | None = Header(default=None, alias="X-API-Key")):
+    beklenen = os.environ.get("API_ANAHTARI")
+    if not beklenen:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Sunucuda API_ANAHTARI tanımlı değil -- '.env' dosyasına ekle.",
+        )
+    if x_api_key != beklenen:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Geçersiz veya eksik API anahtarı ('X-API-Key' başlığı gerekli).",
+        )
+
+
+# ---------------------------------------------------------------------------
+# Basit bellek-içi hız sınırlama (sadece analiz tetikleme uç noktaları için
+# -- OpenSky'yi dış dünyadan gelen aşırı istekle yormamak amacıyla)
+# ---------------------------------------------------------------------------
+
+_ANALIZ_PENCERE_SANIYE = 60
+_ANALIZ_PENCERE_BASINA_MAKS_ISTEK = 5
+_analiz_istek_zamanlari: dict[str, list[float]] = {}
+
+
+def _hiz_sinirini_kontrol_et(anahtar: str):
+    import time
+    simdi = time.monotonic()
+    gecmis = [t for t in _analiz_istek_zamanlari.get(anahtar, []) if simdi - t < _ANALIZ_PENCERE_SANIYE]
+    if len(gecmis) >= _ANALIZ_PENCERE_BASINA_MAKS_ISTEK:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=(
+                f"Çok fazla analiz isteği ({_ANALIZ_PENCERE_BASINA_MAKS_ISTEK}/"
+                f"{_ANALIZ_PENCERE_SANIYE}s). OpenSky'yi yormamak için lütfen bekle."
+            ),
+        )
+    gecmis.append(simdi)
+    _analiz_istek_zamanlari[anahtar] = gecmis
+
+
+# ---------------------------------------------------------------------------
+# Hata -> HTTP durum kodu eşlemesi
+# ---------------------------------------------------------------------------
+
+@app.exception_handler(VeritabaniAyarlariEksikHatasi)
+async def veritabani_ayar_hatasi_isle(request: Request, hata: VeritabaniAyarlariEksikHatasi):
+    return JSONResponse(status_code=status.HTTP_503_SERVICE_UNAVAILABLE, content={"detail": str(hata)})
+
+
+@app.exception_handler(SQLAlchemyError)
+async def veritabani_baglanti_hatasi_isle(request: Request, hata: SQLAlchemyError):
+    return JSONResponse(
+        status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+        content={"detail": f"Veritabanına ulaşılamadı: {dostane_hata_mesaji(hata)}"},
+    )
+
+
+@app.exception_handler(ValueError)
+async def deger_hatasi_isle(request: Request, hata: ValueError):
+    return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(hata)})
+
+
+@app.exception_handler(Exception)
+async def genel_hata_isle(request: Request, hata: Exception):
+    return JSONResponse(
+        status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+        content={"detail": dostane_hata_mesaji(hata)},
+    )
+
+
+# ---------------------------------------------------------------------------
+# WebSocket ile canlı türbülans uyarıları
+# ---------------------------------------------------------------------------
+
+class _BaglantiYoneticisi:
+    def __init__(self):
+        self.baglantilar: list[WebSocket] = []
+
+    async def baglan(self, websocket: WebSocket):
+        await websocket.accept()
+        self.baglantilar.append(websocket)
+
+    def ayril(self, websocket: WebSocket):
+        if websocket in self.baglantilar:
+            self.baglantilar.remove(websocket)
+
+    async def yayinla(self, mesaj: dict):
+        for websocket in list(self.baglantilar):
+            try:
+                await websocket.send_json(mesaj)
+            except Exception:
+                self.ayril(websocket)
+
+
+baglanti_yoneticisi = _BaglantiYoneticisi()
+
+
+@app.websocket("/ws/uyarilar")
+async def uyarilar_websocket(websocket: WebSocket, api_key: str | None = None):
+    beklenen = os.environ.get("API_ANAHTARI")
+    if beklenen and api_key != beklenen:
+        await websocket.close(code=4401)
+        return
+    await baglanti_yoneticisi.baglan(websocket)
+    try:
+        while True:
+            await websocket.receive_text()
+    except WebSocketDisconnect:
+        baglanti_yoneticisi.ayril(websocket)
+
+
+async def _yuksek_riskli_noktalari_yayinla(eslesmis_df, ucus_numarasi, tarih):
+    if eslesmis_df is None or eslesmis_df.empty or "ti1_indeksi" not in eslesmis_df.columns:
+        return
+    riskli = eslesmis_df[eslesmis_df["ti1_indeksi"] >= config.TI1_ESIK_ORTA_SIDDETLI]
+    if riskli.empty:
+        return
+    await baglanti_yoneticisi.yayinla({
+        "tip": "turbulans_uyarisi",
+        "ucus_numarasi": ucus_numarasi,
+        "tarih": tarih,
+        "orta_siddetli_nokta_sayisi": int(len(riskli)),
+        "maks_ti1": float(riskli["ti1_indeksi"].max()),
+    })
+
+
+async def _webhooku_bildir(webhook_url, govde):
+    if not webhook_url:
+        return
+    try:
+        async with httpx.AsyncClient(timeout=10) as istemci:
+            await istemci.post(webhook_url, json=govde)
+    except Exception as hata:
+        print(f"[Uyarı] Webhook bildirimi gönderilemedi ({webhook_url}): {dostane_hata_mesaji(hata)}")
+
+
+# ---------------------------------------------------------------------------
+# /api/v1 -- API anahtarı gerektiren tüm veri/analiz uç noktaları
+# ---------------------------------------------------------------------------
+
+v1 = APIRouter(prefix="/api/v1", dependencies=[Depends(api_anahtarini_dogrula)])
+
+# Süreç yeniden başlarsa sıfırlanan basit bellek-içi görev durumu takibi --
+# iskelet amaçlı; kalıcı bir görev kuyruğu (Celery/RQ) gerekirse eklenebilir.
+_gorevler: dict[str, dict] = {}
 
 
 class UcusAnalizIstegi(BaseModel):
     ucus_numarasi: str
     tarih: str  # YYYY-MM-DD
+    bildirim_webhook_url: str | None = None
 
 
 class TopluAnalizIstegi(BaseModel):
     ucuslar: list[UcusAnalizIstegi]
+    bildirim_webhook_url: str | None = None
 
 
-@app.get("/saglik")
-def saglik_kontrolu():
-    return {"durum": "ayakta"}
+@v1.get("/ucuslar")
+async def ucuslar_listesi(limit: int = 100):
+    return await ucuslari_listele_async(limit=limit)
 
 
-@app.get("/ucuslar")
-def ucuslar_listesi(limit: int = 100):
-    try:
-        return ucuslari_listele(limit=limit)
-    except VeritabaniAyarlariEksikHatasi as hata:
-        raise HTTPException(status_code=503, detail=str(hata))
-
-
-@app.get("/ucuslar/{ucus_numarasi}/{tarih}")
-def ucus_detayi(ucus_numarasi: str, tarih: str):
-    try:
-        detay = ucus_detayini_getir(ucus_numarasi, tarih)
-    except VeritabaniAyarlariEksikHatasi as hata:
-        raise HTTPException(status_code=503, detail=str(hata))
+@v1.get("/ucuslar/{ucus_numarasi}/{tarih}")
+async def ucus_detayi(ucus_numarasi: str, tarih: str):
+    detay = await ucus_detayini_getir_async(ucus_numarasi, tarih)
     if detay is None:
         raise HTTPException(
-            status_code=404,
-            detail="Uçuş bulunamadı. Önce POST /analiz/ucus ile analiz tetikle.",
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Uçuş bulunamadı. Önce POST /api/v1/analiz/ucus ile analiz tetikle.",
         )
     return detay
 
 
-def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih):
+async def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih, webhook_url):
     _gorevler[gorev_id] = {"durum": "calisiyor", "ucus_numarasi": ucus_numarasi, "tarih": tarih}
     try:
-        sonuc = tek_ucus_analiz_et(ucus_numarasi, tarih)
+        sonuc = await asyncio.to_thread(tek_ucus_analiz_et, ucus_numarasi, tarih)
         _gorevler[gorev_id]["durum"] = "tamamlandi" if sonuc is not None else "basarisiz"
+        await _yuksek_riskli_noktalari_yayinla(sonuc, ucus_numarasi, tarih)
     except Exception as hata:
         _gorevler[gorev_id]["durum"] = "hata"
         _gorevler[gorev_id]["aciklama"] = dostane_hata_mesaji(hata)
+    await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **_gorevler[gorev_id]})
 
 
-@app.post("/analiz/ucus", status_code=202)
-def ucus_analizi_baslat(istek: UcusAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
+@v1.post("/analiz/ucus", status_code=status.HTTP_202_ACCEPTED)
+async def ucus_analizi_baslat(istek: UcusAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
+    _hiz_sinirini_kontrol_et("tek_ucus")
     gorev_id = str(uuid.uuid4())
-    arkaplan_gorevleri.add_task(_tek_ucus_arkaplan_gorevi, gorev_id, istek.ucus_numarasi, istek.tarih)
+    arkaplan_gorevleri.add_task(
+        _tek_ucus_arkaplan_gorevi, gorev_id, istek.ucus_numarasi, istek.tarih, istek.bildirim_webhook_url
+    )
     return {"gorev_id": gorev_id, "durum": "baslatildi"}
 
 
-def _toplu_arkaplan_gorevi(gorev_id, ucus_listesi_df):
+async def _toplu_arkaplan_gorevi(gorev_id, ucus_listesi_df, webhook_url):
     _gorevler[gorev_id] = {"durum": "calisiyor"}
     try:
-        ozet_df = toplu_analiz_calistir(ucus_listesi_df)
+        ozet_df = await asyncio.to_thread(toplu_analiz_calistir, ucus_listesi_df)
         _gorevler[gorev_id]["durum"] = "tamamlandi"
         _gorevler[gorev_id]["ozet"] = ozet_df.to_dict(orient="records")
     except Exception as hata:
         _gorevler[gorev_id]["durum"] = "hata"
         _gorevler[gorev_id]["aciklama"] = dostane_hata_mesaji(hata)
+    await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **_gorevler[gorev_id]})
 
 
-@app.post("/analiz/toplu", status_code=202)
-def toplu_analiz_baslat(istek: TopluAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
+@v1.post("/analiz/toplu", status_code=status.HTTP_202_ACCEPTED)
+async def toplu_analiz_baslat(istek: TopluAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
+    _hiz_sinirini_kontrol_et("toplu")
     if not istek.ucuslar:
-        raise HTTPException(status_code=400, detail="'ucuslar' listesi boş olamaz.")
-    ucus_listesi_df = pd.DataFrame([u.model_dump() for u in istek.ucuslar])
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="'ucuslar' listesi boş olamaz.")
+    ucus_listesi_df = pd.DataFrame([u.model_dump(exclude={"bildirim_webhook_url"}) for u in istek.ucuslar])
     gorev_id = str(uuid.uuid4())
-    arkaplan_gorevleri.add_task(_toplu_arkaplan_gorevi, gorev_id, ucus_listesi_df)
+    arkaplan_gorevleri.add_task(_toplu_arkaplan_gorevi, gorev_id, ucus_listesi_df, istek.bildirim_webhook_url)
     return {"gorev_id": gorev_id, "durum": "baslatildi"}
 
 
-@app.get("/analiz/durum/{gorev_id}")
-def analiz_durumu(gorev_id: str):
+@v1.get("/analiz/durum/{gorev_id}")
+async def analiz_durumu(gorev_id: str):
     gorev = _gorevler.get(gorev_id)
     if gorev is None:
-        raise HTTPException(status_code=404, detail="Bilinmeyen gorev_id.")
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bilinmeyen gorev_id.")
     return gorev
+
+
+app.include_router(v1)
+
+
+@app.get("/saglik")
+def saglik_kontrolu():
+    """Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği)."""
+    return {"durum": "ayakta"}

@@ -2,25 +2,34 @@
 veritabani.py
 ---------------
 PostgreSQL entegrasyonu: uçuş rotası + Ellrod TI1/Richardson eşleştirme
-sonuçlarını ilişkisel tablolara yazar. Lokal `eslesme_sonuclari_*.csv`
-çıktısının yerini alır -- main.py artık sonucu diske değil, buraya yazar.
+sonuçlarını ilişkisel tablolara (models.py'deki ORM modelleri) yazar. Lokal
+`eslesme_sonuclari_*.csv` çıktısının yerini alır -- main.py artık sonucu
+diske değil, buraya yazar.
 
 Bağlantı bilgileri (host/port/kullanıcı/şifre/veritabanı) KESİNLİKLE bu
 dosyanın içine düz metin yazılmaz; kimlik_dogrulama.py'deki aynı prensiple
 '.env' dosyasından okunur (bkz. .env.example).
 
-Şema:
-    ucuslar         -- her (ucus_numarasi, tarih) çifti için bir satır
-    edr_olcumleri   -- o uçuşun rotasındaki her nokta için bir satır
-                       (ucus_id ile ucuslar'a bağlı, ON DELETE CASCADE)
+İki ayrı erişim yolu var:
+  - SENKRON (motor_al / Session): main.py, toplu_analiz.py gibi CLI
+    betikleri zaten senkron çalıştığı için bunları kullanır.
+  - ASENKRON (async_motor_al / AsyncSession): api_servisi.py'deki FastAPI
+    okuma uç noktaları event loop'u bloklamamak için bunları kullanır.
+Her ikisi de AYNI tablolara bakar; sadece bağlantı sürücüsü farklıdır
+(psycopg2 vs asyncpg).
 
 Aynı uçuş/tarih tekrar analiz edilirse eski kayıtlar silinip yeniden
 yazılır -- CSV'de olduğu gibi "üzerine yaz" davranışı korunur.
 """
 
 import os
+from datetime import date
 
-from sqlalchemy import create_engine, text
+from sqlalchemy import create_engine, delete, select
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
+from sqlalchemy.orm import Session
+
+from models import Base, EdrOlcumu, Ucus
 
 try:
     from dotenv import load_dotenv
@@ -34,38 +43,15 @@ class VeritabaniAyarlariEksikHatasi(Exception):
     pass
 
 
-_SEMA_SQL = """
-CREATE TABLE IF NOT EXISTS ucuslar (
-    id SERIAL PRIMARY KEY,
-    ucus_numarasi TEXT NOT NULL,
-    tarih DATE NOT NULL,
-    icao24 TEXT,
-    kalkis_havaalani TEXT,
-    varis_havaalani TEXT,
-    olusturulma_zamani TIMESTAMPTZ NOT NULL DEFAULT now(),
-    UNIQUE (ucus_numarasi, tarih)
-);
-
-CREATE TABLE IF NOT EXISTS edr_olcumleri (
-    id BIGSERIAL PRIMARY KEY,
-    ucus_id INTEGER NOT NULL REFERENCES ucuslar(id) ON DELETE CASCADE,
-    zaman TIMESTAMPTZ NOT NULL,
-    enlem DOUBLE PRECISION NOT NULL,
-    boylam DOUBLE PRECISION NOT NULL,
-    ti1_indeksi DOUBLE PRECISION,
-    edr_proxy DOUBLE PRECISION,
-    richardson_sayisi DOUBLE PRECISION,
-    dinamik_kararsizlik BOOLEAN,
-    basinc_hpa DOUBLE PRECISION
-);
-CREATE INDEX IF NOT EXISTS ix_edr_olcumleri_ucus_id ON edr_olcumleri (ucus_id);
-CREATE INDEX IF NOT EXISTS ix_edr_olcumleri_zaman ON edr_olcumleri (zaman);
-"""
-
-_motor = None
+def _tarihe_cevir(tarih_str):
+    """'YYYY-MM-DD' metnini date nesnesine çevirir. asyncpg (sync psycopg2'nin
+    aksine) parametre tipini açıkça bildirdiği için, bir metni doğrudan bir
+    DATE sütunuyla karşılaştırmaya/yazmaya çalışırsak hata verir -- bu yüzden
+    tüm tarih parametreleri veritabanına gitmeden önce burada normalize edilir."""
+    return tarih_str if isinstance(tarih_str, date) else date.fromisoformat(str(tarih_str))
 
 
-def baglanti_dizesini_olustur():
+def _baglanti_parcalarini_al():
     host = os.environ.get("POSTGRES_HOST")
     port = os.environ.get("POSTGRES_PORT", "5432")
     kullanici = os.environ.get("POSTGRES_USER")
@@ -78,23 +64,50 @@ def baglanti_dizesini_olustur():
             "'.env' olarak kopyala ve POSTGRES_HOST/PORT/USER/PASSWORD/DB "
             "değerlerini gir."
         )
+    return host, port, kullanici, sifre, veritabani
 
+
+def baglanti_dizesini_olustur():
+    host, port, kullanici, sifre, veritabani = _baglanti_parcalarini_al()
     return f"postgresql+psycopg2://{kullanici}:{sifre}@{host}:{port}/{veritabani}"
 
 
+def async_baglanti_dizesini_olustur():
+    host, port, kullanici, sifre, veritabani = _baglanti_parcalarini_al()
+    return f"postgresql+asyncpg://{kullanici}:{sifre}@{host}:{port}/{veritabani}"
+
+
+_motor = None
+_async_motor = None
+_AsyncOturum = None
+
+
 def motor_al():
-    """Tekil (singleton) SQLAlchemy engine döndürür -- her çağrıda yeniden
-    bağlantı havuzu oluşturmamak için modül seviyesinde önbelleklenir."""
+    """Tekil (singleton) senkron SQLAlchemy engine döndürür (main.py/toplu_analiz.py için)."""
     global _motor
     if _motor is None:
         _motor = create_engine(baglanti_dizesini_olustur(), pool_pre_ping=True)
     return _motor
 
 
+def async_motor_al():
+    """Tekil (singleton) asenkron SQLAlchemy engine döndürür (api_servisi.py için)."""
+    global _async_motor
+    if _async_motor is None:
+        _async_motor = create_async_engine(async_baglanti_dizesini_olustur(), pool_pre_ping=True)
+    return _async_motor
+
+
+def async_oturum_al():
+    global _AsyncOturum
+    if _AsyncOturum is None:
+        _AsyncOturum = async_sessionmaker(async_motor_al(), expire_on_commit=False)
+    return _AsyncOturum()
+
+
 def tablolari_olustur(motor=None):
     motor = motor or motor_al()
-    with motor.begin() as baglanti:
-        baglanti.execute(text(_SEMA_SQL))
+    Base.metadata.create_all(motor)
 
 
 def ucus_ve_olcumleri_kaydet(eslesmis_df, ucus_numarasi, tarih_str, motor=None):
@@ -111,75 +124,113 @@ def ucus_ve_olcumleri_kaydet(eslesmis_df, ucus_numarasi, tarih_str, motor=None):
     bos_ise_al = lambda sutun: (
         eslesmis_df[sutun].iloc[0] if sutun in eslesmis_df.columns and not eslesmis_df.empty else None
     )
-    icao24 = bos_ise_al("icao24")
-    kalkis = bos_ise_al("kalkis_havaalani")
-    varis = bos_ise_al("varis_havaalani")
 
-    with motor.begin() as baglanti:
-        baglanti.execute(
-            text("DELETE FROM ucuslar WHERE ucus_numarasi = :un AND tarih = :t"),
-            {"un": ucus_numarasi, "t": tarih_str},
+    tarih = _tarihe_cevir(tarih_str)
+    with Session(motor) as oturum:
+        oturum.execute(
+            delete(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == tarih)
         )
-        sonuc = baglanti.execute(
-            text(
-                "INSERT INTO ucuslar (ucus_numarasi, tarih, icao24, kalkis_havaalani, varis_havaalani) "
-                "VALUES (:un, :t, :icao24, :kalkis, :varis) RETURNING id"
-            ),
-            {"un": ucus_numarasi, "t": tarih_str, "icao24": icao24, "kalkis": kalkis, "varis": varis},
+        ucus = Ucus(
+            ucus_numarasi=ucus_numarasi,
+            tarih=tarih,
+            icao24=bos_ise_al("icao24"),
+            kalkis_havaalani=bos_ise_al("kalkis_havaalani"),
+            varis_havaalani=bos_ise_al("varis_havaalani"),
         )
-        ucus_id = sonuc.scalar_one()
+        oturum.add(ucus)
+        oturum.flush()  # ucus.id'yi almak için
 
-    if not eslesmis_df.empty:
-        olcum_df = eslesmis_df.copy()
-        olcum_df["ucus_id"] = ucus_id
-        istenen_sutunlar = [
-            "ucus_id", "zaman", "enlem", "boylam", "ti1_indeksi", "edr_proxy",
-            "richardson_sayisi", "dinamik_kararsizlik", "basinc_hpa",
-        ]
-        for sutun in istenen_sutunlar:
-            if sutun not in olcum_df.columns:
-                olcum_df[sutun] = None
-        olcum_df[istenen_sutunlar].to_sql(
-            "edr_olcumleri", motor, if_exists="append", index=False,
-        )
+        if not eslesmis_df.empty:
+            olcum_sutunlari = [
+                "zaman", "enlem", "boylam", "ti1_indeksi", "edr_proxy",
+                "richardson_sayisi", "dinamik_kararsizlik", "basinc_hpa",
+            ]
+            olcumler = [
+                EdrOlcumu(
+                    ucus_id=ucus.id,
+                    **{sutun: (satir[sutun] if sutun in eslesmis_df.columns else None) for sutun in olcum_sutunlari},
+                )
+                for _, satir in eslesmis_df.iterrows()
+            ]
+            oturum.add_all(olcumler)
 
-    return ucus_id
+        oturum.commit()
+        return ucus.id
 
 
 def ucuslari_listele(motor=None, limit=100):
     motor = motor or motor_al()
-    with motor.connect() as baglanti:
-        sonuc = baglanti.execute(
-            text(
-                "SELECT id, ucus_numarasi, tarih, icao24, kalkis_havaalani, "
-                "varis_havaalani, olusturulma_zamani FROM ucuslar "
-                "ORDER BY olusturulma_zamani DESC LIMIT :limit"
-            ),
-            {"limit": limit},
-        )
-        return [dict(satir._mapping) for satir in sonuc]
+    with Session(motor) as oturum:
+        ucuslar = oturum.execute(
+            select(Ucus).order_by(Ucus.olusturulma_zamani.desc()).limit(limit)
+        ).scalars().all()
+        return [_ucus_sozluge_cevir(u) for u in ucuslar]
 
 
 def ucus_detayini_getir(ucus_numarasi, tarih_str, motor=None):
     motor = motor or motor_al()
-    with motor.connect() as baglanti:
-        ucus = baglanti.execute(
-            text(
-                "SELECT id, ucus_numarasi, tarih, icao24, kalkis_havaalani, "
-                "varis_havaalani, olusturulma_zamani FROM ucuslar "
-                "WHERE ucus_numarasi = :un AND tarih = :t"
-            ),
-            {"un": ucus_numarasi, "t": tarih_str},
-        ).mappings().first()
+    with Session(motor) as oturum:
+        ucus = oturum.execute(
+            select(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == _tarihe_cevir(tarih_str))
+        ).scalars().first()
         if ucus is None:
             return None
 
-        olcumler = baglanti.execute(
-            text(
-                "SELECT zaman, enlem, boylam, ti1_indeksi, edr_proxy, "
-                "richardson_sayisi, dinamik_kararsizlik, basinc_hpa "
-                "FROM edr_olcumleri WHERE ucus_id = :ucus_id ORDER BY zaman"
-            ),
-            {"ucus_id": ucus["id"]},
+        olcumler = oturum.execute(
+            select(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id).order_by(EdrOlcumu.zaman)
+        ).scalars().all()
+        return {
+            "ucus": _ucus_sozluge_cevir(ucus),
+            "olcumler": [_olcum_sozluge_cevir(o) for o in olcumler],
+        }
+
+
+async def ucuslari_listele_async(limit=100):
+    async with async_oturum_al() as oturum:
+        sonuc = await oturum.execute(
+            select(Ucus).order_by(Ucus.olusturulma_zamani.desc()).limit(limit)
         )
-        return {"ucus": dict(ucus), "olcumler": [dict(satir._mapping) for satir in olcumler]}
+        return [_ucus_sozluge_cevir(u) for u in sonuc.scalars().all()]
+
+
+async def ucus_detayini_getir_async(ucus_numarasi, tarih_str):
+    async with async_oturum_al() as oturum:
+        sonuc = await oturum.execute(
+            select(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == _tarihe_cevir(tarih_str))
+        )
+        ucus = sonuc.scalars().first()
+        if ucus is None:
+            return None
+
+        olcum_sonucu = await oturum.execute(
+            select(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id).order_by(EdrOlcumu.zaman)
+        )
+        return {
+            "ucus": _ucus_sozluge_cevir(ucus),
+            "olcumler": [_olcum_sozluge_cevir(o) for o in olcum_sonucu.scalars().all()],
+        }
+
+
+def _ucus_sozluge_cevir(u: Ucus):
+    return {
+        "id": u.id,
+        "ucus_numarasi": u.ucus_numarasi,
+        "tarih": u.tarih,
+        "icao24": u.icao24,
+        "kalkis_havaalani": u.kalkis_havaalani,
+        "varis_havaalani": u.varis_havaalani,
+        "olusturulma_zamani": u.olusturulma_zamani,
+    }
+
+
+def _olcum_sozluge_cevir(o: EdrOlcumu):
+    return {
+        "zaman": o.zaman,
+        "enlem": o.enlem,
+        "boylam": o.boylam,
+        "ti1_indeksi": o.ti1_indeksi,
+        "edr_proxy": o.edr_proxy,
+        "richardson_sayisi": o.richardson_sayisi,
+        "dinamik_kararsizlik": o.dinamik_kararsizlik,
+        "basinc_hpa": o.basinc_hpa,
+    }
