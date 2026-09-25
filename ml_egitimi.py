@@ -32,7 +32,13 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 from konsol_kurulumu import konsolu_utf8_yap
-from turbulans_ml_modeli import MODEL_DOSYA_YOLU, OZELLIK_SUTUNLARI, ozellikleri_cikar, ozellikleri_temizle
+from turbulans_ml_modeli import (
+    MODEL_BILGI_DOSYA_YOLU,
+    MODEL_DOSYA_YOLU,
+    OZELLIK_SUTUNLARI,
+    ozellikleri_cikar,
+    ozellikleri_temizle,
+)
 
 konsolu_utf8_yap()
 
@@ -130,7 +136,7 @@ def modelleri_egit_ve_karsilastir(X, y):
     return sonuclar, (X_test, y_test)
 
 
-def en_iyi_modeli_sec_ve_kaydet(sonuclar):
+def en_iyi_modeli_sec_ve_kaydet(sonuclar, egitim_orneklem_sayisi, test_orneklem_sayisi):
     """
     Model seçim gerekçesi (justification): havacılık güvenliğinde YANLIŞ
     NEGATİF (gerçek türbülansı 'yok' diye kaçırmak) YANLIŞ POZİTİFTEN çok
@@ -138,6 +144,9 @@ def en_iyi_modeli_sec_ve_kaydet(sonuclar):
     RECALL'ı (kaçırılmayan gerçek türbülans oranı) en yüksek olan, aynı
     zamanda makul bir precision'a sahip model seçilir.
     """
+    import json
+    from datetime import UTC, datetime
+
     import joblib
 
     en_iyi_isim = max(sonuclar, key=lambda isim: (sonuclar[isim][1]["recall"], sonuclar[isim][1]["f1"]))
@@ -153,6 +162,25 @@ def en_iyi_modeli_sec_ve_kaydet(sonuclar):
 
     joblib.dump(model, MODEL_DOSYA_YOLU)
     print(f"Model kaydedildi: {MODEL_DOSYA_YOLU}")
+
+    # api_servisi.py'nin GET /api/v1/turbulans/model-bilgisi uç noktasının
+    # okuduğu metadata -- .joblib'in kendisi metrik/tarih taşımadığı için
+    # ayrı bir JSON'da tutulur.
+    with open(MODEL_BILGI_DOSYA_YOLU, "w", encoding="utf-8") as dosya:
+        json.dump(
+            {
+                "secilen_model": en_iyi_isim,
+                "metrikler": metrikler,
+                "ozellik_sutunlari": OZELLIK_SUTUNLARI,
+                "egitim_orneklem_sayisi": egitim_orneklem_sayisi,
+                "test_orneklem_sayisi": test_orneklem_sayisi,
+                "egitim_zamani": datetime.now(UTC).isoformat(),
+            },
+            dosya,
+            ensure_ascii=False,
+            indent=2,
+        )
+    print(f"Model bilgisi kaydedildi: {MODEL_BILGI_DOSYA_YOLU}")
     return en_iyi_isim, metrikler
 
 
@@ -163,7 +191,7 @@ if __name__ == "__main__":
     print(f"Özellikler: {OZELLIK_SUTUNLARI}\n")
 
     sonuclar, (X_test, y_test) = modelleri_egit_ve_karsilastir(X, y)
-    en_iyi_isim, en_iyi_metrikler = en_iyi_modeli_sec_ve_kaydet(sonuclar)
+    en_iyi_isim, en_iyi_metrikler = en_iyi_modeli_sec_ve_kaydet(sonuclar, len(X), len(X_test))
 
     ozet_df = pd.DataFrame({isim: s[1] for isim, s in sonuclar.items()}).T
     ozet_df.to_csv("ml_model_karsilastirmasi.csv")

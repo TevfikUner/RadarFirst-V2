@@ -87,6 +87,7 @@ from semalar import (
     EsiklerYaniti,
     GorevBaslatildiYaniti,
     GorevDurumYaniti,
+    ModelBilgisiYaniti,
     RotaSimulasyonuIstegi,
     RotaSimulasyonuYaniti,
     SaglikYaniti,
@@ -99,11 +100,12 @@ from semalar import (
 )
 from sigmet_dogrulama import ucus_sigmet_ile_karsilastir
 from toplu_analiz import toplu_analiz_calistir
-from turbulans_ml_modeli import ozellikleri_cikar, turbulans_riski_tahmin_et
+from turbulans_ml_modeli import model_bilgisini_yukle, ozellikleri_cikar, turbulans_riski_tahmin_et
 from veritabani import (
     VeritabaniAyarlariEksikHatasi,
     ucus_detayini_getir_async,
     ucus_olcumlerini_dataframe_olarak_getir,
+    ucus_sil_async,
     ucuslari_listele_async,
 )
 
@@ -485,9 +487,31 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi):
     return await asyncio.to_thread(_hesapla)
 
 
+@v1.get("/turbulans/model-bilgisi", response_model=ModelBilgisiYaniti)
+async def turbulans_model_bilgisi():
+    """ml_egitimi.py'nin kaydettiği model metadata'sını (seçilen model,
+    metrikler, özellik listesi, eğitim tarihi) döner. Model henüz
+    eğitilmediyse (bkz. turbulans/tahmin'deki aynı ilke) uydurma bir bilgi
+    üretmez, dürüstçe egitildi_mi=False döner."""
+    bilgi = await asyncio.to_thread(model_bilgisini_yukle)
+    if bilgi is None:
+        return {"egitildi_mi": False}
+    return {"egitildi_mi": True, **bilgi}
+
+
 @v1.get("/ucuslar", response_model=list[UcusYaniti])
-async def ucuslar_listesi(limit: int = Query(default=100, ge=1, le=500)):
-    return await ucuslari_listele_async(limit=limit)
+async def ucuslar_listesi(
+    limit: int = Query(default=100, ge=1, le=500),
+    ucus_numarasi_arama: str | None = Query(default=None, max_length=8, description="Uçuş numarasında kısmi arama"),
+    baslangic_tarih: date | None = Query(default=None),
+    bitis_tarih: date | None = Query(default=None),
+):
+    return await ucuslari_listele_async(
+        limit=limit,
+        ucus_numarasi_arama=ucus_numarasi_arama,
+        baslangic_tarih=baslangic_tarih,
+        bitis_tarih=bitis_tarih,
+    )
 
 
 @v1.get("/ucuslar/{ucus_numarasi}/{tarih}", response_model=UcusDetayYaniti)
@@ -506,6 +530,20 @@ async def ucus_detayi(
             detail="Uçuş bulunamadı. Önce POST /api/v1/analiz/ucus ile analiz tetikle.",
         )
     return detay
+
+
+@v1.delete("/ucuslar/{ucus_numarasi}/{tarih}", status_code=status.HTTP_204_NO_CONTENT)
+async def ucus_sil(
+    ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
+    tarih: date = Path(...),
+):
+    """Kayıtlı bir uçuşu (CASCADE ile edr_olcumleri dahil) siler. Aynı
+    uçuş/tarih tekrar analiz edilmek istenirse zaten otomatik üzerine
+    yazılır (bkz. ucus_ve_olcumleri_kaydet) -- bu uç nokta, bir daha analiz
+    edilmeyecek kaydı veritabanından tamamen kaldırmak içindir."""
+    silindi_mi = await ucus_sil_async(ucus_numarasi, tarih.isoformat())
+    if not silindi_mi:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Uçuş bulunamadı.")
 
 
 @v1.get("/ucuslar/{ucus_numarasi}/{tarih}/sigmet-dogrulama", response_model=SigmetDogrulamaYaniti)

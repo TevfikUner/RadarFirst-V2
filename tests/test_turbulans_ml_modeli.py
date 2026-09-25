@@ -93,6 +93,24 @@ def test_egitilmis_model_yoksa_durustce_none_doner(veri_kupu, tmp_path, monkeypa
     assert sonuc is None
 
 
+def test_model_bilgisi_dosyasi_yoksa_durustce_none_doner(tmp_path, monkeypatch):
+    import turbulans_ml_modeli as tm
+
+    monkeypatch.setattr(tm, "MODEL_BILGI_DOSYA_YOLU", str(tmp_path / "olmayan_bilgi.json"))
+    assert tm.model_bilgisini_yukle() is None
+
+
+def test_model_bilgisi_dosyasi_varsa_okunur(tmp_path, monkeypatch):
+    import json
+
+    import turbulans_ml_modeli as tm
+
+    bilgi_dosyasi = tmp_path / "bilgi.json"
+    bilgi_dosyasi.write_text(json.dumps({"secilen_model": "Random Forest"}), encoding="utf-8")
+    monkeypatch.setattr(tm, "MODEL_BILGI_DOSYA_YOLU", str(bilgi_dosyasi))
+    assert tm.model_bilgisini_yukle() == {"secilen_model": "Random Forest"}
+
+
 def test_egitilmis_model_varsa_0_1_arasi_olasilik_doner():
     import turbulans_ml_modeli as tm
 

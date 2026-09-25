@@ -386,6 +386,84 @@ async def test_sigmet_dogrulama_gercek_http_istegi_yapmadan_calisir(istemci, api
             baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi = 'SIGTEST1'"))
 
 
+async def test_ucus_silme_var_olani_204_ile_siler(istemci, api_anahtari):
+    df = pd.DataFrame(
+        {
+            "zaman": pd.to_datetime(["2019-01-01T00:00:00Z"]),
+            "enlem": [40.0],
+            "boylam": [30.0],
+            "ti1_indeksi": [1e-7],
+        }
+    )
+    vt.ucus_ve_olcumleri_kaydet(df, "SILAPI1", "2019-01-01")
+
+    yanit = await istemci.delete("/api/v1/ucuslar/SILAPI1/2019-01-01", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 204
+
+    kontrol = await istemci.get("/api/v1/ucuslar/SILAPI1/2019-01-01", headers={"X-API-Key": api_anahtari})
+    assert kontrol.status_code == 404
+
+
+async def test_ucus_silme_olmayani_404_doner(istemci, api_anahtari):
+    yanit = await istemci.delete("/api/v1/ucuslar/YOKUCUS1/1999-01-01", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 404
+
+
+async def test_ucuslar_ucus_numarasi_aramasi_filtreler(istemci, api_anahtari):
+    df = pd.DataFrame(
+        {
+            "zaman": pd.to_datetime(["2019-01-01T00:00:00Z"]),
+            "enlem": [40.0],
+            "boylam": [30.0],
+            "ti1_indeksi": [1e-7],
+        }
+    )
+    vt.ucus_ve_olcumleri_kaydet(df, "ARAAPI1", "2019-01-01")
+    try:
+        yanit = await istemci.get(
+            "/api/v1/ucuslar?ucus_numarasi_arama=ARAAPI1", headers={"X-API-Key": api_anahtari}
+        )
+        assert yanit.status_code == 200
+        govde = yanit.json()
+        assert len(govde) == 1
+        assert govde[0]["ucus_numarasi"] == "ARAAPI1"
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi = 'ARAAPI1'"))
+
+
+async def test_model_bilgisi_egitilmemisse_durustce_false_doner(istemci, api_anahtari, monkeypatch):
+    monkeypatch.setattr(api_servisi, "model_bilgisini_yukle", lambda: None)
+    yanit = await istemci.get("/api/v1/turbulans/model-bilgisi", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 200
+    assert yanit.json() == {
+        "egitildi_mi": False,
+        "secilen_model": None,
+        "metrikler": None,
+        "ozellik_sutunlari": None,
+        "egitim_orneklem_sayisi": None,
+        "test_orneklem_sayisi": None,
+        "egitim_zamani": None,
+    }
+
+
+async def test_model_bilgisi_egitilmisse_metadata_doner(istemci, api_anahtari, monkeypatch):
+    sahte_bilgi = {
+        "secilen_model": "Random Forest",
+        "metrikler": {"recall": 0.75},
+        "ozellik_sutunlari": ["ti1_indeksi"],
+        "egitim_orneklem_sayisi": 134,
+        "test_orneklem_sayisi": 45,
+        "egitim_zamani": "2024-01-01T00:00:00+00:00",
+    }
+    monkeypatch.setattr(api_servisi, "model_bilgisini_yukle", lambda: sahte_bilgi)
+    yanit = await istemci.get("/api/v1/turbulans/model-bilgisi", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 200
+    govde = yanit.json()
+    assert govde["egitildi_mi"] is True
+    assert govde["secilen_model"] == "Random Forest"
+
+
 async def test_harita3d_sayfasi_sunuluyor(istemci):
     yanit = await istemci.get("/harita/harita3d.html")
     assert yanit.status_code == 200

@@ -44,6 +44,7 @@ from rota_optimizasyonu import ruzgar_bilesenlerini_al
 OZELLIK_SUTUNLARI = ["ti1_indeksi", "richardson_sayisi", "ruzgar_hizi_ms", "basinc_hpa"]
 
 MODEL_DOSYA_YOLU = "turbulans_ml_modeli.joblib"
+MODEL_BILGI_DOSYA_YOLU = "turbulans_ml_modeli_bilgisi.json"
 
 
 def ozellikleri_cikar(nokta_df: pd.DataFrame, veri_kupu) -> pd.DataFrame:
@@ -138,3 +139,17 @@ def turbulans_riski_tahmin_et(nokta_df: pd.DataFrame, veri_kupu):
     gecerli_indeksler = ozellikler[OZELLIK_SUTUNLARI].notna().all(axis=1)
     tum_tahminler[gecerli_indeksler.to_numpy()] = model.predict_proba(temiz_ozellikler)[:, 1]
     return tum_tahminler
+
+
+def model_bilgisini_yukle():
+    """ml_egitimi.py'nin kaydettiği model metadata'sını (seçilen model adı,
+    test metrikleri, özellik listesi, eğitim tarihi) döner. Model henüz
+    eğitilip kaydedilmediyse (bkz. MODEL_BILGI_DOSYA_YOLU yok) dürüstçe
+    None döner -- uydurma bir bilgi üretilmez."""
+    import json
+
+    try:
+        with open(MODEL_BILGI_DOSYA_YOLU, encoding="utf-8") as dosya:
+            return json.load(dosya)
+    except FileNotFoundError:
+        return None

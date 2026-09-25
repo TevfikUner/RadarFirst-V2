@@ -77,3 +77,40 @@ def test_ayni_ucus_yeniden_kaydedilince_eskisi_silinir(motor):
 
 def test_bilinmeyen_ucus_none_doner(motor):
     assert vt.ucus_detayini_getir("HICBIRZAMAN", "1999-01-01", motor) is None
+
+
+def test_listeleme_ucus_numarasi_aramasi_filtreler(motor):
+    vt.ucus_ve_olcumleri_kaydet(_ornek_df(), _TEST_UCUS_NUMARASI, _TEST_TARIH, motor)
+
+    eslesen = vt.ucuslari_listele(motor, ucus_numarasi_arama=_TEST_UCUS_NUMARASI[:6])
+    assert any(u["ucus_numarasi"] == _TEST_UCUS_NUMARASI for u in eslesen)
+
+    eslesmeyen = vt.ucuslari_listele(motor, ucus_numarasi_arama="HICBIRZAMANOLMAYACAKBIRUCUS")
+    assert eslesmeyen == []
+
+
+def test_listeleme_tarih_araligi_filtreler(motor):
+    vt.ucus_ve_olcumleri_kaydet(_ornek_df(), _TEST_UCUS_NUMARASI, _TEST_TARIH, motor)
+
+    kapsayan = vt.ucuslari_listele(
+        motor, ucus_numarasi_arama=_TEST_UCUS_NUMARASI, baslangic_tarih="1999-12-31", bitis_tarih="2000-01-02"
+    )
+    assert len(kapsayan) == 1
+
+    kapsamayan = vt.ucuslari_listele(
+        motor, ucus_numarasi_arama=_TEST_UCUS_NUMARASI, baslangic_tarih="2001-01-01", bitis_tarih="2001-01-02"
+    )
+    assert kapsamayan == []
+
+
+async def test_ucus_sil_async_var_olani_siler(motor):
+    vt.ucus_ve_olcumleri_kaydet(_ornek_df(), _TEST_UCUS_NUMARASI, _TEST_TARIH, motor)
+
+    silindi_mi = await vt.ucus_sil_async(_TEST_UCUS_NUMARASI, _TEST_TARIH)
+    assert silindi_mi is True
+    assert vt.ucus_detayini_getir(_TEST_UCUS_NUMARASI, _TEST_TARIH, motor) is None
+
+
+async def test_ucus_sil_async_olmayani_false_doner(motor):
+    silindi_mi = await vt.ucus_sil_async("HICBIRZAMAN", "1999-01-01")
+    assert silindi_mi is False
