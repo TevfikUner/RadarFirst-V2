@@ -4,6 +4,28 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Test kapsamı: ml_egitimi.py/pirep_kalibrasyon_verisi_uret.py birim testleri + kalıcı Playwright testleri + performans testi
+
+- **`tests/test_ml_egitimi.py`**: `modelleri_egit_ve_karsilastir`/`en_iyi_
+  modeli_sec_ve_kaydet` sentetik (hızlı, gerçek PIREP/ERA5 gerektirmeyen)
+  veriyle test edildi; `veriyi_hazirla` gerçek veriyle (yoksa atlanır).
+- **`tests/test_pirep_kalibrasyon_verisi_uret.py`**: `kalibrasyon_verisini_
+  hazirla`'nın ürettiği `pirep_edr` değerlerinin doğru [0,1] aralığında
+  olduğunu gerçek PIREP+ERA5 verisiyle doğrular (yoksa atlanır).
+- **`tests/conftest.py` + `test_web_harita3d.py` + `test_web_ucus_
+  simulasyonu.py`**: daha önce sadece scratchpad'de elle çalıştırılan
+  Playwright testleri artık repoda KALICI -- `api_servisi.py`'yi ayrı bir
+  alt süreçte canlı ayağa kaldıran paylaşılan bir fixture (`canli_sunucu`)
+  üzerinden, gerçek bir uçuşa karşı harita render'ını VE MapLibre/CesiumJS
+  hatalarının bir daha geri gelmediğini doğrular. `playwright` paketi
+  bilerek `requirements-dev.txt`'ye eklenmedi (CI'de chromium indirmek
+  gereksiz) -- kurulu değilse otomatik atlanır.
+- **`tests/test_performans.py`**: 55.000 noktalık sentetik bir rota için
+  vektörel eşleştirmenin ve veritabanı yazımının makul sürede (30sn/60sn
+  gevşek üst sınır) bittiğini doğrular -- amaç kesin bir benchmark değil,
+  yanlışlıkla nokta-nokta bir döngüye geri dönme gibi katastrofik bir
+  performans regresyonunu yakalamak.
+
 ## REST API tamamlama 2: toplam sayı, toplu silme, CSV/GeoJSON export, derin sağlık kontrolü, Swagger etiketleri
 
 - **`GET /api/v1/ucuslar`** artık `{toplam_sayi, ucuslar}` döner (önceden
