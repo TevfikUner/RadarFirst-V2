@@ -71,13 +71,19 @@ TI1_ESIK_HAFIF = _ortam_sayi("TI1_ESIK_HAFIF", 4e-7)
 TI1_ESIK_ORTA_SIDDETLI = _ortam_sayi("TI1_ESIK_ORTA_SIDDETLI", 8e-7)
 
 # turbulans_indeksleri.ti1_den_edr_proxy_olcegine_cevir()'in kullandığı
-# ölçeklendirme katsayısı. VARSAYILAN DEĞER (1.5) KEYFİDİR VE KALİBRE
-# EDİLMEMİŞTİR -- gerçek PIREP/AMDAR gözlemleriyle kalibrasyon.py
-# kullanılarak kalibre edilene kadar sadece kaba bir başlangıç noktasıdır.
-# Kalibrasyon yaptıktan sonra bu değeri kalibrasyon.py'nin verdiği sayıyla
-# değiştir (kod içinde veya EDR_OLCEKLENDIRME_KATSAYISI ortam değişkeniyle).
-EDR_OLCEKLENDIRME_KATSAYISI = _ortam_sayi("EDR_OLCEKLENDIRME_KATSAYISI", 1.5)
-EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI = _ortam_bool("EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI", False)
+# ölçeklendirme katsayısı. Gerçek IEM PIREP (ABD hava sahası, 2018-2020) +
+# eşleşen gerçek ERA5 verisiyle (bkz. pirep_kalibrasyon_verisi_uret.py,
+# kalibrasyon.py -- AYNI 179 örneklik gerçek gözlem seti turbulans_ml_
+# modeli.py'nin eğitiminde de kullanıldı) kalibre edildi: 0.23 (ortalama
+# karesel hata: 0.093). DÜRÜSTLÜK NOTU: bu depodaki örnek veri kümesi
+# (Türkiye/Ocak-2019) için gerçek PIREP/AMDAR yok (bkz. README), bu yüzden
+# katsayı BÖLGEDEN BAĞIMSIZ bir fiziksel ilişkiye (TI1 -> gözlemlenen
+# şiddet) dayanıyor -- ML sınıflandırıcısının özellik seçiminde de AYNI
+# gerekçeyle enlem/boylam kasıtlı dışarıda bırakılmıştı. Yeniden kalibre
+# etmek için: python pirep_kalibrasyon_verisi_uret.py && python
+# kalibrasyon.py pirep_kalibrasyon_verisi.csv
+EDR_OLCEKLENDIRME_KATSAYISI = _ortam_sayi("EDR_OLCEKLENDIRME_KATSAYISI", 0.23)
+EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI = _ortam_bool("EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI", True)
 
 # toplu_analiz.py, art arda çok sayıda uçuş için Trino/OpenSky sorgusu atar.
 # OpenSky gibi servisler kısa sürede çok fazla istek gönderen hesapları

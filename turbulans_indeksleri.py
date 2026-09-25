@@ -89,14 +89,16 @@ def ti1_indeksi_hesapla(vws, deformasyon):
     return np.abs(vws) * deformasyon
 
 
-def ti1_den_edr_proxy_olcegine_cevir(ti1_degeri, olceklendirme_katsayisi=1.5):
+def ti1_den_edr_proxy_olcegine_cevir(ti1_degeri, olceklendirme_katsayisi=0.23):
     """
     TI1'in tipik değer aralığı (~1e-7 - 1e-6 s^-2) EDR'nin alışılan 0-1
     aralığıyla doğrudan karşılaştırılabilir değil. Burada TI1'i, eski
     kodunla aynı yerlerde kullanılabilecek 0'a yakın-1'e yakın bir "proxy"
-    ölçeğine sıkıştırıyoruz (tanh ile doygunlaştırma). Bu, keyfi bir
-    kalibrasyondur — gerçek EDR karşılığı için gözlemsel veriyle (PIREP,
-    AMDAR) kalibre edilmesi gerekir.
+    ölçeğine sıkıştırıyoruz (tanh ile doygunlaştırma). Varsayılan katsayı
+    (0.23), config.EDR_OLCEKLENDIRME_KATSAYISI ile AYNIDIR -- gerçek IEM
+    PIREP + ERA5 verisiyle kalibre edildi (bkz. kalibrasyon.py,
+    pirep_kalibrasyon_verisi_uret.py); farklı bir katsayı denemek için
+    çağıran taraf bu parametreyi açıkça geçebilir.
     """
     sonuc = np.tanh(np.asarray(ti1_degeri, dtype=float) * olceklendirme_katsayisi * 1e6)
     return float(sonuc) if sonuc.ndim == 0 else sonuc

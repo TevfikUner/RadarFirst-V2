@@ -7,11 +7,13 @@ değeridir -- README'de de böyle belgelenmiştir. Bu script, gerçek PIREP
 (Pilot Report) veya AMDAR gözlemleriyle eşleştirilmiş TI1 değerlerinden bu
 katsayıyı EN KÜÇÜK KARELER ile kalibre etmek için bir araçtır.
 
-ÖNEMLİ: Bu depoda gerçek PIREP verisi YOKTUR ve internetten indirilmedi --
-bu script veri üretmez, sadece kullanıcının kendi sağlayacağı gözlem
-verisiyle çalışacak bir ARAÇTIR. Gerçek bir kalibrasyon yapmak için önce
-PIREP/AMDAR verisini (örn. Iowa Environmental Mesonet PIREP arşivi) rota ve
-zaman bazında CSV'deki TI1 değerleriyle eşleştirmen gerekiyor.
+Bu script kendisi veri üretmez, sadece verilen gözlem CSV'sine göre en iyi
+katsayıyı bulan bir ARAÇTIR -- gözlem CSV'sini `pirep_kalibrasyon_verisi_
+uret.py` üretir (turbulans_ml_modeli.py'nin ML eğitimi için indirdiği AYNI
+gerçek IEM PIREP + ERA5 verisini kullanarak). Bu depodaki örnek Türkiye/
+Ocak-2019 veri kümesi için gerçek PIREP/AMDAR yok (bkz. README) -- bu
+yüzden mevcut kalibrasyon ABD hava sahası verisine, bölgeden bağımsız bir
+fiziksel ilişkiye dayanıyor.
 
 Beklenen girdi CSV formatı (en az şu iki sütun):
     ti1_indeksi   -- main.py'nin PostgreSQL'e yazdığı edr_olcumleri
