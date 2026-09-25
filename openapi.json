@@ -1,0 +1,2044 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Türbülans Radar API",
+    "description": "Ellrod TI1 + Richardson tabanlı türbülans eşleştirme sonuçlarını JSON olarak sunar.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/v1/esikler": {
+      "get": {
+        "tags": [
+          "Eşikler"
+        ],
+        "summary": "Esikleri Getir",
+        "description": "web/harita3d.html gibi istemcilerin, renklendirme eşiklerini\nconfig.py ile bire bir aynı tutabilmesi için (sabitleri JS'e\nkopyalamak yerine tek kaynaktan okumak).",
+        "operationId": "esikleri_getir_api_v1_esikler_get",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/EsiklerYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/simulasyon/ucak-profilleri": {
+      "get": {
+        "tags": [
+          "Simülasyon"
+        ],
+        "summary": "Ucak Profillerini Getir",
+        "description": "web/ucus_simulasyonu.html'in uçak modeli seçim listesini doldurmak\niçindir -- sabitler tek kaynaktan (rota_optimizasyonu.py) okunur.",
+        "operationId": "ucak_profillerini_getir_api_v1_simulasyon_ucak_profilleri_get",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/UcakProfiliYaniti"
+                  },
+                  "title": "Response Ucak Profillerini Getir Api V1 Simulasyon Ucak Profilleri Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/simulasyon/rota": {
+      "post": {
+        "tags": [
+          "Simülasyon"
+        ],
+        "summary": "Rota Simulasyonu",
+        "description": "Verilen başlangıç/bitiş/irtifa/tarih/uçak için iki rota üretir: büyük\ndaire (\"normal\") ve ERA5 rüzgarına göre yanal kaydırılmış en hızlı aday\n(\"optimize\") -- bkz. rota_optimizasyonu.py (kapsam dışı bölge/tarih için\ndürüst geri düşüş davranışı dahil). Dış bir servise istek atmadığı için\n(sadece yerel NetCDF dosyasını okur) ayrı bir hız sınırlaması yok; event\nloop'u bloklamaması için hesaplama ayrı bir thread'de çalıştırılır.",
+        "operationId": "rota_simulasyonu_api_v1_simulasyon_rota_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RotaSimulasyonuIstegi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RotaSimulasyonuYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/turbulans/tahmin": {
+      "post": {
+        "tags": [
+          "Türbülans Tahmini"
+        ],
+        "summary": "Turbulans Tahmini",
+        "description": "Tek bir nokta için HEM fizik tabanlı (Ellrod TI1) HEM gerçek IEM PIREP +\nERA5 verisiyle eğitilmiş ML sınıflandırıcısının (bkz. turbulans_ml_\nmodeli.py, ml_egitimi.py) tahminini karşılaştırmalı döner. ML modeli\nhenüz eğitilip kaydedilmediyse (`turbulans_ml_modeli.joblib` yok)\n`ml_olasilik`/`ml_riski_var_mi` dürüstçe None döner -- uydurma bir\ntahmin üretilmez.",
+        "operationId": "turbulans_tahmini_api_v1_turbulans_tahmin_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TurbulansTahminIstegi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TurbulansTahminYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/turbulans/model-bilgisi": {
+      "get": {
+        "tags": [
+          "Türbülans Tahmini"
+        ],
+        "summary": "Turbulans Model Bilgisi",
+        "description": "ml_egitimi.py'nin kaydettiği model metadata'sını (seçilen model,\nmetrikler, özellik listesi, eğitim tarihi) döner. Model henüz\neğitilmediyse (bkz. turbulans/tahmin'deki aynı ilke) uydurma bir bilgi\nüretmez, dürüstçe egitildi_mi=False döner.",
+        "operationId": "turbulans_model_bilgisi_api_v1_turbulans_model_bilgisi_get",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelBilgisiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ucuslar": {
+      "get": {
+        "tags": [
+          "Uçuşlar"
+        ],
+        "summary": "Ucuslar Listesi",
+        "operationId": "ucuslar_listesi_api_v1_ucuslar_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "ucus_numarasi_arama",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 8
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Uçuş numarasında kısmi arama",
+              "title": "Ucus Numarasi Arama"
+            },
+            "description": "Uçuş numarasında kısmi arama"
+          },
+          {
+            "name": "baslangic_tarih",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Baslangic Tarih"
+            }
+          },
+          {
+            "name": "bitis_tarih",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bitis Tarih"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UcuslarListesiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Uçuşlar"
+        ],
+        "summary": "Ucuslari Toplu Sil",
+        "description": "Filtreye uyan TÜM uçuşları (CASCADE ile ölçümleriyle) siler. En az\nbir filtre ZORUNLUDUR -- filtresiz bir çağrı, tüm veritabanını\nYANLIŞLIKLA boşaltabileceği için kasıtlı olarak 400 ile reddedilir\n(tek tek silme için bkz. DELETE /ucuslar/{ucus_numarasi}/{tarih}).",
+        "operationId": "ucuslari_toplu_sil_api_v1_ucuslar_delete",
+        "parameters": [
+          {
+            "name": "ucus_numarasi_arama",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 8
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Uçuş numarasında kısmi arama",
+              "title": "Ucus Numarasi Arama"
+            },
+            "description": "Uçuş numarasında kısmi arama"
+          },
+          {
+            "name": "baslangic_tarih",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Baslangic Tarih"
+            }
+          },
+          {
+            "name": "bitis_tarih",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bitis Tarih"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TopluSilmeYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ucuslar/{ucus_numarasi}/{tarih}": {
+      "get": {
+        "tags": [
+          "Uçuşlar"
+        ],
+        "summary": "Ucus Detayi",
+        "operationId": "ucus_detayi_api_v1_ucuslar__ucus_numarasi___tarih__get",
+        "parameters": [
+          {
+            "name": "ucus_numarasi",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9]{1,8}$",
+              "title": "Ucus Numarasi"
+            }
+          },
+          {
+            "name": "tarih",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Tarih"
+            }
+          },
+          {
+            "name": "olcum_limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 5000,
+              "minimum": 1,
+              "default": 1000,
+              "title": "Olcum Limit"
+            }
+          },
+          {
+            "name": "olcum_offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Olcum Offset"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UcusDetayYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Uçuşlar"
+        ],
+        "summary": "Ucus Sil",
+        "description": "Kayıtlı bir uçuşu (CASCADE ile edr_olcumleri dahil) siler. Aynı\nuçuş/tarih tekrar analiz edilmek istenirse zaten otomatik üzerine\nyazılır (bkz. ucus_ve_olcumleri_kaydet) -- bu uç nokta, bir daha analiz\nedilmeyecek kaydı veritabanından tamamen kaldırmak içindir.",
+        "operationId": "ucus_sil_api_v1_ucuslar__ucus_numarasi___tarih__delete",
+        "parameters": [
+          {
+            "name": "ucus_numarasi",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9]{1,8}$",
+              "title": "Ucus Numarasi"
+            }
+          },
+          {
+            "name": "tarih",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Tarih"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ucuslar/{ucus_numarasi}/{tarih}/csv": {
+      "get": {
+        "tags": [
+          "Uçuşlar"
+        ],
+        "summary": "Ucus Csv Disa Aktar",
+        "description": "Bir uçuşun TÜM ölçümlerini (JSON uç noktasındaki sayfalama/5000\ntavanı OLMADAN -- QGIS gibi harici araçlarda kullanmak için) CSV olarak\nindirir.",
+        "operationId": "ucus_csv_disa_aktar_api_v1_ucuslar__ucus_numarasi___tarih__csv_get",
+        "parameters": [
+          {
+            "name": "ucus_numarasi",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9]{1,8}$",
+              "title": "Ucus Numarasi"
+            }
+          },
+          {
+            "name": "tarih",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Tarih"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ucuslar/{ucus_numarasi}/{tarih}/geojson": {
+      "get": {
+        "tags": [
+          "Uçuşlar"
+        ],
+        "summary": "Ucus Geojson Disa Aktar",
+        "description": "Bir uçuşun TÜM ölçümlerini (sayfalama olmadan) bir GeoJSON\nFeatureCollection'ı olarak döner -- web/harita3d.html'in kendi\niçinde ürettiği nokta koleksiyonuyla AYNI şema, ama QGIS/geopandas gibi\nharici araçlarda doğrudan açılabilir bir dosya olarak.",
+        "operationId": "ucus_geojson_disa_aktar_api_v1_ucuslar__ucus_numarasi___tarih__geojson_get",
+        "parameters": [
+          {
+            "name": "ucus_numarasi",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9]{1,8}$",
+              "title": "Ucus Numarasi"
+            }
+          },
+          {
+            "name": "tarih",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Tarih"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ucuslar/{ucus_numarasi}/{tarih}/sigmet-dogrulama": {
+      "get": {
+        "tags": [
+          "Uçuşlar"
+        ],
+        "summary": "Ucus Sigmet Dogrulamasi",
+        "description": "Hesaplanan TI1 'orta-şiddetli' noktalarını gerçek AWC SIGMET\nuyarılarıyla karşılaştırır (bkz. sigmet_dogrulama.py). SADECE ABD hava\nsahası için gerçek bir örtüşme çıkar; başka bölgeler için boş/sıfır\nsonuç dönmesi beklenen, dürüst bir durumdur -- hata değildir.",
+        "operationId": "ucus_sigmet_dogrulamasi_api_v1_ucuslar__ucus_numarasi___tarih__sigmet_dogrulama_get",
+        "parameters": [
+          {
+            "name": "ucus_numarasi",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9]{1,8}$",
+              "title": "Ucus Numarasi"
+            }
+          },
+          {
+            "name": "tarih",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Tarih"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigmetDogrulamaYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analiz/ucus": {
+      "post": {
+        "tags": [
+          "Analiz"
+        ],
+        "summary": "Ucus Analizi Baslat",
+        "operationId": "ucus_analizi_baslat_api_v1_analiz_ucus_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UcusAnalizIstegi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GorevBaslatildiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analiz/toplu": {
+      "post": {
+        "tags": [
+          "Analiz"
+        ],
+        "summary": "Toplu Analiz Baslat",
+        "operationId": "toplu_analiz_baslat_api_v1_analiz_toplu_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TopluAnalizIstegi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GorevBaslatildiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/analiz/durum/{gorev_id}": {
+      "get": {
+        "tags": [
+          "Analiz"
+        ],
+        "summary": "Analiz Durumu",
+        "operationId": "analiz_durumu_api_v1_analiz_durum__gorev_id__get",
+        "parameters": [
+          {
+            "name": "gorev_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Gorev Id"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GorevDurumYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/saglik": {
+      "get": {
+        "tags": [
+          "Sistem"
+        ],
+        "summary": "Saglik Kontrolu",
+        "description": "Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği).\nVarsayılan (sığ) davranış DEĞİŞMEDİ -- sadece süreç ayakta mı diye bakar,\nher yük dengeleyici probunda PostgreSQL'e gitmeyi zorlamaz.\n`?derin=true` ile gerçek bir PostgreSQL bağlantısı denenir (deploy\nsonrası 'DB'ye GERÇEKTEN erişiyor muyum' diye elle/monitoring'den\nkontrol için).",
+        "operationId": "saglik_kontrolu_saglik_get",
+        "parameters": [
+          {
+            "name": "derin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "True ise PostgreSQL'e gerçekten bağlanmayı dener",
+              "default": false,
+              "title": "Derin"
+            },
+            "description": "True ise PostgreSQL'e gerçekten bağlanmayı dener"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaglikYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "EsiklerYaniti": {
+        "properties": {
+          "ti1_esik_hafif": {
+            "type": "number",
+            "title": "Ti1 Esik Hafif"
+          },
+          "ti1_esik_orta_siddetli": {
+            "type": "number",
+            "title": "Ti1 Esik Orta Siddetli"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ti1_esik_hafif",
+          "ti1_esik_orta_siddetli"
+        ],
+        "title": "EsiklerYaniti",
+        "description": "harita3d.html gibi istemcilerin, config.py'deki renklendirme\neşiklerini Python tarafındaki değerlerle bire bir aynı tutması için."
+      },
+      "GorevBaslatildiYaniti": {
+        "properties": {
+          "gorev_id": {
+            "type": "string",
+            "title": "Gorev Id"
+          },
+          "durum": {
+            "type": "string",
+            "title": "Durum"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gorev_id",
+          "durum"
+        ],
+        "title": "GorevBaslatildiYaniti"
+      },
+      "GorevDurumYaniti": {
+        "properties": {
+          "durum": {
+            "type": "string",
+            "title": "Durum"
+          },
+          "ucus_numarasi": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ucus Numarasi"
+          },
+          "tarih": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tarih"
+          },
+          "aciklama": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aciklama"
+          },
+          "ozet": {
+            "anyOf": [
+              {
+                "items": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ozet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "durum"
+        ],
+        "title": "GorevDurumYaniti",
+        "description": "Görev durumu, ilerledikçe farklı alanlar kazanır (aciklama sadece\nhatada, ozet sadece toplu analizde dolar) -- bu yüzden hepsi opsiyonel."
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": {
+              "$ref": "#/components/schemas/ValidationError"
+            },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "ModelBilgisiYaniti": {
+        "properties": {
+          "egitildi_mi": {
+            "type": "boolean",
+            "title": "Egitildi Mi"
+          },
+          "secilen_model": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Secilen Model"
+          },
+          "metrikler": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Metrikler"
+          },
+          "ozellik_sutunlari": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ozellik Sutunlari"
+          },
+          "egitim_orneklem_sayisi": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Egitim Orneklem Sayisi"
+          },
+          "test_orneklem_sayisi": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Test Orneklem Sayisi"
+          },
+          "egitim_zamani": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Egitim Zamani"
+          }
+        },
+        "type": "object",
+        "required": [
+          "egitildi_mi"
+        ],
+        "title": "ModelBilgisiYaniti",
+        "description": "turbulans_ml_modeli.model_bilgisini_yukle()'nin döndürdüğü metadata --\nml_egitimi.py çalıştırılıp model henüz kaydedilmediyse SADECE\negitildi_mi=False döner (uydurma bilgi üretilmez)."
+      },
+      "OlcumYaniti": {
+        "properties": {
+          "zaman": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Zaman"
+          },
+          "enlem": {
+            "type": "number",
+            "title": "Enlem"
+          },
+          "boylam": {
+            "type": "number",
+            "title": "Boylam"
+          },
+          "ti1_indeksi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ti1 Indeksi"
+          },
+          "edr_proxy": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Edr Proxy"
+          },
+          "richardson_sayisi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Richardson Sayisi"
+          },
+          "dinamik_kararsizlik": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dinamik Kararsizlik"
+          },
+          "basinc_hpa": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Basinc Hpa"
+          }
+        },
+        "type": "object",
+        "required": [
+          "zaman",
+          "enlem",
+          "boylam"
+        ],
+        "title": "OlcumYaniti"
+      },
+      "RotaNoktasiYaniti": {
+        "properties": {
+          "enlem": {
+            "type": "number",
+            "title": "Enlem"
+          },
+          "boylam": {
+            "type": "number",
+            "title": "Boylam"
+          },
+          "irtifa_m": {
+            "type": "number",
+            "title": "Irtifa M"
+          },
+          "zaman": {
+            "type": "string",
+            "title": "Zaman"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enlem",
+          "boylam",
+          "irtifa_m",
+          "zaman"
+        ],
+        "title": "RotaNoktasiYaniti"
+      },
+      "RotaSimulasyonuIstegi": {
+        "properties": {
+          "baslangic_enlem": {
+            "type": "number",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Baslangic Enlem"
+          },
+          "baslangic_boylam": {
+            "type": "number",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Baslangic Boylam"
+          },
+          "bitis_enlem": {
+            "type": "number",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Bitis Enlem"
+          },
+          "bitis_boylam": {
+            "type": "number",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Bitis Boylam"
+          },
+          "irtifa_ft": {
+            "type": "number",
+            "maximum": 45000.0,
+            "minimum": 1000.0,
+            "title": "Irtifa Ft"
+          },
+          "zaman": {
+            "type": "string",
+            "title": "Zaman"
+          },
+          "ucak_modeli": {
+            "type": "string",
+            "title": "Ucak Modeli"
+          }
+        },
+        "type": "object",
+        "required": [
+          "baslangic_enlem",
+          "baslangic_boylam",
+          "bitis_enlem",
+          "bitis_boylam",
+          "irtifa_ft",
+          "zaman",
+          "ucak_modeli"
+        ],
+        "title": "RotaSimulasyonuIstegi",
+        "description": "web/ucus_simulasyonu.html'nin gönderdiği istek -- bkz. rota_optimizasyonu.py."
+      },
+      "RotaSimulasyonuYaniti": {
+        "properties": {
+          "ruzgar_verisi_kaynagi": {
+            "type": "string",
+            "title": "Ruzgar Verisi Kaynagi"
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          },
+          "ucak_modeli": {
+            "type": "string",
+            "title": "Ucak Modeli"
+          },
+          "ucak_etiketi": {
+            "type": "string",
+            "title": "Ucak Etiketi"
+          },
+          "turbulanstan_kacinildi_mi": {
+            "type": "boolean",
+            "title": "Turbulanstan Kacinildi Mi"
+          },
+          "kacinma_stratejisi": {
+            "type": "string",
+            "title": "Kacinma Stratejisi"
+          },
+          "normal_rota": {
+            "$ref": "#/components/schemas/RotaSonucuYaniti"
+          },
+          "optimize_rota": {
+            "$ref": "#/components/schemas/RotaSonucuYaniti"
+          },
+          "sure_tasarrufu_dk": {
+            "type": "number",
+            "title": "Sure Tasarrufu Dk"
+          },
+          "yakit_tasarrufu_yuzde": {
+            "type": "number",
+            "title": "Yakit Tasarrufu Yuzde"
+          },
+          "co2_farki_kg": {
+            "type": "number",
+            "title": "Co2 Farki Kg"
+          },
+          "czml": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Czml"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ruzgar_verisi_kaynagi",
+          "aciklama",
+          "ucak_modeli",
+          "ucak_etiketi",
+          "turbulanstan_kacinildi_mi",
+          "kacinma_stratejisi",
+          "normal_rota",
+          "optimize_rota",
+          "sure_tasarrufu_dk",
+          "yakit_tasarrufu_yuzde",
+          "co2_farki_kg",
+          "czml"
+        ],
+        "title": "RotaSimulasyonuYaniti"
+      },
+      "RotaSonucuYaniti": {
+        "properties": {
+          "noktalar": {
+            "items": {
+              "$ref": "#/components/schemas/RotaNoktasiYaniti"
+            },
+            "type": "array",
+            "title": "Noktalar"
+          },
+          "toplam_sure_dk": {
+            "type": "number",
+            "title": "Toplam Sure Dk"
+          },
+          "mesafe_km": {
+            "type": "number",
+            "title": "Mesafe Km"
+          },
+          "tahmini_yakit_kg": {
+            "type": "number",
+            "title": "Tahmini Yakit Kg"
+          },
+          "tahmini_co2_kg": {
+            "type": "number",
+            "title": "Tahmini Co2 Kg"
+          },
+          "maks_yanal_sapma_km": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maks Yanal Sapma Km"
+          },
+          "irtifa_ft": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Irtifa Ft"
+          },
+          "maks_ti1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maks Ti1"
+          },
+          "riskli_nokta_sayisi": {
+            "type": "integer",
+            "title": "Riskli Nokta Sayisi",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": [
+          "noktalar",
+          "toplam_sure_dk",
+          "mesafe_km",
+          "tahmini_yakit_kg",
+          "tahmini_co2_kg"
+        ],
+        "title": "RotaSonucuYaniti"
+      },
+      "SaglikYaniti": {
+        "properties": {
+          "durum": {
+            "type": "string",
+            "title": "Durum"
+          },
+          "veritabani": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Veritabani"
+          }
+        },
+        "type": "object",
+        "required": [
+          "durum"
+        ],
+        "title": "SaglikYaniti"
+      },
+      "SigmetDogrulamaYaniti": {
+        "properties": {
+          "toplam_turbulans_sigmeti": {
+            "type": "integer",
+            "title": "Toplam Turbulans Sigmeti"
+          },
+          "orta_siddetli_nokta_sayisi": {
+            "type": "integer",
+            "title": "Orta Siddetli Nokta Sayisi"
+          },
+          "sigmetle_ortusen_nokta_sayisi": {
+            "type": "integer",
+            "title": "Sigmetle Ortusen Nokta Sayisi"
+          },
+          "ortusme_orani": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ortusme Orani"
+          },
+          "sigmetler": {
+            "items": {
+              "$ref": "#/components/schemas/SigmetYaniti"
+            },
+            "type": "array",
+            "title": "Sigmetler"
+          }
+        },
+        "type": "object",
+        "required": [
+          "toplam_turbulans_sigmeti",
+          "orta_siddetli_nokta_sayisi",
+          "sigmetle_ortusen_nokta_sayisi",
+          "sigmetler"
+        ],
+        "title": "SigmetDogrulamaYaniti",
+        "description": "sigmet_dogrulama.py'nin ürettiği karşılaştırma raporu -- bkz. o\nmodülün docstring'i (SADECE ABD hava sahası için gerçek veri döner)."
+      },
+      "SigmetYaniti": {
+        "properties": {
+          "etiket": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Etiket"
+          },
+          "baslangic": {
+            "type": "string",
+            "title": "Baslangic"
+          },
+          "bitis": {
+            "type": "string",
+            "title": "Bitis"
+          },
+          "poligon": {
+            "items": {
+              "prefixItems": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "number"
+                }
+              ],
+              "type": "array",
+              "maxItems": 2,
+              "minItems": 2
+            },
+            "type": "array",
+            "title": "Poligon"
+          }
+        },
+        "type": "object",
+        "required": [
+          "baslangic",
+          "bitis",
+          "poligon"
+        ],
+        "title": "SigmetYaniti"
+      },
+      "TopluAnalizIstegi": {
+        "properties": {
+          "ucuslar": {
+            "items": {
+              "$ref": "#/components/schemas/UcusAnalizIstegi"
+            },
+            "type": "array",
+            "title": "Ucuslar"
+          },
+          "bildirim_webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bildirim Webhook Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ucuslar"
+        ],
+        "title": "TopluAnalizIstegi"
+      },
+      "TopluSilmeYaniti": {
+        "properties": {
+          "silinen_sayisi": {
+            "type": "integer",
+            "title": "Silinen Sayisi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "silinen_sayisi"
+        ],
+        "title": "TopluSilmeYaniti"
+      },
+      "TurbulansTahminIstegi": {
+        "properties": {
+          "enlem": {
+            "type": "number",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Enlem"
+          },
+          "boylam": {
+            "type": "number",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Boylam"
+          },
+          "irtifa_ft": {
+            "type": "number",
+            "maximum": 45000.0,
+            "minimum": 1000.0,
+            "title": "Irtifa Ft"
+          },
+          "zaman": {
+            "type": "string",
+            "title": "Zaman"
+          }
+        },
+        "type": "object",
+        "required": [
+          "enlem",
+          "boylam",
+          "irtifa_ft",
+          "zaman"
+        ],
+        "title": "TurbulansTahminIstegi",
+        "description": "turbulans_ml_modeli.py'nin gerçek IEM PIREP + ERA5 verisiyle eğitilmiş\nsınıflandırıcısını, fizik tabanlı Ellrod TI1 ile karşılaştırmalı olarak\ntek bir nokta için sorgular."
+      },
+      "TurbulansTahminYaniti": {
+        "properties": {
+          "kapsam_icinde_mi": {
+            "type": "boolean",
+            "title": "Kapsam Icinde Mi"
+          },
+          "ti1_indeksi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ti1 Indeksi"
+          },
+          "ti1_riskli_mi": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ti1 Riskli Mi"
+          },
+          "ml_riski_var_mi": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ml Riski Var Mi"
+          },
+          "ml_olasilik": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ml Olasilik"
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          },
+          "yakit_akisi_kg_saat": {
+            "type": "number",
+            "title": "Yakit Akisi Kg Saat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kapsam_icinde_mi",
+          "aciklama",
+          "yakit_akisi_kg_saat"
+        ],
+        "title": "TurbulansTahminYaniti"
+      },
+      "UcakProfiliYaniti": {
+        "properties": {
+          "kod": {
+            "type": "string",
+            "title": "Kod"
+          },
+          "etiket": {
+            "type": "string",
+            "title": "Etiket"
+          },
+          "tas_ms": {
+            "type": "number",
+            "title": "Tas Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kod",
+          "etiket",
+          "tas_ms"
+        ],
+        "title": "UcakProfiliYaniti"
+      },
+      "UcusAnalizIstegi": {
+        "properties": {
+          "ucus_numarasi": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9]{1,8}$",
+            "title": "Ucus Numarasi"
+          },
+          "tarih": {
+            "type": "string",
+            "title": "Tarih"
+          },
+          "bildirim_webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bildirim Webhook Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ucus_numarasi",
+          "tarih"
+        ],
+        "title": "UcusAnalizIstegi"
+      },
+      "UcusDetayYaniti": {
+        "properties": {
+          "ucus": {
+            "$ref": "#/components/schemas/UcusYaniti"
+          },
+          "toplam_olcum_sayisi": {
+            "type": "integer",
+            "title": "Toplam Olcum Sayisi"
+          },
+          "olcumler": {
+            "items": {
+              "$ref": "#/components/schemas/OlcumYaniti"
+            },
+            "type": "array",
+            "title": "Olcumler"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ucus",
+          "toplam_olcum_sayisi",
+          "olcumler"
+        ],
+        "title": "UcusDetayYaniti"
+      },
+      "UcusYaniti": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "ucus_numarasi": {
+            "type": "string",
+            "title": "Ucus Numarasi"
+          },
+          "tarih": {
+            "type": "string",
+            "format": "date",
+            "title": "Tarih"
+          },
+          "icao24": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Icao24"
+          },
+          "kalkis_havaalani": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kalkis Havaalani"
+          },
+          "varis_havaalani": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Varis Havaalani"
+          },
+          "olusturulma_zamani": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Olusturulma Zamani"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "ucus_numarasi",
+          "tarih",
+          "olusturulma_zamani"
+        ],
+        "title": "UcusYaniti"
+      },
+      "UcuslarListesiYaniti": {
+        "properties": {
+          "toplam_sayi": {
+            "type": "integer",
+            "title": "Toplam Sayi"
+          },
+          "ucuslar": {
+            "items": {
+              "$ref": "#/components/schemas/UcusYaniti"
+            },
+            "type": "array",
+            "title": "Ucuslar"
+          }
+        },
+        "type": "object",
+        "required": [
+          "toplam_sayi",
+          "ucuslar"
+        ],
+        "title": "UcuslarListesiYaniti",
+        "description": "toplam_sayi, limit UYGULANMADAN ÖNCEKİ filtre eşleşme sayısıdır --\nistemcinin (bkz. web/harita3d.html) sayfalama/'kaç kayıt var' bilgisi\niçin ucuslar listesinin uzunluğuna güvenmesi gerekmez."
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "integer"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": {
+            "type": "string",
+            "title": "Message"
+          },
+          "type": {
+            "type": "string",
+            "title": "Error Type"
+          },
+          "input": {
+            "title": "Input"
+          },
+          "ctx": {
+            "type": "object",
+            "title": "Context"
+          }
+        },
+        "type": "object",
+        "required": [
+          "loc",
+          "msg",
+          "type"
+        ],
+        "title": "ValidationError"
+      }
+    }
+  }
+}

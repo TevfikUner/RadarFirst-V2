@@ -58,5 +58,16 @@ jobs:
           pip install -r requirements-dev.txt
       - name: Veritabanı şemasını kur (alembic upgrade head)
         run: alembic upgrade head
-      - name: Testleri çalıştır
-        run: pytest tests/ -v
+      - name: Testleri çalıştır (kapsam raporuyla)
+        run: pytest tests/ -v --cov --cov-report=term-missing --cov-report=xml
+      - name: Kapsam özetini iş özetine yaz
+        if: always()
+        run: |
+          echo "## Test kapsamı" >> "$GITHUB_STEP_SUMMARY"
+          python -m coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY" || true
+      - name: Kapsam raporunu artifact olarak yükle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-xml
+          path: coverage.xml

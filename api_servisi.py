@@ -529,6 +529,7 @@ async def ucuslari_toplu_sil(
     bir filtre ZORUNLUDUR -- filtresiz bir çağrı, tüm veritabanını
     YANLIŞLIKLA boşaltabileceği için kasıtlı olarak 400 ile reddedilir
     (tek tek silme için bkz. DELETE /ucuslar/{ucus_numarasi}/{tarih})."""
+    _hiz_sinirini_kontrol_et("silme")
     if not any([ucus_numarasi_arama, baslangic_tarih, bitis_tarih]):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -567,6 +568,7 @@ async def ucus_sil(
     uçuş/tarih tekrar analiz edilmek istenirse zaten otomatik üzerine
     yazılır (bkz. ucus_ve_olcumleri_kaydet) -- bu uç nokta, bir daha analiz
     edilmeyecek kaydı veritabanından tamamen kaldırmak içindir."""
+    _hiz_sinirini_kontrol_et("silme")
     silindi_mi = await ucus_sil_async(ucus_numarasi, tarih.isoformat())
     if not silindi_mi:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Uçuş bulunamadı.")

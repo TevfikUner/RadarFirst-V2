@@ -43,6 +43,31 @@ api_servisi.py  mcp_postgres_    (Alembic ile
                  için salt okunur)
 ```
 
+Aynı mimarinin görsel (GitHub'da otomatik render olan Mermaid) hali -- ML
+sınıflandırıcı ve SIGMET doğrulama akışları dahil:
+
+```mermaid
+flowchart TB
+    OS["OpenSky/Trino<br/>state vectors"] --> VY["veri_yukleme.py"]
+    ERA5["Copernicus/ERA5<br/>.nc veri küpü"] --> VY
+    VY --> ES["eslestirme.py<br/>(vektörel eşleştirme)"]
+    ES --> TI["turbulans_indeksleri.py<br/>(Ellrod TI1 + Richardson)"]
+
+    PIREP["IEM PIREP arşivi<br/>(gerçek pilot raporları)"] --> MLV["ml_veri_indir.py"] --> MLE["ml_egitimi.py"] --> MODEL[("turbulans_ml_modeli.joblib")]
+    TI -.->|"özellik çıkarımı"| MODEL
+
+    TI --> DB[("PostgreSQL<br/>ucuslar / edr_olcumleri")]
+    DB --> API["api_servisi.py<br/>(FastAPI REST + WebSocket)"]
+    MODEL --> API
+    SIGMET["AWC SIGMET arşivi<br/>(sadece ABD hava sahası)"] --> SD["sigmet_dogrulama.py"] --> API
+    ERA5 -.->|"A* rota optimizasyonu"| RO["rota_optimizasyonu.py"] --> API
+
+    API --> H3D["web/harita3d.html<br/>(3D canlı harita)"]
+    API --> SIM["web/ucus_simulasyonu.html<br/>(rota karşılaştırma)"]
+    API --> ST["web_arayuzu.py<br/>(Streamlit)"]
+    DB --> MCP["mcp_postgres_sunucusu.py<br/>(Claude Code, salt okunur)"]
+```
+
 Dosya dosya kısa açıklama:
 
 ```
@@ -79,6 +104,7 @@ ml_veri_indir.py                  -> ML eğitim verisi: PIREP raporlarına eşle
 ml_egitimi.py                     -> ML eğitim/karşılaştırma betiği (Lojistik Regresyon / Random Forest / Gradient Boosting, recall'a göre seçim)
 api_servisi.py                    -> FastAPI REST API'si (API anahtarlı, /api/v1, async, WebSocket)
 mcp_postgres_sunucusu.py         -> Claude Code/Desktop için salt okunur PostgreSQL MCP sunucusu
+openapi_disa_aktar.py            -> openapi.json + Postman koleksiyonunu dosyaya yazar (sunucusuz keşif için)
 .mcp.json                          -> Claude Code'un mcp_postgres_sunucusu.py'yi tanıması için
 Dockerfile, docker-compose.yml     -> tek komutla (Postgres + API) çalıştırma
 .github/workflows/ci.yml           -> lint + test GitHub Actions iş akışı
@@ -175,6 +201,15 @@ uvicorn api_servisi:app --reload --port 8000
 
 Swagger (`/docs`), uç noktaları Uçuşlar/Analiz/Simülasyon/Türbülans Tahmini/Eşikler/Sistem etiketleriyle gruplar.
 
+Sunucuyu ayağa kaldırmadan API'yi keşfetmek için: `openapi.json` (ham OpenAPI
+şeması, `/openapi.json` ile AYNI) ve `turbulans_radar.postman_collection.json`
+(tüm uç noktaları `X-API-Key` başlığıyla hazır içeren bir Postman
+koleksiyonu -- `taban_url`/`api_anahtari` koleksiyon değişkenlerini
+doldurman yeterli) repoya dahil. Endpoint eklendikçe/değiştikçe
+`python openapi_disa_aktar.py` ile yeniden üretilebilir -- canlı `/openapi.json`
+her zaman en güncel/otoriter kaynaktır, bu iki dosya sadece bir anlık
+görüntü (snapshot) kolaylığı sağlar.
+
 | Metod | Yol | Açıklama |
 |---|---|---|
 | GET | `/saglik` | Sağlık kontrolü (anahtarsız). `?derin=true` ile PostgreSQL'e gerçekten bağlanmayı dener (deploy sonrası kontrol için) |
@@ -222,7 +257,9 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
 - **Hız sınırlama:** `/api/v1/analiz/*`, kendi API'sini kötüye kullanıma
   karşı bellek-içi bir pencere sayaçla korur (varsayılan: 60 saniyede en
   fazla 5 istek, aşılırsa 429) -- dışarıdan tetiklenen aşırı istekle
-  OpenSky'yi dolaylı yormamak için.
+  OpenSky'yi dolaylı yormamak için. `DELETE /api/v1/ucuslar*` (tekli ve
+  toplu silme) da AYNI desenle (kendi ayrı penceresiyle) korunur --
+  yanlışlıkla/kötüye kullanımla art arda çok sayıda silme isteğine karşı.
 - **Asenkron:** okuma uç noktaları `asyncpg` tabanlı, event loop'u
   bloklamaz. Analiz tetikleme, `main.py`/`toplu_analiz.py`'deki aynı
   (bloklayan) mantığı `asyncio.to_thread` ile ayrı bir thread'de çalıştırır.

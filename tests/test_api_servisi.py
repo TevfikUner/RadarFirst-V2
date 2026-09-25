@@ -232,6 +232,18 @@ async def test_hiz_siniri_asilinca_429(istemci, api_anahtari, monkeypatch):
     assert son_yanit.status_code == 429
 
 
+async def test_silme_hiz_siniri_asilinca_429(istemci, api_anahtari):
+    """DELETE /ucuslar/{..} ve DELETE /ucuslar (toplu) AYNI 'silme' hız
+    sınırlama penceresini paylaşır -- ikisi karışık çağrılsa bile toplam
+    istek sayısı sınırı aşınca 429 dönmeli."""
+    son_yanit = None
+    for i in range(api_servisi._ANALIZ_PENCERE_BASINA_MAKS_ISTEK + 1):
+        son_yanit = await istemci.delete(
+            f"/api/v1/ucuslar/YOKUCUS{i % 9}/1999-01-01", headers={"X-API-Key": api_anahtari}
+        )
+    assert son_yanit.status_code == 429
+
+
 async def test_bilinmeyen_gorev_id_404(istemci, api_anahtari):
     yanit = await istemci.get("/api/v1/analiz/durum/olmayan-id", headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 404

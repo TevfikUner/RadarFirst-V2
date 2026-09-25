@@ -29,3 +29,8 @@ turbulans_ml_modeli_bilgisi.json
 # için girdi, yukarıdaki PIREP/ERA5 eğitim verisinden türetildiği için
 # yeniden üretilebilir.
 pirep_kalibrasyon_verisi.csv
+
+# pytest-cov / coverage.py çıktıları (CI'da üretilir, bkz. ci.yml).
+.coverage
+coverage.xml
+htmlcov/

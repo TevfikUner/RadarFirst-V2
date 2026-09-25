@@ -1,0 +1,468 @@
+{
+  "info": {
+    "name": "Türbülans Radar API",
+    "description": "Ellrod TI1 + Richardson tabanlı türbülans eşleştirme sonuçlarını JSON olarak sunar.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "de7ba8af-176c-4059-b43a-4d62f36f0305"
+  },
+  "variable": [
+    {
+      "key": "taban_url",
+      "value": "http://localhost:8000"
+    },
+    {
+      "key": "api_anahtari",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Eşikler",
+      "item": [
+        {
+          "name": "Esikleri Getir",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/esikler",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "esikler"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Simülasyon",
+      "item": [
+        {
+          "name": "Ucak Profillerini Getir",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/simulasyon/ucak-profilleri",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "simulasyon",
+                "ucak-profilleri"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Rota Simulasyonu",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/simulasyon/rota",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "simulasyon",
+                "rota"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Türbülans Tahmini",
+      "item": [
+        {
+          "name": "Turbulans Tahmini",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/turbulans/tahmin",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "turbulans",
+                "tahmin"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Turbulans Model Bilgisi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/turbulans/model-bilgisi",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "turbulans",
+                "model-bilgisi"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Uçuşlar",
+      "item": [
+        {
+          "name": "Ucuslar Listesi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/ucuslar",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ucuslar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ucuslari Toplu Sil",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/ucuslar",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ucuslar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ucus Detayi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/ucuslar/{ucus_numarasi}/{tarih}",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ucuslar",
+                "{ucus_numarasi}",
+                "{tarih}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ucus Sil",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/ucuslar/{ucus_numarasi}/{tarih}",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ucuslar",
+                "{ucus_numarasi}",
+                "{tarih}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ucus Csv Disa Aktar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/ucuslar/{ucus_numarasi}/{tarih}/csv",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ucuslar",
+                "{ucus_numarasi}",
+                "{tarih}",
+                "csv"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ucus Geojson Disa Aktar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/ucuslar/{ucus_numarasi}/{tarih}/geojson",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ucuslar",
+                "{ucus_numarasi}",
+                "{tarih}",
+                "geojson"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Ucus Sigmet Dogrulamasi",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/ucuslar/{ucus_numarasi}/{tarih}/sigmet-dogrulama",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ucuslar",
+                "{ucus_numarasi}",
+                "{tarih}",
+                "sigmet-dogrulama"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Analiz",
+      "item": [
+        {
+          "name": "Ucus Analizi Baslat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/analiz/ucus",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analiz",
+                "ucus"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Toplu Analiz Baslat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/analiz/toplu",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analiz",
+                "toplu"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Analiz Durumu",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/analiz/durum/{gorev_id}",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analiz",
+                "durum",
+                "{gorev_id}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Sistem",
+      "item": [
+        {
+          "name": "Saglik Kontrolu",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{taban_url}}/saglik",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "saglik"
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
