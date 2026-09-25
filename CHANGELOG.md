@@ -4,6 +4,32 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## REST API tamamlama 2: toplam sayı, toplu silme, CSV/GeoJSON export, derin sağlık kontrolü, Swagger etiketleri
+
+- **`GET /api/v1/ucuslar`** artık `{toplam_sayi, ucuslar}` döner (önceden
+  çıplak bir liste dönüyordu, istemci limit uygulanmadan önceki toplam
+  eşleşme sayısını bilemiyordu) -- **UYUMLULUK NOTU:** bu, yanıt şeklini
+  değiştiren bir kırılgan değişikliktir; `web/harita3d.html` ve testler
+  güncellendi.
+- **`DELETE /api/v1/ucuslar`**: filtreye uyan TÜM uçuşları toplu siler.
+  Filtresiz bir çağrı (tüm tabloyu YANLIŞLIKLA boşaltabileceği için) 400
+  ile reddedilir -- `veritabani.ucuslari_toplu_sil_async`, hiç filtre
+  koşulu yoksa `ValueError` fırlatır.
+- **`GET /api/v1/ucuslar/{ucus}/{tarih}/csv`** ve **`/geojson`**: bir
+  uçuşun TÜM ölçümlerini (JSON uç noktasındaki 5000 satır tavanı olmadan)
+  CSV/GeoJSON olarak indirir -- QGIS/geopandas gibi harici araçlarla
+  kullanmak için.
+- **`GET /saglik?derin=true`**: varsayılan (anahtarsız, sığ) davranış
+  DEĞİŞMEDİ; `derin=true` ile PostgreSQL'e gerçekten bağlanmayı dener,
+  erişilemezse 503 döner (deploy sonrası "DB'ye gerçekten erişiyor muyum"
+  kontrolü için).
+- Swagger (`/docs`) artık uç noktaları Uçuşlar/Analiz/Simülasyon/Türbülans
+  Tahmini/Eşikler/Sistem etiketleriyle gruplar.
+- `web/harita3d.html`'e "Sil" butonu, "Kayıtlı uçuşlar" arama/filtreleme
+  listesi ve gerçek metriklerle dolan "ML Türbülans Modeli" paneli
+  eklenmişti (bir önceki bölüm); bu sefer de yeni `toplam_sayi` alanına
+  göre güncellendi ve gösterilen/toplam sayı bilgisi eklendi.
+
 ## EDR katsayısı gerçek veriyle kalibre edildi + harita3d.html gerçek tarayıcıda test edildi (2 gerçek hata düzeltildi)
 
 - **Kalibrasyon:** `config.EDR_OLCEKLENDIRME_KATSAYISI` artık keyfi bir

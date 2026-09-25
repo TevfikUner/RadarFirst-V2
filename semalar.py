@@ -20,6 +20,7 @@ from rota_optimizasyonu import UCAK_PROFILLERI
 
 class SaglikYaniti(BaseModel):
     durum: str
+    veritabani: str | None = None
 
 
 class UcusYaniti(BaseModel):
@@ -47,6 +48,19 @@ class UcusDetayYaniti(BaseModel):
     ucus: UcusYaniti
     toplam_olcum_sayisi: int
     olcumler: list[OlcumYaniti]
+
+
+class UcuslarListesiYaniti(BaseModel):
+    """toplam_sayi, limit UYGULANMADAN ÖNCEKİ filtre eşleşme sayısıdır --
+    istemcinin (bkz. web/harita3d.html) sayfalama/'kaç kayıt var' bilgisi
+    için ucuslar listesinin uzunluğuna güvenmesi gerekmez."""
+
+    toplam_sayi: int
+    ucuslar: list[UcusYaniti]
+
+
+class TopluSilmeYaniti(BaseModel):
+    silinen_sayisi: int
 
 
 class GorevBaslatildiYaniti(BaseModel):

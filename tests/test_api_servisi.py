@@ -69,7 +69,7 @@ async def istemci():
 async def test_saglik_anahtarsiz_erisilebilir(istemci):
     yanit = await istemci.get("/saglik")
     assert yanit.status_code == 200
-    assert yanit.json() == {"durum": "ayakta"}
+    assert yanit.json() == {"durum": "ayakta", "veritabani": None}
 
 
 async def test_v1_anahtarsiz_401(istemci):
@@ -85,7 +85,9 @@ async def test_v1_yanlis_anahtar_401(istemci):
 async def test_v1_dogru_anahtar_200(istemci, api_anahtari):
     yanit = await istemci.get("/api/v1/ucuslar", headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 200
-    assert isinstance(yanit.json(), list)
+    govde = yanit.json()
+    assert isinstance(govde["ucuslar"], list)
+    assert isinstance(govde["toplam_sayi"], int)
 
 
 async def test_olmayan_ucus_404(istemci, api_anahtari):
@@ -409,6 +411,38 @@ async def test_ucus_silme_olmayani_404_doner(istemci, api_anahtari):
     assert yanit.status_code == 404
 
 
+async def test_toplu_silme_filtresiz_400_doner(istemci, api_anahtari):
+    """Filtresiz bir toplu silme, tüm tabloyu YANLIŞLIKLA boşaltabileceği
+    için kasıtlı olarak reddedilmeli."""
+    yanit = await istemci.delete("/api/v1/ucuslar", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 400
+
+
+async def test_toplu_silme_filtreyle_eslesenleri_siler(istemci, api_anahtari):
+    df = pd.DataFrame(
+        {
+            "zaman": pd.to_datetime(["2019-01-01T00:00:00Z"]),
+            "enlem": [40.0],
+            "boylam": [30.0],
+            "ti1_indeksi": [1e-7],
+        }
+    )
+    vt.ucus_ve_olcumleri_kaydet(df, "TOPSIL1", "2019-01-01")
+    vt.ucus_ve_olcumleri_kaydet(df, "TOPSIL2", "2019-01-01")
+    try:
+        yanit = await istemci.delete(
+            "/api/v1/ucuslar?ucus_numarasi_arama=TOPSIL", headers={"X-API-Key": api_anahtari}
+        )
+        assert yanit.status_code == 200
+        assert yanit.json()["silinen_sayisi"] == 2
+
+        kontrol = await istemci.get("/api/v1/ucuslar/TOPSIL1/2019-01-01", headers={"X-API-Key": api_anahtari})
+        assert kontrol.status_code == 404
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi LIKE 'TOPSIL%'"))
+
+
 async def test_ucuslar_ucus_numarasi_aramasi_filtreler(istemci, api_anahtari):
     df = pd.DataFrame(
         {
@@ -425,8 +459,9 @@ async def test_ucuslar_ucus_numarasi_aramasi_filtreler(istemci, api_anahtari):
         )
         assert yanit.status_code == 200
         govde = yanit.json()
-        assert len(govde) == 1
-        assert govde[0]["ucus_numarasi"] == "ARAAPI1"
+        assert govde["toplam_sayi"] == 1
+        assert len(govde["ucuslar"]) == 1
+        assert govde["ucuslar"][0]["ucus_numarasi"] == "ARAAPI1"
     finally:
         with vt.motor_al().begin() as baglanti:
             baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi = 'ARAAPI1'"))
@@ -468,3 +503,84 @@ async def test_harita3d_sayfasi_sunuluyor(istemci):
     yanit = await istemci.get("/harita/harita3d.html")
     assert yanit.status_code == 200
     assert "maplibregl" in yanit.text
+
+
+# --- CSV/GeoJSON dışa aktarma ---
+
+
+async def test_csv_disa_aktarma_olmayan_ucus_404(istemci, api_anahtari):
+    yanit = await istemci.get("/api/v1/ucuslar/YOKUCUS1/1999-01-01/csv", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 404
+
+
+async def test_csv_disa_aktarma_gercek_veriyi_doner(istemci, api_anahtari):
+    df = pd.DataFrame(
+        {
+            "zaman": pd.to_datetime(["2019-01-01T00:00:00Z", "2019-01-01T00:10:00Z"]),
+            "enlem": [40.0, 40.1],
+            "boylam": [30.0, 30.1],
+            "ti1_indeksi": [1e-7, 5e-7],
+        }
+    )
+    vt.ucus_ve_olcumleri_kaydet(df, "CSVAPI1", "2019-01-01")
+    try:
+        yanit = await istemci.get("/api/v1/ucuslar/CSVAPI1/2019-01-01/csv", headers={"X-API-Key": api_anahtari})
+        assert yanit.status_code == 200
+        assert yanit.headers["content-type"].startswith("text/csv")
+        assert "attachment" in yanit.headers["content-disposition"]
+        satirlar = yanit.text.strip().splitlines()
+        assert len(satirlar) == 3  # başlık + 2 ölçüm
+        assert "ti1_indeksi" in satirlar[0]
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi = 'CSVAPI1'"))
+
+
+async def test_geojson_disa_aktarma_olmayan_ucus_404(istemci, api_anahtari):
+    yanit = await istemci.get("/api/v1/ucuslar/YOKUCUS1/1999-01-01/geojson", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 404
+
+
+async def test_geojson_disa_aktarma_gecerli_feature_collection_doner(istemci, api_anahtari):
+    df = pd.DataFrame(
+        {
+            "zaman": pd.to_datetime(["2019-01-01T00:00:00Z"]),
+            "enlem": [40.5],
+            "boylam": [30.5],
+            "ti1_indeksi": [1e-7],
+        }
+    )
+    vt.ucus_ve_olcumleri_kaydet(df, "GEOAPI1", "2019-01-01")
+    try:
+        yanit = await istemci.get("/api/v1/ucuslar/GEOAPI1/2019-01-01/geojson", headers={"X-API-Key": api_anahtari})
+        assert yanit.status_code == 200
+        assert yanit.headers["content-type"].startswith("application/geo+json")
+        govde = yanit.json()
+        assert govde["type"] == "FeatureCollection"
+        assert len(govde["features"]) == 1
+        ozellik = govde["features"][0]
+        assert ozellik["geometry"]["coordinates"] == [30.5, 40.5]  # [boylam, enlem]
+        assert ozellik["properties"]["ti1_indeksi"] == 1e-7
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi = 'GEOAPI1'"))
+
+
+# --- Derin sağlık kontrolü ---
+
+
+async def test_saglik_derin_gercek_db_ile_basarili(istemci):
+    yanit = await istemci.get("/saglik?derin=true")
+    assert yanit.status_code == 200
+    assert yanit.json() == {"durum": "ayakta", "veritabani": "erisilebilir"}
+
+
+async def test_saglik_derin_db_erisilemezse_503(istemci, monkeypatch):
+    from sqlalchemy.ext.asyncio import create_async_engine
+
+    bozuk_motor = create_async_engine("postgresql+asyncpg://olmayan:olmayan@127.0.0.1:1/olmayan")
+    monkeypatch.setattr(api_servisi, "async_motor_al", lambda: bozuk_motor)
+    yanit = await istemci.get("/saglik?derin=true")
+    assert yanit.status_code == 503
+    assert yanit.json()["veritabani"] == "erisilemiyor"
+    await bozuk_motor.dispose()
