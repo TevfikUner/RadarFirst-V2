@@ -43,6 +43,7 @@ BİLİNÇLİ OLARAK EKLENMEDİ:
 """
 
 import asyncio
+import json
 import os
 import secrets
 import time
@@ -73,9 +74,10 @@ from fastapi import (
     status,
 )
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field, field_validator
+from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 import config
@@ -92,21 +94,24 @@ from semalar import (
     RotaSimulasyonuYaniti,
     SaglikYaniti,
     SigmetDogrulamaYaniti,
+    TopluSilmeYaniti,
     TurbulansTahminIstegi,
     TurbulansTahminYaniti,
     UcakProfiliYaniti,
     UcusDetayYaniti,
-    UcusYaniti,
+    UcuslarListesiYaniti,
 )
 from sigmet_dogrulama import ucus_sigmet_ile_karsilastir
 from toplu_analiz import toplu_analiz_calistir
 from turbulans_ml_modeli import model_bilgisini_yukle, ozellikleri_cikar, turbulans_riski_tahmin_et
 from veritabani import (
     VeritabaniAyarlariEksikHatasi,
+    async_motor_al,
     ucus_detayini_getir_async,
     ucus_olcumlerini_dataframe_olarak_getir,
     ucus_sil_async,
     ucuslari_listele_async,
+    ucuslari_toplu_sil_async,
 )
 
 loglama.ayarla()
@@ -385,7 +390,7 @@ class TopluAnalizIstegi(BaseModel):
     bildirim_webhook_url: str | None = None
 
 
-@v1.get("/esikler", response_model=EsiklerYaniti)
+@v1.get("/esikler", response_model=EsiklerYaniti, tags=["Eşikler"])
 async def esikleri_getir():
     """web/harita3d.html gibi istemcilerin, renklendirme eşiklerini
     config.py ile bire bir aynı tutabilmesi için (sabitleri JS'e
@@ -396,7 +401,7 @@ async def esikleri_getir():
     }
 
 
-@v1.get("/simulasyon/ucak-profilleri", response_model=list[UcakProfiliYaniti])
+@v1.get("/simulasyon/ucak-profilleri", response_model=list[UcakProfiliYaniti], tags=["Simülasyon"])
 async def ucak_profillerini_getir():
     """web/ucus_simulasyonu.html'in uçak modeli seçim listesini doldurmak
     içindir -- sabitler tek kaynaktan (rota_optimizasyonu.py) okunur."""
@@ -406,7 +411,7 @@ async def ucak_profillerini_getir():
     ]
 
 
-@v1.post("/simulasyon/rota", response_model=RotaSimulasyonuYaniti)
+@v1.post("/simulasyon/rota", response_model=RotaSimulasyonuYaniti, tags=["Simülasyon"])
 async def rota_simulasyonu(istek: RotaSimulasyonuIstegi):
     """
     Verilen başlangıç/bitiş/irtifa/tarih/uçak için iki rota üretir: büyük
@@ -430,7 +435,7 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi):
     return sonuc
 
 
-@v1.post("/turbulans/tahmin", response_model=TurbulansTahminYaniti)
+@v1.post("/turbulans/tahmin", response_model=TurbulansTahminYaniti, tags=["Türbülans Tahmini"])
 async def turbulans_tahmini(istek: TurbulansTahminIstegi):
     """
     Tek bir nokta için HEM fizik tabanlı (Ellrod TI1) HEM gerçek IEM PIREP +
@@ -487,7 +492,7 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi):
     return await asyncio.to_thread(_hesapla)
 
 
-@v1.get("/turbulans/model-bilgisi", response_model=ModelBilgisiYaniti)
+@v1.get("/turbulans/model-bilgisi", response_model=ModelBilgisiYaniti, tags=["Türbülans Tahmini"])
 async def turbulans_model_bilgisi():
     """ml_egitimi.py'nin kaydettiği model metadata'sını (seçilen model,
     metrikler, özellik listesi, eğitim tarihi) döner. Model henüz
@@ -499,7 +504,7 @@ async def turbulans_model_bilgisi():
     return {"egitildi_mi": True, **bilgi}
 
 
-@v1.get("/ucuslar", response_model=list[UcusYaniti])
+@v1.get("/ucuslar", response_model=UcuslarListesiYaniti, tags=["Uçuşlar"])
 async def ucuslar_listesi(
     limit: int = Query(default=100, ge=1, le=500),
     ucus_numarasi_arama: str | None = Query(default=None, max_length=8, description="Uçuş numarasında kısmi arama"),
@@ -514,7 +519,28 @@ async def ucuslar_listesi(
     )
 
 
-@v1.get("/ucuslar/{ucus_numarasi}/{tarih}", response_model=UcusDetayYaniti)
+@v1.delete("/ucuslar", response_model=TopluSilmeYaniti, tags=["Uçuşlar"])
+async def ucuslari_toplu_sil(
+    ucus_numarasi_arama: str | None = Query(default=None, max_length=8, description="Uçuş numarasında kısmi arama"),
+    baslangic_tarih: date | None = Query(default=None),
+    bitis_tarih: date | None = Query(default=None),
+):
+    """Filtreye uyan TÜM uçuşları (CASCADE ile ölçümleriyle) siler. En az
+    bir filtre ZORUNLUDUR -- filtresiz bir çağrı, tüm veritabanını
+    YANLIŞLIKLA boşaltabileceği için kasıtlı olarak 400 ile reddedilir
+    (tek tek silme için bkz. DELETE /ucuslar/{ucus_numarasi}/{tarih})."""
+    if not any([ucus_numarasi_arama, baslangic_tarih, bitis_tarih]):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Toplu silme için en az bir filtre gerekli (ucus_numarasi_arama/baslangic_tarih/bitis_tarih).",
+        )
+    silinen_sayisi = await ucuslari_toplu_sil_async(
+        ucus_numarasi_arama=ucus_numarasi_arama, baslangic_tarih=baslangic_tarih, bitis_tarih=bitis_tarih
+    )
+    return {"silinen_sayisi": silinen_sayisi}
+
+
+@v1.get("/ucuslar/{ucus_numarasi}/{tarih}", response_model=UcusDetayYaniti, tags=["Uçuşlar"])
 async def ucus_detayi(
     ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
     tarih: date = Path(...),
@@ -532,7 +558,7 @@ async def ucus_detayi(
     return detay
 
 
-@v1.delete("/ucuslar/{ucus_numarasi}/{tarih}", status_code=status.HTTP_204_NO_CONTENT)
+@v1.delete("/ucuslar/{ucus_numarasi}/{tarih}", status_code=status.HTTP_204_NO_CONTENT, tags=["Uçuşlar"])
 async def ucus_sil(
     ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
     tarih: date = Path(...),
@@ -546,7 +572,66 @@ async def ucus_sil(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Uçuş bulunamadı.")
 
 
-@v1.get("/ucuslar/{ucus_numarasi}/{tarih}/sigmet-dogrulama", response_model=SigmetDogrulamaYaniti)
+@v1.get("/ucuslar/{ucus_numarasi}/{tarih}/csv", tags=["Uçuşlar"])
+async def ucus_csv_disa_aktar(
+    ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
+    tarih: date = Path(...),
+):
+    """Bir uçuşun TÜM ölçümlerini (JSON uç noktasındaki sayfalama/5000
+    tavanı OLMADAN -- QGIS gibi harici araçlarda kullanmak için) CSV olarak
+    indirir."""
+    df = await asyncio.to_thread(ucus_olcumlerini_dataframe_olarak_getir, ucus_numarasi, tarih.isoformat())
+    if df is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Uçuş bulunamadı. Önce POST /api/v1/analiz/ucus ile analiz tetikle.",
+        )
+    csv_metni = df.to_csv(index=False)
+    dosya_adi = f"{ucus_numarasi}_{tarih.isoformat()}.csv"
+    return Response(
+        content=csv_metni,
+        media_type="text/csv",
+        headers={"Content-Disposition": f'attachment; filename="{dosya_adi}"'},
+    )
+
+
+@v1.get("/ucuslar/{ucus_numarasi}/{tarih}/geojson", tags=["Uçuşlar"])
+async def ucus_geojson_disa_aktar(
+    ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
+    tarih: date = Path(...),
+):
+    """Bir uçuşun TÜM ölçümlerini (sayfalama olmadan) bir GeoJSON
+    FeatureCollection'ı olarak döner -- web/harita3d.html'in kendi
+    içinde ürettiği nokta koleksiyonuyla AYNI şema, ama QGIS/geopandas gibi
+    harici araçlarda doğrudan açılabilir bir dosya olarak."""
+    df = await asyncio.to_thread(ucus_olcumlerini_dataframe_olarak_getir, ucus_numarasi, tarih.isoformat())
+    if df is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Uçuş bulunamadı. Önce POST /api/v1/analiz/ucus ile analiz tetikle.",
+        )
+    ozellik_sutunlari = [s for s in df.columns if s not in ("enlem", "boylam")]
+    df_temiz = df.astype(object).where(df.notna(), None)
+    koleksiyon = {
+        "type": "FeatureCollection",
+        "features": [
+            {
+                "type": "Feature",
+                "geometry": {"type": "Point", "coordinates": [satir["boylam"], satir["enlem"]]},
+                "properties": {sutun: satir[sutun] for sutun in ozellik_sutunlari},
+            }
+            for _, satir in df_temiz.iterrows()
+        ],
+    }
+    dosya_adi = f"{ucus_numarasi}_{tarih.isoformat()}.geojson"
+    return Response(
+        content=json.dumps(koleksiyon, default=str),
+        media_type="application/geo+json",
+        headers={"Content-Disposition": f'attachment; filename="{dosya_adi}"'},
+    )
+
+
+@v1.get("/ucuslar/{ucus_numarasi}/{tarih}/sigmet-dogrulama", response_model=SigmetDogrulamaYaniti, tags=["Uçuşlar"])
 async def ucus_sigmet_dogrulamasi(
     ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
     tarih: date = Path(...),
@@ -581,7 +666,7 @@ async def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih, webhook_url)
     await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **_gorev_disari_ver(_gorevler[gorev_id])})
 
 
-@v1.post("/analiz/ucus", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti)
+@v1.post("/analiz/ucus", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])
 async def ucus_analizi_baslat(istek: UcusAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
     _hiz_sinirini_kontrol_et("tek_ucus")
     _eski_gorevleri_temizle()
@@ -604,7 +689,7 @@ async def _toplu_arkaplan_gorevi(gorev_id, ucus_listesi_df, webhook_url):
     await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **_gorev_disari_ver(_gorevler[gorev_id])})
 
 
-@v1.post("/analiz/toplu", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti)
+@v1.post("/analiz/toplu", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])
 async def toplu_analiz_baslat(istek: TopluAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
     _hiz_sinirini_kontrol_et("toplu")
     _eski_gorevleri_temizle()
@@ -616,7 +701,7 @@ async def toplu_analiz_baslat(istek: TopluAnalizIstegi, arkaplan_gorevleri: Back
     return {"gorev_id": gorev_id, "durum": "baslatildi"}
 
 
-@v1.get("/analiz/durum/{gorev_id}", response_model=GorevDurumYaniti)
+@v1.get("/analiz/durum/{gorev_id}", response_model=GorevDurumYaniti, tags=["Analiz"])
 async def analiz_durumu(gorev_id: str):
     gorev = _gorevler.get(gorev_id)
     if gorev is None:
@@ -627,7 +712,21 @@ async def analiz_durumu(gorev_id: str):
 app.include_router(v1)
 
 
-@app.get("/saglik", response_model=SaglikYaniti)
-def saglik_kontrolu():
-    """Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği)."""
-    return {"durum": "ayakta"}
+@app.get("/saglik", response_model=SaglikYaniti, tags=["Sistem"])
+async def saglik_kontrolu(derin: bool = Query(default=False, description="True ise PostgreSQL'e gerçekten bağlanmayı dener")):
+    """Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği).
+    Varsayılan (sığ) davranış DEĞİŞMEDİ -- sadece süreç ayakta mı diye bakar,
+    her yük dengeleyici probunda PostgreSQL'e gitmeyi zorlamaz.
+    `?derin=true` ile gerçek bir PostgreSQL bağlantısı denenir (deploy
+    sonrası 'DB'ye GERÇEKTEN erişiyor muyum' diye elle/monitoring'den
+    kontrol için)."""
+    if not derin:
+        return {"durum": "ayakta"}
+    try:
+        motor = async_motor_al()
+        async with motor.connect() as baglanti:
+            await baglanti.execute(text("SELECT 1"))
+        return {"durum": "ayakta", "veritabani": "erisilebilir"}
+    except Exception as hata:
+        _logger.warning("Derin sağlık kontrolünde PostgreSQL'e erişilemedi: %s", dostane_hata_mesaji(hata))
+        return JSONResponse(status_code=503, content={"durum": "ayakta", "veritabani": "erisilemiyor"})

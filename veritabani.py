@@ -213,15 +213,22 @@ _LISTE_LIMIT_TAVANI = 500
 _OLCUM_LIMIT_TAVANI = 5000
 
 
-def _ucuslar_filtreli_sorgu(ucus_numarasi_arama=None, baslangic_tarih=None, bitis_tarih=None):
-    sorgu = select(Ucus)
+def _ucuslar_filtre_kosullari(ucus_numarasi_arama=None, baslangic_tarih=None, bitis_tarih=None):
+    """select/delete'in İKİSİNİN de aynı WHERE koşullarını kullanması için
+    (tek bir yerde tutarlı filtre mantığı) -- bkz. ucuslari_listele_async
+    (SELECT) ve ucuslari_toplu_sil_async (DELETE)."""
+    kosullar = []
     if ucus_numarasi_arama:
-        sorgu = sorgu.where(Ucus.ucus_numarasi.ilike(f"%{ucus_numarasi_arama}%"))
+        kosullar.append(Ucus.ucus_numarasi.ilike(f"%{ucus_numarasi_arama}%"))
     if baslangic_tarih:
-        sorgu = sorgu.where(Ucus.tarih >= _tarihe_cevir(baslangic_tarih))
+        kosullar.append(Ucus.tarih >= _tarihe_cevir(baslangic_tarih))
     if bitis_tarih:
-        sorgu = sorgu.where(Ucus.tarih <= _tarihe_cevir(bitis_tarih))
-    return sorgu
+        kosullar.append(Ucus.tarih <= _tarihe_cevir(bitis_tarih))
+    return kosullar
+
+
+def _ucuslar_filtreli_sorgu(ucus_numarasi_arama=None, baslangic_tarih=None, bitis_tarih=None):
+    return select(Ucus).where(*_ucuslar_filtre_kosullari(ucus_numarasi_arama, baslangic_tarih, bitis_tarih))
 
 
 def ucuslari_listele(motor=None, limit=100, ucus_numarasi_arama=None, baslangic_tarih=None, bitis_tarih=None):
@@ -270,11 +277,23 @@ def ucus_detayini_getir(ucus_numarasi, tarih_str, motor=None, olcum_limit=1000, 
 
 
 async def ucuslari_listele_async(limit=100, ucus_numarasi_arama=None, baslangic_tarih=None, bitis_tarih=None):
+    """Dönüş: {"toplam_sayi": ..., "ucuslar": [...]} -- toplam_sayi, limit
+    UYGULANMADAN ÖNCEKİ filtre eşleşme sayısıdır (istemcinin 'kaç sayfa
+    var' hesaplayabilmesi için; ucus_detayini_getir_async'in toplam_olcum_
+    sayisi ile AYNI mantık)."""
     limit = max(1, min(limit, _LISTE_LIMIT_TAVANI))
-    sorgu = _ucuslar_filtreli_sorgu(ucus_numarasi_arama, baslangic_tarih, bitis_tarih)
+    kosullar = _ucuslar_filtre_kosullari(ucus_numarasi_arama, baslangic_tarih, bitis_tarih)
     async with async_oturum_al() as oturum:
-        sonuc = await oturum.execute(sorgu.order_by(Ucus.olusturulma_zamani.desc()).limit(limit))
-        return [_ucus_sozluge_cevir(u) for u in sonuc.scalars().all()]
+        toplam_sayi = (
+            await oturum.execute(select(func.count()).select_from(Ucus).where(*kosullar))
+        ).scalar_one()
+        sonuc = await oturum.execute(
+            select(Ucus).where(*kosullar).order_by(Ucus.olusturulma_zamani.desc()).limit(limit)
+        )
+        return {
+            "toplam_sayi": toplam_sayi,
+            "ucuslar": [_ucus_sozluge_cevir(u) for u in sonuc.scalars().all()],
+        }
 
 
 async def ucus_detayini_getir_async(ucus_numarasi, tarih_str, olcum_limit=1000, olcum_offset=0):
@@ -347,6 +366,20 @@ async def ucus_sil_async(ucus_numarasi, tarih_str):
         )
         await oturum.commit()
         return sonuc.rowcount > 0
+
+
+async def ucuslari_toplu_sil_async(ucus_numarasi_arama=None, baslangic_tarih=None, bitis_tarih=None):
+    """Filtreye uyan TÜM uçuşları (CASCADE ile ölçümleriyle) siler. En az bir
+    filtre ZORUNLUDUR -- çağıran taraf (bkz. api_servisi.py) hiçbir filtre
+    verilmediyse bu fonksiyonu hiç çağırmamalı, aksi halde YANLIŞLIKLA tüm
+    tablo silinebilir. Dönüş: silinen uçuş sayısı."""
+    kosullar = _ucuslar_filtre_kosullari(ucus_numarasi_arama, baslangic_tarih, bitis_tarih)
+    if not kosullar:
+        raise ValueError("ucuslari_toplu_sil_async en az bir filtre gerektirir (tüm tabloyu silmeyi önlemek için).")
+    async with async_oturum_al() as oturum:
+        sonuc = await oturum.execute(delete(Ucus).where(*kosullar))
+        await oturum.commit()
+        return sonuc.rowcount
 
 
 def _ucus_sozluge_cevir(u: Ucus):

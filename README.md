@@ -173,12 +173,17 @@ uvicorn api_servisi:app --reload --port 8000
 
 ### Uç noktalar
 
+Swagger (`/docs`), uç noktaları Uçuşlar/Analiz/Simülasyon/Türbülans Tahmini/Eşikler/Sistem etiketleriyle gruplar.
+
 | Metod | Yol | Açıklama |
 |---|---|---|
-| GET | `/saglik` | Anahtarsız sağlık kontrolü |
-| GET | `/api/v1/ucuslar` | Kaydedilmiş uçuşları listeler (`limit`, 1-500; `ucus_numarasi_arama` kısmi eşleşme, `baslangic_tarih`/`bitis_tarih` ile filtrelenebilir) |
+| GET | `/saglik` | Sağlık kontrolü (anahtarsız). `?derin=true` ile PostgreSQL'e gerçekten bağlanmayı dener (deploy sonrası kontrol için) |
+| GET | `/api/v1/ucuslar` | Kaydedilmiş uçuşları listeler; `{toplam_sayi, ucuslar}` döner (`limit`, 1-500; `ucus_numarasi_arama` kısmi eşleşme, `baslangic_tarih`/`bitis_tarih` ile filtrelenebilir) |
 | GET | `/api/v1/ucuslar/{ucus_numarasi}/{tarih}` | Bir uçuşun ölçüm noktaları (`olcum_limit`/`olcum_offset` ile sayfalı) |
 | DELETE | `/api/v1/ucuslar/{ucus_numarasi}/{tarih}` | Kayıtlı bir uçuşu (ölçümleriyle birlikte) siler -- bulunamazsa 404, silinirse 204 |
+| DELETE | `/api/v1/ucuslar` | Filtreye (`ucus_numarasi_arama`/`baslangic_tarih`/`bitis_tarih`) uyan TÜM uçuşları toplu siler -- filtresiz istek 400 ile reddedilir (yanlışlıkla tüm tabloyu boşaltmayı önlemek için) |
+| GET | `/api/v1/ucuslar/{ucus_numarasi}/{tarih}/csv` | Bir uçuşun TÜM ölçümlerini (sayfalama olmadan) CSV olarak indirir |
+| GET | `/api/v1/ucuslar/{ucus_numarasi}/{tarih}/geojson` | Bir uçuşun TÜM ölçümlerini bir GeoJSON `FeatureCollection`'ı olarak indirir (QGIS/geopandas vb. için) |
 | POST | `/api/v1/analiz/ucus` | Tek bir uçuşu arka planda analiz eder, `gorev_id` döner |
 | POST | `/api/v1/analiz/toplu` | Birden fazla uçuşu arka planda analiz eder |
 | GET | `/api/v1/analiz/durum/{gorev_id}` | Tetiklenen bir analizin durumunu sorgular |

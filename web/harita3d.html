@@ -359,10 +359,11 @@ async function kayitliUcuslariListele() {
   try {
     const parametreler = new URLSearchParams({ limit: "20" });
     if (arama) parametreler.set("ucus_numarasi_arama", arama);
-    const ucuslar = await apiIste(`/api/v1/ucuslar?${parametreler}`);
+    const { toplam_sayi, ucuslar } = await apiIste(`/api/v1/ucuslar?${parametreler}`);
     if (!ucuslar.length) { liste.textContent = "Kayıtlı uçuş yok."; return; }
 
-    liste.innerHTML = "";
+    liste.innerHTML = toplam_sayi > ucuslar.length
+      ? `<div style="color:#999; padding:2px 6px">${ucuslar.length}/${toplam_sayi} gösteriliyor</div>` : "";
     for (const u of ucuslar) {
       const satir = document.createElement("div");
       satir.innerHTML = `<span>${u.ucus_numarasi}</span><span style="color:#999">${u.tarih}</span>`;

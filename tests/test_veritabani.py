@@ -114,3 +114,29 @@ async def test_ucus_sil_async_var_olani_siler(motor):
 async def test_ucus_sil_async_olmayani_false_doner(motor):
     silindi_mi = await vt.ucus_sil_async("HICBIRZAMAN", "1999-01-01")
     assert silindi_mi is False
+
+
+async def test_ucuslari_listele_async_toplam_sayi_limitten_bagimsizdir(motor):
+    """toplam_sayi, limit UYGULANMADAN ÖNCEKİ filtre eşleşme sayısı olmalı --
+    aksi halde istemci 'daha fazla kayıt var mı' bilemez."""
+    vt.ucus_ve_olcumleri_kaydet(_ornek_df(), _TEST_UCUS_NUMARASI, _TEST_TARIH, motor)
+
+    sonuc = await vt.ucuslari_listele_async(limit=1, ucus_numarasi_arama=_TEST_UCUS_NUMARASI)
+    assert sonuc["toplam_sayi"] == 1
+    assert len(sonuc["ucuslar"]) == 1
+
+    sonuc_bos = await vt.ucuslari_listele_async(ucus_numarasi_arama="HICBIRZAMANOLMAYACAKBIRUCUS")
+    assert sonuc_bos == {"toplam_sayi": 0, "ucuslar": []}
+
+
+async def test_ucuslari_toplu_sil_async_filtresiz_value_error_verir(motor):
+    with pytest.raises(ValueError):
+        await vt.ucuslari_toplu_sil_async()
+
+
+async def test_ucuslari_toplu_sil_async_eslesenleri_siler(motor):
+    vt.ucus_ve_olcumleri_kaydet(_ornek_df(), _TEST_UCUS_NUMARASI, _TEST_TARIH, motor)
+
+    silinen_sayisi = await vt.ucuslari_toplu_sil_async(ucus_numarasi_arama=_TEST_UCUS_NUMARASI)
+    assert silinen_sayisi == 1
+    assert vt.ucus_detayini_getir(_TEST_UCUS_NUMARASI, _TEST_TARIH, motor) is None

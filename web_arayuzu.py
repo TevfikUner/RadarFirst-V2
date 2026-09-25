@@ -15,6 +15,7 @@ gerçek OpenSky/Trino sorgusu ve gerçek hava durumu eşleştirmesi yapılıyor;
 bu sadece görsel bir ön yüz, hesaplama mantığı aynı.
 """
 
+import asyncio
 import contextlib
 import io
 import os
@@ -23,9 +24,11 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 import config
+import veritabani as vt
 from hata_yardimcisi import dostane_hata_mesaji
 from konsol_kurulumu import konsolu_utf8_yap
 from main import calistir
+from turbulans_ml_modeli import model_bilgisini_yukle
 
 konsolu_utf8_yap()
 
@@ -37,6 +40,39 @@ st.caption(
     "ve dinamik kararsızlık göstergesi (Richardson sayısı) hesaplar. Sertifikalı EDR değeri DEĞİLDİR -- "
     "araştırma/görselleştirme amaçlıdır."
 )
+
+with st.sidebar:
+    st.subheader("📋 Kayıtlı uçuşlar")
+    arama = st.text_input("Uçuş no ara", key="kayitli_arama", placeholder="THY322")
+    try:
+        kayitli = vt.ucuslari_listele(limit=20, ucus_numarasi_arama=arama or None)
+    except Exception as e:
+        kayitli = []
+        st.caption(f"Veritabanına erişilemedi: {dostane_hata_mesaji(e)}")
+
+    if kayitli:
+        for u in kayitli:
+            satir1, satir2 = st.columns([3, 1])
+            satir1.caption(f"**{u['ucus_numarasi']}** / {u['tarih']}")
+            if satir2.button("Sil", key=f"sil_{u['id']}"):
+                asyncio.run(vt.ucus_sil_async(u["ucus_numarasi"], str(u["tarih"])))
+                st.rerun()
+    elif arama:
+        st.caption("Eşleşen kayıtlı uçuş yok.")
+    else:
+        st.caption("Henüz kayıtlı uçuş yok -- aşağıdan bir analiz çalıştır.")
+
+    st.divider()
+    st.subheader("🤖 ML Türbülans Modeli")
+    model_bilgisi = model_bilgisini_yukle()
+    if model_bilgisi is None:
+        st.caption("Model henüz eğitilmedi (bkz. ml_egitimi.py).")
+    else:
+        st.caption(f"Seçilen model: **{model_bilgisi['secilen_model']}**")
+        m = model_bilgisi["metrikler"]
+        # Sidebar dar olduğu için st.metric() yerine tek satırlık metin --
+        # üç st.metric() yan yana rakamları kesiyordu.
+        st.caption(f"Recall **{m['recall']:.3f}** · F1 **{m['f1']:.3f}** · ROC-AUC **{m['roc_auc']:.3f}**")
 
 with st.form("analiz_formu"):
     sutun1, sutun2 = st.columns(2)
