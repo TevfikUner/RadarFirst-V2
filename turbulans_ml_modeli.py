@@ -46,6 +46,13 @@ OZELLIK_SUTUNLARI = ["ti1_indeksi", "richardson_sayisi", "ruzgar_hizi_ms", "basi
 MODEL_DOSYA_YOLU = "turbulans_ml_modeli.joblib"
 MODEL_BILGI_DOSYA_YOLU = "turbulans_ml_modeli_bilgisi.json"
 
+# Her ml_egitimi.py çalıştırması, MODEL_DOSYA_YOLU'nun (aktif model) yanına
+# bu klasöre KALICI bir kopya + manifest kaydı bırakır -- yeniden eğitim
+# gerekmeden eski bir modele geri dönebilmek (rollback) için, bkz.
+# versiyon_kaydet/versiyona_geri_don.
+MODEL_VERSIYONLARI_KLASORU = "model_versiyonlari"
+MODEL_VERSIYONLARI_MANIFEST_YOLU = MODEL_VERSIYONLARI_KLASORU + "/manifest.json"
+
 
 def ozellikleri_cikar(nokta_df: pd.DataFrame, veri_kupu) -> pd.DataFrame:
     """
@@ -153,3 +160,63 @@ def model_bilgisini_yukle():
             return json.load(dosya)
     except FileNotFoundError:
         return None
+
+
+def _versiyonlari_oku():
+    import json
+
+    try:
+        with open(MODEL_VERSIYONLARI_MANIFEST_YOLU, encoding="utf-8") as dosya:
+            return json.load(dosya)
+    except FileNotFoundError:
+        return []
+
+
+def model_versiyonlarini_listele():
+    """Şimdiye kadar eğitilmiş TÜM model versiyonlarını (en yeni önce)
+    döner. Hiç versiyon yoksa (henüz hiç eğitim yapılmadıysa) dürüstçe
+    boş liste döner."""
+    return sorted(_versiyonlari_oku(), key=lambda v: v["egitim_zamani"], reverse=True)
+
+
+def versiyon_kaydet(gecici_model_dosya_yolu, model_bilgisi):
+    """ml_egitimi.py, her eğitim çalıştırmasından sonra bunu çağırır --
+    o çalıştırmanın modelini `model_versiyonlari/` altına KALICI olarak
+    kopyalar ve manifest'e ekler. Dönüş: üretilen versiyon_id."""
+    import json
+    import os
+    import shutil
+    import uuid
+
+    os.makedirs(MODEL_VERSIYONLARI_KLASORU, exist_ok=True)
+    versiyon_id = f"{model_bilgisi['egitim_zamani'].replace(':', '-')}_{uuid.uuid4().hex[:8]}"
+    hedef_dosya_yolu = f"{MODEL_VERSIYONLARI_KLASORU}/{versiyon_id}.joblib"
+    shutil.copyfile(gecici_model_dosya_yolu, hedef_dosya_yolu)
+
+    versiyonlar = _versiyonlari_oku()
+    versiyonlar.append({"versiyon_id": versiyon_id, "dosya_yolu": hedef_dosya_yolu, **model_bilgisi})
+    with open(MODEL_VERSIYONLARI_MANIFEST_YOLU, "w", encoding="utf-8") as dosya:
+        json.dump(versiyonlar, dosya, ensure_ascii=False, indent=2)
+    return versiyon_id
+
+
+def versiyona_geri_don(versiyon_id):
+    """Belirli bir geçmiş model versiyonunu AKTİF model olarak işaretler --
+    MODEL_DOSYA_YOLU/MODEL_BILGI_DOSYA_YOLU o versiyonun içeriğiyle
+    değiştirilir, yeniden eğitim GEREKMEZ (rollback). Bilinmeyen bir
+    versiyon_id için ValueError fırlatır -- uydurma bir geri dönüş yapılmaz.
+    """
+    import json
+    import shutil
+
+    versiyon = next((v for v in _versiyonlari_oku() if v["versiyon_id"] == versiyon_id), None)
+    if versiyon is None:
+        raise ValueError(f"Bilinmeyen versiyon_id: '{versiyon_id}'.")
+
+    shutil.copyfile(versiyon["dosya_yolu"], MODEL_DOSYA_YOLU)
+    aktif_bilgi = {k: v for k, v in versiyon.items() if k not in ("versiyon_id", "dosya_yolu")}
+    with open(MODEL_BILGI_DOSYA_YOLU, "w", encoding="utf-8") as dosya:
+        json.dump(aktif_bilgi, dosya, ensure_ascii=False, indent=2)
+
+    _ONBELLEK_MODEL["denendi"] = False  # bir sonraki tahmin çağrısı yeni aktif modeli yüklesin
+    return aktif_bilgi

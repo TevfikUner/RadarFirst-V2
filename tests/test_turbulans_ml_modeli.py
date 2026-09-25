@@ -111,6 +111,70 @@ def test_model_bilgisi_dosyasi_varsa_okunur(tmp_path, monkeypatch):
     assert tm.model_bilgisini_yukle() == {"secilen_model": "Random Forest"}
 
 
+def _versiyonlama_yollarini_gecici_klasore_tasi(tmp_path, monkeypatch):
+    import turbulans_ml_modeli as tm
+
+    versiyon_klasoru = tmp_path / "model_versiyonlari"
+    monkeypatch.setattr(tm, "MODEL_VERSIYONLARI_KLASORU", str(versiyon_klasoru))
+    monkeypatch.setattr(tm, "MODEL_VERSIYONLARI_MANIFEST_YOLU", str(versiyon_klasoru / "manifest.json"))
+    monkeypatch.setattr(tm, "MODEL_DOSYA_YOLU", str(tmp_path / "aktif_model.joblib"))
+    monkeypatch.setattr(tm, "MODEL_BILGI_DOSYA_YOLU", str(tmp_path / "aktif_model_bilgisi.json"))
+    return tm
+
+
+def test_model_versiyonlarini_listele_bos_ise_bos_liste_doner(tmp_path, monkeypatch):
+    tm = _versiyonlama_yollarini_gecici_klasore_tasi(tmp_path, monkeypatch)
+    assert tm.model_versiyonlarini_listele() == []
+
+
+def test_versiyon_kaydet_ve_listele(tmp_path, monkeypatch):
+    tm = _versiyonlama_yollarini_gecici_klasore_tasi(tmp_path, monkeypatch)
+
+    gecici_model = tmp_path / "gecici_model.joblib"
+    gecici_model.write_bytes(b"sahte-model-icerigi")
+
+    versiyon_id_1 = tm.versiyon_kaydet(
+        str(gecici_model), {"secilen_model": "A", "metrikler": {"recall": 0.5}, "egitim_zamani": "2024-01-01T00:00:00+00:00"}
+    )
+    versiyon_id_2 = tm.versiyon_kaydet(
+        str(gecici_model), {"secilen_model": "B", "metrikler": {"recall": 0.9}, "egitim_zamani": "2024-01-02T00:00:00+00:00"}
+    )
+
+    versiyonlar = tm.model_versiyonlarini_listele()
+    assert len(versiyonlar) == 2
+    assert versiyonlar[0]["versiyon_id"] == versiyon_id_2  # en yeni önce
+    assert versiyonlar[1]["versiyon_id"] == versiyon_id_1
+
+
+def test_versiyona_geri_don_aktif_modeli_degistirir(tmp_path, monkeypatch):
+    tm = _versiyonlama_yollarini_gecici_klasore_tasi(tmp_path, monkeypatch)
+
+    eski_model = tmp_path / "eski_model.joblib"
+    eski_model.write_bytes(b"eski-model-icerigi")
+    versiyon_id = tm.versiyon_kaydet(
+        str(eski_model), {"secilen_model": "Eski Model", "metrikler": {"recall": 0.6}, "egitim_zamani": "2024-01-01T00:00:00+00:00"}
+    )
+
+    # aktif model dosyası şu an FARKLI bir içerikle "güncel" -- geri dönüş
+    # bunun üzerine eski versiyonu kopyalamalı.
+    with open(tm.MODEL_DOSYA_YOLU, "wb") as f:
+        f.write(b"yeni-model-icerigi")
+
+    aktif_bilgi = tm.versiyona_geri_don(versiyon_id)
+
+    assert aktif_bilgi["secilen_model"] == "Eski Model"
+    assert "versiyon_id" not in aktif_bilgi  # sadece ModelBilgisiYaniti alanları
+    with open(tm.MODEL_DOSYA_YOLU, "rb") as f:
+        assert f.read() == b"eski-model-icerigi"
+    assert tm.model_bilgisini_yukle()["secilen_model"] == "Eski Model"
+
+
+def test_versiyona_geri_don_bilinmeyen_id_value_error_verir(tmp_path, monkeypatch):
+    tm = _versiyonlama_yollarini_gecici_klasore_tasi(tmp_path, monkeypatch)
+    with pytest.raises(ValueError):
+        tm.versiyona_geri_don("olmayan-versiyon")
+
+
 def test_egitilmis_model_varsa_0_1_arasi_olasilik_doner():
     import turbulans_ml_modeli as tm
 

@@ -23,6 +23,7 @@ ml_indirme_log.txt
 ml_model_karsilastirmasi.csv
 ml_karisiklik_matrisi.png
 turbulans_ml_modeli_bilgisi.json
+model_versiyonlari/
 *.joblib
 
 # pirep_kalibrasyon_verisi_uret.py'nin ürettiği gözlem CSV'si -- kalibrasyon.py

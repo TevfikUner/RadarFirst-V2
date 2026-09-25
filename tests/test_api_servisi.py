@@ -511,6 +511,47 @@ async def test_model_bilgisi_egitilmisse_metadata_doner(istemci, api_anahtari, m
     assert govde["secilen_model"] == "Random Forest"
 
 
+async def test_model_versiyonlari_listesi_doner(istemci, api_anahtari, monkeypatch):
+    sahte_versiyonlar = [
+        {"versiyon_id": "v2", "secilen_model": "Random Forest", "metrikler": {"recall": 0.9}, "egitim_zamani": "2024-02-01T00:00:00+00:00"},
+        {"versiyon_id": "v1", "secilen_model": "Random Forest", "metrikler": {"recall": 0.7}, "egitim_zamani": "2024-01-01T00:00:00+00:00"},
+    ]
+    monkeypatch.setattr(api_servisi, "model_versiyonlarini_listele", lambda: sahte_versiyonlar)
+    yanit = await istemci.get("/api/v1/turbulans/model-versiyonlari", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 200
+    assert yanit.json() == sahte_versiyonlar
+
+
+async def test_model_versiyonu_aktiflestir_basarili(istemci, api_anahtari, monkeypatch):
+    sahte_aktif_bilgi = {
+        "secilen_model": "Random Forest",
+        "metrikler": {"recall": 0.9},
+        "ozellik_sutunlari": ["ti1_indeksi"],
+        "egitim_orneklem_sayisi": 179,
+        "test_orneklem_sayisi": 45,
+        "egitim_zamani": "2024-02-01T00:00:00+00:00",
+    }
+    monkeypatch.setattr(api_servisi, "versiyona_geri_don", lambda versiyon_id: sahte_aktif_bilgi)
+    yanit = await istemci.post(
+        "/api/v1/turbulans/model-versiyonlari/v2/aktiflestir", headers={"X-API-Key": api_anahtari}
+    )
+    assert yanit.status_code == 200
+    govde = yanit.json()
+    assert govde["egitildi_mi"] is True
+    assert govde["egitim_zamani"] == "2024-02-01T00:00:00+00:00"
+
+
+async def test_model_versiyonu_aktiflestir_bilinmeyen_id_404(istemci, api_anahtari, monkeypatch):
+    def _hata_firlat(versiyon_id):
+        raise ValueError(f"Bilinmeyen versiyon_id: '{versiyon_id}'.")
+
+    monkeypatch.setattr(api_servisi, "versiyona_geri_don", _hata_firlat)
+    yanit = await istemci.post(
+        "/api/v1/turbulans/model-versiyonlari/olmayan/aktiflestir", headers={"X-API-Key": api_anahtari}
+    )
+    assert yanit.status_code == 404
+
+
 async def test_harita3d_sayfasi_sunuluyor(istemci):
     yanit = await istemci.get("/harita/harita3d.html")
     assert yanit.status_code == 200

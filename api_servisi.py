@@ -90,6 +90,7 @@ from semalar import (
     GorevBaslatildiYaniti,
     GorevDurumYaniti,
     ModelBilgisiYaniti,
+    ModelVersiyonuOzetiYaniti,
     RotaSimulasyonuIstegi,
     RotaSimulasyonuYaniti,
     SaglikYaniti,
@@ -103,7 +104,13 @@ from semalar import (
 )
 from sigmet_dogrulama import ucus_sigmet_ile_karsilastir
 from toplu_analiz import toplu_analiz_calistir
-from turbulans_ml_modeli import model_bilgisini_yukle, ozellikleri_cikar, turbulans_riski_tahmin_et
+from turbulans_ml_modeli import (
+    model_bilgisini_yukle,
+    model_versiyonlarini_listele,
+    ozellikleri_cikar,
+    turbulans_riski_tahmin_et,
+    versiyona_geri_don,
+)
 from veritabani import (
     VeritabaniAyarlariEksikHatasi,
     async_motor_al,
@@ -502,6 +509,36 @@ async def turbulans_model_bilgisi():
     if bilgi is None:
         return {"egitildi_mi": False}
     return {"egitildi_mi": True, **bilgi}
+
+
+@v1.get(
+    "/turbulans/model-versiyonlari", response_model=list[ModelVersiyonuOzetiYaniti], tags=["Türbülans Tahmini"]
+)
+async def turbulans_model_versiyonlari():
+    """ml_egitimi.py'nin her çalıştırmasında biriktirdiği TÜM model
+    versiyonlarını (en yeni önce) döner -- hiç eğitim yapılmadıysa boş
+    liste. Aktif olan (şu an /turbulans/tahmin'in kullandığı) versiyonu
+    ayırt etmek için GET /turbulans/model-bilgisi'ndeki egitim_zamani ile
+    karşılaştırılabilir."""
+    return await asyncio.to_thread(model_versiyonlarini_listele)
+
+
+@v1.post(
+    "/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir",
+    response_model=ModelBilgisiYaniti,
+    tags=["Türbülans Tahmini"],
+)
+async def turbulans_model_versiyonunu_aktiflestir(versiyon_id: str):
+    """Geçmiş bir model versiyonunu, YENİDEN EĞİTİM GEREKMEDEN aktif model
+    yapar (rollback) -- örn. yeni bir eğitim çalıştırması beklenenden kötü
+    çıkarsa bir önceki versiyona dönmek için. Bilinmeyen bir versiyon_id
+    404 döner."""
+    _hiz_sinirini_kontrol_et("model_aktiflestir")
+    try:
+        aktif_bilgi = await asyncio.to_thread(versiyona_geri_don, versiyon_id)
+    except ValueError as hata:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(hata)) from hata
+    return {"egitildi_mi": True, **aktif_bilgi}
 
 
 @v1.get("/ucuslar", response_model=UcuslarListesiYaniti, tags=["Uçuşlar"])
