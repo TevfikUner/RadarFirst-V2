@@ -520,6 +520,19 @@ pytest tests/
 otomatik atlanır (skip) -- CI'da Postgres bir servis konteyneriyle
 sağlanır, `.nc` dosyası (büyük olduğu için) sağlanmaz.
 
+`test_web_harita3d.py`/`test_web_ucus_simulasyonu.py`, gerçek bir tarayıcıda
+(Playwright + headless Chromium) uçtan uca çalışır -- `tests/conftest.py`,
+`api_servisi.py`'yi ayrı bir alt süreçte (subprocess) canlı olarak ayağa
+kaldırır (bkz. o dosyadaki "neden ayrı süreç" notu). `playwright` paketi
+projenin `requirements-dev.txt`'sine BİLEREK eklenmedi (CI'de chromium
+indirmek yavaş/gereksiz) -- bu testler `playwright` kurulu değilse (CI'de
+olduğu gibi) otomatik atlanır. Yerelde çalıştırmak için:
+
+```bash
+pip install playwright && playwright install chromium
+pytest tests/test_web_harita3d.py tests/test_web_ucus_simulasyonu.py -v
+```
+
 ## Geliştirme araçları
 
 ```bash
