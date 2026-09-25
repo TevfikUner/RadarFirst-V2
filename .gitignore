@@ -24,3 +24,8 @@ ml_model_karsilastirmasi.csv
 ml_karisiklik_matrisi.png
 turbulans_ml_modeli_bilgisi.json
 *.joblib
+
+# pirep_kalibrasyon_verisi_uret.py'nin ürettiği gözlem CSV'si -- kalibrasyon.py
+# için girdi, yukarıdaki PIREP/ERA5 eğitim verisinden türetildiği için
+# yeniden üretilebilir.
+pirep_kalibrasyon_verisi.csv

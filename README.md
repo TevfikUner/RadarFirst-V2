@@ -9,9 +9,11 @@ JSON/veritabanı olarak dışarıya açılır.
 
 **Önemli sınırlama:** TI1/EDR proxy, sertifikalı bir EDR (Eddy Dissipation
 Rate) değeri DEĞİLDİR -- ~25-30 km çözünürlüklü reanaliz verisinden
-hesaplanan bir araştırma/görselleştirme göstergesidir. Gerçek operasyonel
-kullanım için PIREP/AMDAR gözlemleriyle kalibre edilmesi gerekir (bkz.
-[Sınırlamalar](#bilinmesi-gerekenler--sınırlamalar), `kalibrasyon.py`).
+hesaplanan bir araştırma/görselleştirme göstergesidir. Ölçeklendirme
+katsayısı artık gerçek IEM PIREP + ERA5 gözlemleriyle kalibre edildi (bkz.
+[Sınırlamalar](#bilinmesi-gerekenler--sınırlamalar), `kalibrasyon.py`) --
+ama bu bölgeden bağımsız, kaba bir kalibrasyondur, sertifikalı bir EDR
+sensörünün yerini TUTMAZ.
 
 ## Mimari
 
@@ -56,6 +58,7 @@ ornek_ucus_bul.py               -> OpenSky'da kayıtlı gerçek callsign'ları l
 veri_kontrol.py                  -> veri küpü çözünürlüğünü / TI1 çeşitliliğini kontrol eder
 kimlik_kontrol.py               -> .env'in doğru okunduğunu kontrol eder
 kalibrasyon.py                   -> gerçek PIREP/AMDAR verisiyle EDR ölçekleme katsayısını kalibre eder
+pirep_kalibrasyon_verisi_uret.py -> ML eğitimi için indirilen gerçek IEM PIREP+ERA5 verisinden kalibrasyon.py'nin beklediği gözlem CSV'sini üretir
 toplu_analiz.py                  -> bir CSV listesindeki birden fazla uçuşu sırayla analiz eder
 web_arayuzu.py                   -> tarayıcıdan kullanılabilir arayüz (Streamlit)
 hata_yardimcisi.py               -> ham Python hatalarını anlaşılır Türkçe mesaja çevirir
@@ -254,14 +257,21 @@ girilir, `localStorage`'da tutulur) yazıp "Yükle"ye basman yeterli:
   tespit edilirse ekranda anlık bir uyarı (toast) gösterir.
 - Harita karosu (tile), `harita.py`'de daha önce yaşanan "CartoDB anahtar
   istemeye başladı" sorununu tekrarlamamak için YİNE anahtarsız Esri World
-  Street Map'i kullanır; MapLibre CDN sürümü (4.7.1) BİLEREK sabitlendi
+  Street Map'i kullanır; MapLibre CDN sürümü (5.8.0) BİLEREK sabitlendi
   (daha yeni sürümler -- 6.x -- klasik `<script>` ile çalışan UMD paketini
   kaldırıp sadece ES module dağıtıyor).
 
-Bu sayfa gerçek bir tarayıcıda test EDİLEMEDİ (bu ortamda tarayıcı/Docker
-yok) -- FastAPI üzerinden sunulduğu, tüm uç noktaları doğru çağırdığı ve
-JS'in sözdizimsel olarak geçerli olduğu doğrulandı, ama gerçek render/
-WebGL davranışını görmek için tarayıcıda açıp denemen gerekiyor.
+Bu sayfa gerçek bir tarayıcıda (Playwright + headless Chromium) uçtan uca
+test EDİLDİ: gerçek bir uçuş (THY322, 2019-01-15, 1614 nokta) analiz edilip
+sayfaya API anahtarıyla yüklendi, rota/TI1 renklendirmesi/zaman kaydırıcısı
+render oldu (bkz. yukarıdaki ekran görüntüsü niteliğindeki doğrulama). Bu
+test GERÇEK bir hata ortaya çıkardı ve düzeltildi: `harita.setProjection`
+metodu, önceden sabitlenen MapLibre 4.7.1'de YOKTU (kod içi yorum bunun
+var olduğunu YANLIŞ varsayıyordu) -- 5.8.0'a geçildi. Ardından
+`setProjection`'ı `Map` constructor'ından hemen sonra çağırmanın "Style is
+not done loading" hatası verdiği görüldü; "globe" projeksiyonu artık
+doğrudan constructor'ın `projection` seçeneğine taşındı, `harita.on("load",
+...)` içinde bir savunmacı ikinci deneme daha bırakıldı.
 
 ## 3D uçuş simülasyonu (normal rota vs türbülanstan-kaçınma rota)
 
@@ -523,8 +533,12 @@ PostgreSQL servis konteyneriyle) çalıştırır.
   doldurulmuş (padded) saklanır; eşleştirme bunu otomatik yapar.
 - Yatay deformasyon hesabı için veri kübünün ilgili zaman dilimindeki tüm
   enlem/boylam grid'ine ihtiyaç var (tek nokta yetmiyor).
-- `config.EDR_OLCEKLENDIRME_KATSAYISI` kalibre edilene kadar (bkz.
-  `kalibrasyon.py`) `main.py` her çalıştırma sonunda uyarı basar.
+- `config.EDR_OLCEKLENDIRME_KATSAYISI` (0.23), `pirep_kalibrasyon_verisi_
+  uret.py` ile üretilen gerçek IEM PIREP + ERA5 gözlem setiyle (179 örnek,
+  ML sınıflandırıcısıyla AYNI veri) `kalibrasyon.py` kullanılarak kalibre
+  edildi -- ama bu ABD hava sahası verisine dayanan, bölgeden bağımsız kaba
+  bir kalibrasyondur, Türkiye/Ocak-2019 örnek veri kümesine özgü DEĞİLDİR
+  (bkz. yukarıdaki "Önemli sınırlama").
 - Proje gerçek bir uçuşla (OpenSky/Trino + gerçek `.nc` verisi) uçtan uca
   test edildi.
 - Bu ortamda Docker daemon'ı kurulu olmadığından `Dockerfile`/
@@ -534,16 +548,16 @@ PostgreSQL servis konteyneriyle) çalıştırır.
   olduğu hava sahaları için gerçek veri döner -- bu depodaki örnek veri
   kümesi (Türkiye) için örtüşme çıkmaması beklenen bir durumdur (yukarıya
   bakın).
-- `web/harita3d.html` gerçek bir tarayıcıda test EDİLEMEDİ (bu ortamda
-  tarayıcı yok) -- API entegrasyonu ve JS sözdizimi doğrulandı, gerçek
-  render davranışı için tarayıcıda denenmesi gerekir.
-- `web/ucus_simulasyonu.html`, `harita3d.html`'in aksine gerçek bir
-  tarayıcıda (Playwright + headless Chromium) uçtan uca test EDİLDİ -- bkz.
-  README'deki "3D uçuş simülasyonu" bölümü için bulunup düzeltilen gerçek
-  hata (CesiumJS'in `imageryProvider` seçeneğinin artık sessizce hiçbir
-  katman eklememesi). Uçak "modelleri" arasındaki performans farkı (seyir
-  hızı/yakıt akışı) halka açık, tipik değerlerdir -- resmi üretici
-  performans verisi DEĞİLDİR.
+- `web/harita3d.html` ve `web/ucus_simulasyonu.html`, ikisi de gerçek bir
+  tarayıcıda (Playwright + headless Chromium) uçtan uca test EDİLDİ --
+  ikisinde de gerçek hatalar bulunup düzeltildi: `ucus_simulasyonu.html`
+  için CesiumJS'in `imageryProvider` seçeneğinin artık sessizce hiçbir
+  katman eklememesi (bkz. "3D uçuş simülasyonu" bölümü), `harita3d.html`
+  için MapLibre 4.7.1'de `setProjection` metodunun HİÇ olmaması ve
+  constructor'dan hemen sonra çağrılınca "Style is not done loading"
+  vermesi (bkz. yukarıdaki "3D/canlı harita önyüzü" bölümü). Uçak
+  "modelleri" arasındaki performans farkı (seyir hızı/yakıt akışı) halka
+  açık, tipik değerlerdir -- resmi üretici performans verisi DEĞİLDİR.
 
 ## Değişiklik geçmişi
 

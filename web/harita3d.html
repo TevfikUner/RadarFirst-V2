@@ -10,15 +10,19 @@
   app.mount("/harita", ...)) -- API ile AYNI origin'de olduğu için
   fetch()/WebSocket çağrıları CORS'a takılmaz.
 
-  MapLibre v4.7.1'e BİLEREK sabitlendi (daha yeni sürümler -- örn. 6.x --
-  UMD paketini kaldırıp sadece ES module dağıtıyor; 4.x hem klasik
-  <script> ile çalışıyor hem de "globe" projeksiyonunu (3D küre görünümü)
-  zaten destekliyor). Harita karosu (tile) kaynağı, harita.py'de daha önce
-  CartoDB'nin anahtar istemeye başlamasıyla yaşanan sorunu tekrarlamamak
-  için, YİNE anahtarsız Esri World Street Map kullanıyor.
+  MapLibre v5.8.0'a BİLEREK sabitlendi (daha yeni sürümler -- örn. 6.x --
+  UMD paketini kaldırıp sadece ES module dağıtıyor, 5.x hem klasik
+  <script> ile çalışıyor hem de gerçek tarayıcıda (Playwright) doğrulanmış
+  "globe" projeksiyon desteğine (harita.setProjection) sahip -- ÖNCEKİ
+  4.7.1 sabitlemesinde bu desteğin olduğu VARSAYILMIŞTI ama gerçek
+  tarayıcı testi "harita.setProjection is not a function" hatasını ortaya
+  çıkardı; globe projeksiyonu MapLibre'ye 4.x'ten SONRA eklenmiş. Harita
+  karosu (tile) kaynağı, harita.py'de daha önce CartoDB'nin anahtar
+  istemeye başlamasıyla yaşanan sorunu tekrarlamamak için, YİNE anahtarsız
+  Esri World Street Map kullanıyor.
 -->
-<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@4.7.1/dist/maplibre-gl.js"></script>
+<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.8.0/dist/maplibre-gl.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.8.0/dist/maplibre-gl.js"></script>
 <style>
   :root { color-scheme: dark; }
   html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, sans-serif; }
@@ -28,16 +32,32 @@
     border-radius: 8px; padding: 12px 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.4);
     font-size: 13px;
   }
-  #kontrol-paneli { top: 12px; left: 12px; width: 260px; }
+  #kontrol-paneli { top: 12px; left: 12px; width: 260px; max-height: calc(100vh - 24px); overflow-y: auto; }
   #kontrol-paneli input { width: 100%; box-sizing: border-box; margin: 3px 0 8px; padding: 5px 7px;
     border-radius: 4px; border: 1px solid #444; background: #1c1e22; color: #eee; }
   #kontrol-paneli label { font-size: 11px; color: #aaa; }
-  #kontrol-paneli button { width: 100%; padding: 7px; border-radius: 4px; border: none;
+  #kontrol-paneli button { padding: 7px; border-radius: 4px; border: none;
     background: #3388ff; color: white; font-weight: 600; cursor: pointer; }
   #kontrol-paneli button:hover { background: #2a6fd6; }
+  #kontrol-paneli .buton-satiri { display: flex; gap: 6px; }
+  #kontrol-paneli .buton-satiri button { flex: 1; }
+  #sil-buton { background: #b02a2a !important; }
+  #sil-buton:hover { background: #8c2121 !important; }
   #durum { margin-top: 8px; font-size: 12px; line-height: 1.4; white-space: pre-wrap; }
   #durum.hata { color: #ff8080; }
   #durum.bilgi { color: #9fd6ff; }
+  #kayitli-ucuslar-bolumu { margin-top: 10px; border-top: 1px solid #444; padding-top: 8px; }
+  #kayitli-ucuslar-bolumu .buton-satiri { margin-bottom: 6px; }
+  #kayitli-ucuslar-bolumu button { width: 100%; background: #3a3d44; }
+  #kayitli-ucuslar-bolumu button:hover { background: #4a4e57; }
+  #kayitli-ucuslar-listesi { max-height: 140px; overflow-y: auto; font-size: 12px; }
+  #kayitli-ucuslar-listesi div {
+    padding: 4px 6px; border-radius: 4px; cursor: pointer; display: flex; justify-content: space-between;
+  }
+  #kayitli-ucuslar-listesi div:hover { background: #2a2d33; }
+  #model-bilgisi-bolumu { margin-top: 10px; border-top: 1px solid #444; padding-top: 8px; font-size: 12px; }
+  #model-bilgisi-bolumu .satir { display: flex; justify-content: space-between; margin: 2px 0; }
+  #model-bilgisi-bolumu .etiket { color: #999; }
   #zaman-kontrolu { bottom: 16px; left: 12px; right: 12px; display: flex; align-items: center; gap: 10px; }
   #zaman-kontrolu input[type=range] { flex: 1; }
   #zaman-etiketi { min-width: 60px; text-align: center; font-variant-numeric: tabular-nums; }
@@ -64,9 +84,26 @@
     <input id="giris-tarih" placeholder="2019-01-01" value="2019-01-01">
     <label>API anahtarı (X-API-Key)</label>
     <input id="giris-anahtar" type="password" placeholder="API_ANAHTARI">
-    <button id="yukle-buton">Yükle</button>
+    <div class="buton-satiri">
+      <button id="yukle-buton">Yükle</button>
+      <button id="sil-buton" title="Bu uçuş/tarihi veritabanından sil">Sil</button>
+    </div>
   </div>
   <div id="durum"></div>
+
+  <div id="kayitli-ucuslar-bolumu">
+    <b style="font-size:12px">Kayıtlı uçuşlar</b>
+    <div class="buton-satiri" style="margin-top:6px">
+      <input id="ucuslar-arama" placeholder="Uçuş no ara..." style="margin:0">
+      <button id="ucuslar-arama-buton">Ara</button>
+    </div>
+    <div id="kayitli-ucuslar-listesi"></div>
+  </div>
+
+  <div id="model-bilgisi-bolumu">
+    <b style="font-size:12px">🤖 ML Türbülans Modeli</b>
+    <div id="model-bilgisi-govde" style="margin-top:4px; color:#999">Uçuş yüklenince gösterilir.</div>
+  </div>
 </div>
 
 <div id="lejant" class="panel">
@@ -103,16 +140,25 @@ function durumGoster(mesaj, tur) {
   el.className = tur || "";
 }
 
-async function apiIste(yol) {
+async function apiIste(yol, yontem) {
   const anahtar = anahtarAl();
-  const yanit = await fetch(API_TABANI + yol, { headers: { "X-API-Key": anahtar } });
+  const yanit = await fetch(API_TABANI + yol, { method: yontem || "GET", headers: { "X-API-Key": anahtar } });
   if (!yanit.ok) {
     let detay = yanit.statusText;
-    try { detay = (await yanit.json()).detail || detay; } catch (e) {}
+    // FastAPI'nin 422 yanıtlarında 'detail' bir metin değil, Pydantic
+    // doğrulama hatalarının LİSTESİ olur -- düz metne çevrilmezse
+    // "[object Object]" gibi anlamsız bir hata gösterilir.
+    try {
+      const govde = await yanit.json();
+      if (Array.isArray(govde.detail)) detay = govde.detail.map(d => d.msg || JSON.stringify(d)).join("; ");
+      else if (govde.detail) detay = govde.detail;
+    } catch (e) {}
     const hata = new Error(detay);
     hata.durumKodu = yanit.status;
     throw hata;
   }
+  // DELETE 204 No Content döner -- gövde parse edilemez, boş nesne yeterli.
+  if (yanit.status === 204) return {};
   return yanit.json();
 }
 
@@ -144,10 +190,17 @@ function haritayiHazirla() {
     center: [30, 40],
     zoom: 4,
     pitch: 30,
+    projection: { type: "globe" },
   });
-  // "globe" projeksiyonu (3D küre) MapLibre v4+'ta var; eski/uyumsuz bir
-  // sürüm CDN'den gelirse sayfanın tamamen çökmemesi için sessizce yut.
-  try { harita.setProjection({ type: "globe" }); } catch (e) { console.warn("globe projeksiyonu kullanılamadı", e); }
+  // GERÇEK TARAYICI TESTİYLE BULUNAN HATA: setProjection()'ı constructor'dan
+  // SONRA çağırmak "Style is not done loading" hatası veriyordu (stil henüz
+  // asenkron yüklenmemişken projeksiyon değiştirilemiyor) -- bu yüzden
+  // "globe" doğrudan yukarıdaki constructor seçeneğine taşındı. Yine de
+  // CDN'den beklenmedik bir sürüm gelirse sayfa çökmesin diye harita "load"
+  // olayında bir savunmacı deneme daha yapılıyor.
+  harita.once("load", () => {
+    try { harita.setProjection({ type: "globe" }); } catch (e) { console.warn("globe projeksiyonu kullanılamadı", e); }
+  });
   harita.addControl(new maplibregl.NavigationControl());
 }
 
@@ -251,6 +304,8 @@ async function ucusuYukle() {
     rotaKatmaniniGuncelle(tumNoktalar);
     zamanKaydiricisiniHazirla(tumNoktalar);
     durumGoster(`${detay.toplam_olcum_sayisi} nokta yüklendi.`, "bilgi");
+    kayitliUcuslariListele();
+    modelBilgisiniGetirVeGoster();
 
     try {
       const sigmet = await apiIste(`/api/v1/ucuslar/${encodeURIComponent(ucus)}/${tarih}/sigmet-dogrulama`);
@@ -272,6 +327,79 @@ async function ucusuYukle() {
 
 function durumEl() { return document.getElementById("durum"); }
 
+async function ucusuSil() {
+  const ucus = document.getElementById("giris-ucus").value.trim();
+  const tarih = document.getElementById("giris-tarih").value.trim();
+  if (!ucus || !tarih) {
+    durumGoster("Silmek için uçuş numarası ve tarih gerekli.", "hata");
+    return;
+  }
+  if (!confirm(`'${ucus}' / ${tarih} kaydı (tüm ölçümleriyle) kalıcı olarak silinsin mi?`)) return;
+
+  try {
+    await apiIste(`/api/v1/ucuslar/${encodeURIComponent(ucus)}/${tarih}`, "DELETE");
+    durumGoster(`'${ucus}' / ${tarih} silindi.`, "bilgi");
+    if (harita.getSource("rota-cizgi")) {
+      rotaKatmaniniGuncelle([]);
+      document.getElementById("zaman-kontrolu").style.display = "none";
+    }
+    kayitliUcuslariListele();
+  } catch (e) {
+    if (e.durumKodu === 404) durumGoster("Silinecek uçuş bulunamadı.", "hata");
+    else durumGoster("Silme hatası: " + e.message, "hata");
+  }
+}
+
+async function kayitliUcuslariListele() {
+  const liste = document.getElementById("kayitli-ucuslar-listesi");
+  const arama = document.getElementById("ucuslar-arama").value.trim();
+  if (!anahtarAl()) { liste.textContent = "Önce API anahtarını gir."; return; }
+
+  liste.textContent = "Yükleniyor...";
+  try {
+    const parametreler = new URLSearchParams({ limit: "20" });
+    if (arama) parametreler.set("ucus_numarasi_arama", arama);
+    const ucuslar = await apiIste(`/api/v1/ucuslar?${parametreler}`);
+    if (!ucuslar.length) { liste.textContent = "Kayıtlı uçuş yok."; return; }
+
+    liste.innerHTML = "";
+    for (const u of ucuslar) {
+      const satir = document.createElement("div");
+      satir.innerHTML = `<span>${u.ucus_numarasi}</span><span style="color:#999">${u.tarih}</span>`;
+      satir.title = "Yüklemek için tıkla";
+      satir.addEventListener("click", () => {
+        document.getElementById("giris-ucus").value = u.ucus_numarasi;
+        document.getElementById("giris-tarih").value = u.tarih;
+        ucusuYukle();
+      });
+      liste.appendChild(satir);
+    }
+  } catch (e) {
+    liste.textContent = "Hata: " + e.message;
+  }
+}
+
+async function modelBilgisiniGetirVeGoster() {
+  const govde = document.getElementById("model-bilgisi-govde");
+  try {
+    const bilgi = await apiIste("/api/v1/turbulans/model-bilgisi");
+    if (!bilgi.egitildi_mi) {
+      govde.innerHTML = `<span style="color:#999">Model henüz eğitilmedi (bkz. ml_egitimi.py).</span>`;
+      return;
+    }
+    const m = bilgi.metrikler;
+    govde.innerHTML = `
+      <div class="satir"><span class="etiket">Seçilen model</span><span>${bilgi.secilen_model}</span></div>
+      <div class="satir"><span class="etiket">Recall</span><span>${m.recall.toFixed(3)}</span></div>
+      <div class="satir"><span class="etiket">F1</span><span>${m.f1.toFixed(3)}</span></div>
+      <div class="satir"><span class="etiket">ROC-AUC</span><span>${m.roc_auc.toFixed(3)}</span></div>
+      <div class="satir"><span class="etiket">Eğitim örneklemi</span><span>${bilgi.egitim_orneklem_sayisi}</span></div>
+    `;
+  } catch (e) {
+    govde.innerHTML = `<span style="color:#999">Model bilgisi alınamadı: ${e.message}</span>`;
+  }
+}
+
 function canliUyarilariDinle() {
   const anahtar = anahtarAl();
   if (!anahtar) return;
@@ -290,7 +418,11 @@ function canliUyarilariDinle() {
 
 document.getElementById("giris-anahtar").value = localStorage.getItem("tr_api_anahtari") || "";
 document.getElementById("yukle-buton").addEventListener("click", () => { ucusuYukle(); canliUyarilariDinle(); });
+document.getElementById("sil-buton").addEventListener("click", ucusuSil);
+document.getElementById("ucuslar-arama-buton").addEventListener("click", kayitliUcuslariListele);
+document.getElementById("ucuslar-arama").addEventListener("keydown", (e) => { if (e.key === "Enter") kayitliUcuslariListele(); });
 haritayiHazirla();
+if (anahtarAl()) { kayitliUcuslariListele(); modelBilgisiniGetirVeGoster(); }
 </script>
 </body>
 </html>

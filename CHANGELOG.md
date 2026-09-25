@@ -4,6 +4,30 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## EDR katsayısı gerçek veriyle kalibre edildi + harita3d.html gerçek tarayıcıda test edildi (2 gerçek hata düzeltildi)
+
+- **Kalibrasyon:** `config.EDR_OLCEKLENDIRME_KATSAYISI` artık keyfi bir
+  başlangıç değeri (1.5) değil -- yeni `pirep_kalibrasyon_verisi_uret.py`,
+  ML sınıflandırıcısı için zaten indirilmiş olan GERÇEK IEM PIREP + ERA5
+  verisini (179 örnek) `kalibrasyon.py`'nin beklediği formata çevirir;
+  sonuç katsayı (0.23, ortalama karesel hata 0.093) `config.py`'ye
+  yazıldı, `EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI` artık `True`
+  (main.py'nin "kalibre edilmedi" uyarısı artık basılmıyor). Dürüstlük
+  notu: bu ABD hava sahası verisine dayanan, bölgeden bağımsız bir
+  kalibrasyondur -- Türkiye/Ocak-2019 örnek veri kümesine özgü değildir.
+- **`web/harita3d.html` ilk kez gerçek bir tarayıcıda (Playwright +
+  headless Chromium) uçtan uca test edildi** -- gerçek bir uçuş (THY322,
+  2019-01-15) analiz edilip sayfaya yüklendi, render doğrulandı. GERÇEK
+  bir hata bulundu ve düzeltildi: önceden sabitlenen MapLibre 4.7.1'de
+  `harita.setProjection` metodu HİÇ YOKTU (kod içi yorum var olduğunu
+  YANLIŞ varsayıyordu) -- 5.8.0'a yükseltildi (hâlâ klasik `<script>` ile
+  çalışan UMD paket, 6.x'in aksine). Ardından setProjection'ı `Map`
+  constructor'ından hemen sonra çağırmanın "Style is not done loading"
+  hatası verdiği görüldü; "globe" projeksiyonu doğrudan constructor'ın
+  `projection` seçeneğine taşındı.
+- `ml_egitimi.py` yeniden çalıştırılıp `turbulans_ml_modeli_bilgisi.json`
+  gerçek verilerle üretildi (bkz. bir önceki bölümdeki yeni uç nokta).
+
 ## REST API tamamlama: uçuş silme, listeleme filtreleri, ML model bilgisi uç noktası
 
 Mevcut uç noktalar CRUD'un sadece Create/Read kısmını kapsıyordu (silme
