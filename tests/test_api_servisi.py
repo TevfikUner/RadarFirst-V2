@@ -442,9 +442,7 @@ async def test_toplu_silme_filtreyle_eslesenleri_siler(istemci, api_anahtari):
     vt.ucus_ve_olcumleri_kaydet(df, "TOPSIL1", "2019-01-01")
     vt.ucus_ve_olcumleri_kaydet(df, "TOPSIL2", "2019-01-01")
     try:
-        yanit = await istemci.delete(
-            "/api/v1/ucuslar?ucus_numarasi_arama=TOPSIL", headers={"X-API-Key": api_anahtari}
-        )
+        yanit = await istemci.delete("/api/v1/ucuslar?ucus_numarasi_arama=TOPSIL", headers={"X-API-Key": api_anahtari})
         assert yanit.status_code == 200
         assert yanit.json()["silinen_sayisi"] == 2
 
@@ -466,9 +464,7 @@ async def test_ucuslar_ucus_numarasi_aramasi_filtreler(istemci, api_anahtari):
     )
     vt.ucus_ve_olcumleri_kaydet(df, "ARAAPI1", "2019-01-01")
     try:
-        yanit = await istemci.get(
-            "/api/v1/ucuslar?ucus_numarasi_arama=ARAAPI1", headers={"X-API-Key": api_anahtari}
-        )
+        yanit = await istemci.get("/api/v1/ucuslar?ucus_numarasi_arama=ARAAPI1", headers={"X-API-Key": api_anahtari})
         assert yanit.status_code == 200
         govde = yanit.json()
         assert govde["toplam_sayi"] == 1
@@ -513,8 +509,18 @@ async def test_model_bilgisi_egitilmisse_metadata_doner(istemci, api_anahtari, m
 
 async def test_model_versiyonlari_listesi_doner(istemci, api_anahtari, monkeypatch):
     sahte_versiyonlar = [
-        {"versiyon_id": "v2", "secilen_model": "Random Forest", "metrikler": {"recall": 0.9}, "egitim_zamani": "2024-02-01T00:00:00+00:00"},
-        {"versiyon_id": "v1", "secilen_model": "Random Forest", "metrikler": {"recall": 0.7}, "egitim_zamani": "2024-01-01T00:00:00+00:00"},
+        {
+            "versiyon_id": "v2",
+            "secilen_model": "Random Forest",
+            "metrikler": {"recall": 0.9},
+            "egitim_zamani": "2024-02-01T00:00:00+00:00",
+        },
+        {
+            "versiyon_id": "v1",
+            "secilen_model": "Random Forest",
+            "metrikler": {"recall": 0.7},
+            "egitim_zamani": "2024-01-01T00:00:00+00:00",
+        },
     ]
     monkeypatch.setattr(api_servisi, "model_versiyonlarini_listele", lambda: sahte_versiyonlar)
     yanit = await istemci.get("/api/v1/turbulans/model-versiyonlari", headers={"X-API-Key": api_anahtari})

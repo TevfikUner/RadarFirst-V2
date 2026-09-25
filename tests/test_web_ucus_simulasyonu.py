@@ -16,21 +16,6 @@ bulunmazsa API "kapsam dışı" dürüst geri düşüşünü döner ve bu test o
 durumu da (rota yine de hesaplanır, sadece rüzgarsız) kabul eder.
 """
 
-import pytest
-
-
-@pytest.fixture(scope="module")
-def tarayici_sayfasi(canli_sunucu):
-    from playwright.sync_api import sync_playwright
-
-    with sync_playwright() as p:
-        tarayici = p.chromium.launch()
-        sayfa = tarayici.new_page()
-        hatalar = []
-        sayfa.on("pageerror", lambda err: hatalar.append(str(err)))
-        yield {"sayfa": sayfa, "hatalar": hatalar}
-        tarayici.close()
-
 
 def test_simulasyon_uctan_uca_calisir(canli_sunucu, tarayici_sayfasi):
     sayfa = tarayici_sayfasi["sayfa"]

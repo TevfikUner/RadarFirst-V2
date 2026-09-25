@@ -134,10 +134,12 @@ def test_versiyon_kaydet_ve_listele(tmp_path, monkeypatch):
     gecici_model.write_bytes(b"sahte-model-icerigi")
 
     versiyon_id_1 = tm.versiyon_kaydet(
-        str(gecici_model), {"secilen_model": "A", "metrikler": {"recall": 0.5}, "egitim_zamani": "2024-01-01T00:00:00+00:00"}
+        str(gecici_model),
+        {"secilen_model": "A", "metrikler": {"recall": 0.5}, "egitim_zamani": "2024-01-01T00:00:00+00:00"},
     )
     versiyon_id_2 = tm.versiyon_kaydet(
-        str(gecici_model), {"secilen_model": "B", "metrikler": {"recall": 0.9}, "egitim_zamani": "2024-01-02T00:00:00+00:00"}
+        str(gecici_model),
+        {"secilen_model": "B", "metrikler": {"recall": 0.9}, "egitim_zamani": "2024-01-02T00:00:00+00:00"},
     )
 
     versiyonlar = tm.model_versiyonlarini_listele()
@@ -152,7 +154,8 @@ def test_versiyona_geri_don_aktif_modeli_degistirir(tmp_path, monkeypatch):
     eski_model = tmp_path / "eski_model.joblib"
     eski_model.write_bytes(b"eski-model-icerigi")
     versiyon_id = tm.versiyon_kaydet(
-        str(eski_model), {"secilen_model": "Eski Model", "metrikler": {"recall": 0.6}, "egitim_zamani": "2024-01-01T00:00:00+00:00"}
+        str(eski_model),
+        {"secilen_model": "Eski Model", "metrikler": {"recall": 0.6}, "egitim_zamani": "2024-01-01T00:00:00+00:00"},
     )
 
     # aktif model dosyası şu an FARKLI bir içerikle "güncel" -- geri dönüş

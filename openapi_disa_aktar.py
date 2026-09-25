@@ -68,7 +68,7 @@ def postman_koleksiyonuna_cevir(sema):
             "name": sema["info"]["title"],
             "description": sema["info"].get("description", ""),
             "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-            "_postman_id": str(uuid.uuid4()),
+            "_postman_id": str(uuid.uuid5(uuid.NAMESPACE_URL, sema["info"]["title"])),
         },
         "variable": [
             {"key": "taban_url", "value": "http://localhost:8000"},
@@ -90,6 +90,5 @@ if __name__ == "__main__":
         json.dump(koleksiyon, dosya, ensure_ascii=False, indent=2)
     print(f"Postman koleksiyonu kaydedildi: {POSTMAN_DOSYA_YOLU}")
     print(
-        "Postman'e içe aktardıktan sonra koleksiyon değişkenlerinden "
-        "'taban_url' ve 'api_anahtari'nı doldurman yeterli."
+        "Postman'e içe aktardıktan sonra koleksiyon değişkenlerinden 'taban_url' ve 'api_anahtari'nı doldurman yeterli."
     )

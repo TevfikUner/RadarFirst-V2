@@ -4,6 +4,30 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Push öncesi inceleme: 4 gerçek hata düzeltildi
+
+Tüm değişiklikler, gitignore'daki veri/model/`.env` dosyaları OLMADAN temiz
+bir kopyada CI'nin birebir komutlarıyla simüle edilerek doğrulandı.
+
+- **CI'yi kıracak format hatası:** 6 dosya `ruff format --check` adımından
+  geçmiyordu (önceki turlarda sadece `ruff check` çalıştırılmıştı).
+- **Streamlit'te ikinci silme çöküyordu:** `web_arayuzu.py`,
+  `asyncio.run(ucus_sil_async(...))` kullanıyordu -- tekil async motorun
+  bağlantıları ilk (kapanmış) event loop'a bağlı kaldığı için art arda
+  İKİNCİ silme "Event loop is closed" ile patlıyordu. `veritabani.py`'ye
+  senkron `ucus_sil` eklendi, regresyon testiyle korunuyor.
+- **Eski kalmış `openapi.json`/Postman koleksiyonu:** model versiyonlama
+  uç noktaları eklenmeden önce üretilmişti. Yeniden üretildi;
+  `tests/test_openapi_disa_aktar.py` artık repodaki şema güncel değilse
+  CI'da hata veriyor. Postman `_postman_id`'si deterministik yapıldı
+  (her üretimde anlamsız diff oluşmasın diye).
+- **XSS:** `web/harita3d.html` veritabanından gelen uçuş numarasını ve
+  sunucu hata mesajını `innerHTML` ile ekliyordu -- `textContent`'e
+  çevrildi, kötü niyetli bir uçuş adıyla gerçek tarayıcıda doğrulandı.
+- Playwright tarayıcı fixture'ı iki test dosyasından `tests/conftest.py`'ye
+  taşındı; `playwright` kurulu ama Chromium indirilmemişse artık hata
+  yerine atlanıyor.
+
 ## Kalibrasyon katsayısı için bootstrap güven aralığı
 
 Nokta tahmini (`EDR_OLCEKLENDIRME_KATSAYISI = 0.23`) tek bir sayı gibi

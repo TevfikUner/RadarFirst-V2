@@ -366,7 +366,7 @@ async function kayitliUcuslariListele() {
       ? `<div style="color:#999; padding:2px 6px">${ucuslar.length}/${toplam_sayi} gösteriliyor</div>` : "";
     for (const u of ucuslar) {
       const satir = document.createElement("div");
-      satir.innerHTML = `<span>${u.ucus_numarasi}</span><span style="color:#999">${u.tarih}</span>`;
+      satir.append(metinSpan(u.ucus_numarasi), metinSpan(u.tarih, "color:#999"));
       satir.title = "Yüklemek için tıkla";
       satir.addEventListener("click", () => {
         document.getElementById("giris-ucus").value = u.ucus_numarasi;
@@ -389,16 +389,32 @@ async function modelBilgisiniGetirVeGoster() {
       return;
     }
     const m = bilgi.metrikler;
-    govde.innerHTML = `
-      <div class="satir"><span class="etiket">Seçilen model</span><span>${bilgi.secilen_model}</span></div>
-      <div class="satir"><span class="etiket">Recall</span><span>${m.recall.toFixed(3)}</span></div>
-      <div class="satir"><span class="etiket">F1</span><span>${m.f1.toFixed(3)}</span></div>
-      <div class="satir"><span class="etiket">ROC-AUC</span><span>${m.roc_auc.toFixed(3)}</span></div>
-      <div class="satir"><span class="etiket">Eğitim örneklemi</span><span>${bilgi.egitim_orneklem_sayisi}</span></div>
-    `;
+    govde.replaceChildren(...[
+      ["Seçilen model", bilgi.secilen_model],
+      ["Recall", m.recall.toFixed(3)],
+      ["F1", m.f1.toFixed(3)],
+      ["ROC-AUC", m.roc_auc.toFixed(3)],
+      ["Eğitim örneklemi", bilgi.egitim_orneklem_sayisi],
+    ].map(([etiket, deger]) => {
+      const satir = document.createElement("div");
+      satir.className = "satir";
+      const etiketEl = metinSpan(etiket);
+      etiketEl.className = "etiket";
+      satir.append(etiketEl, metinSpan(deger));
+      return satir;
+    }));
   } catch (e) {
-    govde.innerHTML = `<span style="color:#999">Model bilgisi alınamadı: ${e.message}</span>`;
+    govde.replaceChildren(metinSpan("Model bilgisi alınamadı: " + e.message, "color:#999"));
   }
+}
+
+// Sunucudan/veritabanından gelen metin HTML olarak DEĞİL düz metin olarak
+// eklenir (innerHTML'e gömmek XSS'e açık olurdu).
+function metinSpan(metin, stil) {
+  const el = document.createElement("span");
+  el.textContent = String(metin);
+  if (stil) el.style.cssText = stil;
+  return el;
 }
 
 function canliUyarilariDinle() {
