@@ -602,7 +602,11 @@ PostgreSQL servis konteyneriyle) çalıştırır.
   ML sınıflandırıcısıyla AYNI veri) `kalibrasyon.py` kullanılarak kalibre
   edildi -- ama bu ABD hava sahası verisine dayanan, bölgeden bağımsız kaba
   bir kalibrasyondur, Türkiye/Ocak-2019 örnek veri kümesine özgü DEĞİLDİR
-  (bkz. yukarıdaki "Önemli sınırlama").
+  (bkz. yukarıdaki "Önemli sınırlama"). Nokta tahmini tek bir sayı gibi
+  görünse de örneklem küçük (179) olduğu için gerçek belirsizlik daha
+  geniş: `kalibrasyon.py`, bootstrap resampling ile bir %95 güven aralığı
+  da hesaplar (`[0.15, 0.34]`, 1000 tekrarla) -- `--guven-araligi-atla` ile
+  atlanabilir.
 - Proje gerçek bir uçuşla (OpenSky/Trino + gerçek `.nc` verisi) uçtan uca
   test edildi.
 - Bu ortamda Docker daemon'ı kurulu olmadığından `Dockerfile`/

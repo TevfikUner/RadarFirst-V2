@@ -75,13 +75,17 @@ TI1_ESIK_ORTA_SIDDETLI = _ortam_sayi("TI1_ESIK_ORTA_SIDDETLI", 8e-7)
 # eşleşen gerçek ERA5 verisiyle (bkz. pirep_kalibrasyon_verisi_uret.py,
 # kalibrasyon.py -- AYNI 179 örneklik gerçek gözlem seti turbulans_ml_
 # modeli.py'nin eğitiminde de kullanıldı) kalibre edildi: 0.23 (ortalama
-# karesel hata: 0.093). DÜRÜSTLÜK NOTU: bu depodaki örnek veri kümesi
-# (Türkiye/Ocak-2019) için gerçek PIREP/AMDAR yok (bkz. README), bu yüzden
-# katsayı BÖLGEDEN BAĞIMSIZ bir fiziksel ilişkiye (TI1 -> gözlemlenen
-# şiddet) dayanıyor -- ML sınıflandırıcısının özellik seçiminde de AYNI
-# gerekçeyle enlem/boylam kasıtlı dışarıda bırakılmıştı. Yeniden kalibre
-# etmek için: python pirep_kalibrasyon_verisi_uret.py && python
-# kalibrasyon.py pirep_kalibrasyon_verisi.csv
+# karesel hata: 0.093). BELİRSİZLİK: 179 örneklik bootstrap ile hesaplanan
+# %95 güven aralığı [0.15, 0.34] (bkz. kalibrasyon.katsayi_guven_araligi_
+# hesapla) -- nokta tahmini (0.23) TEK bir sayı gibi görünse de örneklem
+# küçük olduğu için gerçek belirsizlik bu kadar geniş, "kesin" bir değer
+# değildir. DÜRÜSTLÜK NOTU: bu depodaki örnek veri kümesi (Türkiye/
+# Ocak-2019) için gerçek PIREP/AMDAR yok (bkz. README), bu yüzden katsayı
+# BÖLGEDEN BAĞIMSIZ bir fiziksel ilişkiye (TI1 -> gözlemlenen şiddet)
+# dayanıyor -- ML sınıflandırıcısının özellik seçiminde de AYNI gerekçeyle
+# enlem/boylam kasıtlı dışarıda bırakılmıştı. Yeniden kalibre etmek için:
+# python pirep_kalibrasyon_verisi_uret.py && python kalibrasyon.py
+# pirep_kalibrasyon_verisi.csv
 EDR_OLCEKLENDIRME_KATSAYISI = _ortam_sayi("EDR_OLCEKLENDIRME_KATSAYISI", 0.23)
 EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI = _ortam_bool("EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI", True)
 

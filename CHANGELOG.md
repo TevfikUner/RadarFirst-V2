@@ -4,6 +4,20 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Kalibrasyon katsayısı için bootstrap güven aralığı
+
+Nokta tahmini (`EDR_OLCEKLENDIRME_KATSAYISI = 0.23`) tek bir sayı gibi
+görünüyordu ama 179 örneklik bir veri setinde bu tahminin ne kadar
+GÜVENİLİR olduğu belirsizdi. `kalibrasyon.katsayi_guven_araligi_hesapla`,
+bootstrap resampling (aynı büyüklükte, yerine koyarak rastgele örneklem
+1000 kez çekilip her birinde katsayı yeniden hesaplanır -- normal dağılım
+varsayımı gerektirmez) ile bir %95 güven aralığı üretir: gerçek veriyle
+`[0.15, 0.34]` (nokta tahmini 0.23'ü kapsıyor ama tek başına "kesin" bir
+değer olmadığını gösteriyor). `kalibrasyon.py` CLI'ı bunu varsayılan olarak
+hesaplayıp yazdırır (`--guven-araligi-atla` ile atlanabilir, `--tekrar-
+sayisi` ile ayarlanabilir). `config.py`'deki katsayı yorumu ve README bu
+belirsizliği artık açıkça belirtiyor.
+
 ## ML model versiyonlama + rollback
 
 Önceden `ml_egitimi.py` her çalıştığında aktif modelin (`turbulans_ml_
