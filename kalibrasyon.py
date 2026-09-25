@@ -67,6 +67,52 @@ def katsayi_kalibre_et(ti1_degerleri, pirep_edr_degerleri, arama_araligi=(0.01, 
     return float(adaylar[en_iyi_indeks]), float(kayiplar[en_iyi_indeks])
 
 
+def katsayi_guven_araligi_hesapla(
+    ti1_degerleri,
+    pirep_edr_degerleri,
+    tekrar_sayisi=1000,
+    guven_seviyesi=0.95,
+    arama_araligi=(0.01, 20.0),
+    adim_sayisi=2000,
+    rastgele_uretec=None,
+):
+    """
+    katsayi_kalibre_et TEK bir nokta tahmini döner ama bu tahminin ne kadar
+    GÜVENİLİR olduğunu (örneklem küçükse -- burada 179 gözlem -- farklı bir
+    örneklemde ne kadar farklı çıkabileceğini) göstermez. Bootstrap
+    resampling -- aynı büyüklükte, YERİNE KOYARAK rastgele bir örneklem
+    tekrar tekrar çekilip her birinde katsayı yeniden hesaplanır -- bu
+    belirsizliği doğrudan veriden tahmin eder, normal dağılım gibi bir
+    varsayım gerektirmez.
+
+    Dönüş: (alt_sinir, ust_sinir, tum_katsayilar) -- guven_seviyesi'ne
+    karşılık gelen persentil aralığı ve TÜM bootstrap katsayıları (ileri
+    analiz/histogram için).
+    """
+    rng = rastgele_uretec or np.random.default_rng()
+    ti1_degerleri = np.asarray(ti1_degerleri, dtype=float)
+    pirep_edr_degerleri = np.asarray(pirep_edr_degerleri, dtype=float)
+    n = len(ti1_degerleri)
+    if n == 0:
+        raise ValueError("Güven aralığı için en az bir (ti1, gözlemlenen_edr) çifti gerekli.")
+
+    tum_katsayilar = np.empty(tekrar_sayisi)
+    for i in range(tekrar_sayisi):
+        indeksler = rng.integers(0, n, n)
+        katsayi, _ = katsayi_kalibre_et(
+            ti1_degerleri[indeksler],
+            pirep_edr_degerleri[indeksler],
+            arama_araligi=arama_araligi,
+            adim_sayisi=adim_sayisi,
+        )
+        tum_katsayilar[i] = katsayi
+
+    alt_yuzde = (1 - guven_seviyesi) / 2 * 100
+    ust_yuzde = 100 - alt_yuzde
+    alt_sinir, ust_sinir = np.percentile(tum_katsayilar, [alt_yuzde, ust_yuzde])
+    return float(alt_sinir), float(ust_sinir), tum_katsayilar
+
+
 def _argumanlari_ayristir(argv=None):
     ayristirici = argparse.ArgumentParser(
         description="Gerçek PIREP/AMDAR gözlemleriyle TI1->EDR proxy ölçeklendirme katsayısını kalibre eder. "
@@ -83,6 +129,17 @@ def _argumanlari_ayristir(argv=None):
         default=(0.01, 20.0),
         metavar=("MIN", "MAKS"),
         help="Katsayı için taranacak aralık (varsayılan: 0.01 20.0)",
+    )
+    ayristirici.add_argument(
+        "--guven-araligi-atla",
+        action="store_true",
+        help="Bootstrap güven aralığı hesabını atla (varsayılan: 1000 tekrarla hesaplanır, ~179 gözlemde birkaç saniye sürer)",
+    )
+    ayristirici.add_argument(
+        "--tekrar-sayisi",
+        type=int,
+        default=1000,
+        help="Bootstrap tekrar sayısı (varsayılan: 1000 -- daha yüksek değer daha kararlı ama daha yavaş bir aralık verir)",
     )
     return ayristirici.parse_args(argv)
 
@@ -110,6 +167,20 @@ if __name__ == "__main__":
 
     print(f"{len(df)} gözlem kullanıldı.")
     print(f"Kalibre edilmiş olceklendirme_katsayisi: {katsayi:.4f}  (ortalama karesel hata: {hata:.4f})")
+
+    if not argumanlar.guven_araligi_atla:
+        print(f"\n%95 güven aralığı hesaplanıyor ({argumanlar.tekrar_sayisi} bootstrap tekrarı)...")
+        alt_sinir, ust_sinir, _ = katsayi_guven_araligi_hesapla(
+            df["ti1_indeksi"].to_numpy(),
+            df["pirep_edr"].to_numpy(),
+            tekrar_sayisi=argumanlar.tekrar_sayisi,
+            arama_araligi=tuple(argumanlar.arama_araligi),
+        )
+        print(
+            f"%95 güven aralığı: [{alt_sinir:.4f}, {ust_sinir:.4f}]  "
+            f"(genişlik: {ust_sinir - alt_sinir:.4f} -- ne kadar dar, katsayı o kadar güvenilir)"
+        )
+
     print(
         "\nBu değeri config.py içindeki EDR_OLCEKLENDIRME_KATSAYISI'ye yaz ve "
         "EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI'yi True yap -- böylece "
