@@ -13,7 +13,9 @@ doğrulayıp serileştirir (fonksiyonların kendisini değiştirmeye gerek yok).
 
 from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
+
+from rota_optimizasyonu import UCAK_PROFILLERI
 
 
 class SaglikYaniti(BaseModel):
@@ -87,3 +89,101 @@ class SigmetDogrulamaYaniti(BaseModel):
     sigmetle_ortusen_nokta_sayisi: int
     ortusme_orani: float | None = None
     sigmetler: list[SigmetYaniti]
+
+
+class RotaSimulasyonuIstegi(BaseModel):
+    """web/ucus_simulasyonu.html'nin gönderdiği istek -- bkz. rota_optimizasyonu.py."""
+
+    baslangic_enlem: float = Field(ge=-90, le=90)
+    baslangic_boylam: float = Field(ge=-180, le=180)
+    bitis_enlem: float = Field(ge=-90, le=90)
+    bitis_boylam: float = Field(ge=-180, le=180)
+    irtifa_ft: float = Field(ge=1000, le=45000)
+    zaman: str  # ISO 8601 (örn. '2019-01-15T10:00:00')
+    ucak_modeli: str
+
+    @field_validator("zaman")
+    @classmethod
+    def _zaman_gecerli_mi(cls, deger):
+        try:
+            datetime.fromisoformat(deger)
+        except ValueError:
+            raise ValueError("zaman ISO 8601 formatında olmalı (örn. '2019-01-15T10:00:00').") from None
+        return deger
+
+    @field_validator("ucak_modeli")
+    @classmethod
+    def _ucak_modeli_gecerli_mi(cls, deger):
+        if deger not in UCAK_PROFILLERI:
+            raise ValueError(f"Bilinmeyen ucak_modeli: '{deger}'. Geçerli seçenekler: {list(UCAK_PROFILLERI)}")
+        return deger
+
+
+class RotaNoktasiYaniti(BaseModel):
+    enlem: float
+    boylam: float
+    irtifa_m: float
+    zaman: str
+
+
+class RotaSonucuYaniti(BaseModel):
+    noktalar: list[RotaNoktasiYaniti]
+    toplam_sure_dk: float
+    mesafe_km: float
+    tahmini_yakit_kg: float
+    tahmini_co2_kg: float
+    maks_yanal_sapma_km: float | None = None
+    irtifa_ft: float | None = None
+    maks_ti1: float | None = None
+    riskli_nokta_sayisi: int = 0
+
+
+class RotaSimulasyonuYaniti(BaseModel):
+    ruzgar_verisi_kaynagi: str
+    aciklama: str
+    ucak_modeli: str
+    ucak_etiketi: str
+    turbulanstan_kacinildi_mi: bool
+    kacinma_stratejisi: str
+    normal_rota: RotaSonucuYaniti
+    optimize_rota: RotaSonucuYaniti
+    sure_tasarrufu_dk: float
+    yakit_tasarrufu_yuzde: float
+    co2_farki_kg: float
+    czml: list[dict]
+
+
+class UcakProfiliYaniti(BaseModel):
+    kod: str
+    etiket: str
+    tas_ms: float
+
+
+class TurbulansTahminIstegi(BaseModel):
+    """turbulans_ml_modeli.py'nin gerçek IEM PIREP + ERA5 verisiyle eğitilmiş
+    sınıflandırıcısını, fizik tabanlı Ellrod TI1 ile karşılaştırmalı olarak
+    tek bir nokta için sorgular."""
+
+    enlem: float = Field(ge=-90, le=90)
+    boylam: float = Field(ge=-180, le=180)
+    irtifa_ft: float = Field(ge=1000, le=45000)
+    zaman: str
+
+    @field_validator("zaman")
+    @classmethod
+    def _zaman_gecerli_mi(cls, deger):
+        try:
+            datetime.fromisoformat(deger)
+        except ValueError:
+            raise ValueError("zaman ISO 8601 formatında olmalı (örn. '2019-01-15T10:00:00').") from None
+        return deger
+
+
+class TurbulansTahminYaniti(BaseModel):
+    kapsam_icinde_mi: bool
+    ti1_indeksi: float | None = None
+    ti1_riskli_mi: bool | None = None
+    ml_riski_var_mi: bool | None = None
+    ml_olasilik: float | None = None
+    aciklama: str
+    yakit_akisi_kg_saat: float
