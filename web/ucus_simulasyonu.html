@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Türbülans Radar — 3D Uçuş Simülasyonu</title>
+<!--
+  Tek dosyalık, build aracı gerektirmeyen bir CesiumJS önyüzü (web/harita3d.html
+  ile aynı desen -- api_servisi.py tarafından /harita/ucus_simulasyonu.html
+  olarak sunulur, API ile AYNI origin'de olduğu için fetch() CORS'a takılmaz).
+
+  Girilen başlangıç/bitiş/irtifa/tarih/uçak için rota_optimizasyonu.py'nin
+  ürettiği İKİ GERÇEK rotayı (büyük daire "normal" + ERA5 rüzgarına göre
+  yanal kaydırılmış "optimize") CZML olarak çeker ve 3D uçak modeliyle
+  (web/models/ucak.glb -- CesiumJS'in resmi örnek verisi, Apache 2.0)
+  zaman-senkronize olarak animasyonlu gösterir.
+
+  KEYLESS (Cesium ion hesabı/token'ı GEREKTİRMEZ): harita.py/harita3d.html'de
+  CartoDB'nin anahtar istemeye başlamasıyla yaşanan sorunu tekrarlamamak için
+  hangi ilkeyle anahtarsız Esri tile'a geçildiyse, burada da AYNI ilkeyle
+  Cesium'un varsayılan ion terrain/imagery'si (createWorldTerrain/Imagery)
+  KULLANILMIYOR -- imagery yine anahtarsız Esri World Street Map, terrain ise
+  düz elipsoid (WGS84). Bu yüzden Cesium.Ion.defaultAccessToken hiç set
+  edilmiyor.
+-->
+<link href="https://cdn.jsdelivr.net/npm/cesium@1.145.0/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/cesium@1.145.0/Build/Cesium/Cesium.js"></script>
+<style>
+  :root { color-scheme: dark; }
+  html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, sans-serif; }
+  #cesiumContainer { position: absolute; inset: 0; }
+  .panel {
+    position: absolute; z-index: 5; background: rgba(20, 22, 26, 0.92); color: #eee;
+    border-radius: 8px; padding: 12px 14px; box-shadow: 0 2px 10px rgba(0,0,0,0.4);
+    font-size: 13px;
+  }
+  #kontrol-paneli { top: 12px; left: 12px; width: 280px; max-height: calc(100vh - 24px); overflow-y: auto; }
+  #kontrol-paneli input, #kontrol-paneli select {
+    width: 100%; box-sizing: border-box; margin: 3px 0 8px; padding: 5px 7px;
+    border-radius: 4px; border: 1px solid #444; background: #1c1e22; color: #eee;
+  }
+  #kontrol-paneli label { font-size: 11px; color: #aaa; }
+  #kontrol-paneli .satir { display: flex; gap: 8px; }
+  #kontrol-paneli .satir > div { flex: 1; }
+  #kontrol-paneli button { width: 100%; padding: 8px; border-radius: 4px; border: none;
+    background: #3388ff; color: white; font-weight: 600; cursor: pointer; margin-top: 4px; }
+  #kontrol-paneli button:hover { background: #2a6fd6; }
+  #kontrol-paneli button:disabled { background: #555; cursor: wait; }
+  #durum { margin-top: 8px; font-size: 12px; line-height: 1.4; white-space: pre-wrap; }
+  #durum.hata { color: #ff8080; }
+  #durum.bilgi { color: #9fd6ff; }
+  #sonuc-paneli { top: 12px; right: 12px; width: 260px; display: none; }
+  #sonuc-paneli table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+  #sonuc-paneli td { padding: 3px 4px; border-bottom: 1px solid #333; }
+  #sonuc-paneli td:first-child { color: #aaa; }
+  #sonuc-paneli .tasarruf-iyi { color: #2ecc71; font-weight: 600; }
+  #sonuc-paneli .tasarruf-yok { color: #e67e22; }
+  #kaynak-etiketi { display: inline-block; padding: 2px 6px; border-radius: 3px; font-size: 11px; margin-top: 4px; }
+  #kaynak-etiketi.gercek { background: #1e5f3a; color: #7be6a6; }
+  #kaynak-etiketi.kapsam-disi { background: #5f4a1e; color: #e6c17b; }
+  #lejant { bottom: 12px; right: 12px; width: 210px; }
+  #lejant div { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
+  #lejant .cizgi { width: 18px; height: 3px; display: inline-block; }
+  hr { border: none; border-top: 1px solid #444; margin: 8px 0; }
+</style>
+</head>
+<body>
+<div id="cesiumContainer"></div>
+
+<div id="kontrol-paneli" class="panel">
+  <b>✈️ Uçuş Simülasyonu</b>
+  <div style="margin-top:8px">
+    <label>API anahtarı (X-API-Key)</label>
+    <input id="giris-anahtar" type="password" placeholder="API_ANAHTARI">
+
+    <div class="satir">
+      <div><label>Başlangıç enlem</label><input id="baslangic-enlem" type="number" step="0.01" value="41.00"></div>
+      <div><label>Başlangıç boylam</label><input id="baslangic-boylam" type="number" step="0.01" value="28.90"></div>
+    </div>
+    <div class="satir">
+      <div><label>Bitiş enlem</label><input id="bitis-enlem" type="number" step="0.01" value="36.90"></div>
+      <div><label>Bitiş boylam</label><input id="bitis-boylam" type="number" step="0.01" value="30.70"></div>
+    </div>
+    <div class="satir">
+      <div><label>İrtifa (ft)</label><input id="irtifa-ft" type="number" step="500" value="28000"></div>
+      <div><label>Tarih/saat (UTC)</label><input id="zaman" type="datetime-local" value="2019-01-05T12:00"></div>
+    </div>
+    <label>Uçak modeli</label>
+    <select id="ucak-modeli"><option value="">(önce API anahtarını gir)</option></select>
+
+    <button id="simule-et-buton">Simüle Et</button>
+    <button id="yeniden-hesapla-buton" style="display:none; background:#e67e22; margin-top:6px;">
+      🔄 Uçuş sırasında yeniden hesapla
+    </button>
+  </div>
+  <div id="durum"></div>
+</div>
+
+<div id="kabin-bildirimi" class="panel" style="display:none; top:12px; left:50%; transform:translateX(-50%); background:rgba(176,42,42,0.95); max-width:420px; text-align:center;">
+</div>
+
+<div id="sonuc-paneli" class="panel">
+  <b>Sonuç</b>
+  <div id="kaynak-etiketi"></div>
+  <div id="aciklama" style="margin-top:6px; color:#ccc; font-size:11px;"></div>
+  <table>
+    <tr><td></td><td><b>Normal</b></td><td><b>Optimize</b></td></tr>
+    <tr><td>Süre</td><td id="s-normal-sure"></td><td id="s-optimize-sure"></td></tr>
+    <tr><td>Mesafe</td><td id="s-normal-mesafe"></td><td id="s-optimize-mesafe"></td></tr>
+    <tr><td>Yakıt (tahmini)</td><td id="s-normal-yakit"></td><td id="s-optimize-yakit"></td></tr>
+    <tr><td>CO2 (tahmini)</td><td id="s-normal-co2"></td><td id="s-optimize-co2"></td></tr>
+    <tr><td>Riskli türbülans</td><td id="s-normal-turbulans"></td><td id="s-optimize-turbulans"></td></tr>
+    <tr><td>İrtifa</td><td id="s-normal-irtifa"></td><td id="s-optimize-irtifa"></td></tr>
+  </table>
+  <hr>
+  <div id="strateji-satiri" style="font-size:11px; color:#9fd6ff; margin-bottom:4px;"></div>
+  <div id="tasarruf-satiri"></div>
+</div>
+
+<div id="lejant" class="panel">
+  <div><span class="cizgi" style="background:#3388ff"></span> Normal rota (büyük daire)</div>
+  <div><span class="cizgi" style="background:#2ecc71"></span> Optimize rota (önce güvenlik, sonra yakıt)</div>
+  <div style="font-size:11px; color:#999; margin-top:6px; border-top:1px solid #444; padding-top:6px;">
+    Optimize rota ÖNCE riskli türbülanstan (gerçek Ellrod TI1 indeksi) kaçınır,
+    SONRA en ucuz (yakıt/süre) yolu bulur -- yanal sapma (A* araması) ile
+    irtifa değiştirme (tırmanma/alçalma, gerçek yakıt bedeliyle) arasından en
+    ucuz güvenli seçeneği seçer. Türbülans yoksa iki rota birebir aynıdır --
+    kaçınma bazen fazladan yakıt gerektirebilir (gerçek uçuşlarda da
+    böyledir). SADECE projenin ERA5 veri küpünün kapsadığı bölge/tarih için
+    gerçektir (varsayılan: Türkiye/Doğu Akdeniz, Ocak 2019) -- bkz. rota_optimizasyonu.py.
+  </div>
+</div>
+
+<script>
+const API_TABANI = "";  // aynı origin -- göreli yollar yeterli
+
+function anahtarAl() {
+  return document.getElementById("giris-anahtar").value || localStorage.getItem("tr_api_anahtari") || "";
+}
+
+function durumGoster(mesaj, tur) {
+  const el = document.getElementById("durum");
+  el.textContent = mesaj;
+  el.className = tur || "";
+}
+
+async function apiIste(yol, secenekler) {
+  const anahtar = anahtarAl();
+  const yanit = await fetch(API_TABANI + yol, {
+    ...secenekler,
+    headers: { "X-API-Key": anahtar, "Content-Type": "application/json", ...(secenekler && secenekler.headers) },
+  });
+  if (!yanit.ok) {
+    let detay = yanit.statusText;
+    try { detay = (await yanit.json()).detail || detay; } catch (e) {}
+    const hata = new Error(typeof detay === "string" ? detay : JSON.stringify(detay));
+    hata.durumKodu = yanit.status;
+    throw hata;
+  }
+  return yanit.json();
+}
+
+// --- Cesium: anahtarsız kurulum (bkz. dosya başındaki not) ---
+const viewer = new Cesium.Viewer("cesiumContainer", {
+  baseLayerPicker: false,
+  geocoder: false,
+  homeButton: true,
+  sceneModePicker: true,
+  navigationHelpButton: false,
+  animation: true,
+  timeline: true,
+  fullscreenButton: false,
+  infoBox: false,
+  selectionIndicator: false,
+  shouldAnimate: true,
+  // NOT: CesiumJS 1.104+'ta Viewer'ın 'imageryProvider' seçeneği artık
+  // sessizce HİÇBİR KATMAN EKLEMİYOR (deprecated) -- doğru yol 'baseLayer'a
+  // bir Cesium.ImageryLayer örneği vermek (bkz. Cesium kaynak kodundaki
+  // Viewer.js: sadece options.baseLayer, scene.imageryLayers.add() ile
+  // eklenir). Bu proje Playwright ile gerçek bir tarayıcıda test edilirken
+  // bulundu -- 'imageryProvider' kullanan eski örnekler artık çalışmıyor.
+  baseLayer: new Cesium.ImageryLayer(
+    new Cesium.UrlTemplateImageryProvider({
+      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+      credit: "Tiles © Esri",
+    })
+  ),
+  terrainProvider: new Cesium.EllipsoidTerrainProvider(),
+});
+viewer.scene.globe.enableLighting = true;
+
+let mevcutDataSource = null;
+
+async function ucakProfilleriniYukle() {
+  const secim = document.getElementById("ucak-modeli");
+  try {
+    const profiller = await apiIste("/api/v1/simulasyon/ucak-profilleri");
+    secim.innerHTML = "";
+    for (const p of profiller) {
+      const opt = document.createElement("option");
+      opt.value = p.kod;
+      opt.textContent = p.etiket;
+      secim.appendChild(opt);
+    }
+  } catch (e) {
+    secim.innerHTML = '<option value="">(API anahtarı geçersiz/eksik)</option>';
+  }
+}
+
+function saniyeyiDkSaatOlarakYaz(dk) {
+  const saat = Math.floor(dk / 60);
+  const kalanDk = Math.round(dk % 60);
+  return saat > 0 ? `${saat}s ${kalanDk}dk` : `${kalanDk}dk`;
+}
+
+function sonucPanelDoldur(sonuc) {
+  document.getElementById("sonuc-paneli").style.display = "block";
+
+  const kaynakEl = document.getElementById("kaynak-etiketi");
+  if (sonuc.ruzgar_verisi_kaynagi === "era5_gercek") {
+    kaynakEl.textContent = "✓ Gerçek ERA5 rüzgar verisi";
+    kaynakEl.className = "gercek";
+  } else {
+    kaynakEl.textContent = "⚠ Kapsam dışı (rüzgarsız tahmin)";
+    kaynakEl.className = "kapsam-disi";
+  }
+  document.getElementById("aciklama").textContent = sonuc.aciklama;
+
+  document.getElementById("s-normal-sure").textContent = saniyeyiDkSaatOlarakYaz(sonuc.normal_rota.toplam_sure_dk);
+  document.getElementById("s-optimize-sure").textContent = saniyeyiDkSaatOlarakYaz(sonuc.optimize_rota.toplam_sure_dk);
+  document.getElementById("s-normal-mesafe").textContent = sonuc.normal_rota.mesafe_km.toFixed(0) + " km";
+  document.getElementById("s-optimize-mesafe").textContent = sonuc.optimize_rota.mesafe_km.toFixed(0) + " km";
+  document.getElementById("s-normal-yakit").textContent = sonuc.normal_rota.tahmini_yakit_kg.toFixed(0) + " kg";
+  document.getElementById("s-optimize-yakit").textContent = sonuc.optimize_rota.tahmini_yakit_kg.toFixed(0) + " kg";
+  document.getElementById("s-normal-co2").textContent = sonuc.normal_rota.tahmini_co2_kg.toFixed(0) + " kg";
+  document.getElementById("s-optimize-co2").textContent = sonuc.optimize_rota.tahmini_co2_kg.toFixed(0) + " kg";
+  document.getElementById("s-normal-turbulans").textContent = `${sonuc.normal_rota.riskli_nokta_sayisi} nokta`;
+  document.getElementById("s-optimize-turbulans").textContent = `${sonuc.optimize_rota.riskli_nokta_sayisi} nokta`;
+  document.getElementById("s-normal-irtifa").textContent = sonuc.normal_rota.irtifa_ft.toFixed(0) + " ft";
+  document.getElementById("s-optimize-irtifa").textContent = sonuc.optimize_rota.irtifa_ft.toFixed(0) + " ft";
+
+  const stratejiEtiketleri = {
+    yanal: "Strateji: yanal sapma (A*)",
+    irtifa_yukari: "Strateji: tırmanma (irtifa artırıldı)",
+    irtifa_asagi: "Strateji: alçalma (irtifa azaltıldı)",
+    yok: "",
+  };
+  document.getElementById("strateji-satiri").textContent = stratejiEtiketleri[sonuc.kacinma_stratejisi] || "";
+
+  // Önce GÜVENLİK durumu, sonra yakıt etkisi ayrı ayrı gösterilir -- ikisini
+  // tek bir "iyi/kötü" yargısına karıştırmıyoruz (bkz. rota_optimizasyonu.py
+  // dosya başlığındaki öncelik sırası notu).
+  const tasarrufEl = document.getElementById("tasarruf-satiri");
+  const co2Eki = Math.abs(sonuc.co2_farki_kg) > 0.5
+    ? (sonuc.co2_farki_kg > 0 ? ` (${sonuc.co2_farki_kg.toFixed(0)} kg CO2 azaldı 🌱)` : ` (${Math.abs(sonuc.co2_farki_kg).toFixed(0)} kg CO2 arttı)`)
+    : "";
+  const yakitCumlesi = sonuc.yakit_tasarrufu_yuzde > 0.01
+    ? `yakıt tasarrufu: %${sonuc.yakit_tasarrufu_yuzde.toFixed(2)}${co2Eki}`
+    : sonuc.yakit_tasarrufu_yuzde < -0.01
+      ? `ekstra yakıt: %${Math.abs(sonuc.yakit_tasarrufu_yuzde).toFixed(2)} (güvenlik için sapmanın bedeli)${co2Eki}`
+      : `yakıt farkı yok`;
+
+  if (sonuc.normal_rota.riskli_nokta_sayisi === 0) {
+    tasarrufEl.innerHTML = `<span class="tasarruf-yok">Rotada riskli türbülans tespit edilmedi -- iki rota aynı, ${yakitCumlesi}.</span>`;
+  } else if (sonuc.optimize_rota.riskli_nokta_sayisi === 0) {
+    tasarrufEl.innerHTML = `<span class="tasarruf-iyi">✓ Türbülanstan TAMAMEN kaçınıldı</span> (${sonuc.normal_rota.riskli_nokta_sayisi} riskli nokta atlatıldı), ${yakitCumlesi}.`;
+  } else if (sonuc.turbulanstan_kacinildi_mi) {
+    tasarrufEl.innerHTML = `<span class="tasarruf-yok">Kısmi kaçınma: ${sonuc.normal_rota.riskli_nokta_sayisi} → ${sonuc.optimize_rota.riskli_nokta_sayisi} riskli nokta (tamamen atlatılamadı)</span>, ${yakitCumlesi}.`;
+  } else {
+    tasarrufEl.innerHTML = `<span class="tasarruf-yok">Türbülans verisi/rüzgar değerlendirilemedi.</span>`;
+  }
+
+  kabinBildirimiGoster(sonuc);
+}
+
+// Kabin içi otomasyon ÇERÇEVELEMESİ: mevcut /ws/uyarilar WebSocket'inin
+// (bkz. api_servisi.py) zaten yaptığı "TI1 eşiği aşıldı -> anlık uyarı yayınla"
+// mantığının SİMÜLASYON sayfasındaki karşılığı -- GERÇEK tespit edilen TI1
+// şiddetine bağlı, illüstratif bir operasyonel bildirim. Uydurma bir "canlı
+// filo" sistemi DEĞİLDİR -- sadece zaten hesaplanan gerçek veriyi kokpit
+// dışına, kabin ekibine iletilecek bir mesaj biçiminde çerçeveler.
+function kabinBildirimiGoster(sonuc) {
+  const el = document.getElementById("kabin-bildirimi");
+  if (sonuc.normal_rota.riskli_nokta_sayisi === 0) { el.style.display = "none"; return; }
+
+  if (sonuc.optimize_rota.riskli_nokta_sayisi === 0) {
+    el.innerHTML =
+      `🔔 <b>Kabin ekibine bildirim (illüstratif):</b> Normal rotada ${sonuc.normal_rota.riskli_nokta_sayisi} ` +
+      `noktada riskli türbülans tespit edildi, kaçınma rotası uygulandı -- "Önlem amaçlı kemer ikaz lambası ` +
+      `kısa süreliğine yakılacak." Bu mesaj gerçek TI1 verisine dayanır, arayüz çerçevelemesi illüstratiftir.`;
+  } else {
+    el.innerHTML =
+      `🔔 <b>Kabin ekibine bildirim (illüstratif):</b> Rota üzerinde ${sonuc.optimize_rota.riskli_nokta_sayisi} ` +
+      `noktada riskli türbülans (TI1 ≥ eşik) TAMAMEN atlatılamadı -- "Kemer ikaz lambasını yakın, sıcak içecek ` +
+      `servisini durdurun." Bu mesaj gerçek TI1 verisine dayanır, arayüz çerçevelemesi illüstratiftir.`;
+  }
+  el.style.display = "block";
+}
+
+let sonHedefEnlem = null, sonHedefBoylam = null, sonUcakModeli = null;
+
+async function sonucuSahneyeUygula(sonuc, kameraUcsunMu) {
+  sonucPanelDoldur(sonuc);
+
+  if (mevcutDataSource) { viewer.dataSources.remove(mevcutDataSource, true); }
+  const ds = await Cesium.CzmlDataSource.load(sonuc.czml);
+  mevcutDataSource = ds;
+  viewer.dataSources.add(ds);
+
+  viewer.clock.startTime = ds.clock.startTime.clone();
+  viewer.clock.stopTime = ds.clock.stopTime.clone();
+  viewer.clock.currentTime = ds.clock.startTime.clone();
+  viewer.clock.clockRange = Cesium.ClockRange.CLAMPED;
+  viewer.clock.multiplier = ds.clock.multiplier;
+  viewer.timeline.zoomTo(ds.clock.startTime, ds.clock.stopTime);
+  viewer.clock.shouldAnimate = true;
+
+  if (kameraUcsunMu) {
+    // viewer.flyTo(ds) sadece varlığın O ANKİ (tek nokta) pozisyonuna göre
+    // yakınlaşıyor -- rotanın tamamını değil, uçağın anlık konumunu
+    // kapsıyor. Tüm rotayı (her iki hat) baştan gösterebilmek için, sunucudan
+    // zaten aldığımız ham koordinatlardan bir dikdörtgen hesaplayıp ona uçuyoruz.
+    const tumNoktalar = [...sonuc.normal_rota.noktalar, ...sonuc.optimize_rota.noktalar];
+    const dikdortgen = Cesium.Rectangle.fromCartographicArray(
+      tumNoktalar.map((n) => Cesium.Cartographic.fromDegrees(n.boylam, n.enlem))
+    );
+    await viewer.camera.flyTo({ destination: dikdortgen, duration: 2 });
+  }
+
+  document.getElementById("yeniden-hesapla-buton").style.display = "block";
+}
+
+async function simulasyonuCalistir() {
+  const govde = {
+    baslangic_enlem: Number(document.getElementById("baslangic-enlem").value),
+    baslangic_boylam: Number(document.getElementById("baslangic-boylam").value),
+    bitis_enlem: Number(document.getElementById("bitis-enlem").value),
+    bitis_boylam: Number(document.getElementById("bitis-boylam").value),
+    irtifa_ft: Number(document.getElementById("irtifa-ft").value),
+    zaman: document.getElementById("zaman").value + ":00",
+    ucak_modeli: document.getElementById("ucak-modeli").value,
+  };
+  const anahtar = anahtarAl();
+  if (!anahtar) { durumGoster("API anahtarı gerekli.", "hata"); return; }
+  if (!govde.ucak_modeli) { durumGoster("Uçak modeli listesi yüklenemedi -- API anahtarını kontrol et.", "hata"); return; }
+  localStorage.setItem("tr_api_anahtari", anahtar);
+
+  const buton = document.getElementById("simule-et-buton");
+  buton.disabled = true;
+  durumGoster("Hesaplanıyor (gerçek ERA5 rüzgar verisi okunuyor)...", "bilgi");
+  try {
+    const sonuc = await apiIste("/api/v1/simulasyon/rota", { method: "POST", body: JSON.stringify(govde) });
+    sonHedefEnlem = govde.bitis_enlem;
+    sonHedefBoylam = govde.bitis_boylam;
+    sonUcakModeli = govde.ucak_modeli;
+    await sonucuSahneyeUygula(sonuc, true);
+    durumGoster(`Yüklendi (${sonuc.ucak_etiketi}).`, "bilgi");
+  } catch (e) {
+    if (e.durumKodu === 401) durumGoster("API anahtarı geçersiz.", "hata");
+    else if (e.durumKodu === 400 || e.durumKodu === 422) durumGoster("Geçersiz girdi: " + e.message, "hata");
+    else durumGoster("Hata: " + e.message, "hata");
+  } finally {
+    buton.disabled = false;
+  }
+}
+
+// DİNAMİK ROTA GÜNCELLEME: simülasyon oynarken uçağın O ANKİ (interpolasyonla
+// bulunan) konumunu YENİ başlangıç noktası olarak alıp, AYNI hedefe, AYNI
+// gerçek backend'i (rota_optimizasyonu.py -- A* + irtifa karşılaştırması)
+// yeniden çağırır. Uydurma bir "anlık meteorolojik değişiklik" simülasyonu
+// DEĞİLDİR -- gerçek bir yeniden-planlama çağrısıdır; ERA5 veri küpü sabit
+// olduğu için (statik bir dosya) sonuç çoğu zaman benzer çıkar, ama mekanizma
+// GERÇEKTİR ve gerçek zamanlı hava durumu akışına bağlanmaya hazırdır.
+async function ucusSirasindaYenidenHesapla() {
+  if (!mevcutDataSource || sonHedefEnlem === null) return;
+  const optimizeVarligi = mevcutDataSource.entities.getById("optimize-rota");
+  if (!optimizeVarligi) return;
+
+  const suAnkiZaman = viewer.clock.currentTime;
+  const konum = optimizeVarligi.position.getValue(suAnkiZaman);
+  if (!konum) { durumGoster("Şu anki uçak konumu okunamadı.", "hata"); return; }
+  const cografi = Cesium.Cartographic.fromCartesian(konum);
+
+  const govde = {
+    baslangic_enlem: Cesium.Math.toDegrees(cografi.latitude),
+    baslangic_boylam: Cesium.Math.toDegrees(cografi.longitude),
+    bitis_enlem: sonHedefEnlem,
+    bitis_boylam: sonHedefBoylam,
+    irtifa_ft: cografi.height / 0.3048,
+    zaman: Cesium.JulianDate.toIso8601(suAnkiZaman).slice(0, 19),
+    ucak_modeli: sonUcakModeli,
+  };
+
+  const buton = document.getElementById("yeniden-hesapla-buton");
+  buton.disabled = true;
+  durumGoster("Uçuş sırasında yeniden hesaplanıyor (o anki konumdan hedefe)...", "bilgi");
+  try {
+    const sonuc = await apiIste("/api/v1/simulasyon/rota", { method: "POST", body: JSON.stringify(govde) });
+    await sonucuSahneyeUygula(sonuc, true);
+    durumGoster("Rota, uçağın o anki konumundan itibaren yeniden hesaplandı.", "bilgi");
+  } catch (e) {
+    durumGoster("Yeniden hesaplama hatası: " + e.message, "hata");
+  } finally {
+    buton.disabled = false;
+  }
+}
+
+document.getElementById("giris-anahtar").value = localStorage.getItem("tr_api_anahtari") || "";
+document.getElementById("giris-anahtar").addEventListener("change", ucakProfilleriniYukle);
+document.getElementById("simule-et-buton").addEventListener("click", simulasyonuCalistir);
+document.getElementById("yeniden-hesapla-buton").addEventListener("click", ucusSirasindaYenidenHesapla);
+if (anahtarAl()) ucakProfilleriniYukle();
+</script>
+</body>
+</html>

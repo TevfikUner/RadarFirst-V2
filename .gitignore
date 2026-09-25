@@ -11,3 +11,15 @@ ciktilar/
 turbulans_haritasi*.html
 eslesme_sonuclari_*.csv
 toplu_analiz_ozeti.csv
+
+# turbulans_ml_modeli.py / ml_egitimi.py -- gerçek IEM PIREP + ERA5 eğitim
+# verisi ve türetilmiş çıktılar (büyük/üretilmiş dosyalar, ml_veri_indir.py
+# ve ml_egitimi.py ile yeniden üretilebilir; bkz. README).
+pirep_ham/
+era5_egitim_verisi/
+pirep_ust_seviye_siniflandirilmis.csv
+era5_indirme_plani.csv
+ml_indirme_log.txt
+ml_model_karsilastirmasi.csv
+ml_karisiklik_matrisi.png
+*.joblib

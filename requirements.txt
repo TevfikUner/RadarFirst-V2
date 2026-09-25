@@ -16,3 +16,5 @@ asyncpg
 httpx
 alembic
 shapely
+scikit-learn
+joblib

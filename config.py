@@ -98,3 +98,9 @@ CIKTI_KLASORU = _ortam_str("CIKTI_KLASORU", "ciktilar")
 # SADECE animasyon noktaları eşit aralıklarla seyreltilir (ham veri zaten
 # PostgreSQL'de tam haliyle duruyor, bu sadece görselleştirme içindir).
 HARITA_MAKS_ANIMASYON_NOKTASI = _ortam_sayi("HARITA_MAKS_ANIMASYON_NOKTASI", 2000, int)
+
+# rota_optimizasyonu.py -- 3D uçuş simülasyonu (web/ucus_simulasyonu.html)
+# için üretilen rota kaç ara noktadan oluşsun. Fazla nokta CZML animasyonunu
+# pürüzsüzleştirir ama rüzgar-optimal rota aramasını (her aday x her nokta
+# için bir ERA5 okuması) yavaşlatır.
+ROTA_SIMULASYONU_NOKTA_SAYISI = _ortam_sayi("ROTA_SIMULASYONU_NOKTA_SAYISI", 41, int)

@@ -68,6 +68,12 @@ migrations/, alembic.ini          -> Alembic veritabanı şema migration'ları
 semalar.py                        -> api_servisi.py için Pydantic yanıt (response) modelleri
 sigmet_dogrulama.py               -> TI1'i gerçek AWC SIGMET uyarılarıyla karşılaştırır (SADECE ABD hava sahası)
 web/harita3d.html                 -> tek dosyalık MapLibre GL 3D/canlı harita önyüzü (api_servisi.py sunar)
+rota_optimizasyonu.py             -> gerçek ERA5 rüzgarına göre büyük daire vs yakıt-optimize rota hesabı + CZML üretimi
+web/ucus_simulasyonu.html         -> tek dosyalık CesiumJS 3D uçuş simülasyonu önyüzü (api_servisi.py sunar)
+web/models/ucak.glb               -> 3D uçak modeli (CesiumJS resmi örnek verisi, Apache 2.0)
+turbulans_ml_modeli.py            -> gerçek IEM PIREP + ERA5 ile eğitilmiş türbülans risk sınıflandırıcısı (özellik çıkarma + tahmin)
+ml_veri_indir.py                  -> ML eğitim verisi: PIREP raporlarına eşleşen gerçek ERA5 pencerelerini Copernicus CDS'ten indirir
+ml_egitimi.py                     -> ML eğitim/karşılaştırma betiği (Lojistik Regresyon / Random Forest / Gradient Boosting, recall'a göre seçim)
 api_servisi.py                    -> FastAPI REST API'si (API anahtarlı, /api/v1, async, WebSocket)
 mcp_postgres_sunucusu.py         -> Claude Code/Desktop için salt okunur PostgreSQL MCP sunucusu
 .mcp.json                          -> Claude Code'un mcp_postgres_sunucusu.py'yi tanıması için
@@ -174,8 +180,12 @@ uvicorn api_servisi:app --reload --port 8000
 | GET | `/api/v1/analiz/durum/{gorev_id}` | Tetiklenen bir analizin durumunu sorgular |
 | GET | `/api/v1/esikler` | TI1 renklendirme eşiklerini döner (web/harita3d.html bunları kullanır) |
 | GET | `/api/v1/ucuslar/{ucus_numarasi}/{tarih}/sigmet-dogrulama` | TI1'i gerçek AWC SIGMET'leriyle karşılaştırır |
+| GET | `/api/v1/simulasyon/ucak-profilleri` | 3D uçuş simülasyonu için uçak modeli seçim listesi |
+| POST | `/api/v1/simulasyon/rota` | Büyük daire vs rüzgar-optimize rota + CZML döner (bkz. aşağıdaki bölüm) |
+| POST | `/api/v1/turbulans/tahmin` | Tek nokta için fizik (TI1) + gerçek PIREP verisiyle eğitilmiş ML tahminini karşılaştırmalı döner |
 | WS | `/ws/uyarilar?api_key=...` | TI1 "orta-şiddetli" eşiği aşılınca canlı uyarı yayınlar |
 | GET | `/harita/harita3d.html` | 3D/canlı harita önyüzü (statik, tarayıcıda açılır) |
+| GET | `/harita/ucus_simulasyonu.html` | 3D uçuş simülasyonu önyüzü (statik, tarayıcıda açılır) |
 
 Örnek:
 
@@ -251,10 +261,175 @@ yok) -- FastAPI üzerinden sunulduğu, tüm uç noktaları doğru çağırdığ�
 JS'in sözdizimsel olarak geçerli olduğu doğrulandı, ama gerçek render/
 WebGL davranışını görmek için tarayıcıda açıp denemen gerekiyor.
 
+## 3D uçuş simülasyonu (normal rota vs türbülanstan-kaçınma rota)
+
+```bash
+uvicorn api_servisi:app --reload --port 8000
+# tarayıcıda aç: http://localhost:8000/harita/ucus_simulasyonu.html
+```
+
+`web/ucus_simulasyonu.html`, `web/harita3d.html` ile AYNI desende (tek
+dosyalık, build aracı yok, `api_servisi.py` API ile aynı origin'den sunar)
+ama CesiumJS tabanlı bir 3D küre sayfasıdır. Başlangıç/bitiş enlem-boylamı,
+irtifa, tarih-saat ve uçak modelini girip "Simüle Et"e basınca:
+
+- `POST /api/v1/simulasyon/rota` (bkz. `rota_optimizasyonu.py`) iki GERÇEK
+  rota hesaplar: **normal rota** (iki nokta arası büyük daire) ve **optimize
+  rota**. Optimize rotanın önceliği ÖNCE GÜVENLİK, SONRA MALİYET:
+  1. Normal rota üzerinde, projenin ANA analiz koduyla (Ellrod TI1 --
+     `eslestirme.py`/`turbulans_indeksleri.py`, gerçek ERA5 verisiyle) riskli
+     türbülans var mı bakılır.
+  2. **Riskli türbülans YOKSA**, optimize rota normal rotayla **birebir
+     aynıdır** -- uydurma bir sapma gösterilmez.
+  3. **Riskli türbülans VARSA**, adım 3'te açıklanan **A\* (A-star) graf
+     araması** o bölgeyi TAMAMEN atlatan, ERA5 rüzgarına göre de en ucuz olan
+     yolu bulur; ızgarada riski tam ortadan kaldıran bir yol yoksa, riski en
+     aza indiren yol dürüstçe seçilir ("tamamen güvenli" diye yalan
+     söylenmez).
+  - Bu sıralamanın nedeni: türbülansın kendisi doğrudan çok fazla yakıt
+    yaktırmaz (asıl yakıt belirleyicisi rüzgardır) -- türbülanstan kaçınmak
+    genelde yol uzatıp FAZLADAN yakıt gerektirir (gerçek uçuşlarda da böyle);
+    değeri güvenlik/konfordur. Bu yüzden "optimize rota her zaman ucuzdur"
+    varsayılmaz, sonuç panelinde bazen "ekstra yakıt: güvenlik için sapmanın
+    bedeli" olarak dürüstçe gösterilir.
+- **A\* araması (bkz. `_a_yildiz_ile_rota_ara`):** Büyük daire etrafında,
+  her ara noktada 20 km aralıklarla ±400 km'ye kadar yanal seviyelerden
+  oluşan bir IZGARA kurulur; ızgaranın her düğümünün TI1'i projenin ana
+  analiz koduyla (`eslestirme.py`) tek bir vektörel çağrıda hesaplanır. Her
+  kenarın maliyeti gerçek ERA5 rüzgarına göre uçuş süresi + (riskli
+  türbülans içeriyorsa) büyük bir ceza olarak tanımlanır; A*, kalan mesafe
+  tabanlı **admissible** (asla aşırı tahmin etmeyen) bir sezgiselle
+  başlangıçtan bitişe TOPLAM MALİYETİ EN AZA indiren yolu **garantili
+  optimal** şekilde bulur. Erken sürümde ızgara çok kaba (100 km/adım) olduğu
+  için A*'ın rotanın hemen başında/sonunda ani bir sıçrama yapıp onu
+  koruduğu (eski, daha basit "birkaç aday dene" yaklaşımından bile daha uzun
+  bir rota) gerçek veriyle tespit edildi -- ızgara inceltilip (20 km/adım)
+  başlangıca/bitişe yakın erişilebilir sapma bir "zarf" ile kademelendirilerek
+  düzeltildi.
+- **Çok faktörlü karşılaştırma -- irtifa değişimi (tırmanma/alçalma):**
+  Riskli türbülanstan kaçınmanın YANAL sapma dışında ikinci bir GERÇEK
+  stratejisi daha var: aynı yatay rotada kalıp bir üst/alt basınç seviyesine
+  geçmek (bazı CAT katmanları irtifaya bağlıdır). Tırmanma/alçalma KENDİ
+  İÇİNDE de bir yakıt/süre maliyeti taşır (tırmanma seyrin ÜZERİNDE, alçalma
+  ALTINDA bir yakıt akışıyla modellenir -- bkz. `_irtifa_degisimi_maliyeti`,
+  halka açık tipik jet performansı mertebeleri, resmi performans verisi
+  DEĞİL). `rota_simulasyonu_olustur`, yanal A* yolu ile irtifa değişimi
+  adayları arasından TOPLAM maliyeti (temel seyir yakıtı + tırmanma/alçalma
+  bedeli) en düşük, güvenliği sağlayan seçeneği seçer -- bazen irtifa
+  değiştirmek yanal sapmadan hem daha güvenli HEM daha ucuz çıkar. Seçilen
+  strateji (`kacinma_stratejisi`: "yanal"/"irtifa_yukari"/"irtifa_asagi") ve
+  optimize rotanın kendi irtifası (`irtifa_ft`) yanıtta ayrı alanlar olarak
+  döner; sonuç panelinde de gösterilir.
+- Her iki rota, gerçek bir 3D uçak modeliyle (`web/models/ucak.glb` --
+  CesiumJS'in kendi resmi örnek verisi, Apache 2.0 lisanslı) zaman-senkronize
+  CZML animasyonu olarak sahneye eklenir (mavi = normal, yeşil = optimize);
+  Cesium'un yerleşik zaman çizelgesi/oynatma kontrolleriyle izlenebilir.
+- Sonuç panelinde süre, mesafe, tahmini yakıt, **tahmini CO2 emisyonu**
+  (`CO2_KG_PER_KG_YAKIT = 3.16` -- ICAO/IPCC'nin standart, halka açık jet
+  yakıtı emisyon katsayısı) VE riskli türbülans nokta sayısı (normal vs
+  optimize) ayrı ayrı karşılaştırılır.
+- **Dinamik rota güncelleme:** "🔄 Uçuş sırasında yeniden hesapla" butonu,
+  simülasyon oynarken uçağın O ANKİ (Cesium'un kendi interpolasyonuyla
+  bulunan) konumunu yeni başlangıç noktası alıp AYNI hedefe, AYNI gerçek
+  backend'i (A* + irtifa karşılaştırması) yeniden çağırır -- uydurma bir
+  "canlı meteorolojik değişiklik" simülasyonu değil, gerçek bir yeniden
+  planlama çağrısıdır.
+- **Kabin içi bildirim çerçevelemesi:** Riskli türbülans tespit edildiğinde,
+  zaten var olan `/ws/uyarilar` WebSocket uyarı mantığının simülasyon
+  sayfasındaki karşılığı olarak, gerçek TI1 şiddetine dayalı (ama arayüz
+  çerçevelemesi illüstratif) bir "kabin ekibine bildirim" mesajı gösterilir.
+
+**Kapsam/dürüstlük sınırlaması:** Gerçek ERA5 rüzgar/türbülans verisi SADECE
+`config.HAVA_DURUMU_DOSYASI` küpünün kapsadığı bölge/tarih için var (bu
+depodaki varsayılan veri: Türkiye/Doğu Akdeniz, Ocak 2019 -- enlem 36-42,
+boylam 26-45). Seçilen başlangıç/bitiş/tarih bu aralığın dışındaysa, kod
+`sigmet_dogrulama.py`'deki AYNI ilkeyle SESSİZCE uydurma bir "iyileşme"
+göstermez -- `ruzgar_verisi_kaynagi: "era5_kapsam_disi"` döner, iki rota da
+sadece uçağın hava hızıyla (rüzgarsız/türbülanssız) hesaplanır ve arayüzde bu
+açıkça belirtilir. Bu veri kümesiyle demo yapmak için başlangıç/bitiş
+noktalarını bu bölgenin içinde ve tarihi Ocak 2019 içinde seçmen gerekir
+(sayfa varsayılan olarak İstanbul↔Antalya, 5 Ocak 2019, 28000ft ile açılır --
+bu rotada gerçek bir türbülans noktası tespit edilip tamamen atlatılıyor) --
+gerçek dünyadaki uçuş rotanı/tarihini görmek istersen, kendi ERA5 veri
+küpünü indirip `HAVA_DURUMU_DOSYASI` ortam değişkeniyle o dosyayı gösterebilirsin.
+
+Cesium ion hesabı/token'ı GEREKTİRMEZ: harita.py/harita3d.html'de anahtarsız
+Esri tile'a geçilme ilkesiyle aynı şekilde, burada da Cesium'un varsayılan
+ion terrain/imagery'si yerine anahtarsız Esri World Street Map (imagery) +
+düz elipsoid (terrain) kullanılır.
+
+Bu sayfa (diğer statik önyüzlerin aksine) gerçek bir tarayıcıda (Playwright +
+headless Chromium) uçtan uca test EDİLDİ: API anahtarı girme, uçak profili
+listesinin yüklenmesi, "Simüle Et"e tıklama, sonuç panelinin dolması ve
+haritanın gerçekten render olması otomatik olarak doğrulandı. Bu test bir
+GERÇEK hatayı ortaya çıkardı ve düzeltildi: CesiumJS 1.104+'ta `Viewer`'ın
+`imageryProvider` kurucu seçeneği artık sessizce HİÇBİR KATMAN EKLEMİYOR
+(deprecated) -- internetteki birçok eski örnek hâlâ bunu kullanıyor. Doğru
+yol `baseLayer`'a bir `Cesium.ImageryLayer` örneği vermek (bkz. sayfadaki
+kod içi not). Ayrıca `viewer.flyTo(dataSource)`'un, zamana bağlı (dinamik)
+konumlu varlıklarda TÜM rotayı değil sadece varlığın O ANKİ tekil konumunu
+kapsadığı fark edildi -- kamera artık sunucudan gelen ham koordinatlardan
+hesaplanan bir dikdörtgene uçuyor, CZML'nin `path` özelliği de (sadece o ana
+kadar uçulmuş izi gösterdiği için) ayrı, zamana bağlı olmayan statik bir ön
+izleme çizgisiyle tamamlandı.
+
+## Makine öğrenmesi tabanlı türbülans sınıflandırıcısı
+
+TI1/Richardson sayısı fizik FORMÜLÜNE dayanır; komisyon rubriğinin "minimum
+gereksinim" maddesi olarak bunun yanına, GERÇEK gözlem verisiyle etiketli,
+çalışan bir ML sınıflandırıcısı eklendi.
+
+**Neden bu depodaki Türkiye/Ocak-2019 verisiyle değil?** Bu veri kümesi için
+gerçek, doğrulanmış türbülans etiketi yok (ne SIGMET -- sadece ABD hava
+sahası, ne PIREP/AMDAR). Uydurma etiketle model eğitmek yerine (bu tam
+olarak projenin başında düzeltilen "uydurma katsayı" hatasının bir
+versiyonu olurdu), ABD hava sahasına özgü, halka açık **IEM PIREP arşivinden**
+(mesonet.agron.iastate.edu) 2018-2020 arası gerçek pilot türbülans raporları
++ eşleşen gerçek **ERA5** verisi indirilip (`ml_veri_indir.py`,
+`ml_egitimi.py`) GERÇEK bir eğitim kümesi kuruldu:
+
+- 179 gerçek, etiketli örnek (63 pozitif orta-şiddetli+ türbülans / 116
+  negatif) -- FL250-400 arası, projenin `TI1_ESIK_ORTA_SIDDETLI` eşiğiyle
+  AYNI ikili eşik felsefesiyle etiketlendi.
+- Özellikler bilinçli olarak **bölgeden bağımsız** tutuldu (enlem/boylam
+  KASITLI OLARAK dışarıda bırakıldı -- yoksa model ABD'nin bölgesel hava
+  düzenine ezberler, Türkiye gibi hiç görmediği bir bölgede anlamsızlaşırdı):
+  `ti1_indeksi`, `richardson_sayisi`, `ruzgar_hizi_ms`, `basinc_hpa`.
+- Üç sınıflandırıcı (Lojistik Regresyon, Random Forest, Gradient Boosting)
+  eğitilip **recall'a** göre karşılaştırıldı (accuracy değil -- havacılık
+  güvenliğinde kaçırılan gerçek türbülans/false negative en kritik hata
+  türüdür). 134 eğitim / 45 test örneği üzerinde gerçek sonuçlar:
+
+  | Model | Accuracy | Precision | Recall | F1 | ROC-AUC |
+  |---|---|---|---|---|---|
+  | Lojistik Regresyon | 0.578 | 0.421 | 0.500 | 0.457 | 0.644 |
+  | **Random Forest (seçildi)** | **0.756** | **0.632** | **0.750** | **0.686** | **0.843** |
+  | Gradient Boosting | 0.800 | 0.733 | 0.688 | 0.710 | 0.852 |
+
+  Gradient Boosting accuracy/F1'de biraz önde olsa da Random Forest daha
+  yüksek recall'u (0.750 vs 0.688 -- test kümesindeki 16 gerçek türbülans
+  vakasından 12'sini yakalıyor, sadece 4 kaçırıyor) nedeniyle seçildi;
+  havacılıkta bir false negative (kaçırılan gerçek türbülans) bir false
+  positive'den (gereksiz uyarı) çok daha pahalıya mal olur.
+- `POST /api/v1/turbulans/tahmin`, tek bir nokta için hem fizik (TI1) hem
+  ML olasılığını karşılaştırmalı döner. Model dosyası (`*.joblib`) repoya
+  DAHİL DEĞİL (üretilmiş/büyük artefakt, `.gitignore`) -- `ml_veri_indir.py`
+  ardından `ml_egitimi.py` ile yeniden üretilebilir. Model henüz
+  üretilmediyse `turbulans_riski_tahmin_et` uydurma bir tahmin dönmez,
+  dürüstçe `None` döner.
+
+```bash
+python ml_veri_indir.py   # IEM PIREP + eşleşen gerçek ERA5 verisini indirir (Copernicus CDS API anahtarı gerekir, ~/.cdsapirc)
+python ml_egitimi.py      # 3 modeli eğitir/karşılaştırır, recall'a göre en iyisini turbulans_ml_modeli.joblib olarak kaydeder
+```
+
 ## SIGMET/AIRMET doğrulaması
 
-Gerçek PIREP/AMDAR gözlem verisi bu depoda yok (bkz. `kalibrasyon.py`) --
-ama SIGMET'ler (Significant Meteorological Information) de gerçek,
+Bu depodaki örnek veri kümesi (Türkiye/Doğu Akdeniz, Ocak 2019) için gerçek
+PIREP/AMDAR gözlem verisi yok (bkz. `kalibrasyon.py`; ML sınıflandırıcısı
+için ABD hava sahasından indirilen gerçek IEM PIREP verisi ayrı bir konu --
+bkz. [Makine öğrenmesi tabanlı türbülans sınıflandırıcısı](#makine-öğrenmesi-tabanlı-türbülans-sınıflandırıcısı))
+-- ama SIGMET'ler (Significant Meteorological Information) de gerçek,
 operasyonel "burada tehlikeli hava durumu var" uyarılarıdır ve halka açık,
 ücretsiz bir arşivden çekilebilirler. `sigmet_dogrulama.py`, hesaplanan TI1
 "orta-şiddetli" noktalarını, Iowa Environmental Mesonet'in (IEM) 2005'ten
@@ -354,6 +529,13 @@ PostgreSQL servis konteyneriyle) çalıştırır.
 - `web/harita3d.html` gerçek bir tarayıcıda test EDİLEMEDİ (bu ortamda
   tarayıcı yok) -- API entegrasyonu ve JS sözdizimi doğrulandı, gerçek
   render davranışı için tarayıcıda denenmesi gerekir.
+- `web/ucus_simulasyonu.html`, `harita3d.html`'in aksine gerçek bir
+  tarayıcıda (Playwright + headless Chromium) uçtan uca test EDİLDİ -- bkz.
+  README'deki "3D uçuş simülasyonu" bölümü için bulunup düzeltilen gerçek
+  hata (CesiumJS'in `imageryProvider` seçeneğinin artık sessizce hiçbir
+  katman eklememesi). Uçak "modelleri" arasındaki performans farkı (seyir
+  hızı/yakıt akışı) halka açık, tipik değerlerdir -- resmi üretici
+  performans verisi DEĞİLDİR.
 
 ## Değişiklik geçmişi
 

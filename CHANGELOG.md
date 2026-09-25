@@ -4,6 +4,185 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Gerçek gözlem verisiyle eğitilmiş ML türbülans sınıflandırıcısı (bitirme projesi komisyon kriterleri)
+
+Komisyon rubriğinin "minimum gereksinim" maddesi: TI1/Richardson gibi fizik
+formülü tabanlı göstergelerin yanına, GERÇEK gözlem verisiyle etiketli,
+çalışan bir makine öğrenmesi sınıflandırıcısı eklendi -- önceki sürümde
+"Bilinçli olarak yapılmayanlar" altında "bu depoda gerçek PIREP/AMDAR verisi
+yok, uydurma etiketle model eğitmek 'uydurma katsayı' hatasını tekrarlar"
+denilerek ertelenmişti; bu sefer gerçek veri bulunarak yapıldı.
+
+- **Gerçek eğitim verisi:** Bu depodaki Türkiye/Ocak-2019 örnek veri kümesi
+  için gerçek türbülans etiketi yok. Bunun yerine `ml_veri_indir.py`, ABD
+  hava sahasına özgü halka açık **IEM PIREP arşivinden** (mesonet.agron.
+  iastate.edu) 2018-2020 arası pilot türbülans raporlarını ve eşleşen gerçek
+  **ERA5** rüzgar/sıcaklık verisini (kullanıcının kendi Copernicus CDS API
+  anahtarıyla, `cdsapi` paketi ile) indirdi -- 15 ayrı (yıl, ay) penceresi,
+  toplam ~4700 ham PIREP kaydı işlenip FL250-400 arası, gerçekten türbülans
+  metni içeren 179 gerçek etiketli örneğe (63 pozitif orta-şiddetli+ / 116
+  negatif) indirgendi.
+- **`turbulans_ml_modeli.py`:** Özellik çıkarma (`ozellikleri_cikar`,
+  projenin ANA eşleştirme kodu `eslestirme.py` yeniden kullanılarak) ve
+  tahmin (`turbulans_riski_tahmin_et`) modülü. Özellikler BİLİNÇLİ OLARAK
+  bölgeden bağımsız tutuldu (enlem/boylam YOK -- yoksa model ABD'nin
+  bölgesel hava düzenine ezberler, Türkiye gibi hiç görmediği bir bölgede
+  anlamsızlaşırdı): `ti1_indeksi`, `richardson_sayisi`, `ruzgar_hizi_ms`,
+  `basinc_hpa`. Model eğitilmemişse (`.joblib` yoksa) uydurma bir tahmin
+  dönmez, dürüstçe `None` döner.
+- **`ml_egitimi.py`:** Lojistik Regresyon, Random Forest ve Gradient
+  Boosting eğitilip **recall'a göre** karşılaştırıldı (accuracy değil --
+  havacılıkta kaçırılan gerçek türbülans/false negative en kritik hata
+  türüdür). Gerçek sonuçlar (134 eğitim / 45 test örneği):
+
+  | Model | Accuracy | Precision | Recall | F1 | ROC-AUC |
+  |---|---|---|---|---|---|
+  | Lojistik Regresyon | 0.578 | 0.421 | 0.500 | 0.457 | 0.644 |
+  | **Random Forest (seçildi)** | 0.756 | 0.632 | **0.750** | 0.686 | 0.843 |
+  | Gradient Boosting | 0.800 | 0.733 | 0.688 | 0.710 | 0.852 |
+
+  Gradient Boosting accuracy/F1'de biraz önde olsa da Random Forest daha
+  yüksek recall'u nedeniyle seçildi (test kümesindeki 16 gerçek türbülans
+  vakasının 12'sini yakalıyor, 4'ünü kaçırıyor; Gradient Boosting 11
+  yakalayıp 5 kaçırıyor).
+- Yeni uç nokta: `POST /api/v1/turbulans/tahmin` -- tek nokta için fizik
+  (TI1) ve ML tahminini karşılaştırmalı döner.
+- `tests/test_turbulans_ml_modeli.py`: özellik sütunu doğruluğu, kapsam
+  dışı/NaN senkronizasyonu, model yokken dürüst `None` dönüşü ve (model
+  eğitildiğinde) olasılığın 0-1 aralığında olduğunu doğrulayan testler
+  eklendi.
+- Üretilen veri/model dosyaları (`pirep_ham/`, `era5_egitim_verisi/`,
+  `*.joblib`, `ml_model_karsilastirmasi.csv`, `ml_karisiklik_matrisi.png`)
+  büyük/yeniden üretilebilir oldukları için `.gitignore`'a eklendi.
+
+## 3D uçuş simülasyonu: dinamik yeniden hesaplama + kabin bildirimi çerçevelemesi
+
+Komisyon rubriğinin "tam not getirecek" ve "vizyon" kategorilerindeki iki
+maddesi için:
+
+- **Dinamik rota güncelleme:** `web/ucus_simulasyonu.html`'e "🔄 Uçuş
+  sırasında yeniden hesapla" butonu eklendi -- simülasyon oynarken uçağın o
+  anki (Cesium'un CZML interpolasyonuyla bulunan) konumu yeni başlangıç
+  noktası olarak alınır ve AYNI hedefe, AYNI gerçek backend (`/api/v1/
+  simulasyon/rota`, dolayısıyla A* + irtifa karşılaştırması) yeniden
+  çağrılır -- sahte bir "meteorolojik değişiklik" senaryosu değil, gerçek
+  bir uçuş-içi yeniden planlama mekanizmasıdır. Gerçek tarayıcıda test
+  edildi (41dk → o anki konumdan itibaren 33dk, tutarlı).
+- **Kabin içi bildirim çerçevelemesi:** Riskli türbülans tespit edildiğinde
+  (tam veya kısmi atlatma), zaten var olan `/ws/uyarilar` WebSocket uyarı
+  mantığının simülasyon sayfasındaki karşılığı olarak, gerçek TI1 şiddetine
+  dayalı bir "kabin ekibine bildirim" banner'ı gösterilir -- mesaj metni
+  açıkça "illüstratif" olarak işaretlenir, uydurma bir canlı sistem gibi
+  sunulmaz.
+
+## 3D uçuş simülasyonu: A* rota araması + CO2 raporlama (bitirme projesi komisyon kriterleri)
+
+Bitirme projesi komisyon rubriğindeki "algoritmik rota optimizasyonu (A*/
+genetik algoritma)" ve "yeşil havacılık (CO2 raporlama)" maddelerini
+karşılamak için:
+
+- **A\* graf araması (`_a_yildiz_ile_rota_ara`):** Önceki "birkaç sabit yanal
+  kaydırma adayı dene" yaklaşımı, büyük daire etrafında kurulan gerçek bir
+  ızgara üzerinde çalışan, admissible sezgiselli, garantili-optimal bir A*
+  aramasıyla değiştirildi. İlk ızgara çok kaba (100 km/adım) olduğu için A*
+  rotanın başında/sonunda ani bir sıçrama yapıp koruyordu (gerçek veriyle
+  ölçüldüğünde ESKİ yöntemden bile daha uzun/pahalı çıktı, %8.9 yerine %29.6
+  ekstra yakıt) -- ızgara inceltilip (20 km/adım) başlangıca/bitişe yakın
+  erişilebilir sapmayı kademelendiren bir "zarf" eklenerek düzeltildi (şimdi
+  %7.1 ekstra yakıtla, daha küçük ve gerçekçi bir sapmayla aynı türbülansı
+  atlatıyor -- eski yöntemden bile daha iyi).
+- **CO2 raporlama:** Her iki rotanın tahmini yakıtından, ICAO/IPCC'nin
+  standart jet yakıtı emisyon katsayısıyla (`CO2_KG_PER_KG_YAKIT = 3.16`)
+  tahmini CO2 emisyonu hesaplanıp API yanıtına (`tahmini_co2_kg`,
+  `co2_farki_kg`) ve sonuç paneline eklendi.
+- `tests/test_rota_optimizasyonu.py`'ye A*'ın gerçek ERA5 verisiyle tam
+  atlatma/kısmi atlatma senaryolarını doğru bulduğunu ve CO2'nin yakıtla
+  doğru orantılı olduğunu doğrulayan testler eklendi (10/10 geçiyor).
+- **Çok faktörlü maliyet -- irtifa değişimi:** Komisyon rubriğindeki "uçak
+  dinamikleri ve çok faktörlü maliyet (özellikle irtifa değiştirirken
+  tırmanma/alçalma yakıtı)" maddesi için, optimize rota artık YANAL A* yolu
+  ile bir üst/alt basınç seviyesine geçme (gerçek tırmanma/alçalma yakıt/
+  süre maliyetiyle, bkz. `_irtifa_degisimi_maliyeti`) arasından TOPLAM
+  maliyeti en düşük güvenli seçeneği seçiyor. Gerçek veriyle test edilen bir
+  senaryoda (İstanbul→Antalya, 5 Ocak 2019, 28000ft), irtifa artırma
+  (+6000ft) stratejisi yanal A* aramasından (%7.1 ekstra yakıt) daha ucuz
+  çıktı (%2.7 ekstra yakıt) -- bu, gerçek uçuş operasyonlarında da pilotların
+  neden genelde önce irtifa değişikliği istediğini yansıtıyor. Yanıta
+  `kacinma_stratejisi` ve her iki rota için `irtifa_ft` alanları eklendi;
+  sonuç paneli seçilen stratejiyi ve irtifaları ayrı ayrı gösteriyor.
+
+## 3D uçuş simülasyonu: optimizasyon önceliği "önce güvenlik, sonra yakıt" olarak düzeltildi
+
+İlk sürüm SADECE rüzgara göre en hızlı/ucuz rotayı arıyordu -- bu da
+türbülans hiç yokken bile "optimize rota" iki rotayı gereksiz yere görsel
+olarak ayrıştırıyordu (sanki gerçek uçuş rotası keyfi değiştiriliyormuş
+gibi görünüyordu). Proje sahibiyle netleştirildi: türbülansın kendisi
+doğrudan çok fazla yakıt yaktırmaz (asıl yakıt belirleyicisi rüzgardır);
+türbülanstan kaçınmanın asıl değeri YOLCU GÜVENLİĞİ/KONFORUdur ve bu, ondan
+kaçmak için rotadan sapmanın genelde FAZLADAN yakıt gerektirmesi anlamına
+gelir (gerçek uçuşlarda da böyledir).
+
+- **`rota_optimizasyonu.py`** artık ÖNCE riskli türbülanstan (gerçek Ellrod
+  TI1 indeksi -- projenin ANA analiz kodu `eslestirme.py`/
+  `turbulans_indeksleri.py` doğrudan yeniden kullanılarak hesaplanır) kaçınan,
+  SONRA (o kısıt altında) en ucuz rotayı bulan bir öncelik sırası kullanıyor:
+  riskli türbülans yoksa optimize rota normal rotayla BİREBİR AYNI kalır;
+  varsa onu tamamen atlatan (mümkünse rüzgardan da faydalanan) bir alternatif
+  aranır, hiçbir aday riski tam ortadan kaldıramıyorsa riski en aza indiren
+  aday dürüstçe seçilir ("tamamen güvenli" diye yalan söylenmez).
+- Yanıta `turbulanstan_kacinildi_mi` (bool) ve her iki rota için `maks_ti1`/
+  `riskli_nokta_sayisi` alanları eklendi; `web/ucus_simulasyonu.html`'nin
+  sonuç paneli artık süre/mesafe/yakıtın yanında riskli türbülans nokta
+  sayısını da gösteriyor ve "ekstra yakıt: güvenlik için sapmanın bedeli"
+  gibi durumları dürüstçe ayırt ediyor.
+- Sayfanın varsayılan demo değerleri, gerçek ERA5 verisiyle doğrulanmış,
+  görünür bir türbülanstan-kaçınma örneği gösterecek şekilde güncellendi
+  (İstanbul↔Antalya, 5 Ocak 2019, 28000ft).
+- `tests/test_rota_optimizasyonu.py`, üç gerçek senaryoyu (türbülans yok ->
+  rotalar aynı; türbülans var -> tamamen atlatılıyor; türbülans var ama
+  tamamen atlatılamıyor -> risk azaltılıyor, dürüstçe raporlanıyor) gerçek
+  ERA5 verisiyle doğrulayacak şekilde yeniden yazıldı.
+
+## 3D uçuş simülasyonu: rüzgar bazlı rota optimizasyonu (bitirme projesi vitrini)
+
+Bitirme projesi sunumu için, kullanıcının seçtiği başlangıç/bitiş/irtifa/
+tarih/uçak modeliyle iki rotayı 3D olarak karşılaştıran yeni bir vitrin
+özelliği:
+
+- **`rota_optimizasyonu.py`:** Büyük daire ("normal") rotası ile, projenin
+  gerçek ERA5 rüzgar veri küpünü kullanarak toplam uçuş süresini/yakıtını en
+  aza indiren yanal olarak kaydırılmış ("optimize") rotayı hesaplar. Seçilen
+  bölge/tarih veri küpünün kapsamı dışındaysa (bu depoda varsayılan: Türkiye/
+  Doğu Akdeniz, Ocak 2019), uydurma bir "iyileşme" göstermek yerine
+  `sigmet_dogrulama.py`'deki AYNI dürüstlük ilkesiyle "kapsam dışı" sonucu
+  döner ve iki rota da sadece uçağın hava hızıyla hesaplanır.
+- **`web/ucus_simulasyonu.html`:** CesiumJS ile build aracı gerektirmeyen tek
+  dosyalık bir 3D küre sayfası -- iki rotayı CZML olarak yükler, gerçek bir 3D
+  uçak modeliyle (`web/models/ucak.glb`, CesiumJS'in resmi örnek verisi,
+  Apache 2.0) zaman-senkronize animasyonla gösterir. `web/harita3d.html`'de
+  CartoDB'nin anahtar istemeye başlamasıyla yaşanan sorunu tekrarlamamak için
+  benimsenen ilkeyle, Cesium ion hesabı/token'ı GEREKTİRMEZ (anahtarsız Esri
+  imagery + düz elipsoid terrain).
+- Yeni uç noktalar: `POST /api/v1/simulasyon/rota` (iki rota + CZML döner) ve
+  `GET /api/v1/simulasyon/ucak-profilleri` (uçak modeli seçim listesi).
+  `semalar.py`'ye karşılık gelen Pydantic modelleri, `tests/
+  test_rota_optimizasyonu.py`'ye birim testleri eklendi.
+- **Bilinçli sınırlama:** Uçak "modelleri" arasındaki fark sadece seyir hızı/
+  yakıt akışı gibi yaklaşık performans katsayılarıdır (halka açık, tipik
+  değerler -- resmi üretici verisi değildir); 3D görselleştirmede hepsi aynı
+  jenerik uçak modelini kullanır.
+- **Gerçek tarayıcıda doğrulama:** Bu sayfa, projenin diğer statik
+  önyüzlerinden farklı olarak Playwright + headless Chromium ile uçtan uca
+  test edildi ve bu test GERÇEK bir hata buldu: CesiumJS 1.104+'ta
+  `Viewer`'ın `imageryProvider` seçeneği artık sessizce hiçbir katman
+  eklemiyor (deprecated, yerine `baseLayer: new Cesium.ImageryLayer(...)`
+  gerekiyor) -- düzeltilmeden önce harita dokusu hiç render olmuyordu.
+  Ayrıca `viewer.flyTo(dataSource)`'un dinamik konumlu varlıklarda tüm
+  rotayı değil sadece o anki tekil konumu kapsadığı fark edildi; kamera artık
+  ham koordinatlardan hesaplanan bir dikdörtgene uçuyor ve CZML'ye, sadece
+  uçulmuş izi değil TÜM rotayı en baştan gösteren ayrı bir statik ön izleme
+  çizgisi eklendi.
+
 ## GitHub yıldızlarından esinlenilen özellikler: SIGMET doğrulama + 3D harita
 
 Projenin sahibinin GitHub yıldızları (uçuş takibi, havacılık meteorolojisi
@@ -155,12 +334,6 @@ prototipten modüler bir mimariye geçiş:
   geliştirme projesi gerektirir. API tarafı (JSON uç noktaları + WebSocket
   canlı uyarı) buna hazır durumda; mobil istemci ayrı bir iş olarak ele
   alınmalı.
-- **Yapay zeka destekli tahmin modeli:** `kalibrasyon.py`'nin de belirttiği
-  gibi bu depoda gerçek PIREP/AMDAR gözlem verisi yok. Etiketlenmiş gerçek
-  veri olmadan bir ML modeli "eğitmek", projenin başında düzeltilen "uydurma
-  katsayı" hatasının bir versiyonunu (bu sefer sahte bir model görünümü
-  altında) tekrarlamak olurdu. Gerçek gözlem verisi sağlanırsa, üzerine bir
-  tahmin modeli kurmak anlamlı hale gelir.
 - **20+ modülü `turbulans_radar/` paketi + `scripts/` altında yeniden
   yapılandırmak:** Bilinçli olarak ayrı, kendi başına bir iş olarak
   bırakıldı -- TÜM import'ları, `.mcp.json` yolunu, `alembic.ini`'yi ve

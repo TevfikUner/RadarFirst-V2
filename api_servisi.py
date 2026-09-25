@@ -82,17 +82,24 @@ import config
 import loglama
 from hata_yardimcisi import dostane_hata_mesaji
 from main import calistir as tek_ucus_analiz_et
+from rota_optimizasyonu import UCAK_PROFILLERI, rota_simulasyonu_olustur, simulasyonu_czml_e_cevir, veri_kupune_eris
 from semalar import (
     EsiklerYaniti,
     GorevBaslatildiYaniti,
     GorevDurumYaniti,
+    RotaSimulasyonuIstegi,
+    RotaSimulasyonuYaniti,
     SaglikYaniti,
     SigmetDogrulamaYaniti,
+    TurbulansTahminIstegi,
+    TurbulansTahminYaniti,
+    UcakProfiliYaniti,
     UcusDetayYaniti,
     UcusYaniti,
 )
 from sigmet_dogrulama import ucus_sigmet_ile_karsilastir
 from toplu_analiz import toplu_analiz_calistir
+from turbulans_ml_modeli import ozellikleri_cikar, turbulans_riski_tahmin_et
 from veritabani import (
     VeritabaniAyarlariEksikHatasi,
     ucus_detayini_getir_async,
@@ -385,6 +392,97 @@ async def esikleri_getir():
         "ti1_esik_hafif": config.TI1_ESIK_HAFIF,
         "ti1_esik_orta_siddetli": config.TI1_ESIK_ORTA_SIDDETLI,
     }
+
+
+@v1.get("/simulasyon/ucak-profilleri", response_model=list[UcakProfiliYaniti])
+async def ucak_profillerini_getir():
+    """web/ucus_simulasyonu.html'in uçak modeli seçim listesini doldurmak
+    içindir -- sabitler tek kaynaktan (rota_optimizasyonu.py) okunur."""
+    return [
+        {"kod": kod, "etiket": p["etiket"], "tas_ms": p["tas_ms"], "yakit_akisi_kg_saat": p["yakit_akisi_kg_saat"]}
+        for kod, p in UCAK_PROFILLERI.items()
+    ]
+
+
+@v1.post("/simulasyon/rota", response_model=RotaSimulasyonuYaniti)
+async def rota_simulasyonu(istek: RotaSimulasyonuIstegi):
+    """
+    Verilen başlangıç/bitiş/irtifa/tarih/uçak için iki rota üretir: büyük
+    daire ("normal") ve ERA5 rüzgarına göre yanal kaydırılmış en hızlı aday
+    ("optimize") -- bkz. rota_optimizasyonu.py (kapsam dışı bölge/tarih için
+    dürüst geri düşüş davranışı dahil). Dış bir servise istek atmadığı için
+    (sadece yerel NetCDF dosyasını okur) ayrı bir hız sınırlaması yok; event
+    loop'u bloklamaması için hesaplama ayrı bir thread'de çalıştırılır.
+    """
+    sonuc = await asyncio.to_thread(
+        rota_simulasyonu_olustur,
+        istek.baslangic_enlem,
+        istek.baslangic_boylam,
+        istek.bitis_enlem,
+        istek.bitis_boylam,
+        istek.irtifa_ft,
+        istek.zaman,
+        istek.ucak_modeli,
+    )
+    sonuc["czml"] = simulasyonu_czml_e_cevir(sonuc)
+    return sonuc
+
+
+@v1.post("/turbulans/tahmin", response_model=TurbulansTahminYaniti)
+async def turbulans_tahmini(istek: TurbulansTahminIstegi):
+    """
+    Tek bir nokta için HEM fizik tabanlı (Ellrod TI1) HEM gerçek IEM PIREP +
+    ERA5 verisiyle eğitilmiş ML sınıflandırıcısının (bkz. turbulans_ml_
+    modeli.py, ml_egitimi.py) tahminini karşılaştırmalı döner. ML modeli
+    henüz eğitilip kaydedilmediyse (`turbulans_ml_modeli.joblib` yok)
+    `ml_olasilik`/`ml_riski_var_mi` dürüstçe None döner -- uydurma bir
+    tahmin üretilmez.
+    """
+
+    def _hesapla():
+        veri_kupu = veri_kupune_eris()
+        nokta_df = pd.DataFrame(
+            {
+                "zaman": [istek.zaman],
+                "enlem": [istek.enlem],
+                "boylam": [istek.boylam],
+                "irtifa_m": [istek.irtifa_ft * 0.3048],
+            }
+        )
+        if veri_kupu is None:
+            return {
+                "kapsam_icinde_mi": False,
+                "aciklama": f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı -- sunucuda ERA5 veri küpü yok.",
+            }
+
+        ozellikler = ozellikleri_cikar(nokta_df, veri_kupu)
+        ti1 = ozellikler["ti1_indeksi"].iloc[0]
+        if pd.isna(ti1):
+            return {
+                "kapsam_icinde_mi": False,
+                "aciklama": (
+                    f"Seçilen nokta/tarih, ERA5 veri küpünün ('{config.HAVA_DURUMU_DOSYASI}') kapsadığı "
+                    "bölge/tarih aralığının DIŞINDA."
+                ),
+            }
+
+        ml_sonuc = turbulans_riski_tahmin_et(nokta_df, veri_kupu)
+        ml_olasilik = float(ml_sonuc[0]) if ml_sonuc is not None and not pd.isna(ml_sonuc[0]) else None
+
+        return {
+            "kapsam_icinde_mi": True,
+            "ti1_indeksi": float(ti1),
+            "ti1_riskli_mi": bool(ti1 >= config.TI1_ESIK_ORTA_SIDDETLI),
+            "ml_riski_var_mi": (ml_olasilik >= 0.5) if ml_olasilik is not None else None,
+            "ml_olasilik": ml_olasilik,
+            "aciklama": (
+                "Fizik (Ellrod TI1) ve ML tahminleri hesaplandı."
+                if ml_olasilik is not None
+                else "Fizik (Ellrod TI1) hesaplandı; ML modeli henüz eğitilmedi (bkz. ml_egitimi.py)."
+            ),
+        }
+
+    return await asyncio.to_thread(_hesapla)
 
 
 @v1.get("/ucuslar", response_model=list[UcusYaniti])
