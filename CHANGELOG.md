@@ -4,6 +4,30 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## REST API tamamlama: uçuş silme, listeleme filtreleri, ML model bilgisi uç noktası
+
+Mevcut uç noktalar CRUD'un sadece Create/Read kısmını kapsıyordu (silme
+sadece yeniden analizle "üzerine yazma" şeklinde dolaylı vardı) ve
+`GET /api/v1/ucuslar` sadece `limit` alıyordu; ayrıca `ml_egitimi.py`'nin
+ürettiği gerçek model metrikleri (recall, F1, ROC-AUC vb.) sadece
+README/CSV'de duruyordu, API üzerinden okunamıyordu. Üç gerçek eksik
+kapatıldı:
+
+- **`DELETE /api/v1/ucuslar/{ucus_numarasi}/{tarih}`**: bir uçuş kaydını
+  (CASCADE ile `edr_olcumleri` dahil) siler -- bulunamazsa 404, silinirse
+  204. `veritabani.py`'ye asenkron `ucus_sil_async` eklendi.
+- **`GET /api/v1/ucuslar` filtreleme**: `ucus_numarasi_arama` (kısmi
+  eşleşme) ve `baslangic_tarih`/`bitis_tarih` opsiyonel sorgu parametreleri
+  eklendi -- büyüyen bir veri kümesinde belirli bir uçuşu/tarih aralığını
+  bulmak artık tüm listeyi çekip istemci tarafında filtrelemeyi
+  gerektirmiyor.
+- **`GET /api/v1/turbulans/model-bilgisi`**: `ml_egitimi.py` artık seçilen
+  modeli (`*.joblib`) kaydederken yanına `turbulans_ml_modeli_bilgisi.json`
+  da yazıyor (seçilen model adı, test metrikleri, özellik listesi, eğitim
+  tarihi); yeni uç nokta bunu okuyup döner. Model henüz eğitilmediyse
+  (projenin genelindeki "uydurma değer üretme" ilkesiyle AYNI şekilde)
+  `egitildi_mi: false` ile dürüstçe bildirir.
+
 ## Gerçek gözlem verisiyle eğitilmiş ML türbülans sınıflandırıcısı (bitirme projesi komisyon kriterleri)
 
 Komisyon rubriğinin "minimum gereksinim" maddesi: TI1/Richardson gibi fizik

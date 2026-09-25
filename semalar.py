@@ -187,3 +187,17 @@ class TurbulansTahminYaniti(BaseModel):
     ml_olasilik: float | None = None
     aciklama: str
     yakit_akisi_kg_saat: float
+
+
+class ModelBilgisiYaniti(BaseModel):
+    """turbulans_ml_modeli.model_bilgisini_yukle()'nin döndürdüğü metadata --
+    ml_egitimi.py çalıştırılıp model henüz kaydedilmediyse SADECE
+    egitildi_mi=False döner (uydurma bilgi üretilmez)."""
+
+    egitildi_mi: bool
+    secilen_model: str | None = None
+    metrikler: dict | None = None
+    ozellik_sutunlari: list[str] | None = None
+    egitim_orneklem_sayisi: int | None = None
+    test_orneklem_sayisi: int | None = None
+    egitim_zamani: str | None = None

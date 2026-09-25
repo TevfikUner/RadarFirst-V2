@@ -213,11 +213,23 @@ _LISTE_LIMIT_TAVANI = 500
 _OLCUM_LIMIT_TAVANI = 5000
 
 
-def ucuslari_listele(motor=None, limit=100):
+def _ucuslar_filtreli_sorgu(ucus_numarasi_arama=None, baslangic_tarih=None, bitis_tarih=None):
+    sorgu = select(Ucus)
+    if ucus_numarasi_arama:
+        sorgu = sorgu.where(Ucus.ucus_numarasi.ilike(f"%{ucus_numarasi_arama}%"))
+    if baslangic_tarih:
+        sorgu = sorgu.where(Ucus.tarih >= _tarihe_cevir(baslangic_tarih))
+    if bitis_tarih:
+        sorgu = sorgu.where(Ucus.tarih <= _tarihe_cevir(bitis_tarih))
+    return sorgu
+
+
+def ucuslari_listele(motor=None, limit=100, ucus_numarasi_arama=None, baslangic_tarih=None, bitis_tarih=None):
     limit = max(1, min(limit, _LISTE_LIMIT_TAVANI))
     motor = motor or motor_al()
+    sorgu = _ucuslar_filtreli_sorgu(ucus_numarasi_arama, baslangic_tarih, bitis_tarih)
     with Session(motor) as oturum:
-        ucuslar = oturum.execute(select(Ucus).order_by(Ucus.olusturulma_zamani.desc()).limit(limit)).scalars().all()
+        ucuslar = oturum.execute(sorgu.order_by(Ucus.olusturulma_zamani.desc()).limit(limit)).scalars().all()
         return [_ucus_sozluge_cevir(u) for u in ucuslar]
 
 
@@ -257,10 +269,11 @@ def ucus_detayini_getir(ucus_numarasi, tarih_str, motor=None, olcum_limit=1000, 
         }
 
 
-async def ucuslari_listele_async(limit=100):
+async def ucuslari_listele_async(limit=100, ucus_numarasi_arama=None, baslangic_tarih=None, bitis_tarih=None):
     limit = max(1, min(limit, _LISTE_LIMIT_TAVANI))
+    sorgu = _ucuslar_filtreli_sorgu(ucus_numarasi_arama, baslangic_tarih, bitis_tarih)
     async with async_oturum_al() as oturum:
-        sonuc = await oturum.execute(select(Ucus).order_by(Ucus.olusturulma_zamani.desc()).limit(limit))
+        sonuc = await oturum.execute(sorgu.order_by(Ucus.olusturulma_zamani.desc()).limit(limit))
         return [_ucus_sozluge_cevir(u) for u in sonuc.scalars().all()]
 
 
@@ -323,6 +336,17 @@ def ucus_olcumlerini_dataframe_olarak_getir(ucus_numarasi, tarih_str, motor=None
             .all()
         )
         return pd.DataFrame([_olcum_sozluge_cevir(o) for o in olcumler])
+
+
+async def ucus_sil_async(ucus_numarasi, tarih_str):
+    """Bir uçuş kaydını (CASCADE sayesinde edr_olcumleri de dahil) siler.
+    Dönüş: silindiyse True, kayıt zaten yoksa False."""
+    async with async_oturum_al() as oturum:
+        sonuc = await oturum.execute(
+            delete(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == _tarihe_cevir(tarih_str))
+        )
+        await oturum.commit()
+        return sonuc.rowcount > 0
 
 
 def _ucus_sozluge_cevir(u: Ucus):

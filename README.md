@@ -173,8 +173,9 @@ uvicorn api_servisi:app --reload --port 8000
 | Metod | Yol | Açıklama |
 |---|---|---|
 | GET | `/saglik` | Anahtarsız sağlık kontrolü |
-| GET | `/api/v1/ucuslar` | Kaydedilmiş uçuşları listeler (`limit`, 1-500) |
+| GET | `/api/v1/ucuslar` | Kaydedilmiş uçuşları listeler (`limit`, 1-500; `ucus_numarasi_arama` kısmi eşleşme, `baslangic_tarih`/`bitis_tarih` ile filtrelenebilir) |
 | GET | `/api/v1/ucuslar/{ucus_numarasi}/{tarih}` | Bir uçuşun ölçüm noktaları (`olcum_limit`/`olcum_offset` ile sayfalı) |
+| DELETE | `/api/v1/ucuslar/{ucus_numarasi}/{tarih}` | Kayıtlı bir uçuşu (ölçümleriyle birlikte) siler -- bulunamazsa 404, silinirse 204 |
 | POST | `/api/v1/analiz/ucus` | Tek bir uçuşu arka planda analiz eder, `gorev_id` döner |
 | POST | `/api/v1/analiz/toplu` | Birden fazla uçuşu arka planda analiz eder |
 | GET | `/api/v1/analiz/durum/{gorev_id}` | Tetiklenen bir analizin durumunu sorgular |
@@ -183,6 +184,7 @@ uvicorn api_servisi:app --reload --port 8000
 | GET | `/api/v1/simulasyon/ucak-profilleri` | 3D uçuş simülasyonu için uçak modeli seçim listesi |
 | POST | `/api/v1/simulasyon/rota` | Büyük daire vs rüzgar-optimize rota + CZML döner (bkz. aşağıdaki bölüm) |
 | POST | `/api/v1/turbulans/tahmin` | Tek nokta için fizik (TI1) + gerçek PIREP verisiyle eğitilmiş ML tahminini karşılaştırmalı döner |
+| GET | `/api/v1/turbulans/model-bilgisi` | ML modelinin seçim gerekçesi/metrikleri (recall, F1, ROC-AUC vb.) + eğitim tarihini döner; model henüz eğitilmediyse dürüstçe `egitildi_mi: false` |
 | WS | `/ws/uyarilar?api_key=...` | TI1 "orta-şiddetli" eşiği aşılınca canlı uyarı yayınlar |
 | GET | `/harita/harita3d.html` | 3D/canlı harita önyüzü (statik, tarayıcıda açılır) |
 | GET | `/harita/ucus_simulasyonu.html` | 3D uçuş simülasyonu önyüzü (statik, tarayıcıda açılır) |
@@ -417,6 +419,12 @@ versiyonu olurdu), ABD hava sahasına özgü, halka açık **IEM PIREP arşivind
   ardından `ml_egitimi.py` ile yeniden üretilebilir. Model henüz
   üretilmediyse `turbulans_riski_tahmin_et` uydurma bir tahmin dönmez,
   dürüstçe `None` döner.
+- `ml_egitimi.py`, seçilen modeli (`*.joblib`) kaydederken YANINDA
+  `turbulans_ml_modeli_bilgisi.json`'ı da yazar (seçilen model adı, test
+  metrikleri, özellik listesi, eğitim tarihi) -- bu da repoya dahil değil
+  (üretilmiş artefakt). `GET /api/v1/turbulans/model-bilgisi`, bu dosyayı
+  okuyup döner; henüz eğitilmediyse `egitildi_mi: false` ile dürüstçe
+  bildirir.
 
 ```bash
 python ml_veri_indir.py   # IEM PIREP + eşleşen gerçek ERA5 verisini indirir (Copernicus CDS API anahtarı gerekir, ~/.cdsapirc)

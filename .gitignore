@@ -22,4 +22,5 @@ era5_indirme_plani.csv
 ml_indirme_log.txt
 ml_model_karsilastirmasi.csv
 ml_karisiklik_matrisi.png
+turbulans_ml_modeli_bilgisi.json
 *.joblib
