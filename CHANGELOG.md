@@ -4,6 +4,26 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## ML model versiyonlama + rollback
+
+Önceden `ml_egitimi.py` her çalıştığında aktif modelin (`turbulans_ml_
+modeli.joblib`) ÜZERİNE yazıyordu -- yeni bir eğitim beklenenden kötü
+sonuç verirse eski modele dönmenin bir yolu yoktu. Artık:
+
+- `turbulans_ml_modeli.py`'ye `versiyon_kaydet`/`model_versiyonlarini_
+  listele`/`versiyona_geri_don` eklendi -- her eğitim çalıştırması,
+  aktif modelin yanına `model_versiyonlari/` klasörüne KALICI bir kopya +
+  manifest kaydı (seçilen model, metrikler, eğitim tarihi) bırakır.
+- **`GET /api/v1/turbulans/model-versiyonlari`**: geçmiş TÜM versiyonları
+  (en yeni önce) listeler.
+- **`POST /api/v1/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir`**:
+  YENİDEN EĞİTİM GEREKMEDEN geçmiş bir versiyonu aktif model yapar
+  (rollback); bilinmeyen `versiyon_id` 404 döner. `/analiz/*` ile AYNI
+  hız sınırlama deseniyle korunur.
+- Gerçek IEM PIREP/ERA5 verisiyle iki ayrı eğitim çalıştırılıp uçtan uca
+  doğrulandı: versiyon listeleme, eski versiyona geri dönme ve `GET
+  /turbulans/model-bilgisi`'nin geri dönülen versiyonu yansıtması.
+
 ## Mermaid mimari diyagramı + OpenAPI/Postman export + silme hız sınırlaması + CI kapsam raporu
 
 - README'deki ASCII mimari diyagramının yanına, GitHub'da otomatik render

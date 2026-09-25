@@ -228,6 +228,8 @@ görüntü (snapshot) kolaylığı sağlar.
 | POST | `/api/v1/simulasyon/rota` | Büyük daire vs rüzgar-optimize rota + CZML döner (bkz. aşağıdaki bölüm) |
 | POST | `/api/v1/turbulans/tahmin` | Tek nokta için fizik (TI1) + gerçek PIREP verisiyle eğitilmiş ML tahminini karşılaştırmalı döner |
 | GET | `/api/v1/turbulans/model-bilgisi` | ML modelinin seçim gerekçesi/metrikleri (recall, F1, ROC-AUC vb.) + eğitim tarihini döner; model henüz eğitilmediyse dürüstçe `egitildi_mi: false` |
+| GET | `/api/v1/turbulans/model-versiyonlari` | Şimdiye kadar eğitilmiş TÜM model versiyonlarını (en yeni önce) listeler |
+| POST | `/api/v1/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir` | Geçmiş bir model versiyonunu YENİDEN EĞİTİM GEREKMEDEN aktif model yapar (rollback); bilinmeyen `versiyon_id` 404 döner |
 | WS | `/ws/uyarilar?api_key=...` | TI1 "orta-şiddetli" eşiği aşılınca canlı uyarı yayınlar |
 | GET | `/harita/harita3d.html` | 3D/canlı harita önyüzü (statik, tarayıcıda açılır) |
 | GET | `/harita/ucus_simulasyonu.html` | 3D uçuş simülasyonu önyüzü (statik, tarayıcıda açılır) |
@@ -477,6 +479,13 @@ versiyonu olurdu), ABD hava sahasına özgü, halka açık **IEM PIREP arşivind
   (üretilmiş artefakt). `GET /api/v1/turbulans/model-bilgisi`, bu dosyayı
   okuyup döner; henüz eğitilmediyse `egitildi_mi: false` ile dürüstçe
   bildirir.
+- **Model versiyonlama/rollback:** her `ml_egitimi.py` çalıştırması,
+  aktif modelin YANINDA `model_versiyonlari/` klasörüne KALICI bir kopya +
+  manifest kaydı bırakır (repoya dahil değil, üretilmiş artefakt).
+  `GET /api/v1/turbulans/model-versiyonlari` geçmiş TÜM versiyonları listeler,
+  `POST /api/v1/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir` ise
+  yeniden eğitim gerekmeden geçmiş bir versiyona döner -- örn. yeni bir
+  eğitim çalıştırması beklenenden kötü çıkarsa.
 
 ```bash
 python ml_veri_indir.py   # IEM PIREP + eşleşen gerçek ERA5 verisini indirir (Copernicus CDS API anahtarı gerekir, ~/.cdsapirc)

@@ -38,6 +38,7 @@ from turbulans_ml_modeli import (
     OZELLIK_SUTUNLARI,
     ozellikleri_cikar,
     ozellikleri_temizle,
+    versiyon_kaydet,
 )
 
 konsolu_utf8_yap()
@@ -166,21 +167,21 @@ def en_iyi_modeli_sec_ve_kaydet(sonuclar, egitim_orneklem_sayisi, test_orneklem_
     # api_servisi.py'nin GET /api/v1/turbulans/model-bilgisi uç noktasının
     # okuduğu metadata -- .joblib'in kendisi metrik/tarih taşımadığı için
     # ayrı bir JSON'da tutulur.
+    model_bilgisi = {
+        "secilen_model": en_iyi_isim,
+        "metrikler": metrikler,
+        "ozellik_sutunlari": OZELLIK_SUTUNLARI,
+        "egitim_orneklem_sayisi": egitim_orneklem_sayisi,
+        "test_orneklem_sayisi": test_orneklem_sayisi,
+        "egitim_zamani": datetime.now(UTC).isoformat(),
+    }
     with open(MODEL_BILGI_DOSYA_YOLU, "w", encoding="utf-8") as dosya:
-        json.dump(
-            {
-                "secilen_model": en_iyi_isim,
-                "metrikler": metrikler,
-                "ozellik_sutunlari": OZELLIK_SUTUNLARI,
-                "egitim_orneklem_sayisi": egitim_orneklem_sayisi,
-                "test_orneklem_sayisi": test_orneklem_sayisi,
-                "egitim_zamani": datetime.now(UTC).isoformat(),
-            },
-            dosya,
-            ensure_ascii=False,
-            indent=2,
-        )
+        json.dump(model_bilgisi, dosya, ensure_ascii=False, indent=2)
     print(f"Model bilgisi kaydedildi: {MODEL_BILGI_DOSYA_YOLU}")
+
+    versiyon_id = versiyon_kaydet(MODEL_DOSYA_YOLU, model_bilgisi)
+    print(f"Model versiyonu kaydedildi: {versiyon_id} (bkz. model_versiyonlari/manifest.json -- rollback için)")
+
     return en_iyi_isim, metrikler
 
 

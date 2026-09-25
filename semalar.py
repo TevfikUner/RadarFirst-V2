@@ -203,6 +203,16 @@ class TurbulansTahminYaniti(BaseModel):
     yakit_akisi_kg_saat: float
 
 
+class ModelVersiyonuOzetiYaniti(BaseModel):
+    """model_versiyonlari/manifest.json'daki bir kaydın özeti -- tam
+    ModelBilgisiYaniti'nin aksine sadece listelemede gösterilecek alanlar."""
+
+    versiyon_id: str
+    secilen_model: str
+    metrikler: dict
+    egitim_zamani: str
+
+
 class ModelBilgisiYaniti(BaseModel):
     """turbulans_ml_modeli.model_bilgisini_yukle()'nin döndürdüğü metadata --
     ml_egitimi.py çalıştırılıp model henüz kaydedilmediyse SADECE
