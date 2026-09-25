@@ -27,3 +27,17 @@ known-first-party = [
     "kimlik_dogrulama", "turbulans_indeksleri", "veritabani", "models",
     "birim_donusumleri", "konsol_kurulumu", "loglama",
 ]
+
+[tool.coverage.run]
+# Sadece proje kodu -- migrations/ (Alembic'in kendi ürettiği kod) ve
+# tests/'in kendisi kapsam yüzdesine dahil edilmez (aksi halde "testin
+# kendisi test edilmedi" gibi anlamsız bir eksiklik raporlanır).
+source = ["."]
+omit = ["migrations/*", "tests/*", "*/site-packages/*", "src/*"]
+
+[tool.coverage.report]
+# Gerçek veri/servis gerektirip CI'da atlanan (skip) testlerin (PostgreSQL,
+# .nc dosyası, Playwright) kapsamadığı satırlar İSTENEREK dışlanmaz --
+# rapor, CI'nin GERÇEKTEN neyi çalıştırdığını dürüstçe yansıtsın diye.
+precision = 1
+skip_empty = true

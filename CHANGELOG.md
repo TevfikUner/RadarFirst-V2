@@ -4,6 +4,25 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Mermaid mimari diyagramı + OpenAPI/Postman export + silme hız sınırlaması + CI kapsam raporu
+
+- README'deki ASCII mimari diyagramının yanına, GitHub'da otomatik render
+  olan bir Mermaid akış şeması eklendi (ML sınıflandırıcı + SIGMET
+  doğrulama akışları dahil).
+- **`openapi_disa_aktar.py`**: `openapi.json` (canlı `/openapi.json` ile
+  AYNI) ve harici bir dönüştürücü gerektirmeyen, sadece OpenAPI şemasından
+  üretilen bir Postman koleksiyonu (`turbulans_radar.postman_collection.json`)
+  yazar -- sunucuyu ayağa kaldırmadan API'yi keşfetmek için. İkisi de
+  repoya dahil (küçük, ucuza yeniden üretilebilir).
+- **`DELETE /api/v1/ucuslar*`** (tekli ve toplu silme), `/analiz/*` ile
+  AYNI bellek-içi hız sınırlama desenini (kendi ayrı penceresiyle) kullanır
+  -- art arda çok sayıda silme isteğine karşı.
+- **CI**: `pytest-cov` eklendi, her çalıştırmada terminal + XML (artifact
+  olarak yüklenir) + GitHub Actions iş özetinde (`$GITHUB_STEP_SUMMARY`)
+  Markdown tablo olarak kapsam raporu üretiliyor. `pyproject.toml`'a
+  `[tool.coverage.*]` yapılandırması eklendi (netCDF4'ün derlenmiş
+  uzantısının sahte bir `src/` yolunu kapsam dışına almak dahil).
+
 ## Test kapsamı: ml_egitimi.py/pirep_kalibrasyon_verisi_uret.py birim testleri + kalıcı Playwright testleri + performans testi
 
 - **`tests/test_ml_egitimi.py`**: `modelleri_egit_ve_karsilastir`/`en_iyi_
