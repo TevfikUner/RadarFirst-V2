@@ -15,7 +15,6 @@ gerçek OpenSky/Trino sorgusu ve gerçek hava durumu eşleştirmesi yapılıyor;
 bu sadece görsel bir ön yüz, hesaplama mantığı aynı.
 """
 
-import asyncio
 import contextlib
 import io
 import os
@@ -55,7 +54,7 @@ with st.sidebar:
             satir1, satir2 = st.columns([3, 1])
             satir1.caption(f"**{u['ucus_numarasi']}** / {u['tarih']}")
             if satir2.button("Sil", key=f"sil_{u['id']}"):
-                asyncio.run(vt.ucus_sil_async(u["ucus_numarasi"], str(u["tarih"])))
+                vt.ucus_sil(u["ucus_numarasi"], str(u["tarih"]))
                 st.rerun()
     elif arama:
         st.caption("Eşleşen kayıtlı uçuş yok.")

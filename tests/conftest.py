@@ -81,3 +81,22 @@ def canli_sunucu():
             surec.wait(timeout=10)
         except subprocess.TimeoutExpired:
             surec.kill()
+
+
+@pytest.fixture(scope="module")
+def tarayici_sayfasi(canli_sunucu):
+    from playwright.sync_api import Error as PlaywrightHatasi
+    from playwright.sync_api import sync_playwright
+
+    with sync_playwright() as p:
+        try:
+            tarayici = p.chromium.launch()
+        except PlaywrightHatasi as hata:
+            # `pip install playwright` yapılmış ama `playwright install chromium`
+            # unutulmuşsa -- hata yerine atla.
+            pytest.skip(f"Chromium başlatılamadı (playwright install chromium?): {hata}")
+        sayfa = tarayici.new_page()
+        hatalar = []
+        sayfa.on("pageerror", lambda err: hatalar.append(str(err)))
+        yield {"sayfa": sayfa, "hatalar": hatalar}
+        tarayici.close()

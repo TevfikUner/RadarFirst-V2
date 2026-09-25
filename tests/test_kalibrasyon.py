@@ -33,7 +33,9 @@ def test_guven_araligi_gurultusuz_veride_dar_ve_gercek_katsayiyi_kapsar():
     gercek_katsayi = 3.2
     rng = np.random.default_rng(0)
     ti1_degerleri = rng.uniform(1e-8, 1e-6, 500)
-    pirep_edr_degerleri = np.tanh(ti1_degerleri * gercek_katsayi * 1e6)  # gürültüsüz -- her bootstrap örneklemi aynı ilişkiyi taşır
+    pirep_edr_degerleri = np.tanh(
+        ti1_degerleri * gercek_katsayi * 1e6
+    )  # gürültüsüz -- her bootstrap örneklemi aynı ilişkiyi taşır
 
     alt_sinir, ust_sinir, tum_katsayilar = katsayi_guven_araligi_hesapla(
         ti1_degerleri, pirep_edr_degerleri, tekrar_sayisi=50, rastgele_uretec=np.random.default_rng(1)

@@ -284,9 +284,7 @@ async def ucuslari_listele_async(limit=100, ucus_numarasi_arama=None, baslangic_
     limit = max(1, min(limit, _LISTE_LIMIT_TAVANI))
     kosullar = _ucuslar_filtre_kosullari(ucus_numarasi_arama, baslangic_tarih, bitis_tarih)
     async with async_oturum_al() as oturum:
-        toplam_sayi = (
-            await oturum.execute(select(func.count()).select_from(Ucus).where(*kosullar))
-        ).scalar_one()
+        toplam_sayi = (await oturum.execute(select(func.count()).select_from(Ucus).where(*kosullar))).scalar_one()
         sonuc = await oturum.execute(
             select(Ucus).where(*kosullar).order_by(Ucus.olusturulma_zamani.desc()).limit(limit)
         )
@@ -355,6 +353,20 @@ def ucus_olcumlerini_dataframe_olarak_getir(ucus_numarasi, tarih_str, motor=None
             .all()
         )
         return pd.DataFrame([_olcum_sozluge_cevir(o) for o in olcumler])
+
+
+def ucus_sil(ucus_numarasi, tarih_str, motor=None):
+    """ucus_sil_async'in senkron karşılığı -- web_arayuzu.py (Streamlit) gibi
+    senkron çağıranlar için. Orada asyncio.run(ucus_sil_async(...)) KULLANILMAZ:
+    tekil async motorun havuzundaki bağlantılar ilk asyncio.run'ın (kapanmış)
+    event loop'una bağlı kalır, ikinci çağrı "Event loop is closed" ile patlar."""
+    motor = motor or motor_al()
+    with Session(motor) as oturum:
+        sonuc = oturum.execute(
+            delete(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == _tarihe_cevir(tarih_str))
+        )
+        oturum.commit()
+        return sonuc.rowcount > 0
 
 
 async def ucus_sil_async(ucus_numarasi, tarih_str):

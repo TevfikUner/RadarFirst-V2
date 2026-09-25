@@ -3,7 +3,7 @@
     "name": "Türbülans Radar API",
     "description": "Ellrod TI1 + Richardson tabanlı türbülans eşleştirme sonuçlarını JSON olarak sunar.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
-    "_postman_id": "de7ba8af-176c-4059-b43a-4d62f36f0305"
+    "_postman_id": "8b99251b-71df-5c7e-b04d-1c106dfdd4b9"
   },
   "variable": [
     {
@@ -162,6 +162,56 @@
                 "v1",
                 "turbulans",
                 "model-bilgisi"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Turbulans Model Versiyonlari",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/turbulans/model-versiyonlari",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "turbulans",
+                "model-versiyonlari"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Turbulans Model Versiyonunu Aktiflestir",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "turbulans",
+                "model-versiyonlari",
+                "{versiyon_id}",
+                "aktiflestir"
               ]
             }
           }

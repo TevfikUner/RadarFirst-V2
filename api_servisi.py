@@ -511,9 +511,7 @@ async def turbulans_model_bilgisi():
     return {"egitildi_mi": True, **bilgi}
 
 
-@v1.get(
-    "/turbulans/model-versiyonlari", response_model=list[ModelVersiyonuOzetiYaniti], tags=["Türbülans Tahmini"]
-)
+@v1.get("/turbulans/model-versiyonlari", response_model=list[ModelVersiyonuOzetiYaniti], tags=["Türbülans Tahmini"])
 async def turbulans_model_versiyonlari():
     """ml_egitimi.py'nin her çalıştırmasında biriktirdiği TÜM model
     versiyonlarını (en yeni önce) döner -- hiç eğitim yapılmadıysa boş
@@ -752,7 +750,9 @@ app.include_router(v1)
 
 
 @app.get("/saglik", response_model=SaglikYaniti, tags=["Sistem"])
-async def saglik_kontrolu(derin: bool = Query(default=False, description="True ise PostgreSQL'e gerçekten bağlanmayı dener")):
+async def saglik_kontrolu(
+    derin: bool = Query(default=False, description="True ise PostgreSQL'e gerçekten bağlanmayı dener"),
+):
     """Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği).
     Varsayılan (sığ) davranış DEĞİŞMEDİ -- sadece süreç ayakta mı diye bakar,
     her yük dengeleyici probunda PostgreSQL'e gitmeyi zorlamaz.

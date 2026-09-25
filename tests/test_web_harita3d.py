@@ -38,19 +38,6 @@ def kayitli_ucus():
         baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi = :un"), {"un": _UCUS_NO})
 
 
-@pytest.fixture(scope="module")
-def tarayici_sayfasi(canli_sunucu):
-    from playwright.sync_api import sync_playwright
-
-    with sync_playwright() as p:
-        tarayici = p.chromium.launch()
-        sayfa = tarayici.new_page()
-        hatalar = []
-        sayfa.on("pageerror", lambda err: hatalar.append(str(err)))
-        yield {"sayfa": sayfa, "hatalar": hatalar}
-        tarayici.close()
-
-
 def test_ucus_yuklenip_harita_render_olur(canli_sunucu, tarayici_sayfasi, kayitli_ucus):
     sayfa = tarayici_sayfasi["sayfa"]
     sayfa.goto(f"{canli_sunucu['taban_url']}/harita/harita3d.html")

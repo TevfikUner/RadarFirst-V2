@@ -111,6 +111,21 @@ async def test_ucus_sil_async_var_olani_siler(motor):
     assert vt.ucus_detayini_getir(_TEST_UCUS_NUMARASI, _TEST_TARIH, motor) is None
 
 
+def test_ucus_sil_senkron_art_arda_iki_silmede_calisir(motor):
+    """web_arayuzu.py (Streamlit) regresyonu: önceden asyncio.run(ucus_sil_async)
+    kullanılıyordu ve İKİNCİ silme 'Event loop is closed' ile patlıyordu."""
+    ikinci_ucus = _TEST_UCUS_NUMARASI + "2"
+    vt.ucus_ve_olcumleri_kaydet(_ornek_df(), _TEST_UCUS_NUMARASI, _TEST_TARIH, motor)
+    vt.ucus_ve_olcumleri_kaydet(_ornek_df(), ikinci_ucus, _TEST_TARIH, motor)
+    try:
+        assert vt.ucus_sil(_TEST_UCUS_NUMARASI, _TEST_TARIH, motor) is True
+        assert vt.ucus_sil(ikinci_ucus, _TEST_TARIH, motor) is True
+        assert vt.ucus_sil(ikinci_ucus, _TEST_TARIH, motor) is False
+    finally:
+        with motor.begin() as baglanti:
+            baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi = :un"), {"un": ikinci_ucus})
+
+
 async def test_ucus_sil_async_olmayani_false_doner(motor):
     silindi_mi = await vt.ucus_sil_async("HICBIRZAMAN", "1999-01-01")
     assert silindi_mi is False
