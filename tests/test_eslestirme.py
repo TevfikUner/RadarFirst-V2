@@ -152,3 +152,43 @@ def test_bos_rota_bos_ama_dogru_sutunlu_sonuc_dondurur(veri_kupu):
     assert len(sonuc) == 0
     for kolon in ["basinc_hpa", "ti1_indeksi", "edr_proxy", "richardson_sayisi", "dinamik_kararsizlik"]:
         assert kolon in sonuc.columns
+
+
+def test_kup_seviyelerinden_uzak_ve_irtifasi_bilinmeyen_noktalar_nan_birakilir(veri_kupu):
+    rota_df = _sentetik_rota_uret(veri_kupu, n=6)
+    rota_df.loc[0, "geo_irtifa_m"] = 0.0
+    rota_df.loc[1, "geo_irtifa_m"] = 3000.0
+    rota_df.loc[2, "geo_irtifa_m"] = np.nan
+
+    sonuc = rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu)
+
+    assert sonuc.loc[0:2, "ti1_indeksi"].isna().all()
+    assert sonuc.loc[0:2, "basinc_hpa"].isna().all()
+    assert sonuc.loc[3:, "ti1_indeksi"].notna().all()
+
+
+def test_geometrik_irtifa_yoksa_barometrik_irtifa_kullanilir(veri_kupu):
+    rota_df = _sentetik_rota_uret(veri_kupu, n=4)
+    baro_df = rota_df.assign(baro_irtifa_m=rota_df["geo_irtifa_m"], geo_irtifa_m=np.nan)
+
+    beklenen = rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu)
+    sonuc = rotayi_hava_durumuyla_eslestir(baro_df, veri_kupu)
+
+    np.testing.assert_array_equal(sonuc["ti1_indeksi"].to_numpy(), beklenen["ti1_indeksi"].to_numpy())
+
+
+def test_zaman_boslugundaki_nokta_uzak_bir_saatle_eslestirilmez(veri_kupu):
+    aralikli_kup = veri_kupu.isel(valid_time=[0, 1, 2, 200, 201])
+    zamanlar = pd.DatetimeIndex(veri_kupu.valid_time.values[[1, 100, 200]]).tz_localize("UTC")
+    rota_df = pd.DataFrame(
+        {
+            "zaman": zamanlar,
+            "enlem": [39.0, 39.0, 39.0],
+            "boylam": [35.0, 35.0, 35.0],
+            "geo_irtifa_m": [10000.0, 10000.0, 10000.0],
+        }
+    )
+
+    sonuc = rotayi_hava_durumuyla_eslestir(rota_df, aralikli_kup)
+
+    assert sonuc["ti1_indeksi"].notna().tolist() == [True, False, True]

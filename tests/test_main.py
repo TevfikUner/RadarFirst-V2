@@ -12,7 +12,8 @@ def sahte_akis(monkeypatch, tmp_path):
     monkeypatch.setattr(main.config, "CIKTI_KLASORU", str(tmp_path))
     monkeypatch.setattr(main, "trino_baglantisi_olustur", lambda: object())
     monkeypatch.setattr(main, "ucus_numarasi_ile_rota_cek", lambda b, u, t: rota_df)
-    monkeypatch.setattr(main, "hava_durumu_onbellekli_yukle", lambda yol: object())
+    monkeypatch.setattr(main, "_veri_kupunu_sec", lambda rota: None)
+    monkeypatch.setattr(main, "veri_kupu_adi", lambda kup: "sahte.nc")
     monkeypatch.setattr(main, "rotayi_hava_durumuyla_eslestir", lambda r, k: eslesmis_df)
     monkeypatch.setattr(main, "zaman_kaydiricili_harita_olustur", lambda df, dosya_adi: None)
 

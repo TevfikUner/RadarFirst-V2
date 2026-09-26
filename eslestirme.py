@@ -78,15 +78,30 @@ def _zamanlari_veri_kupune_uydur(zaman_serisi):
 
 
 def _kapsam_disi_maskesi_hesapla(
-    veri_kupu, enlemler, boylamlar, zaman_uyumlu_dizisi, tolerans_derece=1.0, tolerans_zaman=pd.Timedelta(hours=3)
+    veri_kupu,
+    enlemler,
+    boylamlar,
+    zaman_uyumlu_dizisi,
+    basinc_hpa=None,
+    tolerans_derece=1.0,
+    tolerans_zaman=pd.Timedelta(hours=3),
 ):
     """
-    Her noktanın veri küpünün GERÇEKTEN kapsadığı enlem/boylam/zaman
-    aralığında olup olmadığını vektörel olarak kontrol eder. xarray'in
-    .sel(method="nearest") fonksiyonu mesafe sınırı olmadan her zaman bir
-    sonuç döndürdüğü için, bu kontrol olmadan "Teksas rotası - Türkiye
-    verisi" gibi tamamen alakasız eşleşmeler SESSİZCE oluyor ve fark
-    edilmiyor.
+    Her noktanın veri küpünün GERÇEKTEN kapsadığı enlem/boylam/zaman (ve
+    basinc_hpa verilirse irtifa) aralığında olup olmadığını vektörel olarak
+    kontrol eder. xarray'in .sel(method="nearest") fonksiyonu mesafe sınırı
+    olmadan her zaman bir sonuç döndürdüğü için, bu kontrol olmadan "Teksas
+    rotası - Türkiye verisi" gibi tamamen alakasız eşleşmeler SESSİZCE oluyor
+    ve fark edilmiyor.
+
+    Zaman: sadece küpün ilk/son zamanına değil, EN YAKIN gerçek zaman
+    adımına olan uzaklığa bakılır -- aralıklı indirilmiş küplerde (örn. ayın
+    birkaç günü) boşluğa düşen bir nokta günlerce uzaktaki bir saatle
+    eşleşmesin diye.
+
+    İrtifa: küpün basınç seviyelerinden config.DIKEY_KAPSAM_TOLERANSI_HPA'dan
+    fazla uzaktaki (örn. kalkış/iniş, yer) ya da irtifası bilinmeyen noktalar
+    kapsam dışıdır -- seyir seviyesinin TI1'i yerdeki noktaya yazılmasın diye.
     """
     lat_min, lat_maks = float(veri_kupu["latitude"].min()), float(veri_kupu["latitude"].max())
     lon_min, lon_maks = float(veri_kupu["longitude"].min()), float(veri_kupu["longitude"].max())
@@ -99,23 +114,42 @@ def _kapsam_disi_maskesi_hesapla(
     )
 
     if "valid_time" in veri_kupu.dims:
-        zaman_min = pd.Timestamp(veri_kupu["valid_time"].min().values)
-        zaman_maks = pd.Timestamp(veri_kupu["valid_time"].max().values)
-        zaman_disi = (zaman_uyumlu_dizisi < zaman_min - tolerans_zaman) | (
-            zaman_uyumlu_dizisi > zaman_maks + tolerans_zaman
-        )
-        kapsam_disi = kapsam_disi | zaman_disi.to_numpy()
+        zamanlar = pd.DatetimeIndex(zaman_uyumlu_dizisi)
+        en_yakin_zamanlar = _zamanlari_veri_kupu_izgarasina_yuvarla(veri_kupu, zamanlar)
+        zaman_disi = np.abs((zamanlar - en_yakin_zamanlar).to_numpy()) > tolerans_zaman.to_timedelta64()
+        kapsam_disi = kapsam_disi | zaman_disi
+
+    if basinc_hpa is not None:
+        seviyeler = veri_kupu[config.BASINC_BOYUTU].values
+        basinc_hpa = np.asarray(basinc_hpa, dtype=float)
+        with np.errstate(invalid="ignore"):
+            dikey_disi = (
+                np.isnan(basinc_hpa)
+                | (basinc_hpa < seviyeler.min() - config.DIKEY_KAPSAM_TOLERANSI_HPA)
+                | (basinc_hpa > seviyeler.max() + config.DIKEY_KAPSAM_TOLERANSI_HPA)
+            )
+        kapsam_disi = kapsam_disi | dikey_disi
 
     return kapsam_disi
 
 
-def kapsam_disi_maskesi(veri_kupu, enlemler, boylamlar, zamanlar):
+def kapsam_disi_maskesi(veri_kupu, enlemler, boylamlar, zamanlar, basinc_hpa=None):
     return _kapsam_disi_maskesi_hesapla(
         veri_kupu,
         np.asarray(enlemler, dtype=float),
         np.asarray(boylamlar, dtype=float),
         _zamanlari_veri_kupune_uydur(zamanlar),
+        basinc_hpa=basinc_hpa,
     )
+
+
+def rota_irtifalari(rota_df):
+    """geo_irtifa_m, OpenSky'da sık sık boş gelir -- o noktalarda (varsa)
+    barometrik irtifa kullanılır; ikisi de yoksa NaN kalır (kapsam dışı)."""
+    irtifa_m = rota_df["geo_irtifa_m"].to_numpy(dtype=float)
+    if "baro_irtifa_m" in rota_df.columns:
+        irtifa_m = np.where(np.isnan(irtifa_m), rota_df["baro_irtifa_m"].to_numpy(dtype=float), irtifa_m)
+    return irtifa_m
 
 
 def _zamanlari_veri_kupu_izgarasina_yuvarla(veri_kupu, zaman_serisi):
@@ -188,7 +222,8 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
         )
 
     n = len(rota_df)
-    basinc_hpa = irtifa_metre_to_basinc_hpa(rota_df["geo_irtifa_m"].to_numpy(dtype=float))
+    with np.errstate(invalid="ignore"):
+        basinc_hpa = irtifa_metre_to_basinc_hpa(rota_irtifalari(rota_df))
 
     en_yakin_indeksleri = np.abs(basinc_seviyeleri_sirali[None, :] - basinc_hpa[:, None]).argmin(axis=1)
     alt_indeksleri = np.maximum(en_yakin_indeksleri - 1, 0)
@@ -202,7 +237,9 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
     boylamlar = rota_df["boylam"].to_numpy(dtype=float)
     zaman_uyumlu_dizisi = _zamanlari_veri_kupune_uydur(rota_df["zaman"])
 
-    kapsam_disi = _kapsam_disi_maskesi_hesapla(veri_kupu, enlemler, boylamlar, zaman_uyumlu_dizisi)
+    kapsam_disi = _kapsam_disi_maskesi_hesapla(
+        veri_kupu, enlemler, boylamlar, zaman_uyumlu_dizisi, basinc_hpa=basinc_hpa
+    )
     kapsam_disi_sayisi = int(kapsam_disi.sum())
     if kapsam_disi_sayisi > 0:
         print(
@@ -213,7 +250,7 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
         print(
             "\n[ÖNEMLİ] Rotadaki HİÇBİR nokta hava durumu veri küpünün kapsama "
             "alanına girmiyor. Muhtemelen indirdiğin ERA5 verisi ile seçtiğin "
-            "uçuşun coğrafi bölgesi/tarihi uyuşmuyor.\n"
+            "uçuşun coğrafi bölgesi/tarihi/irtifası uyuşmuyor.\n"
         )
 
     nokta_boyutu = "nokta"

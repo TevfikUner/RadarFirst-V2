@@ -26,13 +26,22 @@ from konsol_kurulumu import konsolu_utf8_yap
 
 konsolu_utf8_yap()
 
+import numpy as np
+
 import config
-from eslestirme import rotayi_hava_durumuyla_eslestir
+from birim_donusumleri import irtifa_metre_to_basinc_hpa
+from eslestirme import rota_irtifalari, rotayi_hava_durumuyla_eslestir
 from harita import zaman_kaydiricili_harita_olustur
 from hata_yardimcisi import dostane_hata_mesaji
 from kimlik_dogrulama import KimlikBilgisiEksikHatasi
 from turbulans_indeksleri import DINAMIK_KARARSIZLIK_ESIGI
-from veri_yukleme import hava_durumu_onbellekli_yukle, trino_baglantisi_olustur, ucus_numarasi_ile_rota_cek
+from veri_yukleme import (
+    hava_durumu_onbellekli_yukle,
+    kapsayan_veri_kupunu_bul,
+    trino_baglantisi_olustur,
+    ucus_numarasi_ile_rota_cek,
+    veri_kupu_adi,
+)
 from veritabani import VeritabaniKayitHatasi, ucus_ve_olcumleri_kaydet
 
 
@@ -88,14 +97,17 @@ def _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str):
     print("=" * 60 + "\n")
 
 
-def calistir(ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None, kayit_zorunlu: bool = False):
-    os.makedirs(config.CIKTI_KLASORU, exist_ok=True)
-    if cikti_dosyasi is None:
-        # Her uçuş/tarih için ayrı dosya adı -- farklı uçuşları denerken
-        # birbirinin üzerine yazmasın diye. ciktilar/ altına yazılır --
-        # proje kökü artık her çalıştırmada yeni bir HTML'le dolmuyor.
-        cikti_dosyasi = os.path.join(config.CIKTI_KLASORU, f"turbulans_haritasi_{ucus_numarasi}_{tarih_str}.html")
+def _veri_kupunu_sec(rota_df):
+    """Rotayı en iyi kapsayan ERA5 küpü (bkz. veri_yukleme.kapsayan_veri_
+    kupunu_bul); hiçbiri kapsamıyorsa ana küp -- eşleştirme o zaman
+    noktaları dürüstçe kapsam dışı (NaN) bırakır."""
+    with np.errstate(invalid="ignore"):
+        basinc_hpa = irtifa_metre_to_basinc_hpa(rota_irtifalari(rota_df))
+    veri_kupu = kapsayan_veri_kupunu_bul(rota_df["enlem"], rota_df["boylam"], rota_df["zaman"], basinc_hpa)
+    return veri_kupu if veri_kupu is not None else hava_durumu_onbellekli_yukle(config.HAVA_DURUMU_DOSYASI)
 
+
+def calistir(ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None, kayit_zorunlu: bool = False):
     print(f"1. '{ucus_numarasi}' uçuşu {tarih_str} tarihi için OpenSky'da aranıyor...")
     try:
         baglanti = trino_baglantisi_olustur()
@@ -111,13 +123,29 @@ def calistir(ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None, kayi
         )
         return None
     print(f"   -> {len(rota_df)} state-vector kaydı bulundu.")
+    return rota_df_ile_calistir(rota_df, ucus_numarasi, tarih_str, cikti_dosyasi, kayit_zorunlu)
 
-    print("2. Hava durumu veri küpü yükleniyor...")
+
+def rota_df_ile_calistir(
+    rota_df, ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None, kayit_zorunlu: bool = False
+):
+    """Hazır bir rota (OpenSky'dan ya da dışarıdan yüklenmiş bir ADS-B izi --
+    bkz. api_servisi POST /analiz/rota) için 2-4. adımları çalıştırır.
+    rota_df: en az zaman, enlem, boylam, geo_irtifa_m sütunları."""
+    os.makedirs(config.CIKTI_KLASORU, exist_ok=True)
+    if cikti_dosyasi is None:
+        # Her uçuş/tarih için ayrı dosya adı -- farklı uçuşları denerken
+        # birbirinin üzerine yazmasın diye. ciktilar/ altına yazılır --
+        # proje kökü artık her çalıştırmada yeni bir HTML'le dolmuyor.
+        cikti_dosyasi = os.path.join(config.CIKTI_KLASORU, f"turbulans_haritasi_{ucus_numarasi}_{tarih_str}.html")
+
+    print("2. Rotayı kapsayan hava durumu veri küpü seçiliyor...")
     try:
-        veri_kupu = hava_durumu_onbellekli_yukle(config.HAVA_DURUMU_DOSYASI)
+        veri_kupu = _veri_kupunu_sec(rota_df)
     except FileNotFoundError as hata:
         print(f"[Durduruldu] {hata}")
         return None
+    print(f"   -> Kullanılan küp: {veri_kupu_adi(veri_kupu)}")
 
     print("3. Rota, hava durumu verisiyle eşleştiriliyor ve türbülans şiddeti hesaplanıyor...")
     eslesmis_df = rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu)

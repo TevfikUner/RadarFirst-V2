@@ -221,6 +221,7 @@ görüntü (snapshot) kolaylığı sağlar.
 | GET | `/api/v1/ucuslar/{ucus_numarasi}/{tarih}/geojson` | Bir uçuşun TÜM ölçümlerini bir GeoJSON `FeatureCollection`'ı olarak indirir (QGIS/geopandas vb. için) |
 | POST | `/api/v1/analiz/ucus` | Tek bir uçuşu arka planda analiz eder, `gorev_id` döner |
 | POST | `/api/v1/analiz/toplu` | Birden fazla uçuşu arka planda analiz eder |
+| POST | `/api/v1/analiz/rota` | OpenSky'a bağlanmadan, dışarıdan yüklenen bir ADS-B izini (`noktalar`: `zaman`, `enlem`, `boylam`, `irtifa_m`) analiz edip kaydeder -- tarayıcı girişi gerektirmediği için sunucu/Docker'da da çalışır |
 | GET | `/api/v1/analiz/durum/{gorev_id}` | Tetiklenen bir analizin durumunu sorgular |
 | GET | `/api/v1/esikler` | TI1 renklendirme eşiklerini döner (web/harita3d.html bunları kullanır) |
 | GET | `/api/v1/ucuslar/{ucus_numarasi}/{tarih}/sigmet-dogrulama` | TI1'i gerçek AWC SIGMET'leriyle karşılaştırır |
@@ -273,6 +274,14 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
 - **Webhook bildirimi:** `bildirim_webhook_url` verilirse, analiz bitince
   sonuç oraya POST edilir -- n8n'in Webhook node'u bunu dinleyip
   `/api/v1/analiz/durum/{gorev_id}`'yi periyodik yoklamaya gerek bırakmaz.
+  URL doğrulanır (sadece `http(s)`, link-local/ayrılmış IP'ler -- örn. bulut
+  metadata adresi -- reddedilir); `.env`'deki `WEBHOOK_IZIN_VERILEN_HOSTLAR`
+  doluysa sadece o host'lara gönderilir (SSRF koruması).
+- **Kayıt garantisi:** API'den tetiklenen analizde sonuç PostgreSQL'e
+  yazılamazsa görev `tamamlandi` değil `hata` olur (CLI ise haritayı yine
+  üretir, sadece uyarır).
+- **WebSocket:** `API_ANAHTARI` sunucuda tanımlı değilse `/ws/uyarilar` de
+  bağlantıyı reddeder (REST ile aynı "kapalı başla" davranışı).
 
 **Bilinçli olarak eklenmedi:** `veri_indirme.py`'nin gerçek ERA5 indirmesini
 tetikleyen bir uç nokta (rate-limit/ban riski), JWT/OAuth2 kullanıcı girişi
@@ -396,9 +405,15 @@ irtifa, tarih-saat ve uçak modelini girip "Simüle Et"e basınca:
   çerçevelemesi illüstratif) bir "kabin ekibine bildirim" mesajı gösterilir.
 
 **Kapsam/dürüstlük sınırlaması:** Gerçek ERA5 rüzgar/türbülans verisi SADECE
-`config.HAVA_DURUMU_DOSYASI` küpünün kapsadığı bölge/tarih için var (bu
-depodaki varsayılan veri: Türkiye/Doğu Akdeniz, Ocak 2019 -- enlem 36-42,
-boylam 26-45). Seçilen başlangıç/bitiş/tarih bu aralığın dışındaysa, kod
+`config.HAVA_DURUMU_DOSYASI` küpünün (bu depodaki varsayılan veri:
+Türkiye/Doğu Akdeniz, Ocak 2019 -- enlem 36-42, boylam 26-45) ve
+`config.EK_HAVA_DURUMU_KLASORU`'ndaki küplerin (varsayılan
+`era5_egitim_verisi/`: Kuzeydoğu ABD, enlem 40-50, boylam -80/-70,
+2018-2020'nin seçili günleri) kapsadığı bölge/tarih/irtifa için var; rotayı
+en iyi kapsayan küp otomatik seçilir. İrtifa, küpün basınç seviyelerinden
+(200-300 hPa) `DIKEY_KAPSAM_TOLERANSI_HPA`'dan (50) fazla uzaksa -- yaklaşık
+FL265 altı/FL445 üstü -- kapsam dışı sayılır. Seçilen başlangıç/bitiş/tarih/
+irtifa bu aralığın dışındaysa, kod
 `sigmet_dogrulama.py`'deki AYNI ilkeyle SESSİZCE uydurma bir "iyileşme"
 göstermez -- `ruzgar_verisi_kaynagi: "era5_kapsam_disi"` döner, iki rota da
 sadece uçağın hava hızıyla (rüzgarsız/türbülanssız) hesaplanır ve arayüzde bu
@@ -593,6 +608,12 @@ PostgreSQL servis konteyneriyle) çalıştırır.
 ## Bilinmesi gerekenler / sınırlamalar
 
 - **TI1/EDR proxy, sertifikalı bir EDR değeri değildir** -- yukarıya bakın.
+- **Kapsam kontrolü üç boyutludur:** yatay (küp sınırı ±1°), zaman (EN
+  YAKIN gerçek zaman adımına en fazla 3 saat -- aralıklı indirilmiş küplerde
+  boşluktaki günler kapsam dışıdır) ve irtifa (bkz. `DIKEY_KAPSAM_TOLERANSI_
+  HPA`). Kalkış/iniş ve yerdeki noktalar ile irtifası bilinmeyen noktalar bu
+  yüzden TI1 almaz (haritada gri); `geo_irtifa_m` boşsa `baro_irtifa_m`
+  kullanılır.
 - `flights_data4` tablosunda `callsign` alanı 8 karakter, boşlukla
   doldurulmuş (padded) saklanır; eşleştirme bunu otomatik yapar.
 - Yatay deformasyon hesabı için veri kübünün ilgili zaman dilimindeki tüm

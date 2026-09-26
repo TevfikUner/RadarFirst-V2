@@ -4,6 +4,33 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Üç boyutlu kapsam kontrolü, çoklu ERA5 küpü, OpenSky'sız rota analizi
+
+- **İrtifa kapsamı:** Kalkış/iniş/yerdeki noktalar seyir seviyesinin (200-300
+  hPa) TI1 değerini alıyordu; `geo_irtifa_m` boş olan noktalar ise sessizce
+  200 hPa'ya atanıyordu. Artık küp seviyelerinden
+  `DIKEY_KAPSAM_TOLERANSI_HPA`'dan (50) uzak ya da irtifası bilinmeyen
+  noktalar kapsam dışı (NaN); `geo_irtifa_m` boşsa `baro_irtifa_m` kullanılır.
+  Rota simülasyonu ve `/turbulans/tahmin` de irtifayı kontrol ediyor.
+- **Zaman boşlukları:** Kapsam, küpün ilk/son zamanına göre değil EN YAKIN
+  gerçek zaman adımına göre kontrol ediliyor. Bu, ML eğitim verisinde gerçek
+  bir hatayı ortaya çıkardı: aralıklı indirilmiş ABD küplerinde (örn.
+  `2019_04.nc`: 1-21 Nisan arası seçili günler) boşluğa düşen PIREP'ler
+  günlerce uzaktaki bir saatin havasıyla eşleşiyordu -- 179 eğitim
+  örneğinin 12'si. Doğru eşleşen 167 örneğin özellikleri değişmedi.
+- **Çoklu küp:** `veri_yukleme.kapsayan_veri_kupunu_bul`, ana küp +
+  `EK_HAVA_DURUMU_KLASORU` (varsayılan `era5_egitim_verisi/`) arasından
+  noktaları en iyi kapsayanı seçiyor; `main.py`, rota simülasyonu ve
+  `/turbulans/tahmin` bunu kullanıyor. Türkiye sonuçları birebir aynı; ABD
+  (Kuzeydoğu, seçili günler) rotaları/uçuşları artık gerçek veriyle hesaplanıyor.
+- **`POST /api/v1/analiz/rota`:** Dışarıdan yüklenen bir ADS-B izini OpenSky'a
+  bağlanmadan analiz edip kaydediyor (aynı görev/WebSocket/webhook akışı);
+  tarayıcı tabanlı OAuth2 girişi gerektirmediği için sunucu/Docker'da da
+  çalışıyor. `main.py`'deki 2-4. adımlar `rota_df_ile_calistir`'a ayrıldı.
+- **Bağımlılıklar sabitlendi:** `requirements*.txt` doğrudan bağımlılıkları
+  test edilmiş sürümlere (`==`) sabitliyor; her birinin Linux/Python 3.12
+  (CI) wheel'ı olduğu doğrulandı. CI'daki ruff da aynı sürüme sabitlendi.
+
 ## Kod taraması: hata düzeltmeleri, güvenlik ve performans
 
 - **`POST /api/v1/turbulans/tahmin` her çağrıda 500 dönüyordu:** `yakit_akisi_kg_saat`

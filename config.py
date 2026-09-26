@@ -42,6 +42,13 @@ def _ortam_bool(isim, varsayilan):
 
 HAVA_DURUMU_DOSYASI = _ortam_str("HAVA_DURUMU_DOSYASI", "ocak_2019_turbulans.nc")
 
+# Ana küpe EK olarak taranan ERA5 küpleri klasörü (bkz.
+# veri_yukleme.kapsayan_veri_kupunu_bul): analiz/rota/tahmin, noktaları en
+# iyi kapsayan küpü otomatik seçer. Varsayılan, ml_veri_indir.py'nin gerçek
+# ABD (Kuzeydoğu, 2018-2020, seçili günler) küplerini indirdiği klasördür.
+# Boş bırakılırsa sadece HAVA_DURUMU_DOSYASI kullanılır.
+EK_HAVA_DURUMU_KLASORU = _ortam_str("EK_HAVA_DURUMU_KLASORU", "era5_egitim_verisi")
+
 # OpenSky Trino Veritabanı Ayarları
 # ÖNEMLİ: OpenSky 2024'te yeni backend'e geçti. Catalog "opensky" DEĞİL,
 # "minio"; schema ise "osky". Kaynak: resmi doküman
@@ -60,6 +67,12 @@ MAKS_STATE_VECTOR_SATIRI = _ortam_sayi("MAKS_STATE_VECTOR_SATIRI", 50_000, int)
 # Copernicus/ERA5 veri küpündeki basınç seviyesi boyutunun adı.
 # (eslestirme.py bunu kullanıyordu ama tanımlı değildi -- eksikti, eklendi.)
 BASINC_BOYUTU = _ortam_str("BASINC_BOYUTU", "pressure_level")
+
+# Bir noktanın basıncı, veri küpündeki en alçak/en yüksek basınç seviyesinden
+# bu kadar (hPa) fazla uzaksa irtifa olarak kapsam dışı sayılır (bkz.
+# eslestirme._kapsam_disi_maskesi_hesapla). 50 hPa = tipik ERA5 seviye aralığı;
+# 200-300 hPa küpünde yaklaşık FL265-FL445 kabul edilir.
+DIKEY_KAPSAM_TOLERANSI_HPA = _ortam_sayi("DIKEY_KAPSAM_TOLERANSI_HPA", 50.0)
 
 # Ellrod TI1 indeksi için şiddet eşikleri (s^-2 cinsinden).
 # (harita.py bunları kullanıyordu ama config.py'de hiç tanımlı değildi --

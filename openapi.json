@@ -1026,6 +1026,66 @@
         }
       }
     },
+    "/api/v1/analiz/rota": {
+      "post": {
+        "tags": [
+          "Analiz"
+        ],
+        "summary": "Rota Analizi Baslat",
+        "description": "OpenSky'a BAĞLANMADAN, dışarıdan alınmış bir ADS-B izini (başka bir\nizleme servisi, uçuş kayıt cihazı vb.) analiz eder: aynı eşleştirme,\nPostgreSQL kaydı, WebSocket uyarısı ve webhook akışı. OpenSky'ın tarayıcı\ntabanlı OAuth2 girişini gerektirmediği için sunucu/Docker ortamında da\nçalışır. Tarih, ilk noktanın UTC gününden türetilir; sonuç\nGET /ucuslar/{ucus_numarasi}/{tarih} ile okunur.",
+        "operationId": "rota_analizi_baslat_api_v1_analiz_rota_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RotaAnalizIstegi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GorevBaslatildiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/analiz/toplu": {
       "post": {
         "tags": [
@@ -1496,6 +1556,83 @@
           "boylam"
         ],
         "title": "OlcumYaniti"
+      },
+      "RotaAnalizIstegi": {
+        "properties": {
+          "ucus_numarasi": {
+            "type": "string",
+            "pattern": "^[A-Za-z0-9]{1,8}$",
+            "title": "Ucus Numarasi"
+          },
+          "noktalar": {
+            "items": {
+              "$ref": "#/components/schemas/RotaNoktasiGirdisi"
+            },
+            "type": "array",
+            "maxItems": 50000,
+            "minItems": 2,
+            "title": "Noktalar"
+          },
+          "bildirim_webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bildirim Webhook Url"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ucus_numarasi",
+          "noktalar"
+        ],
+        "title": "RotaAnalizIstegi"
+      },
+      "RotaNoktasiGirdisi": {
+        "properties": {
+          "zaman": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Zaman"
+          },
+          "enlem": {
+            "type": "number",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Enlem"
+          },
+          "boylam": {
+            "type": "number",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Boylam"
+          },
+          "irtifa_m": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 20000.0,
+                "minimum": -500.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Irtifa M",
+            "description": "Geometrik irtifa (m); yoksa null"
+          }
+        },
+        "type": "object",
+        "required": [
+          "zaman",
+          "enlem",
+          "boylam"
+        ],
+        "title": "RotaNoktasiGirdisi"
       },
       "RotaNoktasiYaniti": {
         "properties": {
