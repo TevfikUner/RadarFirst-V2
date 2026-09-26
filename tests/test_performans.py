@@ -24,11 +24,11 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import config
+from turbulans_radar import config
 
 xr = pytest.importorskip("xarray")
 
-from eslestirme import rotayi_hava_durumuyla_eslestir  # noqa: E402
+from turbulans_radar.fizik.eslestirme import rotayi_hava_durumuyla_eslestir  # noqa: E402
 
 BUYUK_ROTA_NOKTA_SAYISI = 55_000
 
@@ -76,7 +76,7 @@ def test_buyuk_rota_vektorel_eslestirme_makul_surede_biter(veri_kupu):
 
 
 def test_buyuk_rota_veritabanina_yazma_makul_surede_biter(veri_kupu):
-    import veritabani as vt
+    from turbulans_radar.depo import veritabani as vt
 
     try:
         motor = vt.motor_al()

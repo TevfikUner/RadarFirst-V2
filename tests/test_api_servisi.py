@@ -25,10 +25,10 @@ import pytest
 from sqlalchemy import text
 from starlette.testclient import TestClient
 
-import api_servisi
-import config
-import gorev_deposu
-import veritabani as vt
+from turbulans_radar import config
+from turbulans_radar.api import api_servisi
+from turbulans_radar.depo import gorev_deposu
+from turbulans_radar.depo import veritabani as vt
 
 
 @pytest.fixture(autouse=True)
@@ -650,7 +650,7 @@ async def test_gorev_kaydi_arka_plan_gorevinden_once_olusur():
 
 
 async def test_veritabanina_kaydedilemeyen_analiz_hata_olarak_isaretlenir(monkeypatch):
-    from veritabani import VeritabaniKayitHatasi
+    from turbulans_radar.depo.veritabani import VeritabaniKayitHatasi
 
     def _kayit_basarisiz(ucus_numarasi, tarih):
         raise VeritabaniKayitHatasi("Sonuçlar veritabanına kaydedilemedi.")
@@ -751,9 +751,9 @@ async def test_rota_analizi_gecersiz_istek_422(istemci, api_anahtari, govde):
 async def test_rota_analizi_uctan_uca_kaydeder(istemci, api_anahtari, monkeypatch, tmp_path):
     if api_servisi.veri_kupune_eris() is None:
         pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı.")
-    import main
+    from turbulans_radar.analiz import ucus_analizi
 
-    monkeypatch.setattr(main.config, "CIKTI_KLASORU", str(tmp_path))
+    monkeypatch.setattr(ucus_analizi.config, "CIKTI_KLASORU", str(tmp_path))
     noktalar = [
         {"zaman": "2019-01-15T10:00:00+03:00", "enlem": 39.0, "boylam": 33.0, "irtifa_m": 10500.0},
         {"zaman": "2019-01-15T07:05:00Z", "enlem": 39.1, "boylam": 33.5, "irtifa_m": 10500.0},
@@ -799,7 +799,7 @@ async def test_sigmet_guncelle_ozet_doner(istemci, api_anahtari, monkeypatch):
 async def test_aktif_sigmetler_listelenir_ve_filtrelenir(istemci, api_anahtari):
     from test_sigmet_saglayici import ULUSLARARASI_ORNEK
 
-    import sigmet_saglayici
+    from turbulans_radar.veri import sigmet_saglayici
 
     sigmet_saglayici.sigmetleri_guncelle(getirici=lambda k: [ULUSLARARASI_ORNEK], kaynaklar=("test",))
     try:

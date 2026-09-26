@@ -1,6 +1,6 @@
 import pandas as pd
 
-import toplu_analiz
+from turbulans_radar.analiz import toplu_analiz
 
 
 def _sahte_calistir_uret(sonuclar_sozlugu):

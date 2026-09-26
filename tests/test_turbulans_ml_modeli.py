@@ -15,8 +15,8 @@ import numpy as np
 import pandas as pd
 import pytest
 
-import config
-from turbulans_ml_modeli import OZELLIK_SUTUNLARI, ozellikleri_cikar, ozellikleri_temizle
+from turbulans_radar import config
+from turbulans_radar.ml.turbulans_ml_modeli import OZELLIK_SUTUNLARI, ozellikleri_cikar, ozellikleri_temizle
 
 xr = pytest.importorskip("xarray")
 
@@ -75,7 +75,7 @@ def test_kapsam_disi_nokta_temizlenirken_etiketle_senkron_kalir(veri_kupu):
 
 
 def test_egitilmis_model_yoksa_durustce_none_doner(veri_kupu, tmp_path, monkeypatch):
-    import turbulans_ml_modeli as tm
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
 
     monkeypatch.setattr(tm, "MODEL_DOSYA_YOLU", str(tmp_path / "olmayan_model.joblib"))
     monkeypatch.setitem(tm._ONBELLEK_MODEL, "model", None)
@@ -94,7 +94,7 @@ def test_egitilmis_model_yoksa_durustce_none_doner(veri_kupu, tmp_path, monkeypa
 
 
 def test_model_bilgisi_dosyasi_yoksa_durustce_none_doner(tmp_path, monkeypatch):
-    import turbulans_ml_modeli as tm
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
 
     monkeypatch.setattr(tm, "MODEL_BILGI_DOSYA_YOLU", str(tmp_path / "olmayan_bilgi.json"))
     assert tm.model_bilgisini_yukle() is None
@@ -103,7 +103,7 @@ def test_model_bilgisi_dosyasi_yoksa_durustce_none_doner(tmp_path, monkeypatch):
 def test_model_bilgisi_dosyasi_varsa_okunur(tmp_path, monkeypatch):
     import json
 
-    import turbulans_ml_modeli as tm
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
 
     bilgi_dosyasi = tmp_path / "bilgi.json"
     bilgi_dosyasi.write_text(json.dumps({"secilen_model": "Random Forest"}), encoding="utf-8")
@@ -112,7 +112,7 @@ def test_model_bilgisi_dosyasi_varsa_okunur(tmp_path, monkeypatch):
 
 
 def _versiyonlama_yollarini_gecici_klasore_tasi(tmp_path, monkeypatch):
-    import turbulans_ml_modeli as tm
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
 
     versiyon_klasoru = tmp_path / "model_versiyonlari"
     monkeypatch.setattr(tm, "MODEL_VERSIYONLARI_KLASORU", str(versiyon_klasoru))
@@ -179,7 +179,7 @@ def test_versiyona_geri_don_bilinmeyen_id_value_error_verir(tmp_path, monkeypatc
 
 
 def test_egitilmis_model_varsa_0_1_arasi_olasilik_doner():
-    import turbulans_ml_modeli as tm
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
 
     if tm._modeli_yukle() is None:
         pytest.skip(f"'{tm.MODEL_DOSYA_YOLU}' henüz eğitilmedi (bkz. ml_egitimi.py) -- test atlanıyor.")

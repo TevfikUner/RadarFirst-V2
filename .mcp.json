@@ -3,7 +3,8 @@
     "turbulans-postgres": {
       "type": "stdio",
       "command": "python",
-      "args": ["${CLAUDE_PROJECT_DIR}/mcp_postgres_sunucusu.py"]
+      "args": ["-m", "turbulans_radar.cli.mcp_postgres_sunucusu"],
+      "env": { "PYTHONPATH": "${CLAUDE_PROJECT_DIR}/src" }
     }
   }
 }

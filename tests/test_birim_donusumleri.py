@@ -1,6 +1,6 @@
 import math
 
-from birim_donusumleri import (
+from turbulans_radar.fizik.birim_donusumleri import (
     basinc_hpa_to_irtifa_metre,
     en_yakin_basinc_seviyesi,
     irtifa_metre_to_basinc_hpa,

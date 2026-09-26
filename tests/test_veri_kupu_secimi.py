@@ -2,9 +2,9 @@ import os
 
 import pytest
 
-import config
-from rota_optimizasyonu import rota_simulasyonu_olustur, veri_kupune_eris
-from veri_yukleme import hava_durumu_dosyalari, kapsayan_veri_kupunu_bul, veri_kupu_adi
+from turbulans_radar import config
+from turbulans_radar.rota.rota_optimizasyonu import rota_simulasyonu_olustur, veri_kupune_eris
+from turbulans_radar.veri.veri_yukleme import hava_durumu_dosyalari, kapsayan_veri_kupunu_bul, veri_kupu_adi
 
 
 @pytest.fixture(scope="module", autouse=True)

@@ -1,5 +1,5 @@
-from hata_yardimcisi import dostane_hata_mesaji
-from kimlik_dogrulama import KimlikBilgisiEksikHatasi
+from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
+from turbulans_radar.veri.kimlik_dogrulama import KimlikBilgisiEksikHatasi
 
 
 def test_kimlik_hatasi_oldugu_gibi_dondurulur():

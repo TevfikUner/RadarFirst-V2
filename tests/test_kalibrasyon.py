@@ -1,6 +1,6 @@
 import numpy as np
 
-from kalibrasyon import katsayi_guven_araligi_hesapla, katsayi_kalibre_et
+from turbulans_radar.fizik.kalibrasyon import katsayi_guven_araligi_hesapla, katsayi_kalibre_et
 
 
 def test_bilinen_katsayidan_uretilen_veride_ayni_katsayiyi_bulur():

@@ -3,9 +3,9 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from sqlalchemy import text, update
 
-import gorev_deposu
-import veritabani as vt
-from models import AnalizGorevi
+from turbulans_radar.depo import gorev_deposu
+from turbulans_radar.depo import veritabani as vt
+from turbulans_radar.depo.models import AnalizGorevi
 
 
 @pytest.fixture(autouse=True)

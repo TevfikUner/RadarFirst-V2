@@ -3,7 +3,7 @@ from datetime import UTC, datetime, timedelta
 import pandas as pd
 import pytest
 
-from risk_katmanlari import RiskDegerlendirmesi, SigmetKisitKatmani, degerlendirmeleri_birlestir
+from turbulans_radar.rota.risk_katmanlari import RiskDegerlendirmesi, SigmetKisitKatmani, degerlendirmeleri_birlestir
 
 SIMDI = pd.Timestamp(datetime.now(UTC))
 

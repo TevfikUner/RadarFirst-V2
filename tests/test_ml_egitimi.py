@@ -16,7 +16,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
-from ml_egitimi import (
+from turbulans_radar.ml.ml_egitimi import (
     ERA5_KLASORU,
     PIREP_DOSYASI,
     en_iyi_modeli_sec_ve_kaydet,
@@ -54,7 +54,7 @@ def test_modelleri_egit_ve_karsilastir_uc_modeli_de_doner():
 
 
 def test_gruplu_dogrulamada_ayni_gun_hem_egitimde_hem_testte_olmaz(monkeypatch):
-    import ml_egitimi
+    from turbulans_radar.ml import ml_egitimi
 
     X, y = _sentetik_ozellik_etiket_uret(n=120)
     gruplar = pd.Series(np.repeat([f"gun{i}" for i in range(20)], 6))
@@ -75,7 +75,7 @@ def test_gruplu_dogrulamada_ayni_gun_hem_egitimde_hem_testte_olmaz(monkeypatch):
 
 
 def test_en_iyi_modeli_sec_ve_kaydet_en_yuksek_recalli_modeli_secer(tmp_path, monkeypatch):
-    import ml_egitimi
+    from turbulans_radar.ml import ml_egitimi
 
     monkeypatch.setattr(ml_egitimi, "MODEL_DOSYA_YOLU", str(tmp_path / "model.joblib"))
     monkeypatch.setattr(ml_egitimi, "MODEL_BILGI_DOSYA_YOLU", str(tmp_path / "bilgi.json"))
@@ -97,7 +97,7 @@ def test_en_iyi_modeli_sec_ve_kaydet_en_yuksek_recalli_modeli_secer(tmp_path, mo
 def test_en_iyi_modeli_sec_ve_kaydet_model_bilgisi_dosyasini_dogru_yazar(tmp_path, monkeypatch):
     import json
 
-    import ml_egitimi
+    from turbulans_radar.ml import ml_egitimi
 
     model_yolu = tmp_path / "model.joblib"
     bilgi_yolu = tmp_path / "bilgi.json"

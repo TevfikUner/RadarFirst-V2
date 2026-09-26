@@ -17,14 +17,14 @@ import pytest
 
 xr = pytest.importorskip("xarray")
 
-import config
-from birim_donusumleri import (
+from turbulans_radar import config
+from turbulans_radar.fizik.birim_donusumleri import (
     basinc_hpa_to_irtifa_metre,
     en_yakin_basinc_seviyesi,
     irtifa_metre_to_basinc_hpa,
 )
-from eslestirme import rotayi_hava_durumuyla_eslestir
-from turbulans_indeksleri import (
+from turbulans_radar.fizik.eslestirme import rotayi_hava_durumuyla_eslestir
+from turbulans_radar.fizik.turbulans_indeksleri import (
     DINAMIK_KARARSIZLIK_ESIGI,
     dusey_ruzgar_kaymasi_hesapla,
     potansiyel_sicaklik_hesapla,

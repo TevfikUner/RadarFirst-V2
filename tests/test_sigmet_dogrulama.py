@@ -1,7 +1,7 @@
 import pandas as pd
 import pytest
 
-import sigmet_dogrulama as sd
+from turbulans_radar.dogrulama import sigmet_dogrulama as sd
 
 
 def test_metinden_poligon_cikar_dogru_koordinatlar():
@@ -36,7 +36,7 @@ def test_esik_altindaki_noktalar_http_istegi_yapmaz(monkeypatch):
         raise AssertionError("HTTP isteği yapılmamalıydı")
 
     monkeypatch.setattr(sd, "sigmetleri_getir", patlarsa_hata)
-    import config
+    from turbulans_radar import config
 
     df = pd.DataFrame(
         {
@@ -63,7 +63,7 @@ def _sahte_sigmet(etiket, poligon, baslangic, bitis, turbulansla_ilgili=True):
 
 
 def test_poligon_ve_zaman_icindeki_nokta_ortusur(monkeypatch):
-    import config
+    from turbulans_radar import config
 
     kare = [(60.0, -155.0), (60.0, -154.0), (61.0, -154.0), (61.0, -155.0)]
     sahte = [_sahte_sigmet("TEST1", kare, "2019-01-15T09:00Z", "2019-01-15T13:00Z")]
@@ -84,7 +84,7 @@ def test_poligon_ve_zaman_icindeki_nokta_ortusur(monkeypatch):
 
 
 def test_konvektif_sigmet_turbulans_sayilmaz(monkeypatch):
-    import config
+    from turbulans_radar import config
 
     kare = [(60.0, -155.0), (60.0, -154.0), (61.0, -154.0), (61.0, -155.0)]
     sahte = [_sahte_sigmet("KONVEKTIF", kare, "2019-01-15T09:00Z", "2019-01-15T13:00Z", turbulansla_ilgili=False)]

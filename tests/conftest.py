@@ -47,7 +47,7 @@ def canli_sunucu():
     if not os.environ.get("API_ANAHTARI"):
         pytest.skip("API_ANAHTARI tanımlı değil, .env dosyasını kontrol et.")
 
-    import veritabani as vt
+    from turbulans_radar.depo import veritabani as vt
 
     try:
         with vt.motor_al().connect():
@@ -57,8 +57,9 @@ def canli_sunucu():
 
     port = _bos_port_bul()
     surec = subprocess.Popen(
-        [sys.executable, "-m", "uvicorn", "api_servisi:app", "--port", str(port)],
+        [sys.executable, "-m", "uvicorn", "turbulans_radar.api.api_servisi:app", "--port", str(port)],
         cwd=_PROJE_KOKU,
+        env={**os.environ, "PYTHONPATH": os.path.join(_PROJE_KOKU, "src")},
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )

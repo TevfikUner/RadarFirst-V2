@@ -14,7 +14,7 @@ de yoksa (bkz. conftest.canli_sunucu) atlanır (skip).
 import pandas as pd
 import pytest
 
-import veritabani as vt
+from turbulans_radar.depo import veritabani as vt
 
 _UCUS_NO = "PWHARITA"
 _TARIH = "2019-01-15"
