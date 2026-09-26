@@ -268,9 +268,11 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
   (bloklayan) mantığı `asyncio.to_thread` ile ayrı bir thread'de çalıştırır.
 - **CORS:** varsayılan kapalı; `.env`'deki `CORS_IZIN_VERILEN_KAYNAKLAR`
   (virgülle ayrılmış origin listesi) ile açılır.
-- **Görev durumu** bellek içinde tutulur ve kendiliğinden temizlenir
-  (bitmiş görevler 1 saat sonra, sözlük 5000'i aşarsa en eskiler önce
-  silinir). Kalıcı bir görev kuyruğu (Celery/RQ) gerekiyorsa eklenebilir.
+- **Görev durumu** PostgreSQL'deki `analiz_gorevleri` tablosunda tutulur
+  (bkz. `gorev_deposu.py`): API yeniden başlasa da `/analiz/durum/{gorev_id}`
+  çalışır. Açılışta önceki süreçten `calisiyor` kalmış görevler
+  `yarida_kaldi` olarak işaretlenir (iş parçacıkları artık yok); bitmiş
+  görevler 7 gün sonra otomatik silinir.
 - **Webhook bildirimi:** `bildirim_webhook_url` verilirse, analiz bitince
   sonuç oraya POST edilir -- n8n'in Webhook node'u bunu dinleyip
   `/api/v1/analiz/durum/{gorev_id}`'yi periyodik yoklamaya gerek bırakmaz.
