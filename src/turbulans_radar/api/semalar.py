@@ -19,8 +19,19 @@ from turbulans_radar.rota.rota_optimizasyonu import UCAK_PROFILLERI
 
 
 class SaglikYaniti(BaseModel):
+    """durum: ayakta | bozulmus (derin kontrolde operasyonel bir sorun:
+    bayat SIGMET, veri kaynağı hatası, biriken görev kuyruğu). kontroller:
+    bağımlılık başına durum; uyarilar: yapılandırma eksikleri (örn. yerel
+    kütüphane yok, sadece örnek kısıtlı saha)."""
+
     durum: str
     veritabani: str | None = None
+    kontroller: dict[str, dict] | None = None
+    uyarilar: list[str] | None = None
+
+
+class SistemDurumuYaniti(SaglikYaniti):
+    """GET /api/v1/sistem/durum -- sağlık raporu + kaynak başına son hata metinleri."""
 
 
 class UcusYaniti(BaseModel):

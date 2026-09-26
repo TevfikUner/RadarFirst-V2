@@ -147,7 +147,7 @@ _SIGMET_ARAMA_PAYI_DERECE = 5.0
 _logger = logger_al(__name__)
 
 
-def veri_kupune_eris(enlemler=None, boylamlar=None, zaman=None, irtifa_m=None, zamanlar=None):
+def veri_kupune_eris(enlemler=None, boylamlar=None, zaman=None, irtifa_m=None, zamanlar=None, durum=None):
     """Argümansız: ana küp (yoksa None). Noktalar verilirse: onları en iyi
     kapsayan yerel küp, yoksa (zaman canlı penceredeyse) canlı GFS küpü (bkz.
     veri_saglayicilari.veri_kupunu_sec), hiçbiri yoksa None. zamanlar
@@ -165,6 +165,7 @@ def veri_kupune_eris(enlemler=None, boylamlar=None, zaman=None, irtifa_m=None, z
         zamanlar or [zaman] * len(enlemler),
         basinc_hpa,
         pay_derece=_a_yildiz_pay_derecesi(enlemler),
+        durum=durum,
     )
 
 
@@ -763,12 +764,14 @@ def rota_simulasyonu_olustur(
         baslangic_enlem, baslangic_boylam, bitis_enlem, bitis_boylam, config.ROTA_SIMULASYONU_NOKTA_SAYISI
     )
 
+    veri_durumu = {}
     veri_kupu = veri_kupune_eris(
         enlemler_gc,
         boylamlar_gc,
         zaman_iso,
         irtifa_m,
         zamanlar=_tahmini_varis_zamanlari(enlemler_gc, boylamlar_gc, zaman_iso, tas_ms),
+        durum=veri_durumu,
     )
     ruzgarli_mi = _era5_tamamen_kapsiyor_mu(veri_kupu, enlemler_gc, boylamlar_gc, zaman_iso, irtifa_m)
     kup_adi = veri_kupu_adi(veri_kupu)
@@ -857,7 +860,7 @@ def rota_simulasyonu_olustur(
         "ruzgar_verisi_kaynagi": (
             ("gfs_tahmin" if veri_kupu_kaynagi(veri_kupu) == "gfs" else "era5_gercek")
             if ruzgarli_mi
-            else "era5_kapsam_disi"
+            else ("canli_veri_alinamadi" if veri_durumu.get("canli_hata") else "era5_kapsam_disi")
         ),
         "aciklama": _aciklama_olustur(
             ruzgarli_mi,
@@ -869,6 +872,7 @@ def rota_simulasyonu_olustur(
             sigmet_kontrolu,
             guvenli_rota_bulundu_mu,
             kisitli_saha_kontrolu,
+            veri_durumu.get("canli_hata"),
         ),
         "ucak_modeli": ucak_modeli_kodu,
         "ucak_etiketi": profil["etiket"],
@@ -921,6 +925,7 @@ def _aciklama_olustur(
     sigmet_kontrolu,
     guvenli_rota_bulundu_mu,
     kisitli_saha_kontrolu=None,
+    canli_hata=None,
 ):
     cumleler = []
     if ruzgarli_mi and veri_kupu_kaynagi(veri_kupu) == "gfs":
@@ -935,6 +940,11 @@ def _aciklama_olustur(
             )
         else:
             cumleler.append(f"Normal rota üzerinde {normal['riskli_sayisi']} noktada riskli türbülans tespit edildi.")
+    elif canli_hata:
+        cumleler.append(
+            f"UYARI: {canli_hata} Rüzgar ve türbülans (TI1) hesaba katılamadı, rotalar sadece uçağın hava hızıyla "
+            "(TAS) zamanlandı (bkz. GET /saglik?derin=true); SIGMET ve kısıtlı saha kısıtları yine uygulandı."
+        )
     else:
         cumleler.append(
             "Seçilen bölge/tarih/irtifa için ne projenin ERA5 veri küpleri (ana küp: "

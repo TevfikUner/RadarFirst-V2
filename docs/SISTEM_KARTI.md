@@ -74,7 +74,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | İstenen irtifa canlı sağlayıcının basınç seviyelerinin dışında (örn. FL100) | İndirme yapılmaz; rota/tahmin hava verisi olmadan (kapsam dışı olarak) döner. |
 | Canlı veri sağlayıcısı bozuk ya da geçersiz yanıt döndü | `POST /veri/canli/hazirla` görevi `hata` olur, genel bir mesajla (iç ayrıntı sızdırılmaz); rota/tahmin hava verisi olmadan devam eder. |
 | Toplu backtest'te bir uçuş beklenmeyen hatayla düştü | O uçuş `hata` olarak raporlanır, diğerleri işlenmeye devam eder. |
-| Hava verisi yok (bölge, tarih ya da irtifa kapsam dışı; GFS indirilemedi) | Rota rüzgarsız, sadece TAS ile hesaplanır ve TI1 raporlanmaz; bu durum açıkça belirtilir. SIGMET ve kısıtlı saha kısıtları yine uygulanır. |
+| Hava verisi yok (bölge, tarih ya da irtifa kapsam dışı) | Rota rüzgarsız, sadece TAS ile hesaplanır ve TI1 raporlanmaz; bu durum açıkça belirtilir. SIGMET ve kısıtlı saha kısıtları yine uygulanır. |
+| Canlı GFS sağlayıcısı yanıt vermedi | Aynı rüzgarsız hesap; ama `ruzgar_verisi_kaynagi: canli_veri_alinamadi` ve açıklamada UYARI ("kapsam dışı" denmez). Sonuç `veri_kaynagi_durumlari`'na yazılır, `/saglik?derin=true` `canli_gfs: hata` gösterir. |
+| SIGMET bayat, bir veri kaynağı hata veriyor ya da görev kuyruğu birikiyor | `/saglik?derin=true` genel durumu `bozulmus` döner (HTTP 200; monitoring gövdeye bakar). |
+| Kokpitte bağlantı zayıf ya da yok | Kütüphaneler API sunucusundan gelir; altlık harita yerel (NaturalEarthII / ülke sınırları). Sadece Esri karoları eksik kalır. |
 | Bir noktanın irtifası/zamanı küpün seviyelerinden ya da zaman adımlarından uzak | O nokta için TI1 NaN bırakılır; en yakın hücreden uydurma değer üretilmez. |
 | Analiz sonucu veritabanına yazılamadı (API) | Görev `hata` durumuna geçer; "tamamlandı" gösterilmez. |
 | API ya da işçi görev bitmeden yeniden başladı/çöktü | Kuyruktaki görevler kaybolmaz. Çalışan görevin kalp atışı kesilir; `GOREV_BAYAT_SANIYE` (120 sn) sonra görev yeniden kuyruğa girer, `GOREV_MAKS_DENEME` (2) aşılırsa `yarida_kaldi` olur. API'nin yeniden başlaması başka süreçteki işçinin görevine dokunmaz. |
@@ -135,10 +138,11 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 225 test. Kapsamı: birim testleri, gerçek PostgreSQL
-  üzerinde API ve depo testleri, gerçek ERA5 küpüyle eşleştirme ve rota
-  testleri, Playwright ile iki web önyüzünün tarayıcı testleri. Ağa çıkan
-  bileşenler (GFS, AWC) testlerde sahte sağlayıcılarla çalışır.
+- **Otomatik testler:** 307 test. Kapsamı: birim testleri, gerçek PostgreSQL
+  üzerinde API, depo ve görev kuyruğu testleri (eşzamanlı işçiler, ölen işçi
+  kurtarma, LISTEN/NOTIFY), gerçek ERA5 küpüyle eşleştirme ve rota testleri,
+  Playwright ile iki web önyüzünün tarayıcı testleri. Ağa çıkan bileşenler
+  (GFS, AWC, IEM, npm) testlerde sahte sağlayıcılarla çalışır.
 - **Eşdeğerlik testleri:** Vektörleştirme ve risk katmanı yeniden
   düzenlemelerinden sonra ML özellikleri ve örnek rotalar eski kodla birebir
   aynı çıktı.
@@ -151,6 +155,20 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   - Varışı SIGMET içinde kalan bir rota için "öneri yok" döndü.
   - Türkiye bölgesi için GFS küpü ~15 saniyede indi, ikinci istek katalogdan
     anında geldi.
+  - AWC uluslararası akışında daha önce sessizce atılan `geom: "AREAS"` (çok
+    poligonlu) biçimi bulundu; düzeltmeden sonra 110 SIGMET'in tamamı
+    çözümlendi.
+  - Malatya → Musul (örnek kısıtlı saha verisi): büyük daire Suriye'yi 13
+    nokta/bacakta kesiyor; A* 60 km sapmayla kaçındı, Irak (varış ülkesi) muaf.
+  - A* (mesafe/açı tabanlı ızgara): İzmir-Van 38-58 ms, tam rota kararı
+    0.26-0.29 sn; İstanbul-New York 1481 düğüm, 70 ms.
+  - Çok süreçli kurulum (API + ayrı işçi süreci): rota analizi isteği 78 ms'de
+    202 döndü, işçi analizi 0.5 sn'de bitirdi, riskli nokta uyarısı NOTIFY ile
+    WebSocket istemcisine ulaştı.
+  - Tüm dış ağ engelliyken iki web önyüzü de açıldı (CesiumJS yerelden 1.7 sn;
+    CDN'den ~55 KB/s bağlantıda 106 sn sürüyordu); altlık harita yerel.
+  - Küp belleği: İzmir-Van için pencereli okuma 1.2 MB (tüm küp 69 MB); eski
+    davranış ilk istekte 16 küpü (92 MB) belleğe alıyordu.
 - **Backtest (15 Ocak 2019, ERA5):** Riskli nokta oranı, gerçek uçuşlarda
   ortalama 0.28, önerilen rotalarda 0.00. Üç uçuşun ikisinde risk tırmanma
   ile azaldı; büyük daireye göre ek süre 2-5 dakika. Bu ölçüm döngüseldir

@@ -1939,13 +1939,63 @@
         }
       }
     },
+    "/api/v1/sistem/durum": {
+      "get": {
+        "tags": [
+          "Sistem"
+        ],
+        "summary": "Sistem Durumu",
+        "description": "/saglik?derin=true ile aynı rapor, ek olarak kaynak başına son hata\nmetinleriyle (API anahtarı gerektirir -- dış servis hata ayrıntıları\nherkese açık uçta gösterilmez).",
+        "operationId": "sistem_durumu_api_v1_sistem_durum_get",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SistemDurumuYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/saglik": {
       "get": {
         "tags": [
           "Sistem"
         ],
         "summary": "Saglik Kontrolu",
-        "description": "Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği).\nVarsayılan (sığ) davranış DEĞİŞMEDİ -- sadece süreç ayakta mı diye bakar,\nher yük dengeleyici probunda PostgreSQL'e gitmeyi zorlamaz.\n`?derin=true` ile gerçek bir PostgreSQL bağlantısı denenir (deploy\nsonrası 'DB'ye GERÇEKTEN erişiyor muyum' diye elle/monitoring'den\nkontrol için).",
+        "description": "Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği).\nVarsayılan (sığ) davranış sadece süreç ayakta mı diye bakar, her yük\ndengeleyici probunda PostgreSQL'e gitmez. `?derin=true`: PostgreSQL\n(erişilemezse 503) + SIGMET tazeliği, canlı GFS, görev kuyruğu,\nkısıtlı sahalar, küp önbelleği ve yerel kütüphaneler; operasyonel bir\nsorun varsa durum 'bozulmus' olur (HTTP 200, monitoring gövdeye bakar).",
         "operationId": "saglik_kontrolu_saglik_get",
         "parameters": [
           {
@@ -1954,11 +2004,11 @@
             "required": false,
             "schema": {
               "type": "boolean",
-              "description": "True ise PostgreSQL'e gerçekten bağlanmayı dener",
+              "description": "True ise veritabanı ve tüm dış bağımlılıklar kontrol edilir",
               "default": false,
               "title": "Derin"
             },
-            "description": "True ise PostgreSQL'e gerçekten bağlanmayı dener"
+            "description": "True ise veritabanı ve tüm dış bağımlılıklar kontrol edilir"
           }
         ],
         "responses": {
@@ -3320,13 +3370,43 @@
               }
             ],
             "title": "Veritabani"
+          },
+          "kontroller": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kontroller"
+          },
+          "uyarilar": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uyarilar"
           }
         },
         "type": "object",
         "required": [
           "durum"
         ],
-        "title": "SaglikYaniti"
+        "title": "SaglikYaniti",
+        "description": "durum: ayakta | bozulmus (derin kontrolde operasyonel bir sorun:\nbayat SIGMET, veri kaynağı hatası, biriken görev kuyruğu). kontroller:\nbağımlılık başına durum; uyarilar: yapılandırma eksikleri (örn. yerel\nkütüphane yok, sadece örnek kısıtlı saha)."
       },
       "SigmetDogrulamaYaniti": {
         "properties": {
@@ -3590,6 +3670,60 @@
         ],
         "title": "SigmetYenilemeYaniti",
         "description": "kaynak_hatalari boş değilse o kaynağın mevcut SIGMET'leri korunmuştur\n(akış çekilemedi ya da güvenilir değil); kaynaklar: kaynak başına sayım."
+      },
+      "SistemDurumuYaniti": {
+        "properties": {
+          "durum": {
+            "type": "string",
+            "title": "Durum"
+          },
+          "veritabani": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Veritabani"
+          },
+          "kontroller": {
+            "anyOf": [
+              {
+                "additionalProperties": {
+                  "additionalProperties": true,
+                  "type": "object"
+                },
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kontroller"
+          },
+          "uyarilar": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uyarilar"
+          }
+        },
+        "type": "object",
+        "required": [
+          "durum"
+        ],
+        "title": "SistemDurumuYaniti",
+        "description": "GET /api/v1/sistem/durum -- sağlık raporu + kaynak başına son hata metinleri."
       },
       "TopluAnalizIstegi": {
         "properties": {

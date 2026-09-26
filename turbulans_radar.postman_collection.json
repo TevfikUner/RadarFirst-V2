@@ -807,6 +807,30 @@
       "name": "Sistem",
       "item": [
         {
+          "name": "Sistem Durumu",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/sistem/durum",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sistem",
+                "durum"
+              ]
+            }
+          }
+        },
+        {
           "name": "Saglik Kontrolu",
           "request": {
             "method": "GET",

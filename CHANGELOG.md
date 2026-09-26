@@ -4,6 +4,23 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Sağlık ucunda izleme, kütüphaneler ve altlık harita yerelden
+
+- **`/saglik?derin=true`** artık sadece PostgreSQL'e değil, EFB'nin güvendiği
+  her bağımlılığa bakıyor: SIGMET tazeliği (son BAŞARILI çekim), canlı GFS,
+  görev kuyruğu birikmesi, kısıtlı sahalar, küp önbelleği, yerel
+  kütüphaneler. Operasyonel sorun -> `bozulmus`; yapılandırma eksikleri ->
+  `uyarilar`. Ham hata metinleri sadece anahtarlı `GET /api/v1/sistem/durum`'da.
+- **"Kapsam dışı" yerine "alınamadı":** canlı GFS indirilemediğinde rota yanıtı
+  `canli_veri_alinamadi` döndürüyor; her indirmenin sonucu kaydediliyor.
+- **Kütüphaneler yerelden:** `turbulans-statik` CesiumJS ve MapLibre'yi npm'den
+  koda sabitlenmiş sha512 değeriyle doğrulayıp `web/vendor/`'a indiriyor
+  (kesintide kaldığı yerden devam ediyor); Docker imajı bunu derlenirken yapıyor.
+  Sayfalar önce yereli, yoksa CDN'i yüklüyor. Ölçüm: CesiumJS CDN'den ~55 KB/s
+  bağlantıda 106 sn sürüyordu.
+- **Çevrimdışı altlık harita:** Cesium'da paketle gelen NaturalEarthII, MapLibre'de
+  yerel ülke sınırları; Esri karoları üstte ek katman.
+
 ## İşçi/kuyruk mimarisi ve `/veri/canli/hazirla` için 202
 
 - **Uzun işler API sürecinden çıktı:** arka plan görevleri API sürecinin

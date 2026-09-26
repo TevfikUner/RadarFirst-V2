@@ -23,8 +23,18 @@
   düz elipsoid (WGS84). Bu yüzden Cesium.Ion.defaultAccessToken hiç set
   edilmiyor.
 -->
-<link href="https://cdn.jsdelivr.net/npm/cesium@1.145.0/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/cesium@1.145.0/Build/Cesium/Cesium.js"></script>
+<!--
+  Kütüphane ÖNCE bu sunucudan (web/vendor, bkz. turbulans-statik) yüklenir --
+  kokpitte düşük bant genişliğinde/çevrimdışı ~6 MB'lık CesiumJS bir CDN'den
+  beklenmez. Yerel kopya yoksa (geliştirme ortamı) aynı sürüm CDN'den gelir.
+  Cesium, Workers/Assets dosyalarını Cesium.js'in yüklendiği yerden bulur.
+-->
+<link href="vendor/cesium/Widgets/widgets.css" rel="stylesheet"
+      onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/cesium@1.145.0/Build/Cesium/Widgets/widgets.css'">
+<script src="vendor/cesium/Cesium.js"></script>
+<script>
+  window.Cesium || document.write('<script src="https://cdn.jsdelivr.net/npm/cesium@1.145.0/Build/Cesium/Cesium.js"><\/script>');
+</script>
 <style>
   :root { color-scheme: dark; }
   html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, sans-serif; }
@@ -183,14 +193,20 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
   // Viewer.js: sadece options.baseLayer, scene.imageryLayers.add() ile
   // eklenir). Bu proje Playwright ile gerçek bir tarayıcıda test edilirken
   // bulundu -- 'imageryProvider' kullanan eski örnekler artık çalışmıyor.
-  baseLayer: new Cesium.ImageryLayer(
-    new Cesium.UrlTemplateImageryProvider({
-      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
-      credit: "Tiles © Esri",
-    })
+  // Altlık: Cesium paketiyle gelen NaturalEarthII dokusu -- sunucudan gelir,
+  // İNTERNETSİZ de görünür. Esri sokak haritası üstte ek katmandır;
+  // bağlantı yoksa karoları gelmez ama harita boş kalmaz.
+  baseLayer: Cesium.ImageryLayer.fromProviderAsync(
+    Cesium.TileMapServiceImageryProvider.fromUrl(Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII"))
   ),
   terrainProvider: new Cesium.EllipsoidTerrainProvider(),
 });
+viewer.imageryLayers.addImageryProvider(
+  new Cesium.UrlTemplateImageryProvider({
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    credit: "Tiles © Esri",
+  })
+);
 viewer.scene.globe.enableLighting = true;
 
 let mevcutDataSource = null;
@@ -227,6 +243,9 @@ function sonucPanelDoldur(sonuc) {
   } else if (sonuc.ruzgar_verisi_kaynagi === "gfs_tahmin") {
     kaynakEl.textContent = "✓ Canlı NOAA GFS tahmin verisi";
     kaynakEl.className = "gercek";
+  } else if (sonuc.ruzgar_verisi_kaynagi === "canli_veri_alinamadi") {
+    kaynakEl.textContent = "⚠ Canlı veri alınamadı (rüzgarsız tahmin)";
+    kaynakEl.className = "kapsam-disi";
   } else {
     kaynakEl.textContent = "⚠ Kapsam dışı (rüzgarsız tahmin)";
     kaynakEl.className = "kapsam-disi";

@@ -118,6 +118,11 @@ alembic upgrade head          # veritabanı şemasını kur/güncelle
 
 Sadece çalıştırmak (geliştirme araçları olmadan) için `pip install -e .` yeterlidir.
 
+Web arayüzlerinin kütüphanelerini (CesiumJS, MapLibre) yerelden sunmak için
+bir kez `turbulans-statik` çalıştır (yaklaşık 30 MB, `web/vendor/`'a; git'e
+girmez). Çalıştırılmazsa sayfalar aynı sürümü CDN'den yükler. Docker imajı
+bunu derlenirken kendisi yapar.
+
 `.env`'e girilmesi gerekenler (bkz. `.env.example`): `OPENSKY_USERNAME`/
 `OPENSKY_PASSWORD` (OpenSky hesabı, tarihsel veri erişimi onaylanmış
 olmalı -- https://opensky-network.org/my-opensky/request-data),
@@ -244,6 +249,8 @@ görüntü (snapshot) kolaylığı sağlar.
 | GET | `/api/v1/turbulans/model-versiyonlari` | Şimdiye kadar eğitilmiş TÜM model versiyonlarını (en yeni önce) listeler |
 | POST | `/api/v1/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir` | Geçmiş bir model versiyonunu YENİDEN EĞİTİM GEREKMEDEN aktif model yapar (rollback); bilinmeyen `versiyon_id` 404 döner |
 | WS | `/ws/uyarilar?api_key=...` | TI1 "orta-şiddetli" eşiği aşılınca canlı uyarı yayınlar |
+| GET | `/saglik?derin=true` | (anahtarsız) Veritabanı + SIGMET tazeliği, canlı GFS, görev kuyruğu, kısıtlı sahalar, küp önbelleği, yerel kütüphaneler; operasyonel sorunda `durum: bozulmus` |
+| GET | `/api/v1/sistem/durum` | Aynı rapor + kaynak başına son hata metinleri (anahtarlı) |
 | GET | `/harita/harita3d.html` | 3D/canlı harita önyüzü (statik, tarayıcıda açılır) |
 | GET | `/harita/ucus_simulasyonu.html` | 3D uçuş simülasyonu önyüzü (statik, tarayıcıda açılır) |
 
@@ -785,6 +792,33 @@ bulunmaz -- bu bir hata değil, beklenen ve dürüst bir sonuçtur
 geçen herhangi bir uçuş/tarih için gerçek anlamda doğrulama sağlar (bkz.
 modülün kendi docstring'indeki örnek: Anchorage FIR, 2019-01-15, gerçek bir
 "OCNL SEV TURB" SIGMET'i ile doğrulandı).
+
+## İzleme ve çevrimdışı kullanım
+
+- **`GET /saglik?derin=true`** (anahtarsız, monitoring için): PostgreSQL
+  erişilemezse 503. Erişilebilirse HTTP 200 ve bağımlılık başına durum:
+  `sigmet` (son BAŞARILI çekimin yaşı `SIGMET_BAYATLIK_DAKIKA`'yı aşarsa
+  `bayat`, bir AWC kaynağı hata veriyorsa `hata`), `canli_gfs` (son indirme
+  başarılı mı), `gorev_kuyrugu` (en eski bekleyen görev 2 dakikadan eskiyse
+  `birikiyor` -- işçi yok ya da yetişemiyor), `kisitli_sahalar`,
+  `kup_onbellegi`, `statik_dosyalar`. Operasyonel bir sorun genel durumu
+  `bozulmus` yapar; yapılandırma eksikleri (`cdn_yedegi`, `ornek_veri`,
+  `veri_yok`) `uyarilar`'da listelenir. Dış servislerin ham hata metinleri
+  anahtarsız uçta gösterilmez; `GET /api/v1/sistem/durum` (anahtarlı) aynı
+  raporu hata ayrıntılarıyla verir.
+- **Canlı veri alınamadığında** rota yanıtı artık "kapsam dışı" değil
+  `ruzgar_verisi_kaynagi: canli_veri_alinamadi` ve açıklamada UYARI döner;
+  her GFS indirmesinin sonucu `veri_kaynagi_durumlari`'na yazılır.
+- **Kütüphaneler yerelden:** `web/harita3d.html` ve `web/ucus_simulasyonu.html`
+  MapLibre/CesiumJS'i önce API'nin kendisinden (`web/vendor/`, bkz.
+  `turbulans-statik`) yükler, yoksa CDN'e düşer. Paketler npm'den koda
+  sabitlenmiş sha512 bütünlük değeriyle doğrulanarak indirilir (değiştirilmiş
+  paket kurulmaz); kesintili bağlantıda indirme kaldığı yerden devam eder.
+- **Çevrimdışı altlık harita:** Cesium sahnesinin altlığı paketle gelen
+  NaturalEarthII dokusu, MapLibre haritasınınki sunucudan gelen sade ülke
+  sınırları (`web/veri/ulke_sinirlari.geojson`, Natural Earth, kamu malı).
+  Esri sokak haritası üstte ek katmandır: bağlantı yoksa karoları gelmez ama
+  harita boş kalmaz.
 
 ## n8n ile periyodik otomasyon
 

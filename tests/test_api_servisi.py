@@ -82,7 +82,7 @@ async def istemci():
 async def test_saglik_anahtarsiz_erisilebilir(istemci):
     yanit = await istemci.get("/saglik")
     assert yanit.status_code == 200
-    assert yanit.json() == {"durum": "ayakta", "veritabani": None}
+    assert yanit.json() == {"durum": "ayakta", "veritabani": None, "kontroller": None, "uyarilar": None}
 
 
 async def test_v1_anahtarsiz_401(istemci):
@@ -600,7 +600,7 @@ async def test_geojson_disa_aktarma_gecerli_feature_collection_doner(istemci, ap
 async def test_saglik_derin_gercek_db_ile_basarili(istemci):
     yanit = await istemci.get("/saglik?derin=true")
     assert yanit.status_code == 200
-    assert yanit.json() == {"durum": "ayakta", "veritabani": "erisilebilir"}
+    assert yanit.json()["veritabani"] == "erisilebilir"
 
 
 async def test_saglik_derin_db_erisilemezse_503(istemci, monkeypatch):
@@ -931,3 +931,59 @@ async def test_kisitli_saha_ice_aktarma_listeleme_ve_silme(istemci, api_anahtari
     finally:
         with vt.motor_al().begin() as baglanti:
             baglanti.execute(text("DELETE FROM kisitli_hava_sahalari WHERE kaynak = 'test_saha'"))
+
+
+# --- Sağlık / izleme ---
+
+_KONTROLLER = {"sigmet", "canli_gfs", "gorev_kuyrugu", "kisitli_sahalar", "kup_onbellegi", "statik_dosyalar"}
+
+
+async def test_derin_saglik_tum_bagimliliklari_raporlar_ham_hata_sizdirmaz(istemci):
+    yanit = await istemci.get("/saglik?derin=true")
+    assert yanit.status_code == 200
+    govde = yanit.json()
+    assert govde["durum"] in ("ayakta", "bozulmus") and govde["veritabani"] == "erisilebilir"
+    assert set(govde["kontroller"]) == _KONTROLLER
+    assert all("durum" in k and "son_hata" not in k and "kaynaklar" not in k for k in govde["kontroller"].values())
+    assert isinstance(govde["uyarilar"], list)
+
+
+async def test_sistem_durumu_anahtar_ister_ve_ayrinti_verir(istemci, api_anahtari):
+    assert (await istemci.get("/api/v1/sistem/durum")).status_code == 401
+    yanit = await istemci.get("/api/v1/sistem/durum", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 200
+    assert "kaynaklar" in yanit.json()["kontroller"]["sigmet"]
+
+
+async def test_biriken_gorev_kuyrugu_sagligi_bozar():
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy import update
+
+    from turbulans_radar.depo.models import AnalizGorevi
+
+    gorev_id = await gorev_deposu.gorev_olustur("test_kuyruk")
+    try:
+        async with vt.async_oturum_al() as oturum:
+            await oturum.execute(
+                update(AnalizGorevi)
+                .where(AnalizGorevi.id == gorev_id)
+                .values(olusturulma_zamani=datetime.now(UTC) - timedelta(minutes=10))
+            )
+            await oturum.commit()
+        rapor = await api_servisi._saglik_raporu(ayrintili=False)
+        assert rapor["kontroller"]["gorev_kuyrugu"]["durum"] == "birikiyor"
+        assert rapor["durum"] == "bozulmus"
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM analiz_gorevleri WHERE id = :id"), {"id": gorev_id})
+
+
+async def test_saglik_kontrolu_hatasi_raporu_dusurmez(monkeypatch):
+    def cokuyor():
+        raise ConnectionError("THREDDS kataloğu yanıt vermedi")
+
+    monkeypatch.setattr(api_servisi, "_canli_gfs_kontrolu", cokuyor)
+    rapor = await api_servisi._saglik_raporu(ayrintili=False)
+    assert rapor["kontroller"]["canli_gfs"] == {"durum": "hata"}
+    assert rapor["durum"] == "bozulmus"

@@ -45,6 +45,7 @@ BİLİNÇLİ OLARAK EKLENMEDİ:
 """
 
 import asyncio
+import inspect
 import ipaddress
 import json
 import os
@@ -102,6 +103,7 @@ from turbulans_radar.api.semalar import (
     SigmetDogrulamaYaniti,
     SigmetOzetiYaniti,
     SigmetYenilemeYaniti,
+    SistemDurumuYaniti,
     TopluSilmeYaniti,
     TurbulansTahminIstegi,
     TurbulansTahminYaniti,
@@ -109,7 +111,9 @@ from turbulans_radar.api.semalar import (
     UcusDetayYaniti,
     UcuslarListesiYaniti,
 )
-from turbulans_radar.depo.gorev_deposu import eski_gorevleri_temizle, gorev_getir, gorev_olustur
+from turbulans_radar.cli.statik_indir import yerel_kutuphane_durumu
+from turbulans_radar.depo.gorev_deposu import eski_gorevleri_temizle, gorev_getir, gorev_olustur, kuyruk_durumu
+from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir
 from turbulans_radar.depo.kup_katalogu import katalogu_listele, yerel_kupleri_katalogla
 from turbulans_radar.depo.veritabani import (
     VeritabaniAyarlariEksikHatasi,
@@ -139,13 +143,21 @@ from turbulans_radar.rota.rota_optimizasyonu import (
     veri_kupune_eris,
 )
 from turbulans_radar.veri.kisitli_saha_saglayici import (
+    ORNEK_KAYNAK,
     gecerli_kisitli_sahalari_getir,
     geojson_ice_aktar,
     kisitli_sahayi_sil,
     ornek_veriyi_yukle,
 )
-from turbulans_radar.veri.sigmet_saglayici import gecerli_sigmetleri_getir, kacinilacak_tehlikeler, sigmetleri_guncelle
-from turbulans_radar.veri.veri_yukleme import hava_durumu_dosyalari
+from turbulans_radar.veri.sigmet_saglayici import (
+    gecerli_sigmetleri_getir,
+    kacinilacak_tehlikeler,
+    kaynak_saglik_durumlari,
+    sigmetleri_guncelle,
+    son_guncelleme_zamani,
+)
+from turbulans_radar.veri.veri_saglayicilari import canli_durum_anahtari
+from turbulans_radar.veri.veri_yukleme import hava_durumu_dosyalari, onbellek_durumu
 
 loglama.ayarla()
 _logger = loglama.logger_al(__name__)
@@ -977,23 +989,133 @@ async def backtest_sonuclari():
 app.include_router(v1)
 
 
-@app.get("/saglik", response_model=SaglikYaniti, tags=["Sistem"])
-async def saglik_kontrolu(
-    derin: bool = Query(default=False, description="True ise PostgreSQL'e gerçekten bağlanmayı dener"),
-):
-    """Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği).
-    Varsayılan (sığ) davranış DEĞİŞMEDİ -- sadece süreç ayakta mı diye bakar,
-    her yük dengeleyici probunda PostgreSQL'e gitmeyi zorlamaz.
-    `?derin=true` ile gerçek bir PostgreSQL bağlantısı denenir (deploy
-    sonrası 'DB'ye GERÇEKTEN erişiyor muyum' diye elle/monitoring'den
-    kontrol için)."""
-    if not derin:
-        return {"durum": "ayakta"}
+# ---------------------------------------------------------------------------
+# Sağlık / izleme
+# ---------------------------------------------------------------------------
+
+_SAGLIKSIZ_DURUMLAR = {"bayat", "hata", "birikiyor"}
+_UYARI_DURUMLARI = {"cdn_yedegi", "ornek_veri", "veri_yok"}
+_KUYRUK_BIRIKME_ESIGI_SANIYE = 120
+_AYRINTI_ALANLARI = ("son_hata", "kaynaklar")
+
+
+def _sigmet_kontrolu():
+    durumlar = kaynak_saglik_durumlari()
+    son = son_guncelleme_zamani()
+    yas_dakika = (datetime.now(UTC) - son).total_seconds() / 60 if son else None
+    hatali = [d for d in durumlar if d.get("ardisik_hata_sayisi")]
+    if hatali:
+        durum = "hata"
+    elif yas_dakika is None or yas_dakika > config.SIGMET_BAYATLIK_DAKIKA:
+        durum = "bayat"
+    else:
+        durum = "tamam"
+    return {
+        "durum": durum,
+        "son_basarili_guncelleme": son,
+        "yas_dakika": round(yas_dakika, 1) if yas_dakika is not None else None,
+        "otomatik_guncelleme_dakika": config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA,
+        "kaynaklar": {
+            d["kaynak"]: {k: d.get(k) for k in ("son_basari_zamani", "ardisik_hata_sayisi", "son_hata")}
+            for d in durumlar
+        },
+    }
+
+
+def _canli_gfs_kontrolu():
+    if not config.CANLI_HAVA_VERISI_ETKIN:
+        return {"durum": "kapali"}
+    kayitlar = kaynak_durumlarini_getir([canli_durum_anahtari("gfs")])
+    if not kayitlar:
+        return {"durum": "kullanilmadi"}
+    kayit = kayitlar[0]
+    return {
+        "durum": "hata" if kayit["ardisik_hata_sayisi"] else "tamam",
+        "son_basarili_indirme": kayit["son_basari_zamani"],
+        "son_deneme": kayit["son_deneme_zamani"],
+        "ardisik_hata_sayisi": kayit["ardisik_hata_sayisi"],
+        "son_hata": kayit["son_hata"],
+    }
+
+
+def _kisitli_saha_kontrolu():
+    simdi = datetime.now(UTC)
+    sahalar = gecerli_kisitli_sahalari_getir(simdi, simdi)
+    ornek = sum(s["kaynak"] == ORNEK_KAYNAK for s in sahalar)
+    durum = "veri_yok" if not sahalar else ("ornek_veri" if ornek == len(sahalar) else "tamam")
+    return {"durum": durum, "aktif_saha_sayisi": len(sahalar), "ornek_saha_sayisi": ornek}
+
+
+async def _gorev_kuyrugu_kontrolu():
+    kuyruk = await kuyruk_durumu()
+    birikiyor = kuyruk["kuyrukta"] > 0 and (kuyruk["en_eski_bekleme_saniye"] or 0) > _KUYRUK_BIRIKME_ESIGI_SANIYE
+    return {"durum": "birikiyor" if birikiyor else "tamam", **kuyruk, "gomulu_isci": config.GOREV_GOMULU_ISCI}
+
+
+async def _kontrol_et(kontrol):
     try:
-        motor = async_motor_al()
-        async with motor.connect() as baglanti:
+        return await kontrol() if inspect.iscoroutinefunction(kontrol) else await asyncio.to_thread(kontrol)
+    except Exception as hata:
+        _logger.warning("Sağlık kontrolü başarısız (%s): %s", kontrol.__name__, dostane_hata_mesaji(hata))
+        return {"durum": "hata", "son_hata": dostane_hata_mesaji(hata)}
+
+
+async def _saglik_raporu(ayrintili: bool) -> dict:
+    """EFB'nin güvendiği her dış bağımlılığın durumu. Operasyonel sorunlar
+    (bayat SIGMET, veri kaynağı hatası, biriken kuyruk) genel durumu 'bozulmus'
+    yapar; yapılandırma eksikleri (CDN'e düşen kütüphaneler, sadece örnek
+    kısıtlı saha) 'uyarilar'da listelenir. Ham hata metinleri sadece ayrıntılı
+    (API anahtarlı) raporda yer alır."""
+    kontroller = {
+        "sigmet": await _kontrol_et(_sigmet_kontrolu),
+        "canli_gfs": await _kontrol_et(_canli_gfs_kontrolu),
+        "gorev_kuyrugu": await _kontrol_et(_gorev_kuyrugu_kontrolu),
+        "kisitli_sahalar": await _kontrol_et(_kisitli_saha_kontrolu),
+        "kup_onbellegi": {"durum": "tamam", **onbellek_durumu()},
+        "statik_dosyalar": yerel_kutuphane_durumu(),
+    }
+    if not ayrintili:
+        kontroller = {ad: {k: v for k, v in k_.items() if k not in _AYRINTI_ALANLARI} for ad, k_ in kontroller.items()}
+    return {
+        "durum": "bozulmus" if any(k["durum"] in _SAGLIKSIZ_DURUMLAR for k in kontroller.values()) else "ayakta",
+        "veritabani": "erisilebilir",
+        "kontroller": kontroller,
+        "uyarilar": [f"{ad}: {k['durum']}" for ad, k in kontroller.items() if k["durum"] in _UYARI_DURUMLARI],
+    }
+
+
+async def _veritabani_erisilebilir_mi() -> bool:
+    try:
+        async with async_motor_al().connect() as baglanti:
             await baglanti.execute(text("SELECT 1"))
-        return {"durum": "ayakta", "veritabani": "erisilebilir"}
+        return True
     except Exception as hata:
         _logger.warning("Derin sağlık kontrolünde PostgreSQL'e erişilemedi: %s", dostane_hata_mesaji(hata))
+        return False
+
+
+@v1.get("/sistem/durum", response_model=SistemDurumuYaniti, tags=["Sistem"])
+async def sistem_durumu():
+    """/saglik?derin=true ile aynı rapor, ek olarak kaynak başına son hata
+    metinleriyle (API anahtarı gerektirir -- dış servis hata ayrıntıları
+    herkese açık uçta gösterilmez)."""
+    if not await _veritabani_erisilebilir_mi():
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Veritabanına şu anda ulaşılamıyor.")
+    return await _saglik_raporu(ayrintili=True)
+
+
+@app.get("/saglik", response_model=SaglikYaniti, tags=["Sistem"])
+async def saglik_kontrolu(
+    derin: bool = Query(default=False, description="True ise veritabanı ve tüm dış bağımlılıklar kontrol edilir"),
+):
+    """Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği).
+    Varsayılan (sığ) davranış sadece süreç ayakta mı diye bakar, her yük
+    dengeleyici probunda PostgreSQL'e gitmez. `?derin=true`: PostgreSQL
+    (erişilemezse 503) + SIGMET tazeliği, canlı GFS, görev kuyruğu,
+    kısıtlı sahalar, küp önbelleği ve yerel kütüphaneler; operasyonel bir
+    sorun varsa durum 'bozulmus' olur (HTTP 200, monitoring gövdeye bakar)."""
+    if not derin:
+        return {"durum": "ayakta"}
+    if not await _veritabani_erisilebilir_mi():
         return JSONResponse(status_code=503, content={"durum": "ayakta", "veritabani": "erisilemiyor"})
+    return await _saglik_raporu(ayrintili=False)

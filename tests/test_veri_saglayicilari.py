@@ -93,6 +93,10 @@ def sahte_canli_ortam(tmp_path, monkeypatch):
     def _temizle():
         with vt.motor_al().begin() as baglanti:
             baglanti.execute(text("DELETE FROM hava_durumu_kupleri WHERE kaynak = :k"), {"k": SahteSaglayici.kaynak})
+            baglanti.execute(
+                text("DELETE FROM veri_kaynagi_durumlari WHERE kaynak = :k"),
+                {"k": vs.canli_durum_anahtari(SahteSaglayici.kaynak)},
+            )
 
     _temizle()
     monkeypatch.setattr(config, "CANLI_VERI_KLASORU", str(tmp_path))
@@ -161,3 +165,35 @@ def test_anlik_rota_canli_gfs_verisiyle_hesaplanir(sahte_canli_ortam):
     assert sonuc["ruzgar_verisi_kaynagi"] == "gfs_tahmin"
     assert "GFS" in sonuc["aciklama"]
     assert sonuc["normal_rota"]["maks_ti1"] is not None
+
+
+def test_canli_indirmenin_basarisi_ve_hatasi_kaynak_durumuna_yazilir(sahte_canli_ortam, monkeypatch):
+    from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir
+
+    anahtar = vs.canli_durum_anahtari(SahteSaglayici.kaynak)
+    simdi = pd.Timestamp.now(tz="UTC")
+    vs.canli_kup_hazirla(vs.Kutu(37.0, 40.0, 30.0, 36.0), simdi, simdi + pd.Timedelta(hours=2))
+    (durum,) = kaynak_durumlarini_getir([anahtar])
+    assert durum["son_basari_zamani"] is not None and durum["ardisik_hata_sayisi"] == 0
+
+    def kopuk(*args, **kwargs):
+        raise ConnectionError("THREDDS yanıt vermedi")
+
+    monkeypatch.setattr(sahte_canli_ortam, "kup_indir", kopuk)
+    with pytest.raises(ConnectionError):
+        vs.canli_kup_hazirla(vs.Kutu(10.0, 12.0, 10.0, 12.0), simdi, simdi + pd.Timedelta(hours=2))
+    (durum,) = kaynak_durumlarini_getir([anahtar])
+    assert durum["ardisik_hata_sayisi"] == 1 and "THREDDS" in durum["son_hata"]
+
+
+def test_canli_veri_alinamazsa_kapsam_disi_degil_alinamadi_denir(sahte_canli_ortam, monkeypatch):
+    from turbulans_radar.rota.rota_optimizasyonu import rota_simulasyonu_olustur
+
+    def kopuk(*args, **kwargs):
+        raise ConnectionError("THREDDS yanıt vermedi")
+
+    monkeypatch.setattr(sahte_canli_ortam, "kup_indir", kopuk)
+    simdi = pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%dT%H:%M:%S")
+    sonuc = rota_simulasyonu_olustur(38.4, 27.1, 38.5, 43.4, 34000, simdi, "A320", sigmetler=[], kisitli_sahalar=[])
+    assert sonuc["ruzgar_verisi_kaynagi"] == "canli_veri_alinamadi"
+    assert vs.CANLI_VERI_ALINAMADI in sonuc["aciklama"]

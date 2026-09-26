@@ -21,8 +21,13 @@
   istemeye başlamasıyla yaşanan sorunu tekrarlamamak için, YİNE anahtarsız
   Esri World Street Map kullanıyor.
 -->
-<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.8.0/dist/maplibre-gl.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.8.0/dist/maplibre-gl.js"></script>
+<!-- Kütüphane önce bu sunucudan (web/vendor, bkz. turbulans-statik), yoksa CDN'den. -->
+<link href="vendor/maplibre-gl/maplibre-gl.css" rel="stylesheet"
+      onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/maplibre-gl@5.8.0/dist/maplibre-gl.css'">
+<script src="vendor/maplibre-gl/maplibre-gl.js"></script>
+<script>
+  window.maplibregl || document.write('<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.8.0/dist/maplibre-gl.js"><\/script>');
+</script>
 <style>
   :root { color-scheme: dark; }
   html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, sans-serif; }
@@ -177,7 +182,11 @@ function haritayiHazirla() {
     container: "harita",
     style: {
       version: 8,
+      // Altlık: sunucudan gelen sade ülke sınırları (Natural Earth, kamu
+      // malı) -- İNTERNETSİZ de görünür; Esri karoları üstte, bağlantı
+      // yoksa gelmezler ama harita boş kalmaz.
       sources: {
+        "ulke-sinirlari": { type: "geojson", data: new URL("veri/ulke_sinirlari.geojson", location.href).href },
         "esri-yol": {
           type: "raster",
           tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"],
@@ -185,7 +194,11 @@ function haritayiHazirla() {
           attribution: "Tiles &copy; Esri",
         },
       },
-      layers: [{ id: "esri-yol", type: "raster", source: "esri-yol" }],
+      layers: [
+        { id: "arka-plan", type: "background", paint: { "background-color": "#16222e" } },
+        { id: "ulke-sinirlari", type: "line", source: "ulke-sinirlari", paint: { "line-color": "#7f95a8", "line-width": 0.8 } },
+        { id: "esri-yol", type: "raster", source: "esri-yol" },
+      ],
     },
     center: [30, 40],
     zoom: 4,
