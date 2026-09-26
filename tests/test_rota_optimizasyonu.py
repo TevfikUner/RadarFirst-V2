@@ -309,3 +309,47 @@ def test_kisitli_saha_veritabanina_erisilemezse_uyari_verilir(monkeypatch):
     sonuc = _afrika_rotasi(None)
     assert sonuc["kisitli_saha_kontrolu"]["durum"] == "erisilemedi"
     assert "saha kontrolü YAPILAMADI" in sonuc["aciklama"]
+
+
+# --- Yanal ızgara: sınırlar adım sayısıyla değil mesafe ve açıyla ---
+
+
+@pytest.mark.parametrize(
+    "rota",
+    [(41.0, 28.9, 36.9, 30.7), (38.4, 27.1, 38.5, 43.4), (41.0, 28.9, 40.7, -74.0)],
+    ids=["istanbul_antalya_480km", "izmir_van_1400km", "istanbul_new_york_8000km"],
+)
+def test_izgaradaki_hicbir_bacak_sapma_acisi_sinirini_asmaz(rota):
+    from turbulans_radar.rota import rota_optimizasyonu as ro
+
+    enlemler, boylamlar = buyuk_daire_rotasi_olustur(*rota, config.ROTA_SIMULASYONU_NOKTA_SAYISI)
+    izgara = ro._yanal_izgara_olustur(enlemler, boylamlar)
+    konumlar = ro._yanal_izgara_dugum_konumlari(enlemler, boylamlar, izgara)
+    en_dik = 0.0
+    for dugum in konumlar:
+        i = dugum[0]
+        for komsu in ro._komsu_dugumler(dugum, izgara):
+            rota_yonu = ro._ilk_yon_derece(enlemler[i], boylamlar[i], enlemler[i + 1], boylamlar[i + 1])
+            bacak_yonu = ro._ilk_yon_derece(*konumlar[dugum], *konumlar[komsu])
+            en_dik = max(en_dik, abs((bacak_yonu - rota_yonu + 180.0) % 360.0 - 180.0))
+    assert config.ROTA_MAKS_SAPMA_ACISI_DERECE * 0.8 < en_dik <= config.ROTA_MAKS_SAPMA_ACISI_DERECE + 1.0
+
+
+def test_uzun_rotada_sapma_koridoru_mesafeyle_olceklenir_ve_sigmet_zincirinden_kacilir():
+    from turbulans_radar.rota import rota_optimizasyonu as ro
+
+    enlemler, boylamlar = buyuk_daire_rotasi_olustur(41.0, 28.9, 40.7, -74.0, config.ROTA_SIMULASYONU_NOKTA_SAYISI)
+    izgara = ro._yanal_izgara_olustur(enlemler, boylamlar)
+    # Eski sabit 20 km/adım ızgarada kalkıştan ~600 km sonra (i=3) en fazla 60 km sapılabiliyordu.
+    assert izgara.zarf(3) * izgara.aralik_km >= 300.0
+    sigmetler = [
+        _kare_sigmet(enlemler[i] - 1, enlemler[i] + 1, boylamlar[i] - 1, boylamlar[i] + 1, gun="2019-01-15")
+        for i in range(3, 38, 2)
+    ]
+    sonuc = rota_simulasyonu_olustur(
+        41.0, 28.9, 40.7, -74.0, 34000, "2019-01-15T00:00:00", "A320", sigmetler=sigmetler, kisitli_sahalar=[]
+    )
+    assert sonuc["normal_rota"]["sigmet_ihlali_sayisi"] > 0
+    assert sonuc["guvenli_rota_bulundu_mu"] is True
+    assert sonuc["optimize_rota"]["sigmet_ihlali_sayisi"] == 0
+    assert 0 < sonuc["optimize_rota"]["maks_yanal_sapma_km"] <= config.ROTA_MAKS_YANAL_SAPMA_KM

@@ -38,8 +38,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   deformasyon) ve bulk Richardson sayısı. Bir nokta, TI1 değeri
   `TI1_ESIK_ORTA_SIDDETLI` (8e-7 s⁻²) eşiğini aşarsa "riskli" sayılır.
 - **Rota adayları:**
-  - A* ile yanal sapma: büyük daire etrafında ±400 km, 20 km adımlı ızgara,
-    41 ara nokta; sapma uçlarda kademeli olarak sınırlanır.
+  - A* ile yanal sapma: büyük daire etrafında 41 ara nokta; her bacağın büyük
+    daire yönüne göre açısı en fazla 30°, toplam sapma en fazla 400 km, ızgara
+    aralığı en fazla 20 km (kısa rotada açı sınırına göre daralır). Sapma
+    uçlarda kendiliğinden kademeli sınırlanır.
   - Bir üst ya da bir alt basınç seviyesine geçiş: tırmanma ve alçalmanın
     yaklaşık yakıt ve süre bedeli hesaba katılır.
 - **Öncelik sırası:**
@@ -94,6 +96,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 **Rota modeli**
 - Seyir irtifası sabittir; kalkış ve iniş fazları modellenmez.
+- Bacak açısı büyük daire yönüne göre sınırlanır; ardışık iki bacak arasındaki
+  dönüş en fazla bunun iki katıdır (60°). Dönüş yarıçapı modellenmez.
 - Uçak performans değerleri (TAS, yakıt akışı) tipik, halka açık değerlerdir.
 - Hava yolu yapısı ve ATC kısıtları modellenmez. Kısıtlı/yasak sahalar ve
   NOTAM'lı geçici kısıtlar yalnızca içe aktarıldıkları kadar bilinir; paketle

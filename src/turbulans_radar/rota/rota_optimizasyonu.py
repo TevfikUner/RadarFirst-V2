@@ -29,9 +29,11 @@ YÖNTEM (GERÇEK ERA5 rüzgar VE gerçek Ellrod TI1 türbülans hesabına dayana
 bir A* (A-star) graf araması -- literatürdeki "lateral rota kayması"
 fikrine yakın, tam bir 4D optimal-kontrol/dinamik programlama çözücüsü
 DEĞİL, ama "birkaç sabit aday dene" gibi açgözlü/kaba bir arama da DEĞİL):
-  - Büyük daire rotası etrafında, her ara noktada +/- 500 km'ye kadar 11
-    yanal seviyeden oluşan bir IZGARA (graf) kurulur (bkz.
-    _yanal_izgara_dugum_konumlari).
+  - Büyük daire rotası etrafında, rotaya dik yönde kaydırılmış aday
+    konumlardan oluşan bir IZGARA (graf) kurulur (bkz. _YanalIzgara). Sınırlar
+    mesafe ve açıyla tanımlıdır: her bacağın büyük daire yönüne göre açısı en
+    fazla config.ROTA_MAKS_SAPMA_ACISI_DERECE, toplam sapma en fazla
+    config.ROTA_MAKS_YANAL_SAPMA_KM.
   - Her ızgara düğümünün TI1 türbülans indeksi, projenin ANA analiz koduyla
     (bkz. eslestirme.rotayi_hava_durumuyla_eslestir -- turbulans_
     indeksleri.py'deki Ellrod TI1 hesabı) TEK bir vektörel çağrıyla
@@ -67,6 +69,7 @@ from __future__ import annotations
 
 import heapq
 import math
+from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
@@ -109,18 +112,6 @@ UCAK_PROFILLERI = {
     "A359": {"etiket": "Airbus A350-900 (geniş gövde, uzun menzil)", "tas_ms": 252.0, "yakit_akisi_kg_saat": 5800.0},
 }
 
-# A* aramasının her bir ara noktada deneyebileceği yanal kaydırma SEVİYELERİ
-# (km) -- büyük daire etrafında bir "ızgara" oluşturur. 0.0 dahildir -- hiçbir
-# kaydırma gerekmiyorsa A* zaten en ucuz yol olarak düz çizgiyi (0 seviyesini)
-# bulur (uydurma bir "iyileşme" gösterilmez). 20 km ADIMLARLA (100 km değil)
-# İNCE TUTULUR -- kaba bir ızgarada (100 km/adım) A*'ın, bir defada büyük bir
-# seviye sıçraması yapıp onu KORUMASININ (uçağın fiziksel olarak
-# yapamayacağı ani bir dönüş, üstelik gerçek veriyle ölçüldüğünde eski
-# sinüs-şekilli tek-adaylık yaklaşımdan bile daha UZUN bir rota) ucuza
-# geldiği görüldü -- ince ızgara, kademeli/gerçekçi bir sapmayı ucuzlatır.
-_YANAL_SEVIYE_KM = tuple(float(k) for k in range(-400, 401, 20))
-_ORTA_SEVIYE_INDEKSI = _YANAL_SEVIYE_KM.index(0.0)
-
 # Jet yakıtının (Jet A-1) yanma başına CO2 emisyon katsayısı -- ICAO/IPCC'nin
 # standart, halka açık "emission factor" değeridir (kaynak: ICAO Carbon
 # Emissions Calculator Methodology / IPCC Guidelines for National Greenhouse
@@ -148,8 +139,9 @@ TIRMANMA_EK_YAKIT_ORANI = 0.5
 ALCALMA_YAKIT_TASARRUFU_ORANI = 0.3
 DIKEY_HIZ_FT_DK = 1500.0
 
-# Veritabanından SIGMET çekerken rota kutusuna eklenen pay (derece): A*'ın
-# yanal ızgarası büyük daireden 400 km'ye kadar sapabilir.
+# Veritabanından SIGMET/kısıtlı saha çekerken rota kutusuna eklenen pay
+# (derece): A*'ın yanal ızgarası büyük daireden ROTA_MAKS_YANAL_SAPMA_KM
+# (varsayılan 400 km) kadar sapabilir.
 _SIGMET_ARAMA_PAYI_DERECE = 5.0
 
 _logger = logger_al(__name__)
@@ -251,39 +243,63 @@ def buyuk_daire_rotasi_olustur(baslangic_enlem, baslangic_boylam, bitis_enlem, b
     return np.array(enlemler), np.array(boylamlar)
 
 
-# Bir ara noktada ulaşılabilir azami yanal sapma, o noktanın başlangıca/bitişe
-# olan UZAKLIĞIYLA (adım sayısı) orantılı bir "zarf" (envelope) ile sınırlanır
-# -- yoksa A*, uçağın fiziksel olarak yapamayacağı ani/sert bir dönüşle rotanın
-# HEMEN başında/sonunda tam kaydırmaya sıçrayıp sonra onu KORUYABİLİYOR (gerçek
-# veriyle doğrulandı: bu, eski sinüs-şekilli tek-adaylık yaklaşımdan daha KÖTÜ,
-# daha uzun bir rota buluyordu). Bu zarf, ucuz uçlarda düşük, ortada yüksek --
-# tıpkı önceki sinüs şeklinin sağladığı kademeli giriş/çıkışı garanti eder, ama
-# A*'ın zirvenin NEREDE ve NE KADAR geniş olacağını -- gerçek türbülansın
-# konumuna göre -- serbestçe seçmesine izin verir.
-_ZARF_KM_PER_ADIM = 20.0
+@dataclass(frozen=True)
+class _YanalIzgara:
+    """A* aramasının yanal ızgarası. Düğüm (i, k): i. büyük daire noktasından
+    rotaya dik yönde k x aralik_km kaydırılmış konum (k=0 büyük dairenin
+    kendisi, uydurma bir "iyileşme" gösterilmesin diye her zaman aday).
+
+    Sınırlar ADIM SAYISIYLA değil MESAFE ve AÇIYLA tanımlanır. Eskiden sabit
+    20 km/adım vardı: 480 km'lik İstanbul-Antalya'da 12 km'lik bacakta 59°'lik
+    (uçağın izlemeyeceği) sapmalar; 8000 km'lik İstanbul-New York'ta ise 200
+    km'lik bacakta sadece 5.7°, kalkıştan 600 km sonra bile 60 km'lik gereksiz
+    dar bir koridor (SIGMET'lerden kaçılabilecekken "öneri yok") çıkıyordu.
+      - Her bacağın büyük daire yönüne göre açısı en fazla
+        ROTA_MAKS_SAPMA_ACISI_DERECE: bir adımda en fazla
+        adim_km x tan(açı) kadar yanal kayma (adim_basina_seviye seviye).
+      - Izgara aralığı en fazla ROTA_YANAL_IZGARA_KM; kısa rotalarda bir
+        adımda izin verilen kaymaya eşitlenir.
+      - Toplam sapma en fazla ROTA_MAKS_YANAL_SAPMA_KM (maks_seviye).
+    Başlangıç ve bitiş sabit olduğu için sapma uçlarda kendiliğinden kademeli
+    sınırlanır: i. noktada en fazla min(i, n-1-i) x adim_basina_seviye."""
+
+    nokta_sayisi: int
+    aralik_km: float
+    adim_basina_seviye: int
+    maks_seviye: int
+
+    def zarf(self, i: int) -> int:
+        return min(min(i, self.nokta_sayisi - 1 - i) * self.adim_basina_seviye, self.maks_seviye)
 
 
-def _yanal_izgara_dugum_konumlari(enlemler_gc, boylamlar_gc):
-    """Büyük daire rotasının her ara noktasında (uçlar hariç), rotaya dik
-    yönde `_YANAL_SEVIYE_KM` kadar kaydırılmış (ve başlangıca/bitişe yakın
-    noktalarda zarfla sınırlanmış) aday konumlardan oluşan bir IZGARA üretir
-    -- A* aramasının üzerinde gezineceği graf budur. Dönüş: {(i,
-    seviye_indeksi): (enlem, boylam)} sözlüğü (uçlarda i=0 ve i=n-1 için
-    SADECE orta seviye/0 km vardır, çünkü başlangıç/bitiş sabittir)."""
+def _yanal_izgara_olustur(enlemler_gc, boylamlar_gc) -> _YanalIzgara:
     n = len(enlemler_gc)
-    konumlar = {(0, _ORTA_SEVIYE_INDEKSI): (enlemler_gc[0], boylamlar_gc[0])}
+    adim_km = buyuk_daire_mesafesi_km(enlemler_gc[0], boylamlar_gc[0], enlemler_gc[-1], boylamlar_gc[-1]) / (n - 1)
+    adim_basina_km = adim_km * math.tan(math.radians(config.ROTA_MAKS_SAPMA_ACISI_DERECE))
+    aralik_km = min(config.ROTA_YANAL_IZGARA_KM, adim_basina_km)
+    return _YanalIzgara(
+        nokta_sayisi=n,
+        aralik_km=aralik_km,
+        adim_basina_seviye=max(1, int(adim_basina_km / aralik_km + 1e-9)),
+        maks_seviye=int(config.ROTA_MAKS_YANAL_SAPMA_KM / aralik_km + 1e-9),
+    )
+
+
+def _yanal_izgara_dugum_konumlari(enlemler_gc, boylamlar_gc, izgara):
+    """Izgaranın tüm düğümleri: {(i, k): (enlem, boylam)}. Uçlarda (i=0 ve
+    i=n-1) sadece k=0 vardır, çünkü başlangıç/bitiş sabittir."""
+    n = izgara.nokta_sayisi
+    konumlar = {(0, 0): (enlemler_gc[0], boylamlar_gc[0])}
     for i in range(1, n - 1):
         yon = _ilk_yon_derece(enlemler_gc[i - 1], boylamlar_gc[i - 1], enlemler_gc[i + 1], boylamlar_gc[i + 1])
         dikey_yon = (yon + 90.0) % 360.0
-        zarf_km = min(i, n - 1 - i) * _ZARF_KM_PER_ADIM
-        for j, kaydirma_km in enumerate(_YANAL_SEVIYE_KM):
-            if abs(kaydirma_km) > zarf_km:
-                continue  # bu erken/geç noktada bu kadar sapmak fiziksel olarak gerçekci degil
-            if kaydirma_km == 0.0:
-                konumlar[(i, j)] = (enlemler_gc[i], boylamlar_gc[i])
-            else:
-                konumlar[(i, j)] = _hedef_nokta(enlemler_gc[i], boylamlar_gc[i], dikey_yon, kaydirma_km)
-    konumlar[(n - 1, _ORTA_SEVIYE_INDEKSI)] = (enlemler_gc[n - 1], boylamlar_gc[n - 1])
+        for k in range(-izgara.zarf(i), izgara.zarf(i) + 1):
+            konumlar[(i, k)] = (
+                (enlemler_gc[i], boylamlar_gc[i])
+                if k == 0
+                else _hedef_nokta(enlemler_gc[i], boylamlar_gc[i], dikey_yon, k * izgara.aralik_km)
+            )
+    konumlar[(n - 1, 0)] = (enlemler_gc[n - 1], boylamlar_gc[n - 1])
     return konumlar
 
 
@@ -323,7 +339,8 @@ def _a_yildiz_ile_rota_ara(
         mesafe_km = buyuk_daire_mesafesi_km(enlemler_gc[i], boylamlar_gc[i], enlemler_gc[i + 1], boylamlar_gc[i + 1])
         nominal_zamanlar.append(nominal_zamanlar[-1] + pd.Timedelta(seconds=mesafe_km * 1000.0 / tas_ms))
 
-    konumlar = _yanal_izgara_dugum_konumlari(enlemler_gc, boylamlar_gc)
+    izgara = _yanal_izgara_olustur(enlemler_gc, boylamlar_gc)
+    konumlar = _yanal_izgara_dugum_konumlari(enlemler_gc, boylamlar_gc, izgara)
 
     # Hava verisi kapsamı dışına taşan ızgara düğümleri dürüstçe ELENİR (A*
     # onlardan asla geçemez) -- kapsam dışı bir noktada "türbülans yok" diye
@@ -338,7 +355,7 @@ def _a_yildiz_ile_rota_ara(
         )
         dugumler = [d for d, disi in zip(dugumler, kapsam_disi) if not disi]
     konum_kumesi = set(dugumler)
-    kenarlar = [(d, k) for d in dugumler for k in _komsu_dugumler(d, n) if k in konum_kumesi]
+    kenarlar = [(d, k) for d in dugumler for k in _komsu_dugumler(d, izgara) if k in konum_kumesi]
 
     risk = degerlendirmeleri_birlestir(
         katman.degerlendir(
@@ -377,8 +394,8 @@ def _a_yildiz_ile_rota_ara(
         kalan_km = buyuk_daire_mesafesi_km(e, b, enlemler_gc[-1], boylamlar_gc[-1])
         return (kalan_km * 1000.0) / (tas_ms * 1.8)
 
-    baslangic_dugumu = (0, _ORTA_SEVIYE_INDEKSI)
-    hedef_dugumu = (n - 1, _ORTA_SEVIYE_INDEKSI)
+    baslangic_dugumu = (0, 0)
+    hedef_dugumu = (n - 1, 0)
     if baslangic_dugumu not in konum_kumesi or hedef_dugumu not in konum_kumesi:
         return None
 
@@ -394,7 +411,7 @@ def _a_yildiz_ile_rota_ara(
         ziyaret_edildi.add(dugum)
         if dugum == hedef_dugumu:
             break
-        for komsu in _komsu_dugumler(dugum, n):
+        for komsu in _komsu_dugumler(dugum, izgara):
             if komsu not in konum_kumesi or (dugum, komsu) in risk.yasak_kenarlar:
                 continue
             yeni_maliyet = mevcut_maliyet + _kenar_maliyeti_saniye(dugum, komsu)
@@ -413,22 +430,24 @@ def _a_yildiz_ile_rota_ara(
 
     yol_enlem = np.array([konumlar[d][0] for d in yol])
     yol_boylam = np.array([konumlar[d][1] for d in yol])
-    maks_sapma_km = max((abs(_YANAL_SEVIYE_KM[j]) for _, j in yol), default=0.0)
+    maks_sapma_km = max(abs(k) for _, k in yol) * izgara.aralik_km
     return yol_enlem, yol_boylam, maks_sapma_km
 
 
-def _komsu_dugumler(dugum, n):
-    """Bir sonraki ara noktada ulaşılabilen ızgara düğümleri. Seviye değişimi
-    SINIRLI (±1) -- yoksa A*, uçağın fiziksel olarak yapamayacağı ani/sert
-    yanal sıçramalar içeren, TOPLAM MESAFESİ aslında daha uzun olan bir
-    "kısayol" bulabiliyor (gerçek veriyle doğrulandı). Son noktaya sadece orta
-    seviyeden (bitiş sabit) girilir."""
+def _komsu_dugumler(dugum, izgara):
+    """Bir sonraki ara noktada ulaşılabilen ızgara düğümleri: seviye değişimi
+    en fazla adim_basina_seviye (bkz. _YanalIzgara -- bacak açısı sınırı);
+    yoksa A*, uçağın izlemeyeceği ani yanal sıçramalar içeren bir "kısayol"
+    bulabiliyor (gerçek veriyle doğrulandı). Son noktaya sadece k=0'dan
+    değil, açı sınırı içinde kalan her düğümden girilir."""
     i, seviye = dugum
+    n = izgara.nokta_sayisi
     if i >= n - 1:
         return []
     if i + 1 == n - 1:
-        return [(n - 1, _ORTA_SEVIYE_INDEKSI)]
-    return [(i + 1, j) for j in range(max(seviye - 1, 0), min(seviye + 1, len(_YANAL_SEVIYE_KM) - 1) + 1)]
+        return [(n - 1, 0)]
+    sinir, adim = izgara.zarf(i + 1), izgara.adim_basina_seviye
+    return [(i + 1, k) for k in range(max(seviye - adim, -sinir), min(seviye + adim, sinir) + 1)]
 
 
 # ---------------------------------------------------------------------------

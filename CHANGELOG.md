@@ -4,6 +4,19 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Yanal sapma sınırları: adım sayısı yerine mesafe ve açı
+
+- Sabit "20 km/adım" ızgara kısa rotada gerçek dışı keskin sapmalar (İstanbul-
+  Antalya'da tek bacakta 59°), uzun rotada gereksiz dar koridor (İstanbul-New
+  York'ta kalkıştan 600 km sonra en fazla 60 km; SIGMET zincirinde yanlış
+  "öneri yok") üretiyordu. Yeni `_YanalIzgara`: bacak açısı en fazla
+  `ROTA_MAKS_SAPMA_ACISI_DERECE` (30°), toplam sapma en fazla
+  `ROTA_MAKS_YANAL_SAPMA_KM` (400 km), ızgara aralığı en fazla
+  `ROTA_YANAL_IZGARA_KM` (20 km); uzun rotada bir adımda birden çok seviye.
+- Ölçüm: İstanbul-Antalya en dik bacak 59° -> 30°; İstanbul-New York'ta aynı
+  18 SIGMET'li senaryo artık 140 km sapmayla güvenli (A* 70 ms); İzmir-Van
+  değişmedi (A* 38-58 ms).
+
 ## Kısıtlı / yasak hava sahası katmanı
 
 - **A* artık çatışma bölgesine/yasak sahaya sapma önermiyor:** ±400 km'lik

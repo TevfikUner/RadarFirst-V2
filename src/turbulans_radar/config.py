@@ -128,6 +128,14 @@ HARITA_MAKS_ANIMASYON_NOKTASI = _ortam_sayi("HARITA_MAKS_ANIMASYON_NOKTASI", 200
 # için bir ERA5 okuması) yavaşlatır.
 ROTA_SIMULASYONU_NOKTA_SAYISI = _ortam_sayi("ROTA_SIMULASYONU_NOKTA_SAYISI", 41, int)
 
+# A*'ın yanal ızgarası (bkz. rota_optimizasyonu._YanalIzgara): her bacağın
+# büyük daire yönüne göre azami açısı, toplam azami yanal sapma ve azami ızgara
+# aralığı. Açı sınırı, kısa rotada keskin zikzakları, uzun rotada gereksiz dar
+# koridoru önler (sınır adım sayısıyla değil mesafeyle ölçeklenir).
+ROTA_MAKS_SAPMA_ACISI_DERECE = _ortam_sayi("ROTA_MAKS_SAPMA_ACISI_DERECE", 30.0)
+ROTA_MAKS_YANAL_SAPMA_KM = _ortam_sayi("ROTA_MAKS_YANAL_SAPMA_KM", 400.0)
+ROTA_YANAL_IZGARA_KM = _ortam_sayi("ROTA_YANAL_IZGARA_KM", 20.0)
+
 # sigmet_saglayici.py / risk_katmanlari.py -- canlı AWC SIGMET'leri.
 # A*'ın SERT kısıt olarak kaçındığı tehlike türleri (AWC 'hazard' alanı):
 # TURB/MTW (türbülans/dağ dalgası), TS/CONVECTIVE (oraj), VA (volkanik kül),

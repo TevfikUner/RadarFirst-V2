@@ -516,8 +516,8 @@ irtifa, tarih-saat ve uçak modelini girip "Simüle Et"e basınca:
     varsayılmaz, sonuç panelinde bazen "ekstra yakıt: güvenlik için sapmanın
     bedeli" olarak dürüstçe gösterilir.
 - **A\* araması (bkz. `_a_yildiz_ile_rota_ara`):** Büyük daire etrafında,
-  her ara noktada 20 km aralıklarla ±400 km'ye kadar yanal seviyelerden
-  oluşan bir IZGARA kurulur; ızgaranın her düğümünün TI1'i projenin ana
+  rotaya dik yönde kaydırılmış aday konumlardan oluşan bir IZGARA kurulur
+  (bkz. `_YanalIzgara`); ızgaranın her düğümünün TI1'i projenin ana
   analiz koduyla (`eslestirme.py`) tek bir vektörel çağrıda hesaplanır. Her
   kenarın maliyeti gerçek ERA5 rüzgarına göre uçuş süresi + (riskli
   türbülans içeriyorsa) büyük bir ceza olarak tanımlanır; A*, kalan mesafe
@@ -529,6 +529,17 @@ irtifa, tarih-saat ve uçak modelini girip "Simüle Et"e basınca:
   bir rota) gerçek veriyle tespit edildi -- ızgara inceltilip (20 km/adım)
   başlangıca/bitişe yakın erişilebilir sapma bir "zarf" ile kademelendirilerek
   düzeltildi.
+- **Sapma sınırları mesafe ve açıyla tanımlı:** sabit "20 km/adım" kısa
+  rotada gerçek dışı keskin sapmalara (480 km'lik İstanbul-Antalya'da 12
+  km'lik bacakta 59°), uzun rotada gereksiz dar koridora (8000 km'lik
+  İstanbul-New York'ta kalkıştan 600 km sonra en fazla 60 km -- SIGMET'lerden
+  kaçılabilecekken "öneri yok") yol açıyordu. Artık her bacağın büyük daire
+  yönüne göre açısı en fazla `ROTA_MAKS_SAPMA_ACISI_DERECE` (30°), toplam
+  sapma en fazla `ROTA_MAKS_YANAL_SAPMA_KM` (400 km); ızgara aralığı en fazla
+  `ROTA_YANAL_IZGARA_KM` (20 km), kısa rotada açı sınırına göre daralır.
+  Ölçümler (İzmir-Van, ERA5 TI1 + 50 SIGMET): A* 58 ms, tam rota kararı
+  0.29 sn; İstanbul-New York (1481 düğüm, 18 büyük SIGMET): A* 70 ms, en dik
+  bacak 16.7°, 140 km sapmayla güvenli rota.
 - **Çok faktörlü karşılaştırma -- irtifa değişimi (tırmanma/alçalma):**
   Riskli türbülanstan kaçınmanın YANAL sapma dışında ikinci bir GERÇEK
   stratejisi daha var: aynı yatay rotada kalıp bir üst/alt basınç seviyesine
