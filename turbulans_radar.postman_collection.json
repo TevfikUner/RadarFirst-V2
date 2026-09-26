@@ -642,6 +642,84 @@
       ]
     },
     {
+      "name": "Backtest",
+      "item": [
+        {
+          "name": "Ucus Backtesti",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/backtest/ucuslar/{ucus_numarasi}/{tarih}",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "backtest",
+                "ucuslar",
+                "{ucus_numarasi}",
+                "{tarih}"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Toplu Backtest Baslat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/backtest/toplu",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "backtest",
+                "toplu"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Backtest Sonuclari",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/backtest",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "backtest"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Sistem",
       "item": [
         {

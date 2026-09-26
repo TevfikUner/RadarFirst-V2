@@ -147,6 +147,7 @@ _OLCUM_SUTUNLARI = [
     "richardson_sayisi",
     "dinamik_kararsizlik",
     "basinc_hpa",
+    "irtifa_m",
 ]
 
 
@@ -164,6 +165,11 @@ def _olcum_kayitlarini_hazirla(eslesmis_df, ucus_id):
     (executemany) yazılıyor -- çok daha hızlı, ORM nesnesi/identity map
     yükü yok.
     """
+    if "irtifa_m" not in eslesmis_df.columns and "geo_irtifa_m" in eslesmis_df.columns:
+        irtifa = eslesmis_df["geo_irtifa_m"]
+        if "baro_irtifa_m" in eslesmis_df.columns:
+            irtifa = irtifa.fillna(eslesmis_df["baro_irtifa_m"])
+        eslesmis_df = eslesmis_df.assign(irtifa_m=irtifa)
     calisma_df = pd.DataFrame(
         {sutun: eslesmis_df[sutun] if sutun in eslesmis_df.columns else None for sutun in _OLCUM_SUTUNLARI},
         index=eslesmis_df.index,
@@ -417,4 +423,5 @@ def _olcum_sozluge_cevir(o: EdrOlcumu):
         "richardson_sayisi": o.richardson_sayisi,
         "dinamik_kararsizlik": o.dinamik_kararsizlik,
         "basinc_hpa": o.basinc_hpa,
+        "irtifa_m": o.irtifa_m,
     }

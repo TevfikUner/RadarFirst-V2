@@ -4,6 +4,23 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Otomatik backtest: A* rotası vs gerçek uçuş izleri
+
+- **`rota_backtest.py`:** gerçek iz / büyük daire / A* rotası aynı ölçütle
+  (aynı nokta sayısı, aynı küp, aynı TI1 ve SIGMET kodu) karşılaştırılır;
+  en uzun kesintisiz kapsam içi seyir bloğu kullanılır (15 dk'dan uzun veri
+  boşluğu uydurma rotayla doldurulmaz). Sonuçlar `rota_backtestleri`
+  tablosunda (migration `b2a0754c184b`), filo özeti ile.
+- `edr_olcumleri.irtifa_m` eklendi -- analizler artık gerçek irtifayı da
+  saklıyor (`geo_irtifa_m`, yoksa `baro_irtifa_m`); API ölçüm yanıtlarında da var.
+- `POST /api/v1/backtest/ucuslar/{..}/{..}`, `POST /api/v1/backtest/toplu`
+  (arka plan görevi, n8n gece tetiklemesi), `GET /api/v1/backtest`.
+- Depodaki gerçek OpenSky izleri (THY322, THY606, THY72C, N10VZ) irtifalarıyla
+  `rota_df_ile_calistir` üzerinden yeniden içe aktarılıp backtest edildi:
+  gerçek uçuşlarda ortalama riskli nokta oranı 0.28, A* rotasında 0.00; 3
+  uçuşun 2'sinde risk azaldı (tırmanma ile, büyük daireye göre +2-5 dk). Karşılaştırılan
+  bölümler, OpenSky kapsama boşlukları ve küp sınırı nedeniyle kısa (100-260 km).
+
 ## Veri Sağlayıcı katmanı: canlı NOAA GFS (anlık rota)
 
 - **`veri_saglayicilari.py`:** kaynaktan bağımsız `VeriSaglayici` arayüzü +

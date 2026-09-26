@@ -876,3 +876,33 @@ async def test_kup_katalogu_listelenir(istemci, api_anahtari):
     yanit = await istemci.get("/api/v1/veri/kupler?limit=5", headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 200
     assert isinstance(yanit.json(), list)
+
+
+# --- Backtest uç noktaları ---
+
+
+async def test_backtest_olmayan_ucus_400(istemci, api_anahtari):
+    yanit = await istemci.post("/api/v1/backtest/ucuslar/YOKUCUS1/1999-01-01", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 400
+
+
+async def test_backtest_listesi_ozet_ve_sonuc_doner(istemci, api_anahtari):
+    yanit = await istemci.get("/api/v1/backtest", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 200
+    govde = yanit.json()
+    assert govde["ozet"]["ucus_sayisi"] == len(govde["sonuclar"])
+
+
+async def test_toplu_backtest_gorev_olarak_calisir(istemci, api_anahtari, monkeypatch):
+    sahte = [{"ucus_numarasi": "X1", "tarih": "2019-01-01", "durum": "atlandi", "aciklama": "küp yok"}]
+    monkeypatch.setattr(api_servisi, "toplu_backtest", lambda limit: sahte)
+    yanit = await istemci.post("/api/v1/backtest/toplu?limit=5", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 202
+    gorev_id = yanit.json()["gorev_id"]
+    for _ in range(40):
+        durum = (await istemci.get(f"/api/v1/analiz/durum/{gorev_id}", headers={"X-API-Key": api_anahtari})).json()
+        if durum["durum"] != "calisiyor":
+            break
+        await asyncio.sleep(0.05)
+    assert durum["durum"] == "tamamlandi"
+    assert durum["ozet"] == sahte

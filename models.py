@@ -15,6 +15,8 @@ tablo var, ORM sadece onların Python tarafındaki tanımı.
     Sigmet         -> 'sigmetler'           (AWC'den çekilen canlı SIGMET'ler; A*'ın sert kısıtı)
     HavaDurumuKupu -> 'hava_durumu_kupleri' (ERA5/GFS/ECMWF küplerinin KATALOĞU -- ızgara
                                              verisinin kendisi diskte NetCDF olarak kalır)
+    RotaBacktesti  -> 'rota_backtestleri'   (gerçek uçuş izi vs büyük daire vs A* rotası
+                                             karşılaştırması, uçuş başına en son sonuç)
 """
 
 from sqlalchemy import (
@@ -75,6 +77,7 @@ class EdrOlcumu(Base):
     richardson_sayisi: Mapped[float | None] = mapped_column(Float, nullable=True)
     dinamik_kararsizlik: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
     basinc_hpa: Mapped[float | None] = mapped_column(Float, nullable=True)
+    irtifa_m: Mapped[float | None] = mapped_column(Float, nullable=True)
 
     ucus: Mapped["Ucus"] = relationship(back_populates="olcumler")
 
@@ -144,4 +147,30 @@ class HavaDurumuKupu(Base):
     dosya_yolu: Mapped[str] = mapped_column(String, nullable=False)
     durum: Mapped[str] = mapped_column(String(16), nullable=False)
     boyut_bayt: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class RotaBacktesti(Base):
+    __tablename__ = "rota_backtestleri"
+    __table_args__ = (UniqueConstraint("ucus_id", name="uq_rota_backtestleri_ucus_id"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    ucus_id: Mapped[int] = mapped_column(ForeignKey("ucuslar.id", ondelete="CASCADE"), nullable=False)
+    ucak_modeli: Mapped[str] = mapped_column(String(8), nullable=False)
+    seyir_irtifasi_ft: Mapped[float] = mapped_column(Float, nullable=False)
+    veri_kaynagi: Mapped[str] = mapped_column(String(24), nullable=False)
+    kacinma_stratejisi: Mapped[str] = mapped_column(String(16), nullable=False)
+    guvenli_rota_bulundu_mu: Mapped[bool] = mapped_column(Boolean, nullable=False)
+    gercek_mesafe_km: Mapped[float] = mapped_column(Float, nullable=False)
+    gercek_sure_dk: Mapped[float] = mapped_column(Float, nullable=False)
+    gercek_riskli_oran: Mapped[float | None] = mapped_column(Float, nullable=True)
+    gercek_sigmet_ihlali: Mapped[int] = mapped_column(Integer, nullable=False)
+    buyuk_daire_mesafe_km: Mapped[float] = mapped_column(Float, nullable=False)
+    buyuk_daire_sure_dk: Mapped[float] = mapped_column(Float, nullable=False)
+    buyuk_daire_riskli_oran: Mapped[float | None] = mapped_column(Float, nullable=True)
+    buyuk_daire_sigmet_ihlali: Mapped[int] = mapped_column(Integer, nullable=False)
+    optimize_mesafe_km: Mapped[float] = mapped_column(Float, nullable=False)
+    optimize_sure_dk: Mapped[float] = mapped_column(Float, nullable=False)
+    optimize_riskli_oran: Mapped[float | None] = mapped_column(Float, nullable=True)
+    optimize_sigmet_ihlali: Mapped[int] = mapped_column(Integer, nullable=False)
     olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())

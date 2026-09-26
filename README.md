@@ -100,6 +100,7 @@ risk_katmanlari.py                -> A*'ın modüler risk katmanları (TI1 cezas
 gorev_deposu.py                   -> API analiz görevlerinin kalıcı (PostgreSQL) kaydı
 veri_saglayicilari.py             -> Veri Sağlayıcı katmanı: canlı NOAA GFS (THREDDS, NetCDF) + yerel ERA5 seçimi
 kup_katalogu.py                   -> hava durumu küplerinin PostgreSQL kataloğu (ızgara diskte, meta veri DB'de)
+rota_backtest.py                  -> A* rotasının gerçek uçuş izleriyle otomatik karşılaştırması (backtest)
 web/harita3d.html                 -> tek dosyalık MapLibre GL 3D/canlı harita önyüzü (api_servisi.py sunar)
 rota_optimizasyonu.py             -> gerçek ERA5 rüzgarına göre büyük daire vs yakıt-optimize rota hesabı + CZML üretimi
 web/ucus_simulasyonu.html         -> tek dosyalık CesiumJS 3D uçuş simülasyonu önyüzü (api_servisi.py sunar)
@@ -236,6 +237,9 @@ görüntü (snapshot) kolaylığı sağlar.
 | GET | `/api/v1/sigmet` | Şu an geçerli SIGMET'ler (kutu/tehlike filtresiyle) -- önyüzlerin yasak bölgeleri çizmesi için |
 | POST | `/api/v1/veri/canli/hazirla` | Bir bölge/zaman için canlı GFS küpünü önceden indirir (katalogda tazesi varsa onu kullanır) |
 | GET | `/api/v1/veri/kupler` | Hava durumu küpü kataloğu (kaynak, model çalıştırması, kapsam, seviyeler) |
+| POST | `/api/v1/backtest/ucuslar/{ucus_numarasi}/{tarih}` | Bir uçuşun gerçek izini büyük daire ve A* rotasıyla karşılaştırıp kaydeder |
+| POST | `/api/v1/backtest/toplu` | Backtest'i olmayan uçuşları arka planda karşılaştırır (n8n gece tetiklemesi), `gorev_id` döner |
+| GET | `/api/v1/backtest` | Tüm backtest sonuçları + filo geneli özet |
 | POST | `/api/v1/turbulans/tahmin` | Tek nokta için fizik (TI1) + gerçek PIREP verisiyle eğitilmiş ML tahminini karşılaştırmalı döner |
 | GET | `/api/v1/turbulans/model-bilgisi` | ML modelinin seçim gerekçesi/metrikleri (recall, F1, ROC-AUC vb.) + eğitim tarihini döner; model henüz eğitilmediyse dürüstçe `egitildi_mi: false` |
 | GET | `/api/v1/turbulans/model-versiyonlari` | Şimdiye kadar eğitilmiş TÜM model versiyonlarını (en yeni önce) listeler |
@@ -403,6 +407,35 @@ normalize eder, böylece eşleştirme, risk katmanları ve A* kaynağı bilmez.
   süresini beklemesini önler.
 - Yeni bir sağlayıcı (örn. ECMWF Open Data -- GRIB2, Docker/Linux'ta)
   `VeriSaglayici` arayüzünü uygulayarak eklenir.
+
+## Otomatik doğrulama: gerçek uçuşlarla backtest
+
+`rota_backtest.py`, analiz edilmiş her uçuşun gerçek izini (OpenSky, gerçek
+irtifasıyla) aynı giriş/çıkış noktaları için **büyük daire** ve **A***
+rotasıyla AYNI ölçütle karşılaştırır: gerçek iz, diğer rotalarla aynı nokta
+sayısına kümülatif mesafe boyunca yeniden örneklenir; TI1 aynı hava küpüyle
+ve aynı kodla hesaplanır; aktif SIGMET ihlalleri aynı katmanla sayılır.
+Karşılaştırma, hava küpünün kapsadığı **en uzun kesintisiz seyir bloğu**
+üzerinde yapılır (15 dk'dan uzun veri boşluğu bloğu böler -- OpenSky
+kapsamasının olmadığı bölümler uydurma bir rotayla doldurulmaz). Sonuçlar
+`rota_backtestleri` tablosuna yazılır (uçuş başına en son çalıştırma);
+`GET /api/v1/backtest` filo geneli özeti döner. Ölçümler artık irtifayı da
+saklıyor (`edr_olcumleri.irtifa_m`).
+
+Depodaki gerçek uçuşlarla (15 Ocak 2019, Türkiye ERA5 küpü, A320 profili)
+ilk sonuçlar -- riskli oran: TI1 >= eşik nokta oranı:
+
+| Uçuş | Seyir | Karşılaştırılan bölüm | Riskli oran (gerçek / büyük daire / A*) | A* stratejisi |
+|---|---|---|---|---|
+| THY72C | FL320 | 258 km | 0.68 / 0.17 / 0.00 | tırmanma (+5 dk) |
+| THY322 | FL300 | 260 km | 0.15 / 0.24 / 0.00 | tırmanma (+2 dk) |
+| THY606 | FL380 | 101 km | 0.00 / 0.00 / 0.00 | yok (risk yok) |
+
+Karşılaştırılan bölümler kısa: THY322'nin OpenSky izinde Doğu Anadolu'da
+65 dk'lık bir veri boşluğu var; THY606 (İstanbul-Kahire) ve THY72C
+(İstanbul-Dakar) küpün dışına çıkıyor. Filo özeti, n8n ile daha çok uçuş
+analiz edildikçe (`POST /api/v1/backtest/toplu`) anlamlı hale gelir. N10VZ
+(Teksas) küp dışında olduğu için dürüstçe atlanır.
 
 ## 3D uçuş simülasyonu (normal rota vs türbülanstan-kaçınma rota)
 

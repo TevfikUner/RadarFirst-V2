@@ -42,6 +42,7 @@ class OlcumYaniti(BaseModel):
     richardson_sayisi: float | None = None
     dinamik_kararsizlik: bool | None = None
     basinc_hpa: float | None = None
+    irtifa_m: float | None = None
 
 
 class UcusDetayYaniti(BaseModel):
@@ -288,3 +289,34 @@ class CanliVeriIstegi(BaseModel):
     boylam_maks: float = Field(ge=-180, le=180)
     baslangic: datetime | None = None
     saat_sayisi: int = Field(default=12, ge=1, le=120)
+
+
+class BacktestSonucuYaniti(BaseModel):
+    """rota_backtest.py -- gerçek iz vs büyük daire vs A* rotası (aynı ölçütle).
+    *_riskli_oran: TI1 >= eşik nokta oranı (hava verisi yoksa None)."""
+
+    ucus_numarasi: str
+    tarih: str
+    ucak_modeli: str
+    seyir_irtifasi_ft: float
+    veri_kaynagi: str
+    kacinma_stratejisi: str
+    guvenli_rota_bulundu_mu: bool
+    gercek_mesafe_km: float
+    gercek_sure_dk: float
+    gercek_riskli_oran: float | None = None
+    gercek_sigmet_ihlali: int
+    buyuk_daire_mesafe_km: float
+    buyuk_daire_sure_dk: float
+    buyuk_daire_riskli_oran: float | None = None
+    buyuk_daire_sigmet_ihlali: int
+    optimize_mesafe_km: float
+    optimize_sure_dk: float
+    optimize_riskli_oran: float | None = None
+    optimize_sigmet_ihlali: int
+    olusturulma_zamani: datetime | None = None
+
+
+class BacktestListesiYaniti(BaseModel):
+    ozet: dict
+    sonuclar: list[BacktestSonucuYaniti]
