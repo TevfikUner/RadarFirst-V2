@@ -176,6 +176,12 @@ CANLI_KUP_TAZELIK_SAAT = _ortam_sayi("CANLI_KUP_TAZELIK_SAAT", 6, int)
 # Geçerliliği bu kadar saat önce bitmiş canlı küpler (dosya + katalog kaydı) silinir.
 CANLI_KUP_SAKLAMA_SAAT = _ortam_sayi("CANLI_KUP_SAKLAMA_SAAT", 48, int)
 
+# kisitli_saha_saglayici.py -- True iken API açılışında, tabloda 'ornek'
+# kaynaklı kayıt yoksa paketle gelen ÖRNEK kısıtlı sahalar (Natural Earth
+# ülke sınırından Suriye/Irak) yüklenir. Resmi AIP/CZIB verisiyle çalışan bir
+# kurulumda kapatılmalıdır.
+KISITLI_SAHA_ORNEK_VERI_YUKLE = _ortam_bool("KISITLI_SAHA_ORNEK_VERI_YUKLE", True)
+
 # rota_backtest.py -- gerçek uçuşla karşılaştırılan A* rotasında kullanılan
 # uçak profili (bkz. rota_optimizasyonu.UCAK_PROFILLERI).
 BACKTEST_UCAK_MODELI = _ortam_str("BACKTEST_UCAK_MODELI", "A320")

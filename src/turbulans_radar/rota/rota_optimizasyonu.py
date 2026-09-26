@@ -81,11 +81,13 @@ from turbulans_radar.fizik.birim_donusumleri import (
 from turbulans_radar.fizik.eslestirme import kapsam_disi_maskesi
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.rota.risk_katmanlari import (
+    KisitliSahaKatmani,
     SigmetKisitKatmani,
     Ti1CezaKatmani,
     degerlendirmeleri_birlestir,
     rota_ti1_degerleri,
 )
+from turbulans_radar.veri.kisitli_saha_saglayici import ORNEK_KAYNAK, gecerli_kisitli_sahalari_getir
 from turbulans_radar.veri.sigmet_saglayici import (
     gecerli_sigmetleri_getir,
     kacinilacak_tehlikeler,
@@ -572,9 +574,9 @@ def _en_yakin_komsu_basinc_seviyeleri(veri_kupu, irtifa_m):
 # ---------------------------------------------------------------------------
 
 
-def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, tas_ms):
-    """Rota bölgesi/zamanı için aktif SIGMET'leri (verilmediyse veritabanından)
-    yükleyip sert kısıt katmanını kurar. Dönüş: (katman ya da None, özet)."""
+def _rota_zaman_araligi(enlemler_gc, boylamlar_gc, zaman_iso, tas_ms):
+    """Kısıt sorgusu için muhafazakâr uçuş penceresi: kalkış -> TAS'ın %60'ıyla
+    varış + 1 saat (rüzgarlı ve sapmalı rotanın varışı da kapsansın)."""
     baslangic = pd.Timestamp(zaman_iso)
     baslangic = baslangic.tz_localize("UTC") if baslangic.tzinfo is None else baslangic.tz_convert("UTC")
     toplam_km = sum(
@@ -582,6 +584,22 @@ def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, t
         for i in range(len(enlemler_gc) - 1)
     )
     bitis = (baslangic + pd.Timedelta(seconds=toplam_km * 1000.0 / (tas_ms * 0.6)) + pd.Timedelta(hours=1)).ceil("s")
+    return baslangic, bitis
+
+
+def _arama_kutusu(enlemler_gc, boylamlar_gc):
+    return (
+        float(np.min(enlemler_gc)) - _SIGMET_ARAMA_PAYI_DERECE,
+        float(np.max(enlemler_gc)) + _SIGMET_ARAMA_PAYI_DERECE,
+        float(np.min(boylamlar_gc)) - _SIGMET_ARAMA_PAYI_DERECE,
+        float(np.max(boylamlar_gc)) + _SIGMET_ARAMA_PAYI_DERECE,
+    )
+
+
+def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, tas_ms):
+    """Rota bölgesi/zamanı için aktif SIGMET'leri (verilmediyse veritabanından)
+    yükleyip sert kısıt katmanını kurar. Dönüş: (katman ya da None, özet)."""
+    baslangic, bitis = _rota_zaman_araligi(enlemler_gc, boylamlar_gc, zaman_iso, tas_ms)
     ozet = {
         "durum": "aktif_sigmet_yok",
         "aktif_sigmet_sayisi": 0,
@@ -595,10 +613,7 @@ def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, t
             sigmetler = gecerli_sigmetleri_getir(
                 baslangic.to_pydatetime(),
                 bitis.to_pydatetime(),
-                float(np.min(enlemler_gc)) - _SIGMET_ARAMA_PAYI_DERECE,
-                float(np.max(enlemler_gc)) + _SIGMET_ARAMA_PAYI_DERECE,
-                float(np.min(boylamlar_gc)) - _SIGMET_ARAMA_PAYI_DERECE,
-                float(np.max(boylamlar_gc)) + _SIGMET_ARAMA_PAYI_DERECE,
+                *_arama_kutusu(enlemler_gc, boylamlar_gc),
                 tehlikeler=kacinilacak_tehlikeler(),
             )
             ozet["son_guncelleme"] = son_guncelleme_zamani()
@@ -633,6 +648,55 @@ def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, t
     return katman, {**ozet, "durum": "uygulandi"}
 
 
+def _kisitli_saha_katmanini_hazirla(kisitli_sahalar, enlemler_gc, boylamlar_gc, zaman_iso, tas_ms):
+    """Kısıtlı hava sahalarını (verilmediyse veritabanından) yükleyip sert kısıt
+    katmanını kurar. Kalkış ya da varış noktasını İÇEREN sahalar uygulanmaz
+    (uçuşun o sahaya yetkili olduğu varsayılır, örn. varış ülkesi) ve özette
+    'muaf_tutulanlar' olarak raporlanır. Dönüş: (katman ya da None, özet)."""
+    ozet = {"durum": "kisitli_saha_yok", "uygulanan_saha_sayisi": 0, "muaf_tutulanlar": [], "ornek_veri_mi": False}
+    if kisitli_sahalar is None:
+        baslangic, bitis = _rota_zaman_araligi(enlemler_gc, boylamlar_gc, zaman_iso, tas_ms)
+        try:
+            kisitli_sahalar = gecerli_kisitli_sahalari_getir(
+                baslangic.to_pydatetime(), bitis.to_pydatetime(), *_arama_kutusu(enlemler_gc, boylamlar_gc)
+            )
+        except Exception as hata:
+            _logger.warning("Kısıtlı sahalar okunamadı, rota bu kontrol olmadan hesaplanıyor: %s", hata)
+            return None, {**ozet, "durum": "erisilemedi", "sahalar": []}
+
+    tum = KisitliSahaKatmani(kisitli_sahalar)
+    muaf = {
+        id(saha)
+        for enlem, boylam in ((enlemler_gc[0], boylamlar_gc[0]), (enlemler_gc[-1], boylamlar_gc[-1]))
+        for saha in tum.noktayi_iceren_kayitlar(enlem, boylam)
+    }
+    katman = KisitliSahaKatmani(s for s in tum.kayitlar if id(s) not in muaf)
+    ozet["muaf_tutulanlar"] = [s["ad"] for s in tum.kayitlar if id(s) in muaf]
+    ozet["sahalar"] = [
+        {
+            alan: s.get(alan)
+            for alan in (
+                "id",
+                "dis_kimlik",
+                "ad",
+                "tur",
+                "kaynak",
+                "taban_ft",
+                "tavan_ft",
+                "gecerlilik_baslangic",
+                "gecerlilik_bitis",
+                "poligon",
+            )
+        }
+        for s in katman.kayitlar
+    ]
+    ozet["uygulanan_saha_sayisi"] = len(katman.kayitlar)
+    ozet["ornek_veri_mi"] = any(s.get("kaynak") == ORNEK_KAYNAK for s in tum.kayitlar)
+    if not katman.kayitlar:
+        return None, ozet
+    return katman, {**ozet, "durum": "uygulandi"}
+
+
 def rota_simulasyonu_olustur(
     baslangic_enlem,
     baslangic_boylam,
@@ -642,15 +706,18 @@ def rota_simulasyonu_olustur(
     zaman_iso,
     ucak_modeli_kodu,
     sigmetler=None,
+    kisitli_sahalar=None,
 ):
     """
     İki gerçek rota üretir: büyük daire ("normal") ve "optimize" rota.
-    Öncelik sırası: (1) aktif SIGMET'lere GİRMEMEK (sert kısıt, bkz.
-    risk_katmanlari.SigmetKisitKatmani), (2) riskli TI1 türbülansından
-    kaçınmak, (3) en ucuz (yakıt/süre) yol. SIGMET'e girmeyen hiçbir aday
-    bulunamazsa rota ÖNERİLMEZ (guvenli_rota_bulundu_mu=False).
-    sigmetler: None ise veritabanındaki (sigmet_saglayici.py) aktif SIGMET'ler
-    kullanılır; test/backtest için açıkça bir liste verilebilir.
+    Öncelik sırası: (1) aktif SIGMET'lere ve kısıtlı hava sahalarına GİRMEMEK
+    (sert kısıtlar, bkz. risk_katmanlari.SigmetKisitKatmani/KisitliSahaKatmani),
+    (2) riskli TI1 türbülansından kaçınmak, (3) en ucuz (yakıt/süre) yol. Sert
+    kısıtları sağlayan hiçbir aday bulunamazsa rota ÖNERİLMEZ
+    (guvenli_rota_bulundu_mu=False).
+    sigmetler / kisitli_sahalar: None ise veritabanındaki aktif kayıtlar
+    (sigmet_saglayici.py / kisitli_saha_saglayici.py) kullanılır;
+    test/backtest için açıkça bir liste verilebilir.
     Dönüş, api_servisi.py'nin doğrudan JSON'a çevirebileceği bir dict'tir.
     """
     if ucak_modeli_kodu not in UCAK_PROFILLERI:
@@ -673,6 +740,9 @@ def rota_simulasyonu_olustur(
     ruzgarli_mi = _era5_tamamen_kapsiyor_mu(veri_kupu, enlemler_gc, boylamlar_gc, zaman_iso, irtifa_m)
     kup_adi = veri_kupu_adi(veri_kupu)
     sigmet_katmani, sigmet_kontrolu = _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, tas_ms)
+    saha_katmani, kisitli_saha_kontrolu = _kisitli_saha_katmanini_hazirla(
+        kisitli_sahalar, enlemler_gc, boylamlar_gc, zaman_iso, tas_ms
+    )
 
     def _aday(strateji, enlemler, boylamlar, aday_irtifa_m, yanal_sapma_km=0.0, ekstra=(0.0, 0.0)):
         saniye, zamanlar = _rotayi_zamanla(
@@ -698,6 +768,9 @@ def rota_simulasyonu_olustur(
             "sigmet_ihlali": (
                 sigmet_katmani.rota_ihlal_sayisi(enlemler, boylamlar, zamanlar, aday_irtifa_m) if sigmet_katmani else 0
             ),
+            "kisitli_saha_ihlali": (
+                saha_katmani.rota_ihlal_sayisi(enlemler, boylamlar, zamanlar, aday_irtifa_m) if saha_katmani else 0
+            ),
             "yanal_sapma_km": yanal_sapma_km,
         }
 
@@ -707,7 +780,7 @@ def rota_simulasyonu_olustur(
     normal = _aday("yok", enlemler_gc, boylamlar_gc, irtifa_m)
     guvenli_rota_bulundu_mu = True
 
-    if normal["riskli_sayisi"] == 0 and normal["sigmet_ihlali"] == 0:
+    if normal["riskli_sayisi"] == 0 and normal["sigmet_ihlali"] == 0 and normal["kisitli_saha_ihlali"] == 0:
         # Kaçınılacak risk YOK -- kullanıcıyla netleştirilen ilkeyle, uydurma
         # bir sapma göstermek yerine optimize rota normal rotayla BİREBİR AYNI.
         en_iyi = normal
@@ -719,8 +792,7 @@ def rota_simulasyonu_olustur(
         # _irtifa_degisimi_maliyeti). Bazı CAT katmanları ve SIGMET'ler
         # irtifaya bağlıdır; seviye değiştirmek bazen en ucuz güvenli seçenektir.
         risk_katmanlari = [Ti1CezaKatmani(veri_kupu)] if ruzgarli_mi else []
-        if sigmet_katmani is not None:
-            risk_katmanlari.append(sigmet_katmani)
+        risk_katmanlari += [k for k in (sigmet_katmani, saha_katmani) if k is not None]
         adaylar = []
         yanal = _a_yildiz_ile_rota_ara(
             enlemler_gc, boylamlar_gc, irtifa_m, zaman_iso, tas_ms, veri_kupu if ruzgarli_mi else None, risk_katmanlari
@@ -732,10 +804,10 @@ def rota_simulasyonu_olustur(
             ekstra = _irtifa_degisimi_maliyeti(irtifa_m, yeni_irtifa_m, profil["yakit_akisi_kg_saat"])
             adaylar.append(_aday(strateji_adi, enlemler_gc, boylamlar_gc, yeni_irtifa_m, ekstra=ekstra))
 
-        sigmete_uyan = [a for a in adaylar if a["sigmet_ihlali"] == 0]
-        tam_guvenli = [a for a in sigmete_uyan if a["riskli_sayisi"] == 0]
-        if tam_guvenli or sigmete_uyan:
-            en_iyi = min(tam_guvenli or sigmete_uyan, key=_aday_toplam_yakit_kg)
+        sert_kisita_uyan = [a for a in adaylar if a["sigmet_ihlali"] == 0 and a["kisitli_saha_ihlali"] == 0]
+        tam_guvenli = [a for a in sert_kisita_uyan if a["riskli_sayisi"] == 0]
+        if tam_guvenli or sert_kisita_uyan:
+            en_iyi = min(tam_guvenli or sert_kisita_uyan, key=_aday_toplam_yakit_kg)
         else:
             # SERT kısıt sağlanamadı: kısıtı ihlal eden bir rota "optimize"
             # diye önerilmez -- normal rota gösterilir ve açıkça işaretlenir.
@@ -755,15 +827,25 @@ def rota_simulasyonu_olustur(
             else "era5_kapsam_disi"
         ),
         "aciklama": _aciklama_olustur(
-            ruzgarli_mi, veri_kupu, kup_adi, normal, en_iyi, irtifa_m, sigmet_kontrolu, guvenli_rota_bulundu_mu
+            ruzgarli_mi,
+            veri_kupu,
+            kup_adi,
+            normal,
+            en_iyi,
+            irtifa_m,
+            sigmet_kontrolu,
+            guvenli_rota_bulundu_mu,
+            kisitli_saha_kontrolu,
         ),
         "ucak_modeli": ucak_modeli_kodu,
         "ucak_etiketi": profil["etiket"],
         "turbulanstan_kacinildi_mi": en_iyi["riskli_sayisi"] < normal["riskli_sayisi"],
         "sigmetten_kacinildi_mi": normal["sigmet_ihlali"] > 0 and en_iyi["sigmet_ihlali"] == 0,
+        "kisitli_sahadan_kacinildi_mi": normal["kisitli_saha_ihlali"] > 0 and en_iyi["kisitli_saha_ihlali"] == 0,
         "guvenli_rota_bulundu_mu": guvenli_rota_bulundu_mu,
         "kacinma_stratejisi": en_iyi["strateji"],
         "sigmet_kontrolu": sigmet_kontrolu,
+        "kisitli_saha_kontrolu": kisitli_saha_kontrolu,
         "normal_rota": _rota_ozeti(normal, normal_yakit_kg, normal["saniye"]),
         "optimize_rota": {
             **_rota_ozeti(en_iyi, optimize_yakit_kg, optimize_saniye),
@@ -792,11 +874,20 @@ def _rota_ozeti(aday, yakit_kg, toplam_saniye):
         "maks_ti1": aday["maks_ti1"],
         "riskli_nokta_sayisi": aday["riskli_sayisi"],
         "sigmet_ihlali_sayisi": aday["sigmet_ihlali"],
+        "kisitli_saha_ihlali_sayisi": aday["kisitli_saha_ihlali"],
     }
 
 
 def _aciklama_olustur(
-    ruzgarli_mi, veri_kupu, kup_adi, normal, en_iyi, irtifa_m, sigmet_kontrolu, guvenli_rota_bulundu_mu
+    ruzgarli_mi,
+    veri_kupu,
+    kup_adi,
+    normal,
+    en_iyi,
+    irtifa_m,
+    sigmet_kontrolu,
+    guvenli_rota_bulundu_mu,
+    kisitli_saha_kontrolu=None,
 ):
     cumleler = []
     if ruzgarli_mi and veri_kupu_kaynagi(veri_kupu) == "gfs":
@@ -838,10 +929,13 @@ def _aciklama_olustur(
             + " -- aktif uyarılar eksik olabilir."
         )
 
+    cumleler += _kisitli_saha_cumleleri(kisitli_saha_kontrolu or {}, normal)
+
     if not guvenli_rota_bulundu_mu:
         cumleler.append(
-            "ÖNERİ YOK: aktif SIGMET'lere girmeyen geçerli bir rota bulunamadı (başlangıç/bitiş SIGMET içinde "
-            "olabilir ya da alan arama ızgarasından geniş) -- gösterilen rota normal rotadır ve ÖNERİLMEZ."
+            "ÖNERİ YOK: aktif SIGMET'lere ve kısıtlı hava sahalarına girmeyen geçerli bir rota bulunamadı "
+            "(başlangıç/bitiş SIGMET içinde olabilir ya da alan arama ızgarasından geniş) -- gösterilen rota "
+            "normal rotadır ve ÖNERİLMEZ."
         )
     elif en_iyi["strateji"] == "yok":
         cumleler.append(
@@ -855,7 +949,9 @@ def _aciklama_olustur(
             "irtifa_asagi": f"irtifayı {(irtifa_m - en_iyi['irtifa_m']) / 0.3048:.0f} ft azaltarak (alçalma)",
         }[en_iyi["strateji"]]
         if not ruzgarli_mi:
-            cumleler.append(f"Aktif SIGMET'lere girmeyen en kısa rota olarak {strateji_aciklamasi} bulundu.")
+            cumleler.append(
+                f"Aktif SIGMET'lere ve kısıtlı sahalara girmeyen en kısa rota olarak {strateji_aciklamasi} bulundu."
+            )
         elif en_iyi["riskli_sayisi"] == 0:
             cumleler.append(
                 "ÇOK FAKTÖRLÜ karşılaştırmada (yanal A* araması vs bir üst/alt basınç seviyesine geçiş, her biri "
@@ -864,10 +960,34 @@ def _aciklama_olustur(
         else:
             cumleler.append(
                 "Denenen adaylar TI1 riskini TAMAMEN ortadan kaldıramadı (türbülans alanı geniş olabilir) -- "
-                f"SIGMET kısıtına uyan seçenekler arasından {strateji_aciklamasi} seçildi "
+                f"sert kısıtlara uyan seçenekler arasından {strateji_aciklamasi} seçildi "
                 f"({en_iyi['riskli_sayisi']} riskli nokta, normal rotadaki {normal['riskli_sayisi']}'e karşı)."
             )
     return " ".join(cumleler)
+
+
+def _kisitli_saha_cumleleri(kontrol, normal):
+    cumleler = []
+    if kontrol.get("durum") == "erisilemedi":
+        cumleler.append("UYARI: kısıtlı hava sahası veritabanına erişilemedi -- saha kontrolü YAPILAMADI.")
+    elif kontrol.get("durum") == "uygulandi":
+        ihlal = normal["kisitli_saha_ihlali"]
+        cumleler.append(
+            f"{kontrol['uygulanan_saha_sayisi']} kısıtlı hava sahası sert kısıt olarak uygulandı; normal rota "
+            + (f"{ihlal} nokta/bacakta bunlara giriyor." if ihlal else "bunlara girmiyor.")
+        )
+    if kontrol.get("muaf_tutulanlar"):
+        cumleler.append(
+            "Kalkış/varış noktasını içerdiği için kısıt olarak uygulanmayan saha(lar): "
+            + ", ".join(kontrol["muaf_tutulanlar"])
+            + "."
+        )
+    if kontrol.get("ornek_veri_mi"):
+        cumleler.append(
+            "NOT: kısıtlı sahaların bir kısmı paketle gelen ÖRNEK veridir (ülke sınırından türetilmiş) -- resmi "
+            "AIP/CZIB/NOTAM verisi değildir."
+        )
+    return cumleler
 
 
 # ---------------------------------------------------------------------------
@@ -956,9 +1076,21 @@ def simulasyonu_czml_e_cevir(sonuc):
         _sigmeti_czml_varligina_cevir(sigmet, i)
         for i, sigmet in enumerate((sonuc.get("sigmet_kontrolu") or {}).get("sigmetler", []))
     ]
-    # Statik ön izleme çizgileri ve SIGMET hacimleri ÖNCE eklenir ki uçak
+    saha_varliklari = [
+        _kisitli_sahayi_czml_varligina_cevir(saha, i)
+        for i, saha in enumerate((sonuc.get("kisitli_saha_kontrolu") or {}).get("sahalar", []))
+    ]
+    # Statik ön izleme çizgileri ve kısıt hacimleri ÖNCE eklenir ki uçak
     # modelleri/etiketleri onların üzerinde (z-sırasında sonda) görünsün.
-    return [belge_paketi, *sigmet_varliklari, normal_on_izleme, optimize_on_izleme, normal_ucak, optimize_ucak]
+    return [
+        belge_paketi,
+        *saha_varliklari,
+        *sigmet_varliklari,
+        normal_on_izleme,
+        optimize_on_izleme,
+        normal_ucak,
+        optimize_ucak,
+    ]
 
 
 _SIGMET_VARSAYILAN_TAVAN_FT = 45000
@@ -986,3 +1118,29 @@ def _sigmeti_czml_varligina_cevir(sigmet, sira):
             "outlineColor": {"rgba": [231, 76, 60, 200]},
         },
     }
+
+
+def _kisitli_sahayi_czml_varligina_cevir(saha, sira):
+    """Kısıtlı hava sahasını mor, yarı saydam bir hacim olarak çizer; süresiz
+    sahalar (boş geçerlilik) tüm simülasyon boyunca görünür."""
+    taban_m = (saha.get("taban_ft") or 0) * 0.3048
+    tavan_m = (saha.get("tavan_ft") or _SIGMET_VARSAYILAN_TAVAN_FT) * 0.3048
+    koseler = [deger for boylam, enlem in saha["poligon"] for deger in (boylam, enlem, taban_m)]
+    varlik = {
+        "id": f"kisitli-saha-{saha.get('id') or sira}",
+        "name": f"Kısıtlı saha ({saha.get('tur') or ''}): {saha.get('ad') or ''}".strip(),
+        "polygon": {
+            "positions": {"cartographicDegrees": koseler},
+            "height": taban_m,
+            "extrudedHeight": tavan_m,
+            "material": {"solidColor": {"color": {"rgba": [142, 68, 173, 60]}}},
+            "outline": True,
+            "outlineColor": {"rgba": [142, 68, 173, 200]},
+        },
+    }
+    baslangic, bitis = saha.get("gecerlilik_baslangic"), saha.get("gecerlilik_bitis")
+    if baslangic is not None or bitis is not None:
+        bas = pd.Timestamp(baslangic).isoformat() if baslangic is not None else "0000-01-01T00:00:00Z"
+        son = pd.Timestamp(bitis).isoformat() if bitis is not None else "9999-12-31T23:59:59Z"
+        varlik["availability"] = f"{bas}/{son}"
+    return varlik

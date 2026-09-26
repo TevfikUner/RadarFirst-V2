@@ -40,7 +40,7 @@ from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.rota.risk_katmanlari import SigmetKisitKatmani, rota_ti1_degerleri
 from turbulans_radar.rota.rota_optimizasyonu import buyuk_daire_mesafesi_km, rota_simulasyonu_olustur
-from turbulans_radar.veri.sigmet_saglayici import gecerli_sigmetleri_getir
+from turbulans_radar.veri.sigmet_saglayici import gecerli_sigmetleri_getir, kacinilacak_tehlikeler
 from turbulans_radar.veri.veri_saglayicilari import veri_kupu_kaynagi, veri_kupunu_sec
 
 _logger = logger_al(__name__)
@@ -123,7 +123,7 @@ def ucus_backtest_et(ucus_numarasi, tarih_str, ucak_modeli=None, motor=None) -> 
         float(seyir["enlem"].max()) + 5.0,
         float(seyir["boylam"].min()) - 5.0,
         float(seyir["boylam"].max()) + 5.0,
-        tehlikeler=config.SIGMET_KACINILACAK_TEHLIKELER,
+        tehlikeler=kacinilacak_tehlikeler(),
         motor=motor,
     )
     simulasyon = rota_simulasyonu_olustur(

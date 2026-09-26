@@ -20,6 +20,8 @@ tablo var, ORM sadece onların Python tarafındaki tanımı.
     VeriKaynagiDurumu -> 'veri_kaynagi_durumlari' (her dış veri kaynağının son deneme/son
                                              BAŞARILI çekim zamanı ve son hatası -- bayatlık
                                              ve sağlık kontrolü buradan okunur)
+    KisitliHavaSahasi -> 'kisitli_hava_sahalari' (çatışma bölgesi, P/R/D sahaları, NOTAM'lı
+                                             geçici kısıtlar; A*'ın SIGMET gibi sert kısıtı)
 """
 
 from sqlalchemy import (
@@ -188,3 +190,30 @@ class VeriKaynagiDurumu(Base):
     ardisik_hata_sayisi: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     son_hata: Mapped[str | None] = mapped_column(Text, nullable=True)
     son_ozet: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+
+class KisitliHavaSahasi(Base):
+    __tablename__ = "kisitli_hava_sahalari"
+    __table_args__ = (
+        UniqueConstraint("dis_kimlik", name="uq_kisitli_hava_sahalari_dis_kimlik"),
+        Index("ix_kisitli_hava_sahalari_kutu", "enlem_min", "enlem_maks", "boylam_min", "boylam_maks"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    dis_kimlik: Mapped[str] = mapped_column(String(128), nullable=False)
+    kaynak: Mapped[str] = mapped_column(String(32), nullable=False)
+    ad: Mapped[str] = mapped_column(String, nullable=False)
+    tur: Mapped[str] = mapped_column(String(16), nullable=False)
+    taban_ft: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tavan_ft: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gecerlilik_baslangic: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    gecerlilik_bitis: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    poligon: Mapped[list] = mapped_column(JSONB, nullable=False)
+    enlem_min: Mapped[float] = mapped_column(Float, nullable=False)
+    enlem_maks: Mapped[float] = mapped_column(Float, nullable=False)
+    boylam_min: Mapped[float] = mapped_column(Float, nullable=False)
+    boylam_maks: Mapped[float] = mapped_column(Float, nullable=False)
+    aciklama: Mapped[str | None] = mapped_column(Text, nullable=True)
+    guncellenme_zamani: Mapped[object] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

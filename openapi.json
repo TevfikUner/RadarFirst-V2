@@ -1376,6 +1376,244 @@
         }
       }
     },
+    "/api/v1/kisitli-sahalar": {
+      "get": {
+        "tags": [
+          "Kısıtlı Hava Sahaları"
+        ],
+        "summary": "Kisitli Sahalari Listele",
+        "description": "ŞU AN geçerli (süresizler dahil) kısıtlı/yasak hava sahaları -- A*'ın\nSIGMET gibi sert kısıt olarak kaçındığı alanlar.",
+        "operationId": "kisitli_sahalari_listele_api_v1_kisitli_sahalar_get",
+        "parameters": [
+          {
+            "name": "enlem_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "default": -90,
+              "title": "Enlem Min"
+            }
+          },
+          {
+            "name": "enlem_maks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "default": 90,
+              "title": "Enlem Maks"
+            }
+          },
+          {
+            "name": "boylam_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "default": -180,
+              "title": "Boylam Min"
+            }
+          },
+          {
+            "name": "boylam_maks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "default": 180,
+              "title": "Boylam Maks"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KisitliSahaYaniti"
+                  },
+                  "title": "Response Kisitli Sahalari Listele Api V1 Kisitli Sahalar Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Kısıtlı Hava Sahaları"
+        ],
+        "summary": "Kisitli Sahalari Ice Aktar",
+        "description": "GeoJSON FeatureCollection içe aktarır (Polygon/MultiPolygon; properties:\nkimlik, ad, tur, taban_ft, tavan_ft, baslangic, bitis, aciklama). Örn. n8n\nbir NOTAM akışından geçici kısıtları `kaynak=notam` ile iter. Aynı\nkaynak:kimlik ikinci kez gelirse güncellenir.",
+        "operationId": "kisitli_sahalari_ice_aktar_api_v1_kisitli_sahalar_post",
+        "parameters": [
+          {
+            "name": "kaynak",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32,
+              "pattern": "^[a-z0-9_\\-]+$",
+              "title": "Kaynak"
+            }
+          },
+          {
+            "name": "eskileri_kaldir",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Bu kaynağın yeni veride olmayan kayıtlarını sil",
+              "default": false,
+              "title": "Eskileri Kaldir"
+            },
+            "description": "Bu kaynağın yeni veride olmayan kayıtlarını sil"
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Geojson"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KisitliSahaIceAktarmaYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kisitli-sahalar/{dis_kimlik}": {
+      "delete": {
+        "tags": [
+          "Kısıtlı Hava Sahaları"
+        ],
+        "summary": "Kisitli Saha Sil",
+        "operationId": "kisitli_saha_sil_api_v1_kisitli_sahalar__dis_kimlik__delete",
+        "parameters": [
+          {
+            "name": "dis_kimlik",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128,
+              "title": "Dis Kimlik"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/veri/kupler": {
       "get": {
         "tags": [
@@ -2160,6 +2398,183 @@
         "title": "HavaDurumuKupuYaniti",
         "description": "hava_durumu_kupleri kataloğundaki bir küp (bkz. kup_katalogu.py)."
       },
+      "KisitliSahaIceAktarmaYaniti": {
+        "properties": {
+          "kaydedilen": {
+            "type": "integer",
+            "title": "Kaydedilen"
+          },
+          "kaldirilan": {
+            "type": "integer",
+            "title": "Kaldirilan"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kaydedilen",
+          "kaldirilan"
+        ],
+        "title": "KisitliSahaIceAktarmaYaniti"
+      },
+      "KisitliSahaKontroluYaniti": {
+        "properties": {
+          "durum": {
+            "type": "string",
+            "title": "Durum"
+          },
+          "uygulanan_saha_sayisi": {
+            "type": "integer",
+            "title": "Uygulanan Saha Sayisi",
+            "default": 0
+          },
+          "muaf_tutulanlar": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Muaf Tutulanlar",
+            "default": []
+          },
+          "ornek_veri_mi": {
+            "type": "boolean",
+            "title": "Ornek Veri Mi",
+            "default": false
+          },
+          "sahalar": {
+            "items": {
+              "$ref": "#/components/schemas/KisitliSahaYaniti"
+            },
+            "type": "array",
+            "title": "Sahalar",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "durum"
+        ],
+        "title": "KisitliSahaKontroluYaniti",
+        "description": "durum: uygulandi | kisitli_saha_yok | erisilemedi. muaf_tutulanlar:\nkalkış/varış noktasını içerdiği için uygulanmayan sahalar. ornek_veri_mi:\nsahalardan biri paketle gelen ÖRNEK veriden (resmi değil)."
+      },
+      "KisitliSahaYaniti": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "dis_kimlik": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dis Kimlik"
+          },
+          "ad": {
+            "type": "string",
+            "title": "Ad"
+          },
+          "tur": {
+            "type": "string",
+            "title": "Tur"
+          },
+          "kaynak": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kaynak"
+          },
+          "taban_ft": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taban Ft"
+          },
+          "tavan_ft": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tavan Ft"
+          },
+          "gecerlilik_baslangic": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gecerlilik Baslangic"
+          },
+          "gecerlilik_bitis": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gecerlilik Bitis"
+          },
+          "poligon": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Poligon"
+          },
+          "aciklama": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ad",
+          "tur",
+          "poligon"
+        ],
+        "title": "KisitliSahaYaniti"
+      },
       "ModelBilgisiYaniti": {
         "properties": {
           "egitildi_mi": {
@@ -2554,6 +2969,11 @@
             "title": "Sigmetten Kacinildi Mi",
             "default": false
           },
+          "kisitli_sahadan_kacinildi_mi": {
+            "type": "boolean",
+            "title": "Kisitli Sahadan Kacinildi Mi",
+            "default": false
+          },
           "guvenli_rota_bulundu_mu": {
             "type": "boolean",
             "title": "Guvenli Rota Bulundu Mu",
@@ -2563,6 +2983,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/SigmetKontroluYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kisitli_saha_kontrolu": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KisitliSahaKontroluYaniti"
               },
               {
                 "type": "null"
@@ -2679,6 +3109,11 @@
           "sigmet_ihlali_sayisi": {
             "type": "integer",
             "title": "Sigmet Ihlali Sayisi",
+            "default": 0
+          },
+          "kisitli_saha_ihlali_sayisi": {
+            "type": "integer",
+            "title": "Kisitli Saha Ihlali Sayisi",
             "default": 0
           }
         },

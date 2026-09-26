@@ -579,6 +579,90 @@
       ]
     },
     {
+      "name": "Kısıtlı Hava Sahaları",
+      "item": [
+        {
+          "name": "Kisitli Sahalari Listele",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/kisitli-sahalar",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kisitli-sahalar"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Kisitli Sahalari Ice Aktar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/kisitli-sahalar",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kisitli-sahalar"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Kisitli Saha Sil",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/kisitli-sahalar/{dis_kimlik}",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kisitli-sahalar",
+                "{dis_kimlik}"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Veri Sağlayıcı",
       "item": [
         {

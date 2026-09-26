@@ -29,6 +29,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | Copernicus ERA5 | u, v, t (200/250/300 hPa) | Reanaliz, ~5 gün gecikmeli; 0.25°, 1 saatlik | Yerel küpler: Türkiye (Ocak 2019), Kuzeydoğu ABD (2018-2020 seçili günler) | `veri/veri_yukleme.py` |
 | NOAA GFS (UCAR THREDDS) | u, v, t (200/250/300 hPa) | Tahmin; 0.25°, 3 saatlik adım, 6 saatlik döngü | Küresel; şimdi −48 sa / +120 sa | `veri/veri_saglayicilari.py` |
 | AWC SIGMET (`airsigmet`, `isigmet`) | Tehlike poligonu, irtifa bandı, geçerlilik | Canlı (API zamanlayıcısı ya da n8n ile yenilenir) | ABD + AWC'ye ulaşan uluslararası mesajlar (Ankara FIR dahil) | `veri/sigmet_saglayici.py` |
+| Kısıtlı hava sahaları (GeoJSON) | Çatışma bölgesi, P/R/D sahası, NOTAM'lı geçici kısıt: poligon, irtifa bandı, geçerlilik | Operatörün içe aktardığı kadar güncel | Paketle gelen örnek: Suriye ve Irak (Natural Earth ülke sınırı, resmi değil) | `veri/kisitli_saha_saglayici.py` |
 | IEM PIREP | Pilot türbülans raporları | Tarihsel | ABD | Yalnızca ML eğitimi ve kalibrasyon |
 
 ## 3. Karar mantığı
@@ -42,9 +43,11 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   - Bir üst ya da bir alt basınç seviyesine geçiş: tırmanma ve alçalmanın
     yaklaşık yakıt ve süre bedeli hesaba katılır.
 - **Öncelik sırası:**
-  1. Aktif SIGMET'e **girmemek** (sert kısıt). Kısıt dört boyutludur:
-     poligon, irtifa bandı, uçağın o noktaya varış zamanındaki geçerlilik
-     ve iki nokta arasındaki bacağın poligonu kesmesi.
+  1. Aktif SIGMET'e ve kısıtlı/yasak hava sahasına **girmemek** (sert
+     kısıtlar). Kısıt dört boyutludur: poligon, irtifa bandı, uçağın o
+     noktaya varış zamanındaki geçerlilik ve iki nokta arasındaki bacağın
+     poligonu kesmesi. Kalkış ya da varış noktasını içeren kısıtlı saha
+     (örn. varış ülkesi) muaf tutulur ve raporlanır.
   2. Riskli TI1 noktalarından kaçınmak (yumuşak kısıt, 6 saatlik sanal ceza).
   3. En düşük yakıt/süre.
 - Kaçınılacak bir risk yoksa önerilen rota büyük daireyle birebir aynıdır;
@@ -54,7 +57,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 | Durum | Sistemin davranışı |
 |---|---|
-| SIGMET'e girmeyen geçerli bir rota yok (örn. varış noktası SIGMET içinde) | **Öneri yapılmaz**: `guvenli_rota_bulundu_mu: false`, açıklamada "ÖNERİ YOK", normal rota gösterilir. |
+| SIGMET'e ve kısıtlı sahalara girmeyen geçerli bir rota yok (örn. varış noktası SIGMET içinde, koridoru kesen bir yasak saha) | **Öneri yapılmaz**: `guvenli_rota_bulundu_mu: false`, açıklamada "ÖNERİ YOK", normal rota gösterilir. |
+| Kısıtlı saha kalkış ya da varış noktasını içeriyor (örn. varış ülkesi) | O saha kısıt olarak uygulanmaz ve `kisitli_saha_kontrolu.muaf_tutulanlar`'da raporlanır; diğer sahalar uygulanır. |
+| Kısıtlı saha veritabanına erişilemiyor | Rota hesaplanır; `kisitli_saha_kontrolu.durum = "erisilemedi"` ve açıklamada UYARI yer alır. |
+| Kullanılan kısıtlı sahalar paketle gelen örnek veriden | `kisitli_saha_kontrolu.ornek_veri_mi: true` ve açıklamada NOT. |
 | SIGMET veritabanına erişilemiyor | Rota hesaplanır; `sigmet_kontrolu.durum = "erisilemedi"` ve açıklamada UYARI yer alır. |
 | Canlı bir hesapta SIGMET kaynaklarından birinin son BAŞARILI çekimi 30 dakikadan eski | `sigmet_kontrolu.bayat_mi: true`, `sorunlu_kaynaklar` doldurulur, açıklamada kaynak adıyla UYARI. |
 | AWC'nin bir uç noktası yanıt vermiyor | Diğer kaynak işlenir; yanıt vermeyen kaynağın mevcut kayıtlarına dokunulmaz. |
@@ -66,7 +72,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | İstenen irtifa canlı sağlayıcının basınç seviyelerinin dışında (örn. FL100) | İndirme yapılmaz; rota/tahmin hava verisi olmadan (kapsam dışı olarak) döner. |
 | Canlı veri sağlayıcısı bozuk ya da geçersiz yanıt döndü | `POST /veri/canli/hazirla` 502 döner (iç ayrıntı sızdırılmaz); rota/tahmin hava verisi olmadan devam eder. |
 | Toplu backtest'te bir uçuş beklenmeyen hatayla düştü | O uçuş `hata` olarak raporlanır, diğerleri işlenmeye devam eder. |
-| Hava verisi yok (bölge, tarih ya da irtifa kapsam dışı; GFS indirilemedi) | Rota rüzgarsız, sadece TAS ile hesaplanır ve TI1 raporlanmaz; bu durum açıkça belirtilir. SIGMET kısıtı yine uygulanır. |
+| Hava verisi yok (bölge, tarih ya da irtifa kapsam dışı; GFS indirilemedi) | Rota rüzgarsız, sadece TAS ile hesaplanır ve TI1 raporlanmaz; bu durum açıkça belirtilir. SIGMET ve kısıtlı saha kısıtları yine uygulanır. |
 | Bir noktanın irtifası/zamanı küpün seviyelerinden ya da zaman adımlarından uzak | O nokta için TI1 NaN bırakılır; en yakın hücreden uydurma değer üretilmez. |
 | Analiz sonucu veritabanına yazılamadı (API) | Görev `hata` durumuna geçer; "tamamlandı" gösterilmez. |
 | API görev bitmeden yeniden başladı | Açılışta bu görevler `yarida_kaldi` olarak işaretlenir. |
@@ -89,7 +95,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 **Rota modeli**
 - Seyir irtifası sabittir; kalkış ve iniş fazları modellenmez.
 - Uçak performans değerleri (TAS, yakıt akışı) tipik, halka açık değerlerdir.
-- Hava sahası yapısı, ATC kısıtları, NOTAM ve yasak sahalar modellenmez.
+- Hava yolu yapısı ve ATC kısıtları modellenmez. Kısıtlı/yasak sahalar ve
+  NOTAM'lı geçici kısıtlar yalnızca içe aktarıldıkları kadar bilinir; paketle
+  gelen örnek veri (Suriye, Irak) ülke sınırından türetilmiştir, resmi FIR/CZIB
+  sınırı değildir.
 
 **SIGMET**
 - 180° boylamını (antimeridyen) kesen poligonlar -180..180 aralığında

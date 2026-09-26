@@ -11,6 +11,8 @@ rota_optimizasyonu.py için birim testleri:
     test_eslestirme.py'deki aynı desen).
 """
 
+import json
+
 import pandas as pd
 import pytest
 
@@ -231,3 +233,79 @@ def test_hava_verisi_olmayan_bolgede_de_sigmetten_kacinilir():
     sigmet_varliklari = [v for v in simulasyonu_czml_e_cevir(sonuc) if "polygon" in v]
     assert [v["id"] for v in sigmet_varliklari] == ["sigmet-99"]
     assert sigmet_varliklari[0]["polygon"]["extrudedHeight"] == pytest.approx(45000 * 0.3048)
+
+
+# --- Kısıtlı hava sahası sert kısıtı (risk_katmanlari.KisitliSahaKatmani) ---
+
+
+def _ornek_sahalar():
+    from turbulans_radar.veri.kisitli_saha_saglayici import ORNEK_DOSYA, ORNEK_KAYNAK, geojson_kayitlarina_cevir
+
+    return geojson_kayitlarina_cevir(json.loads(ORNEK_DOSYA.read_text(encoding="utf-8")), ORNEK_KAYNAK)
+
+
+def _kare_saha(enlem0, enlem1, boylam0, boylam1, taban=None, tavan=None):
+    return {
+        "id": 7,
+        "ad": "Deneme sahası",
+        "tur": "YASAK",
+        "kaynak": "test",
+        "taban_ft": taban,
+        "tavan_ft": tavan,
+        "gecerlilik_baslangic": None,
+        "gecerlilik_bitis": None,
+        "poligon": [[boylam0, enlem0], [boylam1, enlem0], [boylam1, enlem1], [boylam0, enlem1], [boylam0, enlem0]],
+    }
+
+
+def _afrika_rotasi(kisitli_sahalar):
+    return rota_simulasyonu_olustur(
+        5.0, 10.0, 5.0, 25.0, 36000, "2019-01-15T00:00:00", "A320", sigmetler=[], kisitli_sahalar=kisitli_sahalar
+    )
+
+
+def test_malatya_musul_rotasi_suriyeden_kacinir_varis_ulkesi_muaf_tutulur():
+    sonuc = rota_simulasyonu_olustur(
+        38.435,
+        38.091,
+        36.306,
+        43.147,
+        34000,
+        "2019-06-15T08:00:00",
+        "A320",
+        sigmetler=[],
+        kisitli_sahalar=_ornek_sahalar(),
+    )
+    kontrol = sonuc["kisitli_saha_kontrolu"]
+    assert kontrol["durum"] == "uygulandi" and kontrol["ornek_veri_mi"] is True
+    assert kontrol["muaf_tutulanlar"] == ["Irak hava sahası (örnek çatışma bölgesi)"]
+    assert sonuc["normal_rota"]["kisitli_saha_ihlali_sayisi"] > 0
+    assert sonuc["optimize_rota"]["kisitli_saha_ihlali_sayisi"] == 0
+    assert sonuc["kisitli_sahadan_kacinildi_mi"] is True and sonuc["guvenli_rota_bulundu_mu"] is True
+    assert "ÖRNEK" in sonuc["aciklama"]
+    saha_varliklari = [v for v in simulasyonu_czml_e_cevir(sonuc) if v["id"].startswith("kisitli-saha-")]
+    assert len(saha_varliklari) == 1 and "availability" not in saha_varliklari[0]
+
+
+def test_koridoru_tamamen_kesen_kisitli_saha_varsa_rota_onerilmez():
+    sonuc = _afrika_rotasi([_kare_saha(-5.0, 15.0, 17.0, 18.0)])
+    assert sonuc["guvenli_rota_bulundu_mu"] is False
+    assert "ÖNERİ YOK" in sonuc["aciklama"] and "kısıtlı hava sahalarına" in sonuc["aciklama"]
+
+
+def test_irtifa_bandi_disindaki_kisitli_saha_rotayi_degistirmez():
+    sonuc = _afrika_rotasi([_kare_saha(4.3, 5.9, 17.0, 18.0, taban=0, tavan=20000)])
+    assert sonuc["normal_rota"]["kisitli_saha_ihlali_sayisi"] == 0
+    assert sonuc["optimize_rota"]["noktalar"] == sonuc["normal_rota"]["noktalar"]
+
+
+def test_kisitli_saha_veritabanina_erisilemezse_uyari_verilir(monkeypatch):
+    from turbulans_radar.rota import rota_optimizasyonu
+
+    def erisilemez(*args, **kwargs):
+        raise ConnectionError("veritabanı yok")
+
+    monkeypatch.setattr(rota_optimizasyonu, "gecerli_kisitli_sahalari_getir", erisilemez)
+    sonuc = _afrika_rotasi(None)
+    assert sonuc["kisitli_saha_kontrolu"]["durum"] == "erisilemedi"
+    assert "saha kontrolü YAPILAMADI" in sonuc["aciklama"]

@@ -3,7 +3,12 @@ from datetime import UTC, datetime, timedelta
 import pandas as pd
 import pytest
 
-from turbulans_radar.rota.risk_katmanlari import RiskDegerlendirmesi, SigmetKisitKatmani, degerlendirmeleri_birlestir
+from turbulans_radar.rota.risk_katmanlari import (
+    KisitliSahaKatmani,
+    RiskDegerlendirmesi,
+    SigmetKisitKatmani,
+    degerlendirmeleri_birlestir,
+)
 
 SIMDI = pd.Timestamp(datetime.now(UTC))
 
@@ -88,3 +93,16 @@ def test_kendini_kesen_sigmet_poligonu_onarilarak_uygulanir():
 def test_tehlikesi_bilinmeyen_sigmetten_muhafazakar_olarak_kacinilir():
     sonuc = _degerlendir(SigmetKisitKatmani([_kare_sigmet(tehlike="BILINMIYOR")]))
     assert sonuc.yasak_dugumler == {"ic"}
+
+
+def test_suresiz_kisitli_saha_her_zaman_ve_her_irtifada_uygulanir():
+    saha = {**_kare_sigmet(taban=None, tavan=None), "gecerlilik_baslangic": None, "gecerlilik_bitis": None}
+    sonuc = _degerlendir(KisitliSahaKatmani([saha]), irtifa_ft=41000, zaman=SIMDI + timedelta(days=3650))
+    assert sonuc.yasak_dugumler == {"ic"}
+    assert sonuc.yasak_kenarlar == {("dis_bati", "dis_dogu")}
+
+
+def test_gecici_kisitli_saha_sadece_penceresinde_uygulanir():
+    saha = {**_kare_sigmet(), "gecerlilik_baslangic": SIMDI + timedelta(hours=1), "gecerlilik_bitis": None}
+    assert not _degerlendir(KisitliSahaKatmani([saha])).yasak_dugumler
+    assert _degerlendir(KisitliSahaKatmani([saha]), zaman=SIMDI + timedelta(hours=2)).yasak_dugumler == {"ic"}

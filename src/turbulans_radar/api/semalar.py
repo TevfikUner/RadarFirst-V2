@@ -152,6 +152,7 @@ class RotaSonucuYaniti(BaseModel):
     maks_ti1: float | None = None
     riskli_nokta_sayisi: int = 0
     sigmet_ihlali_sayisi: int = 0
+    kisitli_saha_ihlali_sayisi: int = 0
 
 
 class SigmetOzetiYaniti(BaseModel):
@@ -177,6 +178,37 @@ class SigmetKontroluYaniti(BaseModel):
     sigmetler: list[SigmetOzetiYaniti] = []
 
 
+class KisitliSahaYaniti(BaseModel):
+    id: int | None = None
+    dis_kimlik: str | None = None
+    ad: str
+    tur: str
+    kaynak: str | None = None
+    taban_ft: int | None = None
+    tavan_ft: int | None = None
+    gecerlilik_baslangic: datetime | None = None
+    gecerlilik_bitis: datetime | None = None
+    poligon: list[list[float]]
+    aciklama: str | None = None
+
+
+class KisitliSahaKontroluYaniti(BaseModel):
+    """durum: uygulandi | kisitli_saha_yok | erisilemedi. muaf_tutulanlar:
+    kalkış/varış noktasını içerdiği için uygulanmayan sahalar. ornek_veri_mi:
+    sahalardan biri paketle gelen ÖRNEK veriden (resmi değil)."""
+
+    durum: str
+    uygulanan_saha_sayisi: int = 0
+    muaf_tutulanlar: list[str] = []
+    ornek_veri_mi: bool = False
+    sahalar: list[KisitliSahaYaniti] = []
+
+
+class KisitliSahaIceAktarmaYaniti(BaseModel):
+    kaydedilen: int
+    kaldirilan: int
+
+
 class SigmetYenilemeYaniti(BaseModel):
     """kaynak_hatalari boş değilse o kaynağın mevcut SIGMET'leri korunmuştur
     (akış çekilemedi ya da güvenilir değil); kaynaklar: kaynak başına sayım."""
@@ -196,8 +228,10 @@ class RotaSimulasyonuYaniti(BaseModel):
     turbulanstan_kacinildi_mi: bool
     kacinma_stratejisi: str
     sigmetten_kacinildi_mi: bool = False
+    kisitli_sahadan_kacinildi_mi: bool = False
     guvenli_rota_bulundu_mu: bool = True
     sigmet_kontrolu: SigmetKontroluYaniti | None = None
+    kisitli_saha_kontrolu: KisitliSahaKontroluYaniti | None = None
     normal_rota: RotaSonucuYaniti
     optimize_rota: RotaSonucuYaniti
     sure_tasarrufu_dk: float

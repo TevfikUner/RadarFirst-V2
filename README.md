@@ -83,6 +83,7 @@ turbulans_radar/
   veri/       veri_yukleme.py                  -> NetCDF yükleme/önbellek, yerel küp seçimi, OpenSky/Trino sorguları
               veri_saglayicilari.py            -> Veri Sağlayıcı katmanı: canlı NOAA GFS (THREDDS) + ERA5 seçimi
               sigmet_saglayici.py              -> canlı AWC SIGMET'leri (ABD + uluslararası, Ankara FIR dahil)
+              kisitli_saha_saglayici.py        -> kısıtlı/yasak hava sahaları (GeoJSON içe aktarma, örnek veri)
               veri_indirme.py                  -> ERA5 indirme altyapısı (güvenlik sınırlı, varsayılan kuru deneme)
               kimlik_dogrulama.py              -> .env'den OpenSky kimlik bilgisi
   fizik/      turbulans_indeksleri.py          -> Ellrod TI1, Richardson, EDR proxy
@@ -90,7 +91,7 @@ turbulans_radar/
               birim_donusumleri.py             -> irtifa <-> basınç (ISA)
               kalibrasyon.py                   -> EDR ölçekleme katsayısı kalibrasyonu (bootstrap GA)
   rota/       rota_optimizasyonu.py            -> büyük daire vs A* rotası (yanal + irtifa), CZML üretimi
-              risk_katmanlari.py               -> A*'ın modüler risk katmanları (TI1 cezası, SIGMET sert kısıtı)
+              risk_katmanlari.py               -> A*'ın modüler risk katmanları (TI1 cezası, SIGMET/kısıtlı saha sert kısıtı)
   dogrulama/  rota_backtest.py                 -> A* rotası vs gerçek uçuş izi (otomatik backtest)
               sigmet_dogrulama.py              -> TI1'in tarihsel AWC SIGMET'leriyle karşılaştırması (ABD)
   ml/         turbulans_ml_modeli.py           -> PIREP + ERA5 ile eğitilmiş risk sınıflandırıcısı, versiyonlama
@@ -229,6 +230,9 @@ görüntü (snapshot) kolaylığı sağlar.
 | POST | `/api/v1/simulasyon/rota` | Büyük daire vs rüzgar-optimize rota + CZML döner; aktif SIGMET'ler sert kısıt olarak uygulanır (bkz. aşağıdaki bölüm) |
 | POST | `/api/v1/sigmet/guncelle` | AWC'den canlı SIGMET'leri çekip veritabanını günceller (n8n/cron periyodik tetikler) |
 | GET | `/api/v1/sigmet` | Şu an geçerli SIGMET'ler (kutu/tehlike filtresiyle) -- önyüzlerin yasak bölgeleri çizmesi için |
+| GET | `/api/v1/kisitli-sahalar` | Şu an geçerli kısıtlı/yasak hava sahaları (kutu filtresiyle) |
+| POST | `/api/v1/kisitli-sahalar?kaynak=...` | GeoJSON FeatureCollection içe aktarır (örn. n8n: NOTAM -> geçici kısıt); `eskileri_kaldir=true` kaynağı tamamen yeniler |
+| DELETE | `/api/v1/kisitli-sahalar/{dis_kimlik}` | Bir kısıtlı sahayı siler |
 | POST | `/api/v1/veri/canli/hazirla` | Bir bölge/zaman için canlı GFS küpünü önceden indirir (katalogda tazesi varsa onu kullanır) |
 | GET | `/api/v1/veri/kupler` | Hava durumu küpü kataloğu (kaynak, model çalıştırması, kapsam, seviyeler) |
 | POST | `/api/v1/backtest/ucuslar/{ucus_numarasi}/{tarih}` | Bir uçuşun gerçek izini büyük daire ve A* rotasıyla karşılaştırıp kaydeder |
@@ -346,6 +350,7 @@ grafı için yasak düğüm/kenarlar (SERT kısıt) ve saniye cinsinden cezalar
 |---|---|---|
 | `Ti1CezaKatmani` | yumuşak (ceza) | ERA5'ten hesaplanan Ellrod TI1 >= `TI1_ESIK_ORTA_SIDDETLI` |
 | `SigmetKisitKatmani` | **sert (yasak)** | Canlı AWC SIGMET'leri (`sigmetler` tablosu) |
+| `KisitliSahaKatmani` | **sert (yasak)** | Çatışma bölgeleri, P/R/D sahaları, NOTAM'lı geçici kısıtlar (`kisitli_hava_sahalari` tablosu) |
 
 SIGMET kısıtı **dört boyutludur**: yatay poligon + irtifa bandı (`taban_ft`/
 `tavan_ft`, boş taban = yerden) + uçağın o noktaya VARIŞ zamanında
@@ -387,6 +392,37 @@ denetimde canlı akışta sessizce atılan bir biçim de bulundu: `geom: "AREAS"
 saklanıyor. Okunamayan irtifa değeri daha geniş bir yasak banda, okunamayan
 tehlike türü `BILINMIYOR`'a çevrilir ve bu tür SIGMET'lerden her zaman
 kaçınılır.
+
+## Kısıtlı / yasak hava sahaları
+
+A*'ın yanal ızgarası büyük daireden 400 km'ye kadar sapabildiği için, hava
+durumundan kaçarken planlı rotanın hiç kullanmadığı bir çatışma bölgesine ya
+da yasak sahaya rota önerebiliyordu. `KisitliSahaKatmani` bu alanları SIGMET
+ile aynı dört boyutlu mantıkla (poligon + irtifa bandı + geçerlilik penceresi)
+**sert kısıt** olarak uygular; boş geçerlilik sınırı süresiz, boş taban/tavan
+yer/sınırsız demektir. Öncelik sırası: (1) SIGMET'e ve kısıtlı sahaya
+girmemek, (2) TI1 riskinden kaçınmak, (3) en ucuz yakıt/süre.
+
+- **Uç nokta muafiyeti:** kalkış ya da varış noktasını İÇEREN saha kısıt
+  olarak uygulanmaz (uçuşun o sahaya yetkili olduğu varsayılır, örn. varış
+  ülkesi) ve yanıttaki `kisitli_saha_kontrolu.muaf_tutulanlar`'da raporlanır.
+- **Veri:** GeoJSON FeatureCollection (Polygon/MultiPolygon; `kimlik`, `ad`,
+  `tur` = `CATISMA`/`YASAK`/`KISITLI`/`TEHLIKELI`/`GECICI`, `taban_ft`,
+  `tavan_ft`, `baslangic`, `bitis`, `aciklama`). İçe aktarma:
+  `turbulans-kisitli-saha ice-aktar sahalar.geojson --kaynak aip` ya da
+  `POST /api/v1/kisitli-sahalar?kaynak=notam` (n8n bir NOTAM akışından geçici
+  kısıtları bu uçla iter). İç halkalar (delikler) muhafazakâr olarak yok sayılır.
+- **Örnek veri:** paketle gelen `ornek_kisitli_sahalar.geojson`, Natural Earth
+  1:50m (kamu malı) ülke sınırlarından **Suriye ve Irak'ı** "çatışma bölgesi"
+  olarak içerir. `KISITLI_SAHA_ORNEK_VERI_YUKLE=true` (varsayılan) iken API
+  açılışında, tabloda bu kaynaktan kayıt yoksa yüklenir. **Resmi FIR/CZIB sınırı
+  değildir**; yanıt açıklaması örnek veri kullanıldığını belirtir. Gerçek
+  kullanımda kapatılıp güncel AIP ENR 5.1, EASA CZIB ve NOTAM verisi aktarılmalıdır.
+- **Örnek:** Malatya → Musul (FL340): büyük daire Suriye'nin kuzeydoğu ucunu
+  13 nokta/bacakta kesiyor; A* 60 km yanal sapmayla Suriye'ye girmeyen rotayı
+  buluyor, Irak varış ülkesi olduğu için muaf. Koridoru tamamen kesen bir saha
+  varsa sistem "ÖNERİ YOK" der.
+- 3D simülasyonda kısıtlı sahalar mor yarı saydam hacimler olarak çizilir.
 
 ## Canlı hava verisi: Veri Sağlayıcı katmanı (NOAA GFS)
 

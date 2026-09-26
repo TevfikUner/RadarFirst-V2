@@ -12,12 +12,16 @@ katman yazılır; A*'ın kendisi değişmez.
 
 Katmanlar:
   - Ti1CezaKatmani     : ERA5/GFS'ten hesaplanan Ellrod TI1 >= eşik -> ceza
-  - SigmetKisitKatmani : aktif SIGMET poligonu -> yasak (4 boyutlu: yatay
-                         poligon + irtifa bandı + uçağın o noktaya VARIŞ
-                         zamanında geçerlilik). Kenar kontrolü, iki düğüm
-                         arasındaki bacağın poligonu KESİP KESMEDİĞİNE de
-                         bakar -- seyrek ızgarada küçük bir SIGMET iki düğüm
+  - PoligonKisitKatmani: poligon + irtifa bandı + geçerlilik penceresiyle
+                         tanımlı SERT kısıtların ortak tabanı (4 boyutlu:
+                         yatay poligon + irtifa bandı + uçağın o noktaya
+                         VARIŞ zamanında geçerlilik). Kenar kontrolü, iki
+                         düğüm arasındaki bacağın poligonu KESİP KESMEDİĞİNE
+                         de bakar -- seyrek ızgarada küçük bir alan iki düğüm
                          arasından "atlanmasın" diye.
+  - SigmetKisitKatmani : aktif SIGMET'ler (kaçınılan tehlike türleri)
+  - KisitliSahaKatmani : çatışma bölgesi / yasak / kısıtlı sahalar (süresiz
+                         olabilir -- boş geçerlilik sınırı = sınırsız)
 """
 
 from dataclasses import dataclass, field
@@ -109,31 +113,37 @@ def sigmet_geometrisi(poligon):
     return shapely.union(dogu, bati)
 
 
-class SigmetKisitKatmani:
-    ad = "sigmet"
+class PoligonKisitKatmani:
+    """kayitlar: 'poligon', 'taban_ft', 'tavan_ft', 'gecerlilik_baslangic',
+    'gecerlilik_bitis' alanlı sözlükler; None taban = yer, None tavan =
+    sınırsız, None geçerlilik sınırı = o yönde süresiz."""
 
-    def __init__(self, sigmetler, tehlikeler=None):
-        tehlikeler = {t.upper() for t in (tehlikeler or config.SIGMET_KACINILACAK_TEHLIKELER)}
-        tehlikeler.add(config.SIGMET_BILINMEYEN_TEHLIKE)
-        self.sigmetler = [s for s in sigmetler if s["tehlike"].upper() in tehlikeler]
-        self._poligonlar = [sigmet_geometrisi(s["poligon"]) for s in self.sigmetler]
+    ad = "poligon"
+
+    def __init__(self, kayitlar):
+        self.kayitlar = list(kayitlar)
+        self._poligonlar = [sigmet_geometrisi(k["poligon"]) for k in self.kayitlar]
         for poligon in self._poligonlar:
             shapely.prepare(poligon)
 
     @staticmethod
-    def _irtifada_mi(sigmet, irtifa_ft) -> bool:
-        taban = sigmet["taban_ft"] if sigmet["taban_ft"] is not None else 0
-        tavan = sigmet["tavan_ft"] if sigmet["tavan_ft"] is not None else float("inf")
+    def _irtifada_mi(kayit, irtifa_ft) -> bool:
+        taban = kayit["taban_ft"] if kayit["taban_ft"] is not None else 0
+        tavan = kayit["tavan_ft"] if kayit["tavan_ft"] is not None else float("inf")
         return taban <= irtifa_ft <= tavan
 
     @staticmethod
-    def _aktif_maskesi(sigmet, zamanlar) -> np.ndarray:
-        baslangic, bitis = _utc(sigmet["gecerlilik_baslangic"]), _utc(sigmet["gecerlilik_bitis"])
-        return np.array([baslangic <= z <= bitis for z in zamanlar], dtype=bool)
+    def _aktif_maskesi(kayit, zamanlar) -> np.ndarray:
+        baslangic, bitis = kayit.get("gecerlilik_baslangic"), kayit.get("gecerlilik_bitis")
+        baslangic = _utc(baslangic) if baslangic is not None else None
+        bitis = _utc(bitis) if bitis is not None else None
+        return np.array(
+            [(baslangic is None or baslangic <= z) and (bitis is None or z <= bitis) for z in zamanlar], dtype=bool
+        )
 
     def degerlendir(self, konumlar, zamanlar, kenarlar, irtifa_m) -> RiskDegerlendirmesi:
         dugumler = list(konumlar)
-        if not self.sigmetler or not dugumler:
+        if not self.kayitlar or not dugumler:
             return RiskDegerlendirmesi()
         irtifa_ft = irtifa_m / 0.3048
         indeks = {d: i for i, d in enumerate(dugumler)}
@@ -150,10 +160,10 @@ class SigmetKisitKatmani:
 
         yasak_dugum = np.zeros(len(dugumler), dtype=bool)
         yasak_kenar = np.zeros(len(kenarlar), dtype=bool)
-        for sigmet, poligon in zip(self.sigmetler, self._poligonlar):
-            if not self._irtifada_mi(sigmet, irtifa_ft):
+        for kayit, poligon in zip(self.kayitlar, self._poligonlar):
+            if not self._irtifada_mi(kayit, irtifa_ft):
                 continue
-            aktif = self._aktif_maskesi(sigmet, dugum_zamanlari)
+            aktif = self._aktif_maskesi(kayit, dugum_zamanlari)
             if not aktif.any():
                 continue
             yasak_dugum |= aktif & shapely.intersects_xy(poligon, boylam, enlem)
@@ -167,9 +177,29 @@ class SigmetKisitKatmani:
         )
 
     def rota_ihlal_sayisi(self, enlemler, boylamlar, zamanlar, irtifa_m) -> int:
-        """Bir rotanın aktif SIGMET'e giren nokta + bacak sayısı (0 = kısıt sağlanıyor)."""
+        """Bir rotanın aktif kısıta giren nokta + bacak sayısı (0 = kısıt sağlanıyor)."""
         konumlar = {(i, 0): (float(e), float(b)) for i, (e, b) in enumerate(zip(enlemler, boylamlar))}
         zaman_sozlugu = {(i, 0): z for i, z in enumerate(zamanlar)}
         kenarlar = [((i, 0), (i + 1, 0)) for i in range(len(konumlar) - 1)]
         sonuc = self.degerlendir(konumlar, zaman_sozlugu, kenarlar, irtifa_m)
         return len(sonuc.yasak_dugumler) + len(sonuc.yasak_kenarlar)
+
+    def noktayi_iceren_kayitlar(self, enlem, boylam) -> list[dict]:
+        return [k for k, p in zip(self.kayitlar, self._poligonlar) if shapely.intersects_xy(p, boylam, enlem)]
+
+
+class SigmetKisitKatmani(PoligonKisitKatmani):
+    ad = "sigmet"
+
+    def __init__(self, sigmetler, tehlikeler=None):
+        tehlikeler = {t.upper() for t in (tehlikeler or config.SIGMET_KACINILACAK_TEHLIKELER)}
+        tehlikeler.add(config.SIGMET_BILINMEYEN_TEHLIKE)
+        super().__init__(s for s in sigmetler if s["tehlike"].upper() in tehlikeler)
+
+    @property
+    def sigmetler(self) -> list[dict]:
+        return self.kayitlar
+
+
+class KisitliSahaKatmani(PoligonKisitKatmani):
+    ad = "kisitli_saha"

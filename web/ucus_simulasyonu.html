@@ -61,6 +61,7 @@
   #lejant { bottom: 12px; right: 12px; width: 210px; }
   #lejant div { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
   #lejant .cizgi { width: 18px; height: 3px; display: inline-block; }
+  #lejant .hacim { width: 12px; height: 12px; display: inline-block; border: 1px solid; vertical-align: middle; }
   hr { border: none; border-top: 1px solid #444; margin: 8px 0; }
 </style>
 </head>
@@ -111,6 +112,7 @@
     <tr><td>CO2 (tahmini)</td><td id="s-normal-co2"></td><td id="s-optimize-co2"></td></tr>
     <tr><td>Riskli türbülans</td><td id="s-normal-turbulans"></td><td id="s-optimize-turbulans"></td></tr>
     <tr><td>İrtifa</td><td id="s-normal-irtifa"></td><td id="s-optimize-irtifa"></td></tr>
+    <tr><td>SIGMET / kısıtlı saha ihlali</td><td id="s-normal-kisit"></td><td id="s-optimize-kisit"></td></tr>
   </table>
   <hr>
   <div id="strateji-satiri" style="font-size:11px; color:#9fd6ff; margin-bottom:4px;"></div>
@@ -120,6 +122,8 @@
 <div id="lejant" class="panel">
   <div><span class="cizgi" style="background:#3388ff"></span> Normal rota (büyük daire)</div>
   <div><span class="cizgi" style="background:#2ecc71"></span> Optimize rota (önce güvenlik, sonra yakıt)</div>
+  <div><span class="hacim" style="background:rgba(231,76,60,0.3); border-color:#e74c3c"></span> Aktif SIGMET (sert kısıt)</div>
+  <div><span class="hacim" style="background:rgba(142,68,173,0.3); border-color:#8e44ad"></span> Kısıtlı/yasak hava sahası (sert kısıt)</div>
   <div style="font-size:11px; color:#999; margin-top:6px; border-top:1px solid #444; padding-top:6px;">
     Optimize rota ÖNCE riskli türbülanstan (gerçek Ellrod TI1 indeksi) kaçınır,
     SONRA en ucuz (yakıt/süre) yolu bulur -- yanal sapma (A* araması) ile
@@ -241,6 +245,9 @@ function sonucPanelDoldur(sonuc) {
   document.getElementById("s-optimize-turbulans").textContent = `${sonuc.optimize_rota.riskli_nokta_sayisi} nokta`;
   document.getElementById("s-normal-irtifa").textContent = sonuc.normal_rota.irtifa_ft.toFixed(0) + " ft";
   document.getElementById("s-optimize-irtifa").textContent = sonuc.optimize_rota.irtifa_ft.toFixed(0) + " ft";
+  for (const [id, rota] of [["s-normal-kisit", sonuc.normal_rota], ["s-optimize-kisit", sonuc.optimize_rota]]) {
+    document.getElementById(id).textContent = `${rota.sigmet_ihlali_sayisi} / ${rota.kisitli_saha_ihlali_sayisi}`;
+  }
 
   const stratejiEtiketleri = {
     yanal: "Strateji: yanal sapma (A*)",

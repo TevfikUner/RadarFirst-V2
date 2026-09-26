@@ -94,6 +94,8 @@ from turbulans_radar.api.semalar import (
     GorevBaslatildiYaniti,
     GorevDurumYaniti,
     HavaDurumuKupuYaniti,
+    KisitliSahaIceAktarmaYaniti,
+    KisitliSahaYaniti,
     ModelBilgisiYaniti,
     ModelVersiyonuOzetiYaniti,
     RotaSimulasyonuIstegi,
@@ -142,6 +144,12 @@ from turbulans_radar.rota.rota_optimizasyonu import (
     simulasyonu_czml_e_cevir,
     veri_kupune_eris,
 )
+from turbulans_radar.veri.kisitli_saha_saglayici import (
+    gecerli_kisitli_sahalari_getir,
+    geojson_ice_aktar,
+    kisitli_sahayi_sil,
+    ornek_veriyi_yukle,
+)
 from turbulans_radar.veri.sigmet_saglayici import gecerli_sigmetleri_getir, kacinilacak_tehlikeler, sigmetleri_guncelle
 from turbulans_radar.veri.veri_saglayicilari import Kutu, canli_kup_hazirla
 from turbulans_radar.veri.veri_yukleme import hava_durumu_dosyalari, veri_kupu_adi
@@ -165,6 +173,12 @@ async def _yasam_dongusu(uygulama):
         await asyncio.to_thread(yerel_kupleri_katalogla)
     except Exception as hata:
         _logger.warning("Yerel hava küpleri kataloğa kaydedilemedi: %s", dostane_hata_mesaji(hata))
+    if config.KISITLI_SAHA_ORNEK_VERI_YUKLE:
+        try:
+            if sayi := await asyncio.to_thread(ornek_veriyi_yukle):
+                _logger.warning("%d ÖRNEK kısıtlı hava sahası yüklendi (resmi veri değil).", sayi)
+        except Exception as hata:
+            _logger.warning("Örnek kısıtlı sahalar yüklenemedi: %s", dostane_hata_mesaji(hata))
     zamanlayici = None
     if config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA > 0:
         zamanlayici = asyncio.create_task(_sigmet_zamanlayicisi(config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA * 60))
@@ -889,6 +903,42 @@ async def aktif_sigmetleri_listele(
         boylam_maks,
         tehlike or kacinilacak_tehlikeler(),
     )
+
+
+@v1.get("/kisitli-sahalar", response_model=list[KisitliSahaYaniti], tags=["Kısıtlı Hava Sahaları"])
+async def kisitli_sahalari_listele(
+    enlem_min: float = Query(default=-90, ge=-90, le=90),
+    enlem_maks: float = Query(default=90, ge=-90, le=90),
+    boylam_min: float = Query(default=-180, ge=-180, le=180),
+    boylam_maks: float = Query(default=180, ge=-180, le=180),
+):
+    """ŞU AN geçerli (süresizler dahil) kısıtlı/yasak hava sahaları -- A*'ın
+    SIGMET gibi sert kısıt olarak kaçındığı alanlar."""
+    simdi = datetime.now(UTC)
+    return await asyncio.to_thread(
+        gecerli_kisitli_sahalari_getir, simdi, simdi, enlem_min, enlem_maks, boylam_min, boylam_maks
+    )
+
+
+@v1.post("/kisitli-sahalar", response_model=KisitliSahaIceAktarmaYaniti, tags=["Kısıtlı Hava Sahaları"])
+async def kisitli_sahalari_ice_aktar(
+    geojson: dict,
+    kaynak: str = Query(min_length=1, max_length=32, pattern=r"^[a-z0-9_\-]+$"),
+    eskileri_kaldir: bool = Query(default=False, description="Bu kaynağın yeni veride olmayan kayıtlarını sil"),
+):
+    """GeoJSON FeatureCollection içe aktarır (Polygon/MultiPolygon; properties:
+    kimlik, ad, tur, taban_ft, tavan_ft, baslangic, bitis, aciklama). Örn. n8n
+    bir NOTAM akışından geçici kısıtları `kaynak=notam` ile iter. Aynı
+    kaynak:kimlik ikinci kez gelirse güncellenir."""
+    _hiz_sinirini_kontrol_et("kisitli_saha")
+    return await asyncio.to_thread(geojson_ice_aktar, geojson, kaynak, eskileri_kaldir)
+
+
+@v1.delete("/kisitli-sahalar/{dis_kimlik}", status_code=status.HTTP_204_NO_CONTENT, tags=["Kısıtlı Hava Sahaları"])
+async def kisitli_saha_sil(dis_kimlik: str = Path(max_length=128)):
+    _hiz_sinirini_kontrol_et("kisitli_saha")
+    if not await asyncio.to_thread(kisitli_sahayi_sil, dis_kimlik):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kısıtlı saha bulunamadı.")
 
 
 _CANLI_VERI_MAKS_KUTU_DERECE = (40.0, 60.0)

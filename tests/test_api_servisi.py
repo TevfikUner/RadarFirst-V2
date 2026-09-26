@@ -942,3 +942,33 @@ async def test_canli_veri_bozuk_yanitta_ic_ayrinti_sizdirmadan_502(istemci, api_
     )
     assert yanit.status_code == 502
     assert "gizli" not in yanit.text
+
+
+# --- Kısıtlı hava sahaları ---
+
+
+async def test_kisitli_saha_ice_aktarma_listeleme_ve_silme(istemci, api_anahtari):
+    from test_kisitli_saha_saglayici import _koleksiyon, _ozellik
+
+    basliklar = {"X-API-Key": api_anahtari}
+    try:
+        yanit = await istemci.post(
+            "/api/v1/kisitli-sahalar?kaynak=test_saha", json=_koleksiyon(_ozellik()), headers=basliklar
+        )
+        assert yanit.status_code == 200 and yanit.json() == {"kaydedilen": 1, "kaldirilan": 0}
+
+        yanit = await istemci.get(
+            "/api/v1/kisitli-sahalar?enlem_min=38&enlem_maks=40&boylam_min=30&boylam_maks=32", headers=basliklar
+        )
+        assert any(s["dis_kimlik"] == "test_saha:p1" and s["tur"] == "KISITLI" for s in yanit.json())
+
+        yanit = await istemci.post(
+            "/api/v1/kisitli-sahalar?kaynak=test_saha", json={"type": "Feature"}, headers=basliklar
+        )
+        assert yanit.status_code == 400 and "FeatureCollection" in yanit.json()["detail"]
+
+        assert (await istemci.delete("/api/v1/kisitli-sahalar/test_saha:p1", headers=basliklar)).status_code == 204
+        assert (await istemci.delete("/api/v1/kisitli-sahalar/test_saha:p1", headers=basliklar)).status_code == 404
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM kisitli_hava_sahalari WHERE kaynak = 'test_saha'"))

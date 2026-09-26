@@ -4,6 +4,22 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Kısıtlı / yasak hava sahası katmanı
+
+- **A* artık çatışma bölgesine/yasak sahaya sapma önermiyor:** ±400 km'lik
+  yanal ızgara, hava durumundan kaçarken planlı rotanın kullanmadığı bir
+  ülkeye ya da yasak sahaya rota çizebiliyordu. `KisitliSahaKatmani`
+  (SIGMET ile ortak `PoligonKisitKatmani` tabanı: poligon + irtifa bandı +
+  geçerlilik; boş sınır = süresiz/sınırsız) sert kısıt olarak uygulanıyor.
+  Kalkış/varış noktasını içeren saha muaf tutulup raporlanıyor.
+- Yeni `kisitli_hava_sahalari` tablosu (göç `e5b39618c49e`), GeoJSON içe aktarma
+  (`turbulans-kisitli-saha`, `GET/POST/DELETE /api/v1/kisitli-sahalar`).
+- Paketle gelen ÖRNEK veri: Natural Earth 1:50m'den Suriye ve Irak (resmi
+  FIR/CZIB sınırı değil; yanıt bunu belirtiyor). Malatya → Musul'da büyük daire
+  Suriye'yi 13 nokta/bacakta kesiyor; A* 60 km sapmayla kaçınıyor.
+- 3D simülasyonda kısıtlı sahalar mor hacim; sonuç tablosunda SIGMET/kısıtlı
+  saha ihlal sayıları.
+
 ## SIGMET akışında sessiz kayıp koruması
 
 - **Akış çözümlenemezse aktif SIGMET'ler artık kapatılmıyor:** "akışta yok
