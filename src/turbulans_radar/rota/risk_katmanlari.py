@@ -126,7 +126,7 @@ class PoligonKisitKatmani:
 
     def __init__(self, kayitlar):
         self.kayitlar = list(kayitlar)
-        self._poligonlar = [sigmet_geometrisi(k["poligon"]) for k in self.kayitlar]
+        self._poligonlar = [k.get("_geometri") or sigmet_geometrisi(k["poligon"]) for k in self.kayitlar]
         for poligon in self._poligonlar:
             shapely.prepare(poligon)
         self._sinirlar = [shapely.bounds(p) for p in self._poligonlar]
@@ -250,6 +250,9 @@ class PoligonKisitKatmani:
 
     def noktayi_iceren_kayitlar(self, enlem, boylam) -> list[dict]:
         return [k for k, p in zip(self.kayitlar, self._poligonlar) if shapely.intersects_xy(p, boylam, enlem)]
+
+    def geometri(self, kayit) -> object:
+        return self._poligonlar[next(i for i, k in enumerate(self.kayitlar) if k is kayit)]
 
 
 class SigmetKisitKatmani(PoligonKisitKatmani):

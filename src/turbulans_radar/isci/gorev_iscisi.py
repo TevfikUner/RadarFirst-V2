@@ -141,12 +141,19 @@ def _canli_veri_gorevi(gorev):
     return {"durum": "tamamlandi", "ozet": [json.loads(json.dumps(ozet, default=str))]}
 
 
+def _openaip_gorevi(gorev):
+    from turbulans_radar.veri.openaip_saglayici import openaip_ice_aktar
+
+    return {"durum": "tamamlandi", "ozet": [openaip_ice_aktar((gorev["parametreler"] or {}).get("ulkeler"))]}
+
+
 ISLEYICILER = {
     "ucus": _ucus_gorevi,
     "rota": _rota_gorevi,
     "toplu": _toplu_gorevi,
     "backtest": _backtest_gorevi,
     "canli_veri": _canli_veri_gorevi,
+    "openaip": _openaip_gorevi,
 }
 
 

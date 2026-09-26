@@ -61,7 +61,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | Durum | Sistemin davranışı |
 |---|---|
 | SIGMET'e ve kısıtlı sahalara girmeyen geçerli bir rota yok (örn. varış noktası SIGMET içinde, koridoru kesen bir yasak saha) | **Öneri yapılmaz**: `guvenli_rota_bulundu_mu: false`, açıklamada "ÖNERİ YOK", normal rota gösterilir. |
-| Kısıtlı saha kalkış ya da varış noktasını içeriyor (örn. varış ülkesi) | O saha kısıt olarak uygulanmaz ve `kisitli_saha_kontrolu.muaf_tutulanlar`'da raporlanır; diğer sahalar uygulanır. |
+| Kısıtlı saha kalkış ya da varış noktasını içeriyor (örn. varış ülkesi) | Sahada sadece planlı rotanın ±100 km koridoru serbest bırakılır, geri kalanı kısıt olarak uygulanır; `muaf_tutulanlar`'da raporlanır. |
 | Kısıtlı saha veritabanına erişilemiyor | Rota hesaplanır; `kisitli_saha_kontrolu.durum = "erisilemedi"` ve açıklamada UYARI yer alır. |
 | Kullanılan kısıtlı sahalar paketle gelen örnek veriden | `kisitli_saha_kontrolu.ornek_veri_mi: true` ve açıklamada NOT. |
 | SIGMET veritabanına erişilemiyor | Rota hesaplanır; `sigmet_kontrolu.durum = "erisilemedi"` ve açıklamada UYARI yer alır. |

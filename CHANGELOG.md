@@ -43,6 +43,13 @@ gruplanmıştır, en yeni en üstte.
   uygulanmış rüzgarsız ön sonuç ve `canli_veri_hazirlaniyor`; sayfa kendiliğinden
   yeniliyor. Canlı ölçüm (Madrid-Paris): ilk yanıt 8.1 sn, indirme toplam
   ~38 sn, sonraki istek 0.2 sn GFS ile. İşçi/backtest indirmeyi bekliyor.
+- **Kısıtlı saha muafiyeti daraltıldı:** kalkış/varış noktasını içeren sahanın
+  TAMAMI muaftı (A* varış ülkesinde istediği yere sapabiliyordu). Artık sadece
+  planlı rotanın ±100 km koridoru serbest; Malatya-Musul yine 58 km sapmayla
+  çözülüyor. 3D sahne koridoru çıkarılmış geometriyi çiziyor.
+- **Gerçek kısıtlı saha kaynağı:** openAIP Core API v2 içe aktarıcısı
+  (`veri/openaip_saglayici.py`; alanlar resmi OpenAPI şemasından). Anahtar
+  gerekiyor (`OPENAIP_API_ANAHTARI`), veri CC BY-NC 4.0.
 
 ## Sağlık ucunda izleme, kütüphaneler ve altlık harita yerelden
 

@@ -435,9 +435,21 @@ ile aynı dört boyutlu mantıkla (poligon + irtifa bandı + geçerlilik pencere
 yer/sınırsız demektir. Öncelik sırası: (1) SIGMET'e ve kısıtlı sahaya
 girmemek, (2) TI1 riskinden kaçınmak, (3) en ucuz yakıt/süre.
 
-- **Uç nokta muafiyeti:** kalkış ya da varış noktasını İÇEREN saha kısıt
-  olarak uygulanmaz (uçuşun o sahaya yetkili olduğu varsayılır, örn. varış
-  ülkesi) ve yanıttaki `kisitli_saha_kontrolu.muaf_tutulanlar`'da raporlanır.
+- **Uç nokta koridoru:** kalkış ya da varış noktasını İÇEREN sahada (örn.
+  varış ülkesi) uçuşun planlı rotasına yetkili olduğu varsayılır: sadece
+  büyük dairenin ±`KISITLI_SAHA_UC_KORIDORU_KM` (100) km çevresi serbest, sahanın
+  geri kalanına sapma önerilmez. Bu sahalar `muaf_tutulanlar`'da raporlanır.
+- **Gerçek veri (openAIP):** `OPENAIP_API_ANAHTARI` (openaip.net'ten ücretsiz)
+  tanımlıysa `turbulans-kisitli-saha openaip --ulke TR` ya da
+  `POST /api/v1/kisitli-sahalar/openaip` (yönetici, kuyruğa girer) ülkenin
+  AIP'ten derlenmiş Restricted/Prohibited sahalarını çeker (`OPENAIP_SAHA_TURLERI`
+  ile Danger/TRA/TSA eklenebilir) ve `openaip` kaynağını tam yeniler; boş yanıt
+  mevcut veriyi silmez. Alanlar resmi OpenAPI şemasından doğrulandı; FL/metre
+  limitleri feet'e çevrilir, zemine göre (AGL) üst limitlere arazi payı eklenir,
+  NOTAM'la etkinleşen sahalar sürekli etkin sayılır. **Lisans:** openAIP verisi
+  CC BY-NC 4.0 (ticari olmayan kullanım, atıf). Herkese açık dışa aktarım
+  dosyaları artık anahtarsız indirilemiyor. AIRAC döngüsünde (28 gün) n8n ile
+  yenilenebilir.
 - **Veri:** GeoJSON FeatureCollection (Polygon/MultiPolygon; `kimlik`, `ad`,
   `tur` = `CATISMA`/`YASAK`/`KISITLI`/`TEHLIKELI`/`GECICI`, `taban_ft`,
   `tavan_ft`, `baslangic`, `bitis`, `aciklama`). İçe aktarma:

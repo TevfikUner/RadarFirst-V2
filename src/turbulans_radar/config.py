@@ -224,6 +224,16 @@ CANLI_VERI_BEKLEME_SANIYE = _ortam_sayi("CANLI_VERI_BEKLEME_SANIYE", 8.0)
 # ülke sınırından Suriye/Irak) yüklenir. Resmi AIP/CZIB verisiyle çalışan bir
 # kurulumda kapatılmalıdır.
 KISITLI_SAHA_ORNEK_VERI_YUKLE = _ortam_bool("KISITLI_SAHA_ORNEK_VERI_YUKLE", True)
+# Kalkış/varış noktasını içeren kısıtlı sahada (örn. varış ülkesi) sadece planlı
+# rotanın (büyük daire) bu kadar km çevresi serbesttir; sahanın geri kalanına
+# sapma önerilmez.
+KISITLI_SAHA_UC_KORIDORU_KM = _ortam_sayi("KISITLI_SAHA_UC_KORIDORU_KM", 100.0)
+# openaip_saglayici.py -- gerçek kısıtlı saha verisi (OPENAIP_API_ANAHTARI .env'de).
+# Türler (openAIP kodları): 1 Restricted, 2 Danger, 3 Prohibited, 8 TRA, 9 TSA.
+OPENAIP_ULKELER = tuple(u.strip() for u in _ortam_str("OPENAIP_ULKELER", "TR").split(",") if u.strip())
+OPENAIP_SAHA_TURLERI = tuple(int(t) for t in _ortam_str("OPENAIP_SAHA_TURLERI", "1,3").split(",") if t.strip())
+# GND referanslı üst limite eklenen arazi payı (arazi yüksekliği bilinmiyor; muhafazakâr).
+OPENAIP_AGL_UST_PAYI_FT = _ortam_sayi("OPENAIP_AGL_UST_PAYI_FT", 15000.0)
 
 # rota_backtest.py -- gerçek uçuşla karşılaştırılan A* rotasında kullanılan
 # uçak profili (bkz. rota_optimizasyonu.UCAK_PROFILLERI).

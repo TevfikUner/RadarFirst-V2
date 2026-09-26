@@ -73,6 +73,7 @@ from dataclasses import dataclass
 
 import numpy as np
 import pandas as pd
+import shapely
 import xarray as xr
 
 from turbulans_radar import config
@@ -707,10 +708,41 @@ def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, t
     return katman, {**ozet, "durum": "uygulandi"}
 
 
+_SAHA_OZET_ALANLARI = (
+    "id",
+    "dis_kimlik",
+    "ad",
+    "tur",
+    "kaynak",
+    "taban_ft",
+    "tavan_ft",
+    "gecerlilik_baslangic",
+    "gecerlilik_bitis",
+    "poligon",
+)
+
+
+def _cizim_kayitlari(saha):
+    """Yanıt/CZML için saha özeti; koridoru çıkarılmış sahada (bkz.
+    _kisitli_saha_katmanini_hazirla) her parçanın dış halkası ayrı çizilir."""
+    ozet = {alan: saha.get(alan) for alan in _SAHA_OZET_ALANLARI}
+    geometri = saha.get("_geometri")
+    if geometri is None:
+        return [ozet]
+    parcalar = [g for g in shapely.get_parts(geometri) if g.geom_type == "Polygon" and not g.is_empty]
+    return [
+        {**ozet, "ad": f"{saha['ad']} (planlı rota koridoru hariç)", "poligon": [list(k) for k in p.exterior.coords]}
+        for p in parcalar
+    ]
+
+
 def _kisitli_saha_katmanini_hazirla(kisitli_sahalar, enlemler_gc, boylamlar_gc, zaman_iso, tas_ms):
     """Kısıtlı hava sahalarını (verilmediyse veritabanından) yükleyip sert kısıt
-    katmanını kurar. Kalkış ya da varış noktasını İÇEREN sahalar uygulanmaz
-    (uçuşun o sahaya yetkili olduğu varsayılır, örn. varış ülkesi) ve özette
+    katmanını kurar. Kalkış ya da varış noktasını İÇEREN sahada (örn. varış
+    ülkesi) uçuşun planlı rotasına yetkili olduğu varsayılır: sadece büyük
+    dairenin ±KISITLI_SAHA_UC_KORIDORU_KM çevresi serbest bırakılır, sahanın
+    geri kalanı kısıt olarak kalır (eskiden sahanın TAMAMI muaftı, A* varış
+    ülkesinde istediği yere sapabiliyordu). Bu sahalar özette
     'muaf_tutulanlar' olarak raporlanır. Dönüş: (katman ya da None, özet)."""
     ozet = {"durum": "kisitli_saha_yok", "uygulanan_saha_sayisi": 0, "muaf_tutulanlar": [], "ornek_veri_mi": False}
     if kisitli_sahalar is None:
@@ -729,26 +761,20 @@ def _kisitli_saha_katmanini_hazirla(kisitli_sahalar, enlemler_gc, boylamlar_gc, 
         for enlem, boylam in ((enlemler_gc[0], boylamlar_gc[0]), (enlemler_gc[-1], boylamlar_gc[-1]))
         for saha in tum.noktayi_iceren_kayitlar(enlem, boylam)
     }
-    katman = KisitliSahaKatmani(s for s in tum.kayitlar if id(s) not in muaf)
+    koridor = shapely.buffer(
+        shapely.linestrings(np.column_stack([boylamlar_gc, enlemler_gc])), config.KISITLI_SAHA_UC_KORIDORU_KM / 111.2
+    )
+    uygulanacak = []
+    for saha in tum.kayitlar:
+        if id(saha) not in muaf:
+            uygulanacak.append(saha)
+            continue
+        kalan = shapely.difference(tum.geometri(saha), koridor)
+        if not shapely.is_empty(kalan):
+            uygulanacak.append({**saha, "_geometri": kalan})
+    katman = KisitliSahaKatmani(uygulanacak)
     ozet["muaf_tutulanlar"] = [s["ad"] for s in tum.kayitlar if id(s) in muaf]
-    ozet["sahalar"] = [
-        {
-            alan: s.get(alan)
-            for alan in (
-                "id",
-                "dis_kimlik",
-                "ad",
-                "tur",
-                "kaynak",
-                "taban_ft",
-                "tavan_ft",
-                "gecerlilik_baslangic",
-                "gecerlilik_bitis",
-                "poligon",
-            )
-        }
-        for s in katman.kayitlar
-    ]
+    ozet["sahalar"] = [ciz for s in katman.kayitlar for ciz in _cizim_kayitlari(s)]
     ozet["uygulanan_saha_sayisi"] = len(katman.kayitlar)
     ozet["ornek_veri_mi"] = any(s.get("kaynak") == ORNEK_KAYNAK for s in tum.kayitlar)
     if not katman.kayitlar:
@@ -1057,7 +1083,8 @@ def _kisitli_saha_cumleleri(kontrol, normal):
         )
     if kontrol.get("muaf_tutulanlar"):
         cumleler.append(
-            "Kalkış/varış noktasını içerdiği için kısıt olarak uygulanmayan saha(lar): "
+            "Kalkış/varış noktasını içeren saha(lar)da sadece planlı rotanın "
+            f"±{config.KISITLI_SAHA_UC_KORIDORU_KM:.0f} km koridoru serbest bırakıldı: "
             + ", ".join(kontrol["muaf_tutulanlar"])
             + "."
         )

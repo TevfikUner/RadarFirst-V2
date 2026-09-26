@@ -1613,6 +1613,77 @@
         }
       }
     },
+    "/api/v1/kisitli-sahalar/openaip": {
+      "post": {
+        "tags": [
+          "Kısıtlı Hava Sahaları"
+        ],
+        "summary": "Openaip Sahalarini Yenile",
+        "description": "Gerçek kısıtlı/yasak sahaları openAIP'ten çekip 'openaip' kaynağını tam\nyeniler (OPENAIP_API_ANAHTARI gerekir; AIRAC döngüsünde n8n tetikleyebilir).\nKuyruğa girer; sonuç GET /analiz/durum/{gorev_id}.",
+        "operationId": "openaip_sahalarini_yenile_api_v1_kisitli_sahalar_openaip_post",
+        "parameters": [
+          {
+            "name": "ulke",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO ülke kodu(ları)",
+              "title": "Ulke"
+            },
+            "description": "ISO ülke kodu(ları)"
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GorevBaslatildiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/kisitli-sahalar/{dis_kimlik}": {
       "delete": {
         "tags": [

@@ -95,7 +95,7 @@ def _dis_kimlik(kaynak, kimlik, parca, parca_sayisi):
     return ham if len(ham) <= 128 else f"{kaynak}:{hashlib.sha1(ham.encode()).hexdigest()}"
 
 
-def geojson_kayitlarina_cevir(geojson: dict, kaynak: str) -> list[dict]:
+def geojson_kayitlarina_cevir(geojson: dict, kaynak: str, maks_ozellik: int | None = MAKS_OZELLIK) -> list[dict]:
     """GeoJSON FeatureCollection -> `kisitli_hava_sahalari` satırları. Geçersiz
     girdide hangi özelliğin neden reddedildiğini söyleyen ValueError."""
     if not isinstance(geojson, dict) or geojson.get("type") != "FeatureCollection":
@@ -103,8 +103,8 @@ def geojson_kayitlarina_cevir(geojson: dict, kaynak: str) -> list[dict]:
     ozellikler = geojson.get("features")
     if not isinstance(ozellikler, list) or not ozellikler:
         raise ValueError("'features' boş olmayan bir liste olmalı.")
-    if len(ozellikler) > MAKS_OZELLIK:
-        raise ValueError(f"Tek seferde en fazla {MAKS_OZELLIK} özellik içe aktarılabilir.")
+    if maks_ozellik is not None and len(ozellikler) > maks_ozellik:
+        raise ValueError(f"Tek seferde en fazla {maks_ozellik} özellik içe aktarılabilir.")
     kayitlar = {}
     for sira, ozellik in enumerate(ozellikler):
         if not isinstance(ozellik, dict):
@@ -146,12 +146,12 @@ def geojson_kayitlarina_cevir(geojson: dict, kaynak: str) -> list[dict]:
     return list(kayitlar.values())
 
 
-def geojson_ice_aktar(geojson: dict, kaynak: str, eskileri_kaldir=False, motor=None) -> dict:
+def geojson_ice_aktar(geojson: dict, kaynak: str, eskileri_kaldir=False, motor=None, maks_ozellik=MAKS_OZELLIK) -> dict:
     """Upsert (dis_kimlik = kaynak:kimlik). eskileri_kaldir: bu kaynağın yeni
     veride olmayan kayıtlarını siler (örn. AIRAC döngüsünde tam yenileme)."""
     if not kaynak or len(kaynak) > 32:
         raise ValueError("kaynak 1-32 karakter olmalı.")
-    kayitlar = geojson_kayitlarina_cevir(geojson, kaynak)
+    kayitlar = geojson_kayitlarina_cevir(geojson, kaynak, maks_ozellik)
     motor = motor or motor_al()
     ifade = insert(KisitliHavaSahasi).values(kayitlar)
     with Session(motor) as oturum:
@@ -254,6 +254,8 @@ def ana():
     ice.add_argument("--kaynak", required=True, help="örn. aip, czib, notam (en fazla 32 karakter)")
     ice.add_argument("--eskileri-kaldir", action="store_true", help="Bu kaynağın yeni dosyada olmayan kayıtlarını sil")
     alt.add_parser("ornek-yukle", help="Paketle gelen örnek veriyi (yeniden) yükler")
+    openaip = alt.add_parser("openaip", help="Gerçek sahaları openAIP'ten çeker (OPENAIP_API_ANAHTARI gerekir)")
+    openaip.add_argument("--ulke", action="append", help="ISO ülke kodu, birden çok verilebilir (varsayılan: config)")
     alt.add_parser("listele", help="Şu an geçerli sahaları listeler")
     sil = alt.add_parser("sil", help="Bir sahayı dis_kimlik ile siler")
     sil.add_argument("dis_kimlik")
@@ -261,6 +263,10 @@ def ana():
 
     if argumanlar.komut == "ice-aktar":
         print(dosyadan_ice_aktar(argumanlar.dosya, argumanlar.kaynak, argumanlar.eskileri_kaldir))
+    elif argumanlar.komut == "openaip":
+        from turbulans_radar.veri.openaip_saglayici import openaip_ice_aktar
+
+        print(openaip_ice_aktar(argumanlar.ulke))
     elif argumanlar.komut == "ornek-yukle":
         print({"kaydedilen": ornek_veriyi_yukle(zorla=True)})
     elif argumanlar.komut == "listele":

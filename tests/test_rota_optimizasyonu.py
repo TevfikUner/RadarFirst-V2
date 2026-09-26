@@ -284,7 +284,26 @@ def test_malatya_musul_rotasi_suriyeden_kacinir_varis_ulkesi_muaf_tutulur():
     assert sonuc["kisitli_sahadan_kacinildi_mi"] is True and sonuc["guvenli_rota_bulundu_mu"] is True
     assert "ÖRNEK" in sonuc["aciklama"]
     saha_varliklari = [v for v in simulasyonu_czml_e_cevir(sonuc) if v["id"].startswith("kisitli-saha-")]
-    assert len(saha_varliklari) == 1 and "availability" not in saha_varliklari[0]
+    assert saha_varliklari and all("availability" not in v for v in saha_varliklari)
+    assert any("koridoru hariç" in v["name"] for v in saha_varliklari)
+
+
+def test_varis_ulkesinde_planli_rota_koridoru_disina_sapilmaz():
+    """Varış noktasını içeren saha tamamen muaf değil: koridor dışı yine yasak."""
+    saha = _kare_saha(0.0, 10.0, 20.0, 30.0)
+    sonuc = rota_simulasyonu_olustur(
+        5.0, 10.0, 5.0, 25.0, 36000, "2019-01-15T00:00:00", "A320", sigmetler=[], kisitli_sahalar=[saha]
+    )
+    assert sonuc["kisitli_saha_kontrolu"]["muaf_tutulanlar"] == ["Deneme sahası"]
+    assert sonuc["normal_rota"]["kisitli_saha_ihlali_sayisi"] == 0
+
+    from turbulans_radar.rota.risk_katmanlari import KisitliSahaKatmani
+
+    kalan = [s for s in sonuc["kisitli_saha_kontrolu"]["sahalar"]]
+    katman = KisitliSahaKatmani(kalan)
+    zaman = [pd.Timestamp("2019-01-15T03:00:00", tz="UTC")]
+    assert katman.rota_ihlal_sayisi([5.3], [24.0], zaman, 11000.0) == 0
+    assert katman.rota_ihlal_sayisi([8.0], [24.0], zaman, 11000.0) == 1
 
 
 def test_koridoru_tamamen_kesen_kisitli_saha_varsa_rota_onerilmez():

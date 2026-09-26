@@ -705,6 +705,30 @@
           }
         },
         {
+          "name": "Openaip Sahalarini Yenile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/kisitli-sahalar/openaip",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "kisitli-sahalar",
+                "openaip"
+              ]
+            }
+          }
+        },
+        {
           "name": "Kisitli Saha Sil",
           "request": {
             "method": "DELETE",

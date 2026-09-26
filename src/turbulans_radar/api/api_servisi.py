@@ -980,6 +980,21 @@ async def kisitli_sahalari_ice_aktar(
     return await asyncio.to_thread(geojson_ice_aktar, geojson, kaynak, eskileri_kaldir)
 
 
+@v1.post(
+    "/kisitli-sahalar/openaip",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=GorevBaslatildiYaniti,
+    tags=["Kısıtlı Hava Sahaları"],
+)
+async def openaip_sahalarini_yenile(ulke: list[str] | None = Query(default=None, description="ISO ülke kodu(ları)")):
+    """Gerçek kısıtlı/yasak sahaları openAIP'ten çekip 'openaip' kaynağını tam
+    yeniler (OPENAIP_API_ANAHTARI gerekir; AIRAC döngüsünde n8n tetikleyebilir).
+    Kuyruğa girer; sonuç GET /analiz/durum/{gorev_id}."""
+    _hiz_sinirini_kontrol_et("kisitli_saha")
+    return _kuyruga_alindi(await _gorev_olustur("openaip", parametreler={"ulkeler": ulke}))
+
+
 @v1.delete(
     "/kisitli-sahalar/{dis_kimlik}",
     dependencies=_YONETICI,
