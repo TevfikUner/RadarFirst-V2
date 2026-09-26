@@ -113,6 +113,7 @@ async def test_isci_kuyruktaki_gorevi_calistirir_ve_webhooka_sonucu_gonderir(mon
         gi.ISLEYICILER, "test_kuyruk", lambda gorev: {"durum": "tamamlandi", "ozet": [gorev["parametreler"]]}
     )
     monkeypatch.setattr(gi.httpx, "post", lambda url, json, timeout: gonderilen.append((url, json)))
+    monkeypatch.setenv("WEBHOOK_IZIN_VERILEN_HOSTLAR", "n8n.ornek.com")
     gorev_id = await gorev_deposu.gorev_olustur(
         "test_kuyruk", parametreler={"n": 7}, bildirim_webhook_url="http://n8n.ornek.com/webhook/x"
     )

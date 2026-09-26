@@ -304,9 +304,12 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
 - **Webhook bildirimi:** `bildirim_webhook_url` verilirse, analiz bitince
   sonuç oraya POST edilir -- n8n'in Webhook node'u bunu dinleyip
   `/api/v1/analiz/durum/{gorev_id}`'yi periyodik yoklamaya gerek bırakmaz.
-  URL doğrulanır (sadece `http(s)`, link-local/ayrılmış IP'ler -- örn. bulut
-  metadata adresi -- reddedilir); `.env`'deki `WEBHOOK_IZIN_VERILEN_HOSTLAR`
-  doluysa sadece o host'lara gönderilir (SSRF koruması).
+  **SSRF koruması (`webhook.py`):** varsayılan olarak sadece genel (public)
+  adreslere gönderilir; hem istek anında (yazılan adres) hem gönderim anında
+  (adın ÇÖZÜMLENDİĞİ IP) kontrol edilir, yönlendirme izlenmez. Aynı
+  makinedeki/iç ağdaki n8n için host'u `.env`'deki
+  `WEBHOOK_IZIN_VERILEN_HOSTLAR`'a ekle (örn. `localhost,n8n`); liste doluysa
+  sadece listedeki host'lara gönderilir.
 - **Kayıt garantisi:** API'den tetiklenen analizde sonuç PostgreSQL'e
   yazılamazsa görev `tamamlandi` değil `hata` olur (CLI ise haritayı yine
   üretir, sadece uyarır).

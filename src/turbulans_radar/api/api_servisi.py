@@ -46,14 +46,12 @@ BİLİNÇLİ OLARAK EKLENMEDİ:
 
 import asyncio
 import inspect
-import ipaddress
 import json
 import os
 import secrets
 import time
 from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime
-from urllib.parse import urlsplit
 
 try:
     from dotenv import load_dotenv
@@ -158,6 +156,7 @@ from turbulans_radar.veri.sigmet_saglayici import (
 )
 from turbulans_radar.veri.veri_saglayicilari import canli_durum_anahtari
 from turbulans_radar.veri.veri_yukleme import hava_durumu_dosyalari, onbellek_durumu
+from turbulans_radar.webhook import webhook_url_dogrula
 
 loglama.ayarla()
 _logger = loglama.logger_al(__name__)
@@ -419,24 +418,8 @@ def _tarihi_dogrula(deger: str) -> str:
 
 
 def _webhook_url_dogrula(deger: str | None) -> str | None:
-    if deger is None:
-        return None
-    parcalar = urlsplit(deger)
-    if parcalar.scheme not in ("http", "https") or not parcalar.hostname:
-        raise ValueError("bildirim_webhook_url 'http(s)://' ile başlayan geçerli bir URL olmalı.")
-    host = parcalar.hostname.lower()
-    izinli_hostlar = [
-        h.strip().lower() for h in os.environ.get("WEBHOOK_IZIN_VERILEN_HOSTLAR", "").split(",") if h.strip()
-    ]
-    if izinli_hostlar and host not in izinli_hostlar:
-        raise ValueError("bildirim_webhook_url'in host'u WEBHOOK_IZIN_VERILEN_HOSTLAR listesinde değil.")
-    try:
-        ip = ipaddress.ip_address(host)
-    except ValueError:
-        return deger
-    if ip.is_link_local or ip.is_multicast or ip.is_unspecified or ip.is_reserved:
-        raise ValueError("bildirim_webhook_url link-local/multicast/ayrılmış bir adrese işaret edemez.")
-    return deger
+    """Bkz. webhook.py: biçim + izin listesi + iç ağ adresi kontrolü (SSRF)."""
+    return webhook_url_dogrula(deger)
 
 
 class UcusAnalizIstegi(BaseModel):

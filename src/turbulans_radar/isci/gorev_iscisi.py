@@ -47,6 +47,7 @@ from turbulans_radar.dogrulama.rota_backtest import toplu_backtest
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.veri.veri_saglayicilari import Kutu, canli_kup_hazirla
 from turbulans_radar.veri.veri_yukleme import veri_kupu_adi
+from turbulans_radar.webhook import webhook_hedefi_guvenli_mi
 
 _logger = loglama.logger_al(__name__)
 
@@ -164,6 +165,11 @@ def gorevi_yurut(gorev: dict) -> dict:
 
 def webhooku_bildir(webhook_url, govde) -> None:
     if not webhook_url:
+        return
+    if not webhook_hedefi_guvenli_mi(webhook_url):
+        _logger.warning(
+            "Webhook gönderilmedi: %s iç ağ/çözümlenemeyen bir adrese işaret ediyor (SSRF koruması).", webhook_url
+        )
         return
     try:
         httpx.post(webhook_url, json=json.loads(json.dumps(govde, default=str)), timeout=10)

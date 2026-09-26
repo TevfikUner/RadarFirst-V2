@@ -81,6 +81,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | Bir noktanın irtifası/zamanı küpün seviyelerinden ya da zaman adımlarından uzak | O nokta için TI1 NaN bırakılır; en yakın hücreden uydurma değer üretilmez. |
 | Analiz sonucu veritabanına yazılamadı (API) | Görev `hata` durumuna geçer; "tamamlandı" gösterilmez. |
 | API ya da işçi görev bitmeden yeniden başladı/çöktü | Kuyruktaki görevler kaybolmaz. Çalışan görevin kalp atışı kesilir; `GOREV_BAYAT_SANIYE` (120 sn) sonra görev yeniden kuyruğa girer, `GOREV_MAKS_DENEME` (2) aşılırsa `yarida_kaldi` olur. API'nin yeniden başlaması başka süreçteki işçinin görevine dokunmaz. |
+| Webhook adresi iç ağa (localhost, 10.x, bulut metadata) işaret ediyor ya da oraya çözümleniyor | İstek 422 ile reddedilir; gönderim anında çözümlenen IP iç ağdaysa gönderilmez (izin listesindeki host'lar hariç). |
 | Uzun ya da ağır bir iş (toplu analiz, yavaş ağda GFS indirme) | API'yi bloklamaz: iş kuyruğa girer, en fazla `GOREV_ISCI_SAYISI` iş aynı anda çalışır. |
 
 ## 5. Bilinen sınırlamalar

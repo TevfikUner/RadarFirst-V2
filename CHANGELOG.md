@@ -11,6 +11,12 @@ gruplanmıştır, en yeni en üstte.
   sapabildiği için koridorun dışındaki düğümler "kapsam dışı" diye grafikten
   atılıyordu (pratik koridor ~220 km). Küp artık A* payıyla iniyor
   (İzmir-Van: 31.75-45.5°K, 20.25-50.25°D, 545 KB; eskiden ~250 KB).
+- **Webhook SSRF koruması:** doğrulama sadece yazıyla verilmiş link-local
+  IP'leri engelliyordu; `localhost`, 10.x/192.168.x ve iç ağa çözümlenen
+  alan adları geçiyordu. `webhook.py`: izin listesi yoksa sadece genel
+  adresler; işçi gönderim anında adın çözümlendiği TÜM IP'leri kontrol
+  ediyor, yönlendirme izlenmiyor. Yerel n8n için host
+  `WEBHOOK_IZIN_VERILEN_HOSTLAR`'a eklenmeli (davranış değişikliği).
 
 ## Sağlık ucunda izleme, kütüphaneler ve altlık harita yerelden
 
