@@ -62,6 +62,7 @@ class Kutu:
 
 class VeriSaglayici(Protocol):
     kaynak: str
+    zaman_adimi: str
 
     def kup_indir(self, kutu: Kutu, baslangic: datetime, bitis: datetime, hedef_yol: str) -> str | None:
         """Küpü ORTAK şemada hedef_yol'a NetCDF olarak yazar; model çalıştırma
@@ -104,6 +105,7 @@ _yeniden_dene = retry(
 
 class GfsThreddsSaglayici:
     kaynak = "gfs"
+    zaman_adimi = "3h"
 
     def __init__(self, url=None, basinc_seviyeleri_hpa=None, timeout=60.0):
         self.url = url or config.GFS_THREDDS_URL
@@ -171,7 +173,12 @@ def canli_kup_hazirla(kutu: Kutu, baslangic, bitis, saglayici: VeriSaglayici | N
     küp yine indirilip kullanılır, sadece kaydedilmez."""
     saglayici = saglayici or GfsThreddsSaglayici()
     kutu = kutu.genislet(_KUTU_PAYI_DERECE)
-    baslangic, bitis = (_utc(baslangic) - _ZAMAN_PAYI).floor("h"), (_utc(bitis) + _ZAMAN_PAYI).ceil("h")
+    # Pencere sağlayıcının zaman adımına hizalanır: GFS 3 saatlik adımlarla gelir;
+    # saate yuvarlanmış bir pencere (örn. 10:00) küpün ilk adımından (12:00)
+    # önce başlayacağı için katalogdaki küp hiç "kapsayan" sayılmaz ve her
+    # istekte yeniden indirilirdi.
+    adim = getattr(saglayici, "zaman_adimi", "1h")
+    baslangic, bitis = (_utc(baslangic) - _ZAMAN_PAYI).floor(adim), (_utc(bitis) + _ZAMAN_PAYI).ceil(adim)
     try:
         yol = kapsayan_hazir_kup_yolu(
             saglayici.kaynak,

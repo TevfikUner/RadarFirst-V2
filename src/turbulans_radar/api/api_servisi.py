@@ -529,15 +529,12 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi):
 
     def _hesapla():
         irtifa_m = istek.irtifa_ft * 0.3048
-        if not hava_durumu_dosyalari():
-            return {
-                "kapsam_icinde_mi": False,
-                "aciklama": f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı -- sunucuda ERA5 veri küpü yok.",
-            }
         kapsam_disi_yaniti = {
             "kapsam_icinde_mi": False,
             "aciklama": (
-                "Seçilen nokta/tarih/irtifa, sunucudaki ERA5 veri küplerinden hiçbirinin kapsadığı aralıkta DEĞİL."
+                "Seçilen nokta/tarih/irtifa için kapsayan hava verisi yok: ne sunucudaki ERA5 küpleri "
+                f"({len(hava_durumu_dosyalari())} dosya) ne de canlı GFS (şimdi -{config.CANLI_GECMIS_SAAT} sa / "
+                f"+{config.CANLI_TAHMIN_UFKU_SAAT} sa) bu noktayı kapsıyor."
             ),
         }
         veri_kupu = veri_kupune_eris(istek.enlem, istek.boylam, istek.zaman, irtifa_m)
@@ -917,9 +914,11 @@ async def canli_veri_hazirla(istek: CanliVeriIstegi):
         kup = await asyncio.to_thread(
             canli_kup_hazirla, kutu, baslangic, baslangic + timedelta(hours=istek.saat_sayisi)
         )
-    except httpx.HTTPError as hata:
+    except Exception as hata:
         _hatayi_sunucu_tarafinda_logla(hata, "canlı GFS indirme")
-        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Canlı hava verisi sağlayıcısına ulaşılamadı.") from hata
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY, "Canlı hava verisi sağlayıcısından geçerli veri alınamadı."
+        ) from hata
     return {
         "kaynak": kup.attrs.get("kaynak", "era5"),
         "model_calisma_zamani": kup.attrs.get("model_calisma_zamani"),

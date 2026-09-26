@@ -60,6 +60,7 @@ class SahteSaglayici:
     küpleriyle karışmasın."""
 
     kaynak = "test_gfs"
+    zaman_adimi = "3h"
 
     def __init__(self):
         self.indirme_sayisi = 0
@@ -67,7 +68,7 @@ class SahteSaglayici:
     def kup_indir(self, kutu, baslangic, bitis, hedef_yol):
         self.indirme_sayisi += 1
         era5 = hava_durumu_onbellekli_yukle(config.HAVA_DURUMU_DOSYASI)
-        saatler = pd.date_range(pd.Timestamp(baslangic).floor("h"), pd.Timestamp(bitis).ceil("h"), freq="3h")
+        saatler = pd.date_range(pd.Timestamp(baslangic).ceil("3h"), pd.Timestamp(bitis).floor("3h"), freq="3h")
         kup = era5[["u", "v", "t"]].isel(valid_time=slice(0, len(saatler)))
         kup = kup.assign_coords(valid_time=saatler.tz_convert("UTC").tz_localize(None).values)
         kup.attrs = {"kaynak": "gfs", "model_calisma_zamani": "2026-09-26T06:00:00"}
@@ -105,6 +106,14 @@ def test_canli_kup_indirilir_kataloga_yazilir_ve_yeniden_kullanilir(sahte_canli_
     assert sahte_canli_ortam.indirme_sayisi == 1
     assert ikinci is kup
     assert vs.veri_kupu_kaynagi(kup) == "gfs"
+
+
+def test_gfs_adimina_denk_gelmeyen_saatlerde_de_katalogdaki_kup_yeniden_kullanilir(sahte_canli_ortam):
+    gun = pd.Timestamp.now(tz="UTC").normalize()
+    kutu = vs.Kutu(38.0, 39.0, 31.0, 35.0)
+    vs.canli_kup_hazirla(kutu, gun + pd.Timedelta("13h10min"), gun + pd.Timedelta("15h10min"))
+    vs.canli_kup_hazirla(kutu, gun + pd.Timedelta("14h50min"), gun + pd.Timedelta("16h"))
+    assert sahte_canli_ortam.indirme_sayisi == 1
 
 
 def test_yerel_kup_yoksa_ve_zaman_canliysa_saglayiciya_gidilir(sahte_canli_ortam):

@@ -4,6 +4,27 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Tarama: canlı veri katmanlarında 5 hata düzeltildi
+
+- **Antimeridyen SIGMET'leri:** 180° boylamını kesen poligonlar (Pasifik
+  FIR'ları: NZZO, KZAK, NTTT) düz yorumlanınca dünyayı saran bir şerit
+  oluyor, aynı enlem bandındaki alakasız rotaları (Türkiye dahil)
+  yasaklıyordu. Normalizasyonda boylamlar süreklileştiriliyor, risk
+  katmanında geometri -180..180'e bölünüyor.
+- **Geçersiz SIGMET poligonları:** AWC akışında kendini kesen bir halka
+  (MUFH/Havana) görüldü; geometri artık `make_valid` ile onarılıyor.
+- **Canlı GFS küpü her istekte yeniden iniyordu:** istek penceresi saate
+  yuvarlanıyor, GFS ise 3 saatlik adımlarla geliyordu (örn. 10:00 istenip
+  12:00'den başlayan küp "kapsamıyor" sayılıyordu). Pencere artık sağlayıcının
+  zaman adımına hizalanıyor.
+- **`/turbulans/tahmin` canlı GFS'i kullanamıyordu:** yerel `.nc` dosyası
+  yoksa (örn. Docker imajı) erkenden "küp yok" deyip dönüyordu.
+- **`/veri/canli/hazirla`** bozuk sağlayıcı yanıtında iç ayrıntıyı (dosya yolu)
+  400 ile sızdırabiliyordu -> artık genel 502; **toplu backtest**'te tek bir
+  uçuşun beklenmeyen hatası bütün görevi düşürmüyor.
+- Her biri için, düzeltmeden önce başarısız olduğu doğrulanan bir regresyon
+  testi eklendi.
+
 ## Kurulum, CI'da Docker ve sistem kartı
 
 - Geliştirme ortamı tek komut: `pip install -e ".[dev]"` (paket + sabit

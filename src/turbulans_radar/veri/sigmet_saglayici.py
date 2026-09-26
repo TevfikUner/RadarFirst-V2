@@ -86,7 +86,13 @@ def _irtifa_bandi(ham: dict) -> tuple[int | None, int | None]:
 
 def sigmet_kaydini_normalize_et(kaynak: str, ham: dict) -> dict | None:
     """AWC JSON kaydını `sigmetler` satırına çevirir. Poligonu olmayan (üçten
-    az köşeli) ya da SIGMET olmayan (AIRMET/outlook) kayıtlar için None."""
+    az köşeli) ya da SIGMET olmayan (AIRMET/outlook) kayıtlar için None.
+
+    180° boylamını kesen (Pasifik FIR'ları) poligonların boylamları sürekli
+    olacak şekilde 0..360 aralığına taşınır ve sınırlayıcı kutu tüm boylamları
+    kapsar -- aksi halde örn. 175°/-175° köşeli bir SIGMET, dünyayı saran bir
+    şerit gibi yorumlanıp alakasız rotaları yasaklardı. Geometrinin -180..180'e
+    bölünmesi risk_katmanlari.sigmet_geometrisi'nde yapılır."""
     if _abd_bicimi_mi(ham) and ham.get("airSigmetType") != "SIGMET":
         return None
     koseler = [(float(k["lon"]), float(k["lat"])) for k in ham.get("coords") or [] if "lat" in k and "lon" in k]
@@ -99,6 +105,12 @@ def sigmet_kaydini_normalize_et(kaynak: str, ham: dict) -> dict | None:
         return None
     taban_ft, tavan_ft = _irtifa_bandi(ham)
     boylamlar, enlemler = [k[0] for k in koseler], [k[1] for k in koseler]
+    antimeridyen = max(abs(b - a) for a, b in zip(boylamlar, boylamlar[1:])) > 180.0
+    if antimeridyen:
+        koseler = [((b + 360.0) % 360.0, e) for b, e in koseler]
+        boylam_min, boylam_maks = -180.0, 180.0
+    else:
+        boylam_min, boylam_maks = min(boylamlar), max(boylamlar)
     return {
         "dis_kimlik": _dis_kimlik(kaynak, ham),
         "kaynak": kaynak,
@@ -113,8 +125,8 @@ def sigmet_kaydini_normalize_et(kaynak: str, ham: dict) -> dict | None:
         "poligon": [list(k) for k in koseler],
         "enlem_min": min(enlemler),
         "enlem_maks": max(enlemler),
-        "boylam_min": min(boylamlar),
-        "boylam_maks": max(boylamlar),
+        "boylam_min": boylam_min,
+        "boylam_maks": boylam_maks,
         "ham_metin": ham.get("rawSigmet") or ham.get("rawAirSigmet"),
     }
 
