@@ -46,8 +46,10 @@ DEĞİL, ama "birkaç sabit aday dene" gibi açgözlü/kaba bir arama da DEĞİL
 
 DÜRÜSTLÜK SINIRLAMASI (projenin geri kalanıyla aynı ilkeyle):
 Gerçek ERA5 verisi bu depoda SADECE `config.HAVA_DURUMU_DOSYASI` küpünün
-kapsadığı bölge/tarih için var (varsayılan: Türkiye/Doğu Akdeniz, Ocak
-2019). Kullanıcının seçtiği başlangıç/bitiş/tarih bu kapsamın dışındaysa,
+(varsayılan: Türkiye/Doğu Akdeniz, Ocak 2019) ve `config.EK_HAVA_DURUMU_
+KLASORU`'ndaki küplerin (varsayılan: Kuzeydoğu ABD, 2018-2020 seçili günler)
+kapsadığı bölge/tarih/irtifa için var; rotayı en iyi kapsayan küp otomatik
+seçilir. Kullanıcının seçtiği başlangıç/bitiş/tarih/irtifa bu kapsamın dışındaysa,
 kod SESSİZCE uydurma bir rüzgar/türbülans üretmez -- `ruzgar_verisi_kaynagi`
 alanı "era5_kapsam_disi" döner, iki rota da (rüzgarsız, sadece TAS ile)
 büyük daire olarak hesaplanır ve `aciklama` alanında bu açıkça belirtilir.
@@ -73,7 +75,7 @@ import xarray as xr
 import config
 from birim_donusumleri import basinc_hpa_to_irtifa_metre, en_yakin_basinc_seviyesi, irtifa_metre_to_basinc_hpa
 from eslestirme import kapsam_disi_maskesi, rotayi_hava_durumuyla_eslestir
-from veri_yukleme import hava_durumu_onbellekli_yukle
+from veri_yukleme import hava_durumu_onbellekli_yukle, kapsayan_veri_kupunu_bul, veri_kupu_adi
 
 DUNYA_YARICAPI_M = 6_371_000.0
 
@@ -135,11 +137,17 @@ ALCALMA_YAKIT_TASARRUFU_ORANI = 0.3
 DIKEY_HIZ_FT_DK = 1500.0
 
 
-def veri_kupune_eris():
-    try:
-        return hava_durumu_onbellekli_yukle()
-    except FileNotFoundError:
-        return None
+def veri_kupune_eris(enlemler=None, boylamlar=None, zaman=None, irtifa_m=None):
+    """Argümansız: ana küp (yoksa None). Noktalar verilirse: onları en iyi
+    kapsayan küp (bkz. veri_yukleme.kapsayan_veri_kupunu_bul), yoksa None."""
+    if enlemler is None:
+        try:
+            return hava_durumu_onbellekli_yukle()
+        except FileNotFoundError:
+            return None
+    enlemler = np.atleast_1d(np.asarray(enlemler, dtype=float))
+    basinc_hpa = None if irtifa_m is None else np.full(len(enlemler), irtifa_metre_to_basinc_hpa(irtifa_m))
+    return kapsayan_veri_kupunu_bul(enlemler, boylamlar, [zaman] * len(enlemler), basinc_hpa)
 
 
 # ---------------------------------------------------------------------------
@@ -385,11 +393,12 @@ def _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, baslangic_zamani
 # ---------------------------------------------------------------------------
 
 
-def _era5_tamamen_kapsiyor_mu(veri_kupu, enlemler, boylamlar, zaman):
+def _era5_tamamen_kapsiyor_mu(veri_kupu, enlemler, boylamlar, zaman, irtifa_m=None):
     if veri_kupu is None:
         return False
     enlemler = np.atleast_1d(np.asarray(enlemler, dtype=float))
-    return not kapsam_disi_maskesi(veri_kupu, enlemler, boylamlar, [zaman] * len(enlemler)).any()
+    basinc_hpa = None if irtifa_m is None else np.full(len(enlemler), irtifa_metre_to_basinc_hpa(irtifa_m))
+    return not kapsam_disi_maskesi(veri_kupu, enlemler, boylamlar, [zaman] * len(enlemler), basinc_hpa).any()
 
 
 def _tz_sizlestir(zaman):
@@ -564,8 +573,9 @@ def rota_simulasyonu_olustur(
         baslangic_enlem, baslangic_boylam, bitis_enlem, bitis_boylam, nokta_sayisi
     )
 
-    veri_kupu = veri_kupune_eris()
-    ruzgarli_mi = _era5_tamamen_kapsiyor_mu(veri_kupu, enlemler_gc, boylamlar_gc, zaman_iso)
+    veri_kupu = veri_kupune_eris(enlemler_gc, boylamlar_gc, zaman_iso, irtifa_m)
+    ruzgarli_mi = _era5_tamamen_kapsiyor_mu(veri_kupu, enlemler_gc, boylamlar_gc, zaman_iso, irtifa_m)
+    kup_adi = veri_kupu_adi(veri_kupu)
 
     # --- "Normal" rota: her zaman büyük daire; rüzgar verisi varsa onunla,
     # yoksa sadece TAS ile zamanlanır. ---
@@ -703,15 +713,16 @@ def rota_simulasyonu_olustur(
 
     if not ruzgarli_mi:
         aciklama = (
-            f"Seçilen bölge/tarih, projenin ERA5 veri küpünün ('{config.HAVA_DURUMU_DOSYASI}') kapsadığı "
-            "bölge/tarih aralığının DIŞINDA -- bu beklenen, dürüst bir durumdur (bkz. sigmet_dogrulama.py'deki "
+            "Seçilen bölge/tarih/irtifa, projenin ERA5 veri küplerinden hiçbirinin (ana küp: "
+            f"'{config.HAVA_DURUMU_DOSYASI}', ek küpler: '{config.EK_HAVA_DURUMU_KLASORU}/') rotanın TAMAMINI "
+            "kapsadığı aralıkta DEĞİL -- bu beklenen, dürüst bir durumdur (bkz. sigmet_dogrulama.py'deki "
             "aynı ilke). Rüzgar VE türbülans (TI1) hesaba katılamadığı için iki rota da büyük daire olarak, "
             "sadece uçağın hava hızıyla (TAS) hesaplandı; gerçek bir yakıt tasarrufu/türbülans kaçınması iddia "
             "edilmiyor."
         )
     elif normal_riskli_sayisi == 0:
         aciklama = (
-            f"Gerçek ERA5 verisiyle hesaplandı ('{config.HAVA_DURUMU_DOSYASI}'). Normal rota üzerinde riskli "
+            f"Gerçek ERA5 verisiyle hesaplandı ('{kup_adi}'). Normal rota üzerinde riskli "
             f"türbülans (TI1 >= {config.TI1_ESIK_ORTA_SIDDETLI:.1e} s^-2) TESPİT EDİLMEDİ -- kaçınılacak bir "
             "risk olmadığı için optimize rota normal rotayla birebir aynıdır (uydurma bir sapma gösterilmiyor)."
         )
@@ -722,14 +733,14 @@ def rota_simulasyonu_olustur(
             "irtifa_asagi": f"irtifayı {(irtifa_m - optimize_irtifa_m) / 0.3048:.0f} ft azaltarak (alçalma)",
         }[kacinma_stratejisi]
         aciklama = (
-            f"Gerçek ERA5 verisiyle hesaplandı ('{config.HAVA_DURUMU_DOSYASI}'). Normal rota üzerinde "
+            f"Gerçek ERA5 verisiyle hesaplandı ('{kup_adi}'). Normal rota üzerinde "
             f"{normal_riskli_sayisi} noktada riskli türbülans tespit edildi; ÇOK FAKTÖRLÜ karşılaştırmada "
             f"(yanal A* aramasi vs bir üst/alt basınç seviyesine geçiş, her biri gerçek yakıt/süre maliyetiyle) "
             f"en ucuz TAM güvenli seçenek olarak {strateji_aciklamasi} bulundu."
         )
     else:
         aciklama = (
-            f"Gerçek ERA5 verisiyle hesaplandı ('{config.HAVA_DURUMU_DOSYASI}'). Normal rota üzerinde "
+            f"Gerçek ERA5 verisiyle hesaplandı ('{kup_adi}'). Normal rota üzerinde "
             f"{normal_riskli_sayisi} noktada riskli türbülans tespit edildi; denenen ne yanal (A*) ne de "
             f"irtifa değişimi adayları riski TAMAMEN ortadan kaldırabildi (türbülans alanı geniş olabilir) -- "
             f"yine de riski en aza indiren seçenek ({kacinma_stratejisi}) seçildi ({optimize_riskli_sayisi} "

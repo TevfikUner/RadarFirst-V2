@@ -49,7 +49,7 @@ import os
 import secrets
 import time
 import uuid
-from datetime import date
+from datetime import UTC, date, datetime
 from functools import partial
 from urllib.parse import urlsplit
 
@@ -86,7 +86,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import config
 import loglama
 from hata_yardimcisi import dostane_hata_mesaji
-from main import calistir
+from main import calistir, rota_df_ile_calistir
 from rota_optimizasyonu import UCAK_PROFILLERI, rota_simulasyonu_olustur, simulasyonu_czml_e_cevir, veri_kupune_eris
 from semalar import (
     EsiklerYaniti,
@@ -114,6 +114,7 @@ from turbulans_ml_modeli import (
     ozellikleri_cikar,
     versiyona_geri_don,
 )
+from veri_yukleme import hava_durumu_dosyalari
 from veritabani import (
     VeritabaniAyarlariEksikHatasi,
     async_motor_al,
@@ -128,6 +129,7 @@ loglama.ayarla()
 _logger = loglama.logger_al(__name__)
 
 tek_ucus_analiz_et = partial(calistir, kayit_zorunlu=True)
+rota_analiz_et = partial(rota_df_ile_calistir, kayit_zorunlu=True)
 
 app = FastAPI(
     title="Türbülans Radar API",
@@ -423,6 +425,29 @@ class UcusAnalizIstegi(BaseModel):
         return _webhook_url_dogrula(deger)
 
 
+class RotaNoktasiGirdisi(BaseModel):
+    zaman: datetime
+    enlem: float = Field(ge=-90, le=90)
+    boylam: float = Field(ge=-180, le=180)
+    irtifa_m: float | None = Field(default=None, ge=-500, le=20000, description="Geometrik irtifa (m); yoksa null")
+
+    @field_validator("zaman")
+    @classmethod
+    def _utc_yap(cls, deger: datetime):
+        return deger.replace(tzinfo=UTC) if deger.tzinfo is None else deger.astimezone(UTC)
+
+
+class RotaAnalizIstegi(BaseModel):
+    ucus_numarasi: str = Field(pattern=_UCUS_NUMARASI_DESENI)
+    noktalar: list[RotaNoktasiGirdisi] = Field(min_length=2, max_length=config.MAKS_STATE_VECTOR_SATIRI)
+    bildirim_webhook_url: str | None = None
+
+    @field_validator("bildirim_webhook_url")
+    @classmethod
+    def _webhook_gecerli_mi(cls, deger):
+        return _webhook_url_dogrula(deger)
+
+
 class TopluAnalizIstegi(BaseModel):
     ucuslar: list[UcusAnalizIstegi]
     bildirim_webhook_url: str | None = None
@@ -490,31 +515,29 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi):
     """
 
     def _hesapla():
-        veri_kupu = veri_kupune_eris()
-        nokta_df = pd.DataFrame(
-            {
-                "zaman": [istek.zaman],
-                "enlem": [istek.enlem],
-                "boylam": [istek.boylam],
-                "irtifa_m": [istek.irtifa_ft * 0.3048],
-            }
-        )
-        if veri_kupu is None:
+        irtifa_m = istek.irtifa_ft * 0.3048
+        if not hava_durumu_dosyalari():
             return {
                 "kapsam_icinde_mi": False,
                 "aciklama": f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı -- sunucuda ERA5 veri küpü yok.",
             }
+        kapsam_disi_yaniti = {
+            "kapsam_icinde_mi": False,
+            "aciklama": (
+                "Seçilen nokta/tarih/irtifa, sunucudaki ERA5 veri küplerinden hiçbirinin kapsadığı aralıkta DEĞİL."
+            ),
+        }
+        veri_kupu = veri_kupune_eris(istek.enlem, istek.boylam, istek.zaman, irtifa_m)
+        if veri_kupu is None:
+            return kapsam_disi_yaniti
 
+        nokta_df = pd.DataFrame(
+            {"zaman": [istek.zaman], "enlem": [istek.enlem], "boylam": [istek.boylam], "irtifa_m": [irtifa_m]}
+        )
         ozellikler = ozellikleri_cikar(nokta_df, veri_kupu)
         ti1 = ozellikler["ti1_indeksi"].iloc[0]
         if pd.isna(ti1):
-            return {
-                "kapsam_icinde_mi": False,
-                "aciklama": (
-                    f"Seçilen nokta/tarih, ERA5 veri küpünün ('{config.HAVA_DURUMU_DOSYASI}') kapsadığı "
-                    "bölge/tarih aralığının DIŞINDA."
-                ),
-            }
+            return kapsam_disi_yaniti
 
         ml_sonuc = ozelliklerden_risk_tahmin_et(ozellikler)
         ml_olasilik = float(ml_sonuc[0]) if ml_sonuc is not None and not pd.isna(ml_sonuc[0]) else None
@@ -724,8 +747,14 @@ def _gorev_olustur(**alanlar):
 
 
 async def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih, webhook_url):
+    await _analiz_arkaplan_gorevi(
+        gorev_id, lambda: tek_ucus_analiz_et(ucus_numarasi, tarih), ucus_numarasi, tarih, webhook_url
+    )
+
+
+async def _analiz_arkaplan_gorevi(gorev_id, analiz_fonksiyonu, ucus_numarasi, tarih, webhook_url):
     try:
-        sonuc = await asyncio.to_thread(tek_ucus_analiz_et, ucus_numarasi, tarih)
+        sonuc = await asyncio.to_thread(analiz_fonksiyonu)
         _gorevler[gorev_id]["durum"] = "tamamlandi" if sonuc is not None else "basarisiz"
         await _yuksek_riskli_noktalari_yayinla(sonuc, ucus_numarasi, tarih)
     except Exception as hata:
@@ -760,6 +789,36 @@ async def _toplu_arkaplan_gorevi(gorev_id, ucus_listesi_df, webhook_url):
         _gorevler[gorev_id]["durum"] = "hata"
         _gorevler[gorev_id]["aciklama"] = dostane_hata_mesaji(hata)
     await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **_gorev_disari_ver(_gorevler[gorev_id])})
+
+
+@v1.post("/analiz/rota", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])
+async def rota_analizi_baslat(istek: RotaAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
+    """
+    OpenSky'a BAĞLANMADAN, dışarıdan alınmış bir ADS-B izini (başka bir
+    izleme servisi, uçuş kayıt cihazı vb.) analiz eder: aynı eşleştirme,
+    PostgreSQL kaydı, WebSocket uyarısı ve webhook akışı. OpenSky'ın tarayıcı
+    tabanlı OAuth2 girişini gerektirmediği için sunucu/Docker ortamında da
+    çalışır. Tarih, ilk noktanın UTC gününden türetilir; sonuç
+    GET /ucuslar/{ucus_numarasi}/{tarih} ile okunur.
+    """
+    _hiz_sinirini_kontrol_et("rota")
+    rota_df = pd.DataFrame([n.model_dump() for n in istek.noktalar]).rename(columns={"irtifa_m": "geo_irtifa_m"})
+    rota_df["zaman"] = pd.to_datetime(rota_df["zaman"], utc=True)
+    rota_df["geo_irtifa_m"] = rota_df["geo_irtifa_m"].astype(float)
+    rota_df = rota_df.sort_values("zaman").reset_index(drop=True)
+    rota_df["ucus_numarasi"] = istek.ucus_numarasi
+    tarih = rota_df["zaman"].iloc[0].date().isoformat()
+
+    gorev_id = _gorev_olustur(ucus_numarasi=istek.ucus_numarasi, tarih=tarih)
+    arkaplan_gorevleri.add_task(
+        _analiz_arkaplan_gorevi,
+        gorev_id,
+        lambda: rota_analiz_et(rota_df, istek.ucus_numarasi, tarih),
+        istek.ucus_numarasi,
+        tarih,
+        istek.bildirim_webhook_url,
+    )
+    return {"gorev_id": gorev_id, "durum": "baslatildi"}
 
 
 @v1.post("/analiz/toplu", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])

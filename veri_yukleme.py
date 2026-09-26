@@ -17,6 +17,8 @@ veri_yukleme.py
     ve tekrarlanan ihlaller hesap askıya alınmasına yol açabiliyor).
 """
 
+import glob
+import os
 import threading
 
 import pandas as pd
@@ -88,6 +90,36 @@ def hava_durumu_onbellekli_yukle(dosya_yolu=config.HAVA_DURUMU_DOSYASI):
             with hava_durumu_yukle(dosya_yolu) as veri_kupu:
                 _veri_kupu_onbellegi[dosya_yolu] = veri_kupu.load()
         return _veri_kupu_onbellegi[dosya_yolu]
+
+
+def hava_durumu_dosyalari():
+    """Ana küp (config.HAVA_DURUMU_DOSYASI) + config.EK_HAVA_DURUMU_KLASORU'ndaki
+    tüm .nc küpleri (örn. ml_veri_indir.py'nin indirdiği ABD küpleri) --
+    sadece diskte gerçekten var olanlar."""
+    dosyalar = [config.HAVA_DURUMU_DOSYASI]
+    if config.EK_HAVA_DURUMU_KLASORU:
+        dosyalar += sorted(glob.glob(os.path.join(config.EK_HAVA_DURUMU_KLASORU, "*.nc")))
+    return [d for d in dosyalar if os.path.exists(d)]
+
+
+def kapsayan_veri_kupunu_bul(enlemler, boylamlar, zamanlar, basinc_hpa=None):
+    """hava_durumu_dosyalari() arasından verilen noktaların EN ÇOĞUNU
+    kapsayan küpü döndürür (bkz. eslestirme.kapsam_disi_maskesi). Hiçbiri tek
+    bir noktayı bile kapsamıyorsa None -- uydurma bir eşleşme yapılmaz."""
+    from eslestirme import kapsam_disi_maskesi
+
+    en_iyi_kup, en_iyi_sayi = None, 0
+    for dosya in hava_durumu_dosyalari():
+        veri_kupu = hava_durumu_onbellekli_yukle(dosya)
+        kapsanan = int((~kapsam_disi_maskesi(veri_kupu, enlemler, boylamlar, zamanlar, basinc_hpa)).sum())
+        if kapsanan > en_iyi_sayi:
+            en_iyi_kup, en_iyi_sayi = veri_kupu, kapsanan
+    return en_iyi_kup
+
+
+def veri_kupu_adi(veri_kupu):
+    kaynak = veri_kupu.encoding.get("source") if veri_kupu is not None else None
+    return os.path.basename(kaynak) if kaynak else config.HAVA_DURUMU_DOSYASI
 
 
 # ---------------------------------------------------------------------------

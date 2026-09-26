@@ -750,3 +750,68 @@ async def test_toplu_analiz_riskli_ucuslari_websocketten_yayinlar(monkeypatch):
 
     assert api_servisi._gorevler[gorev_id]["durum"] == "tamamlandi"
     assert [m["ucus_numarasi"] for m in yayinlanan] == ["TOPLU1"]
+
+
+# --- OpenSky'sız rota analizi (POST /analiz/rota) ---
+
+
+@pytest.mark.parametrize(
+    "govde",
+    [
+        {"ucus_numarasi": "ROTA1", "noktalar": [{"zaman": "2019-01-15T10:00:00", "enlem": 39.0, "boylam": 35.0}]},
+        {
+            "ucus_numarasi": "ROTA1",
+            "noktalar": [
+                {"zaman": "2019-01-15T10:00:00", "enlem": 95.0, "boylam": 35.0},
+                {"zaman": "2019-01-15T10:01:00", "enlem": 39.0, "boylam": 35.0},
+            ],
+        },
+        {
+            "ucus_numarasi": "ROTA/../1",
+            "noktalar": [
+                {"zaman": "2019-01-15T10:00:00", "enlem": 39.0, "boylam": 35.0},
+                {"zaman": "2019-01-15T10:01:00", "enlem": 39.0, "boylam": 35.1},
+            ],
+        },
+    ],
+)
+async def test_rota_analizi_gecersiz_istek_422(istemci, api_anahtari, govde):
+    yanit = await istemci.post("/api/v1/analiz/rota", json=govde, headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 422
+
+
+async def test_rota_analizi_uctan_uca_kaydeder(istemci, api_anahtari, monkeypatch, tmp_path):
+    if api_servisi.veri_kupune_eris() is None:
+        pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı.")
+    import main
+
+    monkeypatch.setattr(main.config, "CIKTI_KLASORU", str(tmp_path))
+    noktalar = [
+        {"zaman": "2019-01-15T10:00:00+03:00", "enlem": 39.0, "boylam": 33.0, "irtifa_m": 10500.0},
+        {"zaman": "2019-01-15T07:05:00Z", "enlem": 39.1, "boylam": 33.5, "irtifa_m": 10500.0},
+        {"zaman": "2019-01-15T07:10:00", "enlem": 39.2, "boylam": 34.0, "irtifa_m": None},
+    ]
+    try:
+        yanit = await istemci.post(
+            "/api/v1/analiz/rota",
+            json={"ucus_numarasi": "ROTAAPI1", "noktalar": noktalar},
+            headers={"X-API-Key": api_anahtari},
+        )
+        assert yanit.status_code == 202
+        gorev_id = yanit.json()["gorev_id"]
+        for _ in range(100):
+            durum = (await istemci.get(f"/api/v1/analiz/durum/{gorev_id}", headers={"X-API-Key": api_anahtari})).json()
+            if durum["durum"] != "calisiyor":
+                break
+            await asyncio.sleep(0.05)
+        assert durum["durum"] == "tamamlandi", durum
+        assert durum["tarih"] == "2019-01-15"
+
+        detay = (await istemci.get("/api/v1/ucuslar/ROTAAPI1/2019-01-15", headers={"X-API-Key": api_anahtari})).json()
+        assert detay["toplam_olcum_sayisi"] == 3
+        ti1 = [o["ti1_indeksi"] for o in detay["olcumler"]]
+        assert ti1[0] is not None and ti1[1] is not None
+        assert ti1[2] is None
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi = 'ROTAAPI1'"))

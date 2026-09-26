@@ -434,6 +434,39 @@
           }
         },
         {
+          "name": "Rota Analizi Baslat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/analiz/rota",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "analiz",
+                "rota"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "Toplu Analiz Baslat",
           "request": {
             "method": "POST",
