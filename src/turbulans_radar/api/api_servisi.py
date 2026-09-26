@@ -138,6 +138,7 @@ from turbulans_radar.ml.turbulans_ml_modeli import (
     versiyona_geri_don,
 )
 from turbulans_radar.rota.rota_optimizasyonu import (
+    CANLI_VERI_HAZIRLANIYOR,
     UCAK_PROFILLERI,
     rota_simulasyonu_olustur,
     simulasyonu_czml_e_cevir,
@@ -572,6 +573,7 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi):
         istek.irtifa_ft,
         istek.zaman,
         istek.ucak_modeli,
+        canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
     )
     sonuc["czml"] = simulasyonu_czml_e_cevir(sonuc)
     return sonuc
@@ -598,7 +600,19 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi):
                 f"+{config.CANLI_TAHMIN_UFKU_SAAT} sa) bu noktayı kapsıyor."
             ),
         }
-        veri_kupu = veri_kupune_eris(istek.enlem, istek.boylam, istek.zaman, irtifa_m)
+        veri_durumu = {}
+        veri_kupu = veri_kupune_eris(
+            istek.enlem,
+            istek.boylam,
+            istek.zaman,
+            irtifa_m,
+            durum=veri_durumu,
+            canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
+        )
+        if veri_kupu is None and veri_durumu.get("canli_hazirlaniyor"):
+            return {"kapsam_icinde_mi": False, "aciklama": CANLI_VERI_HAZIRLANIYOR}
+        if veri_kupu is None and veri_durumu.get("canli_hata"):
+            return {"kapsam_icinde_mi": False, "aciklama": veri_durumu["canli_hata"]}
         if veri_kupu is None:
             return kapsam_disi_yaniti
 

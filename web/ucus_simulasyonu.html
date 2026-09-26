@@ -243,6 +243,9 @@ function sonucPanelDoldur(sonuc) {
   } else if (sonuc.ruzgar_verisi_kaynagi === "gfs_tahmin") {
     kaynakEl.textContent = "✓ Canlı NOAA GFS tahmin verisi";
     kaynakEl.className = "gercek";
+  } else if (sonuc.ruzgar_verisi_kaynagi === "canli_veri_hazirlaniyor") {
+    kaynakEl.textContent = "⏳ Canlı veri hazırlanıyor (rüzgarsız ön sonuç, otomatik yenilenecek)";
+    kaynakEl.className = "kapsam-disi";
   } else if (sonuc.ruzgar_verisi_kaynagi === "canli_veri_alinamadi") {
     kaynakEl.textContent = "⚠ Canlı veri alınamadı (rüzgarsız tahmin)";
     kaynakEl.className = "kapsam-disi";
@@ -359,6 +362,8 @@ async function sonucuSahneyeUygula(sonuc, kameraUcsunMu) {
   document.getElementById("yeniden-hesapla-buton").style.display = "block";
 }
 
+let yenidenDenemeSayisi = 0;
+
 async function simulasyonuCalistir() {
   const govde = {
     baslangic_enlem: Number(document.getElementById("baslangic-enlem").value),
@@ -384,6 +389,13 @@ async function simulasyonuCalistir() {
     sonUcakModeli = govde.ucak_modeli;
     await sonucuSahneyeUygula(sonuc, true);
     durumGoster(`Yüklendi (${sonuc.ucak_etiketi}).`, "bilgi");
+    // Canlı GFS henüz inmediyse sunucu rüzgarsız ön sonuç döner ve indirmeyi
+    // arka planda sürdürür; veri hazır olunca hesap kendiliğinden tekrarlanır.
+    if (sonuc.ruzgar_verisi_kaynagi === "canli_veri_hazirlaniyor" && (yenidenDenemeSayisi += 1) <= 12) {
+      setTimeout(simulasyonuCalistir, 10000);
+    } else if (sonuc.ruzgar_verisi_kaynagi !== "canli_veri_hazirlaniyor") {
+      yenidenDenemeSayisi = 0;
+    }
   } catch (e) {
     if (e.durumKodu === 401) durumGoster("API anahtarı geçersiz.", "hata");
     else if (e.durumKodu === 400 || e.durumKodu === 422) durumGoster("Geçersiz girdi: " + e.message, "hata");

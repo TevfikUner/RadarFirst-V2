@@ -36,6 +36,13 @@ gruplanmıştır, en yeni en üstte.
   aktifleştirmeye yetiyordu. `API_PILOT_ANAHTARI` (okuma, rota, tahmin,
   uyarılar) eklendi; 13 yönetici ucu pilot anahtarına 403 dönüyor. WebSocket
   60 sn'lik imzalı biletle açılıyor, sayfalar anahtarı `sessionStorage`'da tutuyor.
+- **EFB ana ucu yavaş ağda askıda kalmıyor:** `/simulasyon/rota` ve
+  `/turbulans/tahmin` katalogda olmayan canlı küpü istek içinde indiriyordu.
+  Artık en fazla `CANLI_VERI_BEKLEME_SANIYE` (8 sn) bekleniyor; indirme arka
+  planda sürüyor (aynı bölge için tek indirme), yanıt SIGMET/kısıtlı saha
+  uygulanmış rüzgarsız ön sonuç ve `canli_veri_hazirlaniyor`; sayfa kendiliğinden
+  yeniliyor. Canlı ölçüm (Madrid-Paris): ilk yanıt 8.1 sn, indirme toplam
+  ~38 sn, sonraki istek 0.2 sn GFS ile. İşçi/backtest indirmeyi bekliyor.
 
 ## Sağlık ucunda izleme, kütüphaneler ve altlık harita yerelden
 

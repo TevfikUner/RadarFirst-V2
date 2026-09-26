@@ -217,3 +217,49 @@ def test_canli_rotada_a_yildiz_koridoru_kapsam_disi_diye_daralmaz(sahte_canli_or
     kutu = sahte_canli_ortam.son_kutu
     pay = ro._a_yildiz_pay_derecesi([39.0])
     assert kutu.enlem_min <= 39.0 - pay and kutu.enlem_maks >= 39.0 + pay
+
+
+@pytest.fixture
+def yavas_saglayici(sahte_canli_ortam, monkeypatch):
+    import time
+
+    asil = sahte_canli_ortam.kup_indir
+
+    def yavas(*args, **kwargs):
+        time.sleep(1.0)
+        return asil(*args, **kwargs)
+
+    monkeypatch.setattr(sahte_canli_ortam, "kup_indir", yavas)
+    yield sahte_canli_ortam
+    for _ in range(100):
+        if not vs._suren_indirmeler:
+            break
+        time.sleep(0.05)
+
+
+def test_yavas_canli_indirme_beklenmez_arka_planda_bir_kez_tamamlanir(yavas_saglayici):
+    import time
+
+    simdi = pd.Timestamp.now(tz="UTC")
+    durum = {}
+    assert vs.veri_kupunu_sec([38.5], [33.0], [simdi], durum=durum, canli_bekleme_saniye=0.1) is None
+    assert durum == {"canli_hazirlaniyor": True}
+    assert vs.veri_kupunu_sec([38.5], [33.0], [simdi], canli_bekleme_saniye=0.1) is None
+    for _ in range(100):
+        if not vs._suren_indirmeler:
+            break
+        time.sleep(0.05)
+    kup = vs.veri_kupunu_sec([38.5], [33.0], [simdi], canli_bekleme_saniye=0.1)
+    assert vs.veri_kupu_kaynagi(kup) == "gfs"
+    assert yavas_saglayici.indirme_sayisi == 1
+
+
+def test_etkilesimli_rota_canli_veriyi_beklemeden_on_sonuc_doner(yavas_saglayici):
+    from turbulans_radar.rota.rota_optimizasyonu import CANLI_VERI_HAZIRLANIYOR, rota_simulasyonu_olustur
+
+    simdi = pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%dT%H:%M:%S")
+    sonuc = rota_simulasyonu_olustur(
+        38.4, 27.1, 38.5, 43.4, 34000, simdi, "A320", sigmetler=[], kisitli_sahalar=[], canli_bekleme_saniye=0.1
+    )
+    assert sonuc["ruzgar_verisi_kaynagi"] == "canli_veri_hazirlaniyor"
+    assert CANLI_VERI_HAZIRLANIYOR in sonuc["aciklama"]

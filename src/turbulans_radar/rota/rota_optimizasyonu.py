@@ -146,8 +146,15 @@ _SIGMET_ARAMA_PAYI_DERECE = 5.0
 
 _logger = logger_al(__name__)
 
+CANLI_VERI_HAZIRLANIYOR = (
+    "Canlı NOAA GFS verisi arka planda indiriliyor (sağlayıcı yavaş yanıt veriyor); bu ön sonuç onu beklemeden "
+    "hesaplandı, birkaç saniye sonra yeniden hesaplayın."
+)
 
-def veri_kupune_eris(enlemler=None, boylamlar=None, zaman=None, irtifa_m=None, zamanlar=None, durum=None):
+
+def veri_kupune_eris(
+    enlemler=None, boylamlar=None, zaman=None, irtifa_m=None, zamanlar=None, durum=None, canli_bekleme_saniye=None
+):
     """Argümansız: ana küp (yoksa None). Noktalar verilirse: onları en iyi
     kapsayan yerel küp, yoksa (zaman canlı penceredeyse) canlı GFS küpü (bkz.
     veri_saglayicilari.veri_kupunu_sec), hiçbiri yoksa None. zamanlar
@@ -166,6 +173,7 @@ def veri_kupune_eris(enlemler=None, boylamlar=None, zaman=None, irtifa_m=None, z
         basinc_hpa,
         pay_derece=_a_yildiz_pay_derecesi(enlemler),
         durum=durum,
+        canli_bekleme_saniye=canli_bekleme_saniye,
     )
 
 
@@ -758,6 +766,7 @@ def rota_simulasyonu_olustur(
     ucak_modeli_kodu,
     sigmetler=None,
     kisitli_sahalar=None,
+    canli_bekleme_saniye=None,
 ):
     """
     İki gerçek rota üretir: büyük daire ("normal") ve "optimize" rota.
@@ -769,6 +778,8 @@ def rota_simulasyonu_olustur(
     sigmetler / kisitli_sahalar: None ise veritabanındaki aktif kayıtlar
     (sigmet_saglayici.py / kisitli_saha_saglayici.py) kullanılır;
     test/backtest için açıkça bir liste verilebilir.
+    canli_bekleme_saniye: etkileşimli çağrıda canlı hava verisi için azami
+    bekleme (bkz. veri_saglayicilari.veri_kupunu_sec); None ise indirme beklenir.
     Dönüş, api_servisi.py'nin doğrudan JSON'a çevirebileceği bir dict'tir.
     """
     if ucak_modeli_kodu not in UCAK_PROFILLERI:
@@ -789,6 +800,7 @@ def rota_simulasyonu_olustur(
         irtifa_m,
         zamanlar=_tahmini_varis_zamanlari(enlemler_gc, boylamlar_gc, zaman_iso, tas_ms),
         durum=veri_durumu,
+        canli_bekleme_saniye=canli_bekleme_saniye,
     )
     ruzgarli_mi = _era5_tamamen_kapsiyor_mu(veri_kupu, enlemler_gc, boylamlar_gc, zaman_iso, irtifa_m)
     kup_adi = veri_kupu_adi(veri_kupu)
@@ -877,7 +889,13 @@ def rota_simulasyonu_olustur(
         "ruzgar_verisi_kaynagi": (
             ("gfs_tahmin" if veri_kupu_kaynagi(veri_kupu) == "gfs" else "era5_gercek")
             if ruzgarli_mi
-            else ("canli_veri_alinamadi" if veri_durumu.get("canli_hata") else "era5_kapsam_disi")
+            else (
+                "canli_veri_hazirlaniyor"
+                if veri_durumu.get("canli_hazirlaniyor")
+                else "canli_veri_alinamadi"
+                if veri_durumu.get("canli_hata")
+                else "era5_kapsam_disi"
+            )
         ),
         "aciklama": _aciklama_olustur(
             ruzgarli_mi,
@@ -889,7 +907,8 @@ def rota_simulasyonu_olustur(
             sigmet_kontrolu,
             guvenli_rota_bulundu_mu,
             kisitli_saha_kontrolu,
-            veri_durumu.get("canli_hata"),
+            veri_durumu.get("canli_hata")
+            or (CANLI_VERI_HAZIRLANIYOR if veri_durumu.get("canli_hazirlaniyor") else None),
         ),
         "ucak_modeli": ucak_modeli_kodu,
         "ucak_etiketi": profil["etiket"],
