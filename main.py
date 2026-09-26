@@ -35,9 +35,9 @@ from harita import zaman_kaydiricili_harita_olustur
 from hata_yardimcisi import dostane_hata_mesaji
 from kimlik_dogrulama import KimlikBilgisiEksikHatasi
 from turbulans_indeksleri import DINAMIK_KARARSIZLIK_ESIGI
+from veri_saglayicilari import veri_kupunu_sec
 from veri_yukleme import (
     hava_durumu_onbellekli_yukle,
-    kapsayan_veri_kupunu_bul,
     trino_baglantisi_olustur,
     ucus_numarasi_ile_rota_cek,
     veri_kupu_adi,
@@ -98,12 +98,13 @@ def _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str):
 
 
 def _veri_kupunu_sec(rota_df):
-    """Rotayı en iyi kapsayan ERA5 küpü (bkz. veri_yukleme.kapsayan_veri_
-    kupunu_bul); hiçbiri kapsamıyorsa ana küp -- eşleştirme o zaman
-    noktaları dürüstçe kapsam dışı (NaN) bırakır."""
+    """Rotayı en iyi kapsayan hava küpü: yerel ERA5 arşivi, yoksa (son 48 saat
+    içindeki uçuşlar için) canlı GFS (bkz. veri_saglayicilari.veri_kupunu_sec);
+    hiçbiri kapsamıyorsa ana küp -- eşleştirme o zaman noktaları dürüstçe
+    kapsam dışı (NaN) bırakır."""
     with np.errstate(invalid="ignore"):
         basinc_hpa = irtifa_metre_to_basinc_hpa(rota_irtifalari(rota_df))
-    veri_kupu = kapsayan_veri_kupunu_bul(rota_df["enlem"], rota_df["boylam"], rota_df["zaman"], basinc_hpa)
+    veri_kupu = veri_kupunu_sec(rota_df["enlem"], rota_df["boylam"], rota_df["zaman"], basinc_hpa)
     return veri_kupu if veri_kupu is not None else hava_durumu_onbellekli_yukle(config.HAVA_DURUMU_DOSYASI)
 
 

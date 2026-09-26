@@ -83,7 +83,8 @@ from risk_katmanlari import (
     rota_ti1_degerleri,
 )
 from sigmet_saglayici import gecerli_sigmetleri_getir, son_guncelleme_zamani
-from veri_yukleme import hava_durumu_onbellekli_yukle, kapsayan_veri_kupunu_bul, veri_kupu_adi
+from veri_saglayicilari import veri_kupu_kaynagi, veri_kupunu_sec
+from veri_yukleme import hava_durumu_onbellekli_yukle, veri_kupu_adi
 
 DUNYA_YARICAPI_M = 6_371_000.0
 
@@ -143,9 +144,11 @@ _SIGMET_ARAMA_PAYI_DERECE = 5.0
 _logger = logger_al(__name__)
 
 
-def veri_kupune_eris(enlemler=None, boylamlar=None, zaman=None, irtifa_m=None):
+def veri_kupune_eris(enlemler=None, boylamlar=None, zaman=None, irtifa_m=None, zamanlar=None):
     """Argümansız: ana küp (yoksa None). Noktalar verilirse: onları en iyi
-    kapsayan küp (bkz. veri_yukleme.kapsayan_veri_kupunu_bul), yoksa None."""
+    kapsayan yerel küp, yoksa (zaman canlı penceredeyse) canlı GFS küpü (bkz.
+    veri_saglayicilari.veri_kupunu_sec), hiçbiri yoksa None. zamanlar
+    verilmezse tüm noktalar için `zaman` kullanılır."""
     if enlemler is None:
         try:
             return hava_durumu_onbellekli_yukle()
@@ -153,7 +156,19 @@ def veri_kupune_eris(enlemler=None, boylamlar=None, zaman=None, irtifa_m=None):
             return None
     enlemler = np.atleast_1d(np.asarray(enlemler, dtype=float))
     basinc_hpa = None if irtifa_m is None else np.full(len(enlemler), irtifa_metre_to_basinc_hpa(irtifa_m))
-    return kapsayan_veri_kupunu_bul(enlemler, boylamlar, [zaman] * len(enlemler), basinc_hpa)
+    return veri_kupunu_sec(enlemler, boylamlar, zamanlar or [zaman] * len(enlemler), basinc_hpa)
+
+
+def _tahmini_varis_zamanlari(enlemler, boylamlar, zaman_iso, tas_ms):
+    """Rota noktalarına yaklaşık (rüzgarsız, TAS'ın %80'i) varış zamanları --
+    uzun bir rotada küp seçiminin/canlı indirmenin tüm uçuş süresini kapsaması için."""
+    zaman = pd.Timestamp(zaman_iso)
+    zaman = zaman.tz_localize("UTC") if zaman.tzinfo is None else zaman
+    zamanlar = [zaman]
+    for i in range(len(enlemler) - 1):
+        mesafe_m = buyuk_daire_mesafesi_km(enlemler[i], boylamlar[i], enlemler[i + 1], boylamlar[i + 1]) * 1000.0
+        zamanlar.append(zamanlar[-1] + pd.Timedelta(seconds=mesafe_m / (tas_ms * 0.8)))
+    return zamanlar
 
 
 # ---------------------------------------------------------------------------
@@ -632,7 +647,13 @@ def rota_simulasyonu_olustur(
         baslangic_enlem, baslangic_boylam, bitis_enlem, bitis_boylam, config.ROTA_SIMULASYONU_NOKTA_SAYISI
     )
 
-    veri_kupu = veri_kupune_eris(enlemler_gc, boylamlar_gc, zaman_iso, irtifa_m)
+    veri_kupu = veri_kupune_eris(
+        enlemler_gc,
+        boylamlar_gc,
+        zaman_iso,
+        irtifa_m,
+        zamanlar=_tahmini_varis_zamanlari(enlemler_gc, boylamlar_gc, zaman_iso, tas_ms),
+    )
     ruzgarli_mi = _era5_tamamen_kapsiyor_mu(veri_kupu, enlemler_gc, boylamlar_gc, zaman_iso, irtifa_m)
     kup_adi = veri_kupu_adi(veri_kupu)
     sigmet_katmani, sigmet_kontrolu = _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, tas_ms)
@@ -712,9 +733,13 @@ def rota_simulasyonu_olustur(
     optimize_saniye = en_iyi["saniye"] + en_iyi["ekstra_saniye"]
 
     return {
-        "ruzgar_verisi_kaynagi": "era5_gercek" if ruzgarli_mi else "era5_kapsam_disi",
+        "ruzgar_verisi_kaynagi": (
+            ("gfs_tahmin" if veri_kupu_kaynagi(veri_kupu) == "gfs" else "era5_gercek")
+            if ruzgarli_mi
+            else "era5_kapsam_disi"
+        ),
         "aciklama": _aciklama_olustur(
-            ruzgarli_mi, kup_adi, normal, en_iyi, irtifa_m, sigmet_kontrolu, guvenli_rota_bulundu_mu
+            ruzgarli_mi, veri_kupu, kup_adi, normal, en_iyi, irtifa_m, sigmet_kontrolu, guvenli_rota_bulundu_mu
         ),
         "ucak_modeli": ucak_modeli_kodu,
         "ucak_etiketi": profil["etiket"],
@@ -754,10 +779,16 @@ def _rota_ozeti(aday, yakit_kg, toplam_saniye):
     }
 
 
-def _aciklama_olustur(ruzgarli_mi, kup_adi, normal, en_iyi, irtifa_m, sigmet_kontrolu, guvenli_rota_bulundu_mu):
+def _aciklama_olustur(
+    ruzgarli_mi, veri_kupu, kup_adi, normal, en_iyi, irtifa_m, sigmet_kontrolu, guvenli_rota_bulundu_mu
+):
     cumleler = []
-    if ruzgarli_mi:
+    if ruzgarli_mi and veri_kupu_kaynagi(veri_kupu) == "gfs":
+        calisma = veri_kupu.attrs.get("model_calisma_zamani", "bilinmiyor")
+        cumleler.append(f"Canlı NOAA GFS tahmin verisiyle hesaplandı (model çalıştırması {calisma} UTC).")
+    elif ruzgarli_mi:
         cumleler.append(f"Gerçek ERA5 verisiyle hesaplandı ('{kup_adi}').")
+    if ruzgarli_mi:
         if normal["riskli_sayisi"] == 0:
             cumleler.append(
                 f"Normal rota üzerinde riskli türbülans (TI1 >= {config.TI1_ESIK_ORTA_SIDDETLI:.1e} s^-2) TESPİT EDİLMEDİ."
@@ -766,9 +797,10 @@ def _aciklama_olustur(ruzgarli_mi, kup_adi, normal, en_iyi, irtifa_m, sigmet_kon
             cumleler.append(f"Normal rota üzerinde {normal['riskli_sayisi']} noktada riskli türbülans tespit edildi.")
     else:
         cumleler.append(
-            "Seçilen bölge/tarih/irtifa, projenin ERA5 veri küplerinden hiçbirinin (ana küp: "
-            f"'{config.HAVA_DURUMU_DOSYASI}', ek küpler: '{config.EK_HAVA_DURUMU_KLASORU}/') rotanın TAMAMINI "
-            "kapsadığı aralıkta DEĞİL -- rüzgar ve türbülans (TI1) hesaba katılamadı, rotalar sadece uçağın hava "
+            "Seçilen bölge/tarih/irtifa için ne projenin ERA5 veri küpleri (ana küp: "
+            f"'{config.HAVA_DURUMU_DOSYASI}', ek küpler: '{config.EK_HAVA_DURUMU_KLASORU}/') ne de canlı GFS "
+            f"verisi (şimdi -{config.CANLI_GECMIS_SAAT} sa / +{config.CANLI_TAHMIN_UFKU_SAAT} sa aralığı için) "
+            "rotanın TAMAMINI kapsıyor -- rüzgar ve türbülans (TI1) hesaba katılamadı, rotalar sadece uçağın hava "
             "hızıyla (TAS) zamanlandı; gerçek bir yakıt tasarrufu/türbülans kaçınması iddia edilmiyor."
         )
 
