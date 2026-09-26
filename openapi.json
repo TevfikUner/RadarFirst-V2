@@ -1502,6 +1502,204 @@
         }
       }
     },
+    "/api/v1/backtest/ucuslar/{ucus_numarasi}/{tarih}": {
+      "post": {
+        "tags": [
+          "Backtest"
+        ],
+        "summary": "Ucus Backtesti",
+        "description": "Analiz edilmiş bir uçuşun gerçek izini, aynı giriş/çıkış noktaları için\nbüyük daire ve A* rotasıyla AYNI ölçütle karşılaştırır (bkz. rota_backtest.py)\nve sonucu kaydeder. Hava küpü seyir bölümünü kapsamıyorsa 400.",
+        "operationId": "ucus_backtesti_api_v1_backtest_ucuslar__ucus_numarasi___tarih__post",
+        "parameters": [
+          {
+            "name": "ucus_numarasi",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "pattern": "^[A-Za-z0-9]{1,8}$",
+              "title": "Ucus Numarasi"
+            }
+          },
+          {
+            "name": "tarih",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "date",
+              "title": "Tarih"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BacktestSonucuYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backtest/toplu": {
+      "post": {
+        "tags": [
+          "Backtest"
+        ],
+        "summary": "Toplu Backtest Baslat",
+        "description": "Henüz backtest'i olmayan uçuşları arka planda karşılaştırır (örn. n8n'in\ngece tetiklemesi); sonuç /analiz/durum/{gorev_id} ve webhook ile alınır.",
+        "operationId": "toplu_backtest_baslat_api_v1_backtest_toplu_post",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 200,
+              "minimum": 1,
+              "default": 20,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "bildirim_webhook_url",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Bildirim Webhook Url"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GorevBaslatildiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/backtest": {
+      "get": {
+        "tags": [
+          "Backtest"
+        ],
+        "summary": "Backtest Sonuclari",
+        "description": "Tüm backtest sonuçları + filo geneli özet (A*'ın gerçek uçuşlara göre\nortalama riskli nokta oranı, riskin azaltıldığı uçuş oranı, ek mesafe/süre).",
+        "operationId": "backtest_sonuclari_api_v1_backtest_get",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BacktestListesiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/saglik": {
       "get": {
         "tags": [
@@ -1551,6 +1749,162 @@
   },
   "components": {
     "schemas": {
+      "BacktestListesiYaniti": {
+        "properties": {
+          "ozet": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Ozet"
+          },
+          "sonuclar": {
+            "items": {
+              "$ref": "#/components/schemas/BacktestSonucuYaniti"
+            },
+            "type": "array",
+            "title": "Sonuclar"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ozet",
+          "sonuclar"
+        ],
+        "title": "BacktestListesiYaniti"
+      },
+      "BacktestSonucuYaniti": {
+        "properties": {
+          "ucus_numarasi": {
+            "type": "string",
+            "title": "Ucus Numarasi"
+          },
+          "tarih": {
+            "type": "string",
+            "title": "Tarih"
+          },
+          "ucak_modeli": {
+            "type": "string",
+            "title": "Ucak Modeli"
+          },
+          "seyir_irtifasi_ft": {
+            "type": "number",
+            "title": "Seyir Irtifasi Ft"
+          },
+          "veri_kaynagi": {
+            "type": "string",
+            "title": "Veri Kaynagi"
+          },
+          "kacinma_stratejisi": {
+            "type": "string",
+            "title": "Kacinma Stratejisi"
+          },
+          "guvenli_rota_bulundu_mu": {
+            "type": "boolean",
+            "title": "Guvenli Rota Bulundu Mu"
+          },
+          "gercek_mesafe_km": {
+            "type": "number",
+            "title": "Gercek Mesafe Km"
+          },
+          "gercek_sure_dk": {
+            "type": "number",
+            "title": "Gercek Sure Dk"
+          },
+          "gercek_riskli_oran": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gercek Riskli Oran"
+          },
+          "gercek_sigmet_ihlali": {
+            "type": "integer",
+            "title": "Gercek Sigmet Ihlali"
+          },
+          "buyuk_daire_mesafe_km": {
+            "type": "number",
+            "title": "Buyuk Daire Mesafe Km"
+          },
+          "buyuk_daire_sure_dk": {
+            "type": "number",
+            "title": "Buyuk Daire Sure Dk"
+          },
+          "buyuk_daire_riskli_oran": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buyuk Daire Riskli Oran"
+          },
+          "buyuk_daire_sigmet_ihlali": {
+            "type": "integer",
+            "title": "Buyuk Daire Sigmet Ihlali"
+          },
+          "optimize_mesafe_km": {
+            "type": "number",
+            "title": "Optimize Mesafe Km"
+          },
+          "optimize_sure_dk": {
+            "type": "number",
+            "title": "Optimize Sure Dk"
+          },
+          "optimize_riskli_oran": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimize Riskli Oran"
+          },
+          "optimize_sigmet_ihlali": {
+            "type": "integer",
+            "title": "Optimize Sigmet Ihlali"
+          },
+          "olusturulma_zamani": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Olusturulma Zamani"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ucus_numarasi",
+          "tarih",
+          "ucak_modeli",
+          "seyir_irtifasi_ft",
+          "veri_kaynagi",
+          "kacinma_stratejisi",
+          "guvenli_rota_bulundu_mu",
+          "gercek_mesafe_km",
+          "gercek_sure_dk",
+          "gercek_sigmet_ihlali",
+          "buyuk_daire_mesafe_km",
+          "buyuk_daire_sure_dk",
+          "buyuk_daire_sigmet_ihlali",
+          "optimize_mesafe_km",
+          "optimize_sure_dk",
+          "optimize_sigmet_ihlali"
+        ],
+        "title": "BacktestSonucuYaniti",
+        "description": "rota_backtest.py -- gerçek iz vs büyük daire vs A* rotası (aynı ölçütle).\n*_riskli_oran: TI1 >= eşik nokta oranı (hava verisi yoksa None)."
+      },
       "CanliVeriIstegi": {
         "properties": {
           "enlem_min": {
@@ -1989,6 +2343,17 @@
               }
             ],
             "title": "Basinc Hpa"
+          },
+          "irtifa_m": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Irtifa M"
           }
         },
         "type": "object",

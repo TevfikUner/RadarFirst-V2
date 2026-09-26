@@ -167,3 +167,7 @@ CANLI_TAHMIN_UFKU_SAAT = _ortam_sayi("CANLI_TAHMIN_UFKU_SAAT", 120, int)
 CANLI_KUP_TAZELIK_SAAT = _ortam_sayi("CANLI_KUP_TAZELIK_SAAT", 6, int)
 # Geçerliliği bu kadar saat önce bitmiş canlı küpler (dosya + katalog kaydı) silinir.
 CANLI_KUP_SAKLAMA_SAAT = _ortam_sayi("CANLI_KUP_SAKLAMA_SAAT", 48, int)
+
+# rota_backtest.py -- gerçek uçuşla karşılaştırılan A* rotasında kullanılan
+# uçak profili (bkz. rota_optimizasyonu.UCAK_PROFILLERI).
+BACKTEST_UCAK_MODELI = _ortam_str("BACKTEST_UCAK_MODELI", "A320")

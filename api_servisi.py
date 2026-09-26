@@ -95,8 +95,11 @@ from gorev_deposu import (
 from hata_yardimcisi import dostane_hata_mesaji
 from kup_katalogu import katalogu_listele, kup_meta_verisi
 from main import calistir, rota_df_ile_calistir
+from rota_backtest import backtestleri_listele, toplu_backtest, ucus_backtest_et
 from rota_optimizasyonu import UCAK_PROFILLERI, rota_simulasyonu_olustur, simulasyonu_czml_e_cevir, veri_kupune_eris
 from semalar import (
+    BacktestListesiYaniti,
+    BacktestSonucuYaniti,
     CanliVeriIstegi,
     EsiklerYaniti,
     GorevBaslatildiYaniti,
@@ -919,6 +922,53 @@ async def canli_veri_hazirla(istek: CanliVeriIstegi):
         "dosya_adi": veri_kupu_adi(kup),
         **kup_meta_verisi(kup),
     }
+
+
+@v1.post("/backtest/ucuslar/{ucus_numarasi}/{tarih}", response_model=BacktestSonucuYaniti, tags=["Backtest"])
+async def ucus_backtesti(
+    ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
+    tarih: date = Path(...),
+):
+    """Analiz edilmiş bir uçuşun gerçek izini, aynı giriş/çıkış noktaları için
+    büyük daire ve A* rotasıyla AYNI ölçütle karşılaştırır (bkz. rota_backtest.py)
+    ve sonucu kaydeder. Hava küpü seyir bölümünü kapsamıyorsa 400."""
+    return await asyncio.to_thread(ucus_backtest_et, ucus_numarasi, tarih.isoformat())
+
+
+async def _toplu_backtest_gorevi(gorev_id, limit, webhook_url):
+    try:
+        ozet = await asyncio.to_thread(toplu_backtest, limit)
+        alanlar = {"durum": "tamamlandi", "ozet": ozet}
+    except Exception as hata:
+        alanlar = {"durum": "hata", "aciklama": dostane_hata_mesaji(hata)}
+    await _gorevi_bitir_ve_bildir(gorev_id, webhook_url, **alanlar)
+
+
+@v1.post(
+    "/backtest/toplu", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Backtest"]
+)
+async def toplu_backtest_baslat(
+    arkaplan_gorevleri: BackgroundTasks,
+    limit: int = Query(default=20, ge=1, le=200),
+    bildirim_webhook_url: str | None = Query(default=None),
+):
+    """Henüz backtest'i olmayan uçuşları arka planda karşılaştırır (örn. n8n'in
+    gece tetiklemesi); sonuç /analiz/durum/{gorev_id} ve webhook ile alınır."""
+    _hiz_sinirini_kontrol_et("backtest")
+    try:
+        webhook = _webhook_url_dogrula(bildirim_webhook_url)
+    except ValueError as hata:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(hata)) from hata
+    gorev_id = await _gorev_olustur("backtest")
+    arkaplan_gorevleri.add_task(_toplu_backtest_gorevi, gorev_id, limit, webhook)
+    return {"gorev_id": gorev_id, "durum": "baslatildi"}
+
+
+@v1.get("/backtest", response_model=BacktestListesiYaniti, tags=["Backtest"])
+async def backtest_sonuclari():
+    """Tüm backtest sonuçları + filo geneli özet (A*'ın gerçek uçuşlara göre
+    ortalama riskli nokta oranı, riskin azaltıldığı uçuş oranı, ek mesafe/süre)."""
+    return await asyncio.to_thread(backtestleri_listele)
 
 
 app.include_router(v1)
