@@ -23,6 +23,14 @@ gruplanmıştır, en yeni en üstte.
   SIGMET'e girip gereksiz "öneri yok"a düşebiliyordu. Düğüm zamanı artık
   geçen sürenin `ROTA_ZAMAN_BELIRSIZLIK_ORANI` (%30) + 5 dk'sı kadar belirsiz
   sayılıyor (muhafazakâr; TI1 cezası etkilenmez).
+- **SIGMET hareketi:** AWC her SIGMET için hareket yönü/hızı veriyor, poligon
+  ise tüm geçerlilik boyunca sabit sayılıyordu (canlı akışta aktif 123
+  SIGMET'in 79'u hareketli). Artık hareket saklanıyor (göç `7730e2b167a7`;
+  uluslararası akışta yöneldiği yön, ABD akışında geldiği yön çevrilerek) ve
+  alan uçağın varış zamanındaki konumuyla uygulanıyor. Zaman belirsizliği ve
+  bilinmeyen hız (0-`SIGMET_BILINMEYEN_HIZ_KT` kt) aralığı süpürülüyor.
+- Poligon katmanı vektörleştirildi (zaman hesapları numpy, sınır kutusu ön
+  elemesi): 50 SIGMET'le A* 182 ms -> 68 ms (hareketliyle 68-77 ms).
 
 ## Sağlık ucunda izleme, kütüphaneler ve altlık harita yerelden
 

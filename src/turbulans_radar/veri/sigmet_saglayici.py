@@ -31,6 +31,7 @@ POST /api/v1/sigmet/guncelle):
 
 import hashlib
 import json
+import re
 from datetime import UTC, datetime, timedelta
 
 import httpx
@@ -120,6 +121,44 @@ def _irtifa_bandi(ham: dict) -> tuple[int | None, int | None]:
     return taban, tavan
 
 
+_PUSULA = {
+    ad: i * 22.5
+    for i, ad in enumerate(
+        ("N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW")
+    )
+}
+
+
+def _sayi(deger) -> float | None:
+    try:
+        return float(deger)
+    except (TypeError, ValueError):
+        return None
+
+
+def _hareket(ham: dict) -> tuple[float | None, float | None]:
+    """(hareketin YÖNELDİĞİ yön derece, hız kt). Durağan/bilgi yok: (None, None);
+    yön var hız bilinmiyor: (yön, None). ABD akışında movementDir hareketin
+    GELDİĞİ yöndür ("MOV FROM 26025KT"); uluslararası akışta dir yöneldiği
+    pusula yönüdür ("MOV NE 25KT")."""
+    metin = str(ham.get("rawSigmet") or ham.get("rawAirSigmet") or "")
+    if _abd_bicimi_mi(ham):
+        gelis, hiz = _sayi(ham.get("movementDir")), _sayi(ham.get("movementSpd"))
+        if gelis is None or "MOV LTL" in metin or "STNR" in metin:
+            return None, None
+        yon = (gelis + 180.0) % 360.0
+    else:
+        yon = _PUSULA.get(str(ham.get("dir") or "").strip().upper())
+        if yon is None:
+            return None, None
+        hiz = _sayi(ham.get("spd"))
+        if hiz is not None and re.search(rf"MOV\s+{ham.get('dir')}\s+0*{int(hiz)}\s*KMH", metin):
+            hiz /= 1.852
+    if hiz is not None and hiz <= 0:
+        return None, None
+    return yon, hiz
+
+
 def _alanlar(ham: dict) -> list[list]:
     """AWC tek alanlı SIGMET'te 'coords' köşe listesidir; geom='AREAS'
     (aynı SIGMET'te birden fazla 'WI ...' alanı) ise köşe listelerinin
@@ -137,6 +176,7 @@ def _poligon_kaydi(kaynak: str, ham: dict, alan: list) -> dict | None:
     if koseler[0] != koseler[-1]:
         koseler.append(koseler[0])
     taban_ft, tavan_ft = _irtifa_bandi(ham)
+    hareket = _hareket(ham)
     boylamlar, enlemler = [k[0] for k in koseler], [k[1] for k in koseler]
     antimeridyen = max(abs(b - a) for a, b in zip(boylamlar, boylamlar[1:])) > 180.0
     if antimeridyen:
@@ -161,6 +201,8 @@ def _poligon_kaydi(kaynak: str, ham: dict, alan: list) -> dict | None:
         "boylam_min": boylam_min,
         "boylam_maks": boylam_maks,
         "ham_metin": ham.get("rawSigmet") or ham.get("rawAirSigmet"),
+        "hareket_yonu_derece": hareket[0],
+        "hareket_hizi_kt": hareket[1],
     }
 
 
@@ -305,6 +347,8 @@ def _satiri_sozluge_cevir(s: Sigmet) -> dict:
         "taban_ft": s.taban_ft,
         "tavan_ft": s.tavan_ft,
         "poligon": s.poligon,
+        "hareket_yonu_derece": s.hareket_yonu_derece,
+        "hareket_hizi_kt": s.hareket_hizi_kt,
     }
 
 

@@ -262,3 +262,30 @@ def test_hic_basarili_cekim_yapilmamis_kaynak_bayat_sayilir(test_veritabani):
     durum = ss.kaynak_saglik_durumlari(kaynaklar=("test_yok",))[0]
     assert durum["ardisik_hata_sayisi"] == 2 and durum["son_basari_zamani"] is None
     assert durum["son_hata"].startswith("TimeoutError")
+
+
+@pytest.mark.parametrize(
+    "alanlar, beklenen",
+    [
+        ({"dir": "NE", "spd": "25"}, (45.0, 25.0)),
+        ({"dir": "-", "spd": "0"}, (None, None)),
+        ({"dir": "E", "spd": "0"}, (None, None)),
+        ({"dir": "WNW", "spd": "UNK"}, (292.5, None)),
+        ({"dir": "E", "spd": "20", "rawSigmet": "LTAA SIGMET T01 ... MOV E 20KMH NC="}, (90.0, 20 / 1.852)),
+        ({}, (None, None)),
+    ],
+    ids=["kuzeydogu_25kt", "duragan", "hiz_sifir", "hiz_bilinmiyor", "kmh", "bilgi_yok"],
+)
+def test_uluslararasi_sigmet_hareketi_yoneldigi_yon_olarak_okunur(alanlar, beklenen):
+    kayit = ss.sigmet_kaydini_normalize_et("isigmet", {**ULUSLARARASI_ORNEK, **alanlar})
+    assert kayit["hareket_yonu_derece"] == beklenen[0]
+    assert kayit["hareket_hizi_kt"] == (pytest.approx(beklenen[1]) if beklenen[1] is not None else None)
+
+
+def test_abd_sigmet_hareketi_geldigi_yondan_yoneldigi_yone_cevrilir():
+    kayit = ss.sigmet_kaydini_normalize_et(
+        "airsigmet", {**ABD_ORNEK, "movementDir": 260, "movementSpd": 25, "rawAirSigmet": "MOV FROM 26025KT"}
+    )
+    assert (kayit["hareket_yonu_derece"], kayit["hareket_hizi_kt"]) == (80.0, 25.0)
+    az = ss.sigmet_kaydini_normalize_et("airsigmet", {**ABD_ORNEK, "movementDir": 260, "rawAirSigmet": "MOV LTL"})
+    assert (az["hareket_yonu_derece"], az["hareket_hizi_kt"]) == (None, None)

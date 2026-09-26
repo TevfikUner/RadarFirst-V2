@@ -688,6 +688,8 @@ def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, t
             "gecerlilik_baslangic": sg["gecerlilik_baslangic"],
             "gecerlilik_bitis": sg["gecerlilik_bitis"],
             "poligon": sg["poligon"],
+            "hareket_yonu_derece": sg.get("hareket_yonu_derece"),
+            "hareket_hizi_kt": sg.get("hareket_hizi_kt"),
         }
         for sg in katman.sigmetler
     ]
@@ -1165,7 +1167,16 @@ def _sigmeti_czml_varligina_cevir(sigmet, sira):
     bitis = pd.Timestamp(sigmet["gecerlilik_bitis"]).isoformat()
     return {
         "id": f"sigmet-{sigmet.get('id') or sira}",
-        "name": f"SIGMET {sigmet.get('fir_kodu') or ''} {sigmet['tehlike']}".strip(),
+        "name": (
+            f"SIGMET {sigmet.get('fir_kodu') or ''} {sigmet['tehlike']}".strip()
+            + (
+                f" (hareket {sigmet['hareket_yonu_derece']:.0f}° "
+                + (f"{sigmet['hareket_hizi_kt']:.0f} kt" if sigmet.get("hareket_hizi_kt") else "hız bilinmiyor")
+                + "; çizim yayın anındaki konum)"
+                if sigmet.get("hareket_yonu_derece") is not None
+                else ""
+            )
+        ),
         "availability": f"{baslangic}/{bitis}",
         "polygon": {
             "positions": {"cartographicDegrees": koseler},

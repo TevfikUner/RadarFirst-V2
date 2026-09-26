@@ -182,6 +182,8 @@ class SigmetOzetiYaniti(BaseModel):
     gecerlilik_baslangic: datetime
     gecerlilik_bitis: datetime
     poligon: list[list[float]]
+    hareket_yonu_derece: float | None = None
+    hareket_hizi_kt: float | None = None
 
 
 class SigmetKontroluYaniti(BaseModel):

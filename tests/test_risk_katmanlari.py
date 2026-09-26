@@ -116,3 +116,26 @@ def test_zaman_belirsizligi_icinde_baslayan_sigmet_muhafazakar_olarak_uygulanir(
     assert not katman.degerlendir(konumlar, zamanlar, [], 34000 * 0.3048).yasak_dugumler
     sonuc = katman.degerlendir(konumlar, zamanlar, [], 34000 * 0.3048, zaman_belirsizligi={"ic": timedelta(minutes=30)})
     assert sonuc.yasak_dugumler == {"ic"}
+
+
+def _hareketli(yon, hiz):
+    return {**_kare_sigmet(), "hareket_yonu_derece": yon, "hareket_hizi_kt": hiz}
+
+
+def test_hareketli_sigmet_varis_zamanindaki_konumuyla_uygulanir():
+    # 2 saat önce yayınlanmış, doğuya 60 kt: alan ~2.57° doğuya kaymış (32.6-34.6°D).
+    sonuc = _degerlendir(SigmetKisitKatmani([_hareketli(90.0, 60.0)]))
+    assert sonuc.yasak_dugumler == {"dis_dogu"}
+    assert sonuc.yasak_kenarlar == {("dis_bati", "dis_dogu")}
+
+
+def test_hizi_bilinmeyen_sigmet_olasi_tum_konumlari_supurur():
+    sonuc = _degerlendir(SigmetKisitKatmani([_hareketli(90.0, None)]))
+    assert sonuc.yasak_dugumler == {"ic", "dis_dogu"}
+
+
+def test_rota_ihlali_hareketli_sigmetin_konumuna_gore_sayilir():
+    katman = SigmetKisitKatmani([_hareketli(90.0, 60.0)])
+    zamanlar = [SIMDI] * 2
+    assert katman.rota_ihlal_sayisi([39.0, 39.0], [30.5, 31.5], zamanlar, 10000.0) == 0
+    assert katman.rota_ihlal_sayisi([39.0, 39.0], [33.0, 34.0], zamanlar, 10000.0) == 3

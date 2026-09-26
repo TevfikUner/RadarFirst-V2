@@ -114,6 +114,9 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - 180° boylamını (antimeridyen) kesen poligonlar -180..180 aralığında
   ikiye bölünerek uygulanır; kendini kesen (geçersiz) halkalar onarılır.
   Rotanın kendisi 180° boylamını kesiyorsa (Pasifik geçişleri) desteklenmez.
+- Hareketli SIGMET'ler bildirilen yön/hızla doğrusal kaydırılır (şekil
+  değişimi, "INTSF/WKN" yoğunlaşma/zayıflama modellenmez); hızı bilinmeyenler
+  0-30 kt aralığında süpürülür. 3D sahne alanı yayın anındaki konumunda çizer.
 - İptal tespiti, SIGMET'in canlı akıştan düşmesine dayanır.
 - Buzlanma (ICE) varsayılan kaçınma setinde yoktur
   (`SIGMET_KACINILACAK_TEHLIKELER` ile eklenebilir).

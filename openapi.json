@@ -3572,6 +3572,28 @@
             },
             "type": "array",
             "title": "Poligon"
+          },
+          "hareket_yonu_derece": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hareket Yonu Derece"
+          },
+          "hareket_hizi_kt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hareket Hizi Kt"
           }
         },
         "type": "object",

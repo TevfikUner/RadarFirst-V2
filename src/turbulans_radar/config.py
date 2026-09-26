@@ -188,6 +188,9 @@ SIGMET_MAKS_COZUMLENEMEYEN_ORAN = _ortam_sayi("SIGMET_MAKS_COZUMLENEMEYEN_ORAN",
 # Tehlike alanı okunamayan SIGMET'ler bu etiketle saklanır ve A* tarafından
 # (muhafazakâr olarak) her zaman kaçınılır.
 SIGMET_BILINMEYEN_TEHLIKE = "BILINMIYOR"
+# Hareket yönü verilmiş ama hızı bilinmeyen ("MOV NE", spd=UNK) SIGMET için
+# varsayılan en yüksek hız: alan 0 ile bu hız arasındaki tüm konumları süpürür.
+SIGMET_BILINMEYEN_HIZ_KT = _ortam_sayi("SIGMET_BILINMEYEN_HIZ_KT", 30.0)
 
 # veri_saglayicilari.py -- anlık rota için CANLI hava verisi (ERA5 reanalizi
 # birkaç gün gecikmeli yayınlandığı için "şimdi"yi kapsamaz). NOAA GFS 0.25°,

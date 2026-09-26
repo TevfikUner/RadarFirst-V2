@@ -137,6 +137,10 @@ class Sigmet(Base):
     boylam_min: Mapped[float] = mapped_column(Float, nullable=False)
     boylam_maks: Mapped[float] = mapped_column(Float, nullable=False)
     ham_metin: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Hareketin YÖNELDİĞİ yön (0=kuzey, 90=doğu) ve hızı; yön boşsa durağan,
+    # yön dolu hız boşsa hız bilinmiyor (bkz. risk_katmanlari: muhafazakâr süpürme).
+    hareket_yonu_derece: Mapped[float | None] = mapped_column(Float, nullable=True)
+    hareket_hizi_kt: Mapped[float | None] = mapped_column(Float, nullable=True)
     alinma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

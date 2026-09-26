@@ -36,6 +36,8 @@ from turbulans_radar import config
 from turbulans_radar.fizik.eslestirme import rotayi_hava_durumuyla_eslestir
 
 TURBULANS_CEZASI_SANIYE = 6 * 3600.0
+_KM_PER_DERECE = 111.2
+_KT_KM_SAAT = 1.852
 
 
 @dataclass
@@ -127,6 +129,12 @@ class PoligonKisitKatmani:
         self._poligonlar = [sigmet_geometrisi(k["poligon"]) for k in self.kayitlar]
         for poligon in self._poligonlar:
             shapely.prepare(poligon)
+        self._sinirlar = [shapely.bounds(p) for p in self._poligonlar]
+        self._kos_enlemler = [max(np.cos(np.radians(shapely.centroid(p).y)), 0.05) for p in self._poligonlar]
+
+    @staticmethod
+    def _saniye(zaman) -> float | None:
+        return None if zaman is None else _utc(zaman).value / 1e9
 
     @staticmethod
     def _irtifada_mi(kayit, irtifa_ft) -> bool:
@@ -134,58 +142,102 @@ class PoligonKisitKatmani:
         tavan = kayit["tavan_ft"] if kayit["tavan_ft"] is not None else float("inf")
         return taban <= irtifa_ft <= tavan
 
+    def _aktif_maskesi(self, kayit, t, d) -> np.ndarray:
+        """Düğüm zamanı belirsizse ([t - d, t + d]) aralık geçerlilikle
+        kesiştiğinde aktif sayılır -- muhafazakâr. t, d: saniye dizileri."""
+        baslangic = self._saniye(kayit.get("gecerlilik_baslangic"))
+        bitis = self._saniye(kayit.get("gecerlilik_bitis"))
+        maske = np.ones(len(t), dtype=bool)
+        if baslangic is not None:
+            maske &= baslangic <= t + d
+        if bitis is not None:
+            maske &= t - d <= bitis
+        return maske
+
+    def _kayma_araliklari(self, kayit, kos_enlem, t, d):
+        """Hareketli kayıt için düğüm başına (derece cinsinden) en küçük ve en
+        büyük kayma vektörü: hız x (düğüm zamanı ± belirsizlik - geçerlilik
+        başlangıcı). Hız bilinmiyorsa 0 ile SIGMET_BILINMEYEN_HIZ_KT arası.
+        Durağansa None."""
+        yon, hiz = kayit.get("hareket_yonu_derece"), kayit.get("hareket_hizi_kt")
+        baslangic = self._saniye(kayit.get("gecerlilik_baslangic"))
+        if yon is None or baslangic is None:
+            return None
+        hiz_min, hiz_maks = (hiz, hiz) if hiz is not None else (0.0, config.SIGMET_BILINMEYEN_HIZ_KT)
+        if hiz_maks <= 0:
+            return None
+        saat_min = np.clip(t - d - baslangic, 0.0, None) / 3600.0
+        saat_maks = np.clip(t + d - baslangic, 0.0, None) / 3600.0
+        teta = np.radians(yon)
+        birim = np.array([np.sin(teta) / kos_enlem, np.cos(teta)]) / _KM_PER_DERECE
+        return (hiz_min * _KT_KM_SAAT * saat_min)[:, None] * birim, (hiz_maks * _KT_KM_SAAT * saat_maks)[
+            :, None
+        ] * birim
+
     @staticmethod
-    def _aktif_maskesi(kayit, zamanlar, belirsizlikler=None) -> np.ndarray:
-        """Düğüm zamanı belirsizse ([z - d, z + d]) aralık geçerlilikle
-        kesiştiğinde aktif sayılır -- muhafazakâr."""
-        baslangic, bitis = kayit.get("gecerlilik_baslangic"), kayit.get("gecerlilik_bitis")
-        baslangic = _utc(baslangic) if baslangic is not None else None
-        bitis = _utc(bitis) if bitis is not None else None
-        belirsizlikler = belirsizlikler or [pd.Timedelta(0)] * len(zamanlar)
-        return np.array(
-            [
-                (baslangic is None or baslangic <= z + d) and (bitis is None or z - d <= bitis)
-                for z, d in zip(zamanlar, belirsizlikler)
-            ],
-            dtype=bool,
+    def _kutu_kesisiyor(asgari, azami, sinir) -> np.ndarray:
+        return (
+            (asgari[:, 0] <= sinir[2])
+            & (azami[:, 0] >= sinir[0])
+            & (asgari[:, 1] <= sinir[3])
+            & (azami[:, 1] >= sinir[1])
         )
 
     def degerlendir(self, konumlar, zamanlar, kenarlar, irtifa_m, zaman_belirsizligi=None) -> RiskDegerlendirmesi:
         """zaman_belirsizligi: düğüm -> Timedelta; A* rüzgarsız nominal
-        zamanlarla aradığı için gerçek (rüzgarlı) varış bu kadar kayabilir."""
+        zamanlarla aradığı için gerçek (rüzgarlı) varış bu kadar kayabilir.
+        Hareketli SIGMET'te nokta, alanın o zamanki konumuna göre sınanır:
+        noktayı hareketin tersine kaydıran doğru parçası (belirsizlik ve
+        bilinmeyen hız aralığını kapsar) poligonu keserse yasaktır. Poligonun
+        sınır kutusundan uzak düğüm/bacaklar geometri testine hiç girmez."""
         dugumler = list(konumlar)
         if not self.kayitlar or not dugumler:
             return RiskDegerlendirmesi()
         irtifa_ft = irtifa_m / 0.3048
         indeks = {d: i for i, d in enumerate(dugumler)}
-        boylam = np.array([konumlar[d][1] for d in dugumler])
-        enlem = np.array([konumlar[d][0] for d in dugumler])
-        dugum_zamanlari = [_utc(zamanlar[d]) for d in dugumler]
-        belirsizlikler = [zaman_belirsizligi[d] for d in dugumler] if zaman_belirsizligi else None
-        cizgiler = (
-            shapely.linestrings(
-                [[(konumlar[a][1], konumlar[a][0]), (konumlar[b][1], konumlar[b][0])] for a, b in kenarlar]
-            )
-            if kenarlar
-            else np.array([])
+        nokta = np.array([(konumlar[d][1], konumlar[d][0]) for d in dugumler], dtype=float)
+        t = np.array([self._saniye(zamanlar[d]) for d in dugumler])
+        d = (
+            np.array([pd.Timedelta(zaman_belirsizligi[k]).total_seconds() for k in dugumler])
+            if zaman_belirsizligi
+            else np.zeros(len(dugumler))
         )
+        ai = np.array([indeks[a] for a, _ in kenarlar], dtype=int)
+        bi = np.array([indeks[b] for _, b in kenarlar], dtype=int)
+        cizgiler = shapely.linestrings(np.stack([nokta[ai], nokta[bi]], axis=1)) if len(kenarlar) else None
 
         yasak_dugum = np.zeros(len(dugumler), dtype=bool)
         yasak_kenar = np.zeros(len(kenarlar), dtype=bool)
-        for kayit, poligon in zip(self.kayitlar, self._poligonlar):
+        for kayit, poligon, sinir, kos_enlem in zip(
+            self.kayitlar, self._poligonlar, self._sinirlar, self._kos_enlemler
+        ):
             if not self._irtifada_mi(kayit, irtifa_ft):
                 continue
-            aktif = self._aktif_maskesi(kayit, dugum_zamanlari, belirsizlikler)
+            aktif = self._aktif_maskesi(kayit, t, d)
             if not aktif.any():
                 continue
-            yasak_dugum |= aktif & shapely.intersects_xy(poligon, boylam, enlem)
-            if len(kenarlar):
-                kenar_aktif = np.array([aktif[indeks[a]] or aktif[indeks[b]] for a, b in kenarlar], dtype=bool)
-                yasak_kenar |= kenar_aktif & shapely.intersects(cizgiler, poligon)
+            kayma = self._kayma_araliklari(kayit, kos_enlem, t, d)
+            ilk, son = (nokta, nokta) if kayma is None else (nokta - kayma[0], nokta - kayma[1] - 1e-9)
+            aday = np.flatnonzero(aktif & self._kutu_kesisiyor(np.minimum(ilk, son), np.maximum(ilk, son), sinir))
+            if len(aday):
+                if kayma is None:
+                    yasak_dugum[aday] |= shapely.intersects_xy(poligon, nokta[aday, 0], nokta[aday, 1])
+                else:
+                    parca = shapely.linestrings(np.stack([ilk[aday], son[aday]], axis=1))
+                    yasak_dugum[aday] |= shapely.intersects(parca, poligon)
+            if not len(kenarlar):
+                continue
+            koseler = np.stack([ilk[ai], son[ai], ilk[bi], son[bi]], axis=1)
+            aday = np.flatnonzero(
+                (aktif[ai] | aktif[bi]) & self._kutu_kesisiyor(koseler.min(axis=1), koseler.max(axis=1), sinir)
+            )
+            if len(aday):
+                geometri = cizgiler[aday] if kayma is None else shapely.convex_hull(shapely.multipoints(koseler[aday]))
+                yasak_kenar[aday] |= shapely.intersects(geometri, poligon)
 
         return RiskDegerlendirmesi(
-            yasak_dugumler={d for d, y in zip(dugumler, yasak_dugum) if y},
-            yasak_kenarlar={k for k, y in zip(kenarlar, yasak_kenar) if y},
+            yasak_dugumler={dugumler[i] for i in np.flatnonzero(yasak_dugum)},
+            yasak_kenarlar={kenarlar[i] for i in np.flatnonzero(yasak_kenar)},
         )
 
     def rota_ihlal_sayisi(self, enlemler, boylamlar, zamanlar, irtifa_m) -> int:
