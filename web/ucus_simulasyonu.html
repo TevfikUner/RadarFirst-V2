@@ -220,6 +220,9 @@ function sonucPanelDoldur(sonuc) {
   if (sonuc.ruzgar_verisi_kaynagi === "era5_gercek") {
     kaynakEl.textContent = "✓ Gerçek ERA5 rüzgar verisi";
     kaynakEl.className = "gercek";
+  } else if (sonuc.ruzgar_verisi_kaynagi === "gfs_tahmin") {
+    kaynakEl.textContent = "✓ Canlı NOAA GFS tahmin verisi";
+    kaynakEl.className = "gercek";
   } else {
     kaynakEl.textContent = "⚠ Kapsam dışı (rüzgarsız tahmin)";
     kaynakEl.className = "kapsam-disi";

@@ -49,7 +49,7 @@ import os
 import secrets
 import time
 from contextlib import asynccontextmanager
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from functools import partial
 from urllib.parse import urlsplit
 
@@ -93,12 +93,15 @@ from gorev_deposu import (
     yarida_kalan_gorevleri_isaretle,
 )
 from hata_yardimcisi import dostane_hata_mesaji
+from kup_katalogu import katalogu_listele, kup_meta_verisi
 from main import calistir, rota_df_ile_calistir
 from rota_optimizasyonu import UCAK_PROFILLERI, rota_simulasyonu_olustur, simulasyonu_czml_e_cevir, veri_kupune_eris
 from semalar import (
+    CanliVeriIstegi,
     EsiklerYaniti,
     GorevBaslatildiYaniti,
     GorevDurumYaniti,
+    HavaDurumuKupuYaniti,
     ModelBilgisiYaniti,
     ModelVersiyonuOzetiYaniti,
     RotaSimulasyonuIstegi,
@@ -124,7 +127,8 @@ from turbulans_ml_modeli import (
     ozellikleri_cikar,
     versiyona_geri_don,
 )
-from veri_yukleme import hava_durumu_dosyalari
+from veri_saglayicilari import Kutu, canli_kup_hazirla
+from veri_yukleme import hava_durumu_dosyalari, veri_kupu_adi
 from veritabani import (
     VeritabaniAyarlariEksikHatasi,
     async_motor_al,
@@ -875,6 +879,46 @@ async def aktif_sigmetleri_listele(
         boylam_maks,
         tehlike or config.SIGMET_KACINILACAK_TEHLIKELER,
     )
+
+
+_CANLI_VERI_MAKS_KUTU_DERECE = (40.0, 60.0)
+
+
+@v1.get("/veri/kupler", response_model=list[HavaDurumuKupuYaniti], tags=["Veri Sağlayıcı"])
+async def hava_durumu_kupleri(limit: int = Query(default=50, ge=1, le=500)):
+    """Veri sağlayıcıların indirip kataloğa kaydettiği küpler (en yeni önce)."""
+    kupler = await asyncio.to_thread(katalogu_listele, limit)
+    return [{**k, "dosya_adi": os.path.basename(k["dosya_yolu"])} for k in kupler]
+
+
+@v1.post("/veri/canli/hazirla", response_model=HavaDurumuKupuYaniti, tags=["Veri Sağlayıcı"])
+async def canli_veri_hazirla(istek: CanliVeriIstegi):
+    """Verilen bölge/zaman için canlı NOAA GFS küpünü hazırlar (katalogda taze
+    bir küp varsa onu kullanır, yoksa indirir) ve özetini döner."""
+    _hiz_sinirini_kontrol_et("canli_veri")
+    if istek.enlem_min >= istek.enlem_maks or istek.boylam_min >= istek.boylam_maks:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Kutu sınırları geçersiz (min < maks olmalı).")
+    enlem_genisligi, boylam_genisligi = istek.enlem_maks - istek.enlem_min, istek.boylam_maks - istek.boylam_min
+    if enlem_genisligi > _CANLI_VERI_MAKS_KUTU_DERECE[0] or boylam_genisligi > _CANLI_VERI_MAKS_KUTU_DERECE[1]:
+        raise HTTPException(
+            status.HTTP_400_BAD_REQUEST,
+            f"Kutu en fazla {_CANLI_VERI_MAKS_KUTU_DERECE[0]:.0f}° x {_CANLI_VERI_MAKS_KUTU_DERECE[1]:.0f}° olabilir.",
+        )
+    baslangic = istek.baslangic or datetime.now(UTC)
+    kutu = Kutu(istek.enlem_min, istek.enlem_maks, istek.boylam_min, istek.boylam_maks)
+    try:
+        kup = await asyncio.to_thread(
+            canli_kup_hazirla, kutu, baslangic, baslangic + timedelta(hours=istek.saat_sayisi)
+        )
+    except httpx.HTTPError as hata:
+        _hatayi_sunucu_tarafinda_logla(hata, "canlı GFS indirme")
+        raise HTTPException(status.HTTP_502_BAD_GATEWAY, "Canlı hava verisi sağlayıcısına ulaşılamadı.") from hata
+    return {
+        "kaynak": kup.attrs.get("kaynak", "era5"),
+        "model_calisma_zamani": kup.attrs.get("model_calisma_zamani"),
+        "dosya_adi": veri_kupu_adi(kup),
+        **kup_meta_verisi(kup),
+    }
 
 
 app.include_router(v1)

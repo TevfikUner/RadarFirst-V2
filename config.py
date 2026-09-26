@@ -144,3 +144,26 @@ SIGMET_SAKLAMA_GUN = _ortam_sayi("SIGMET_SAKLAMA_GUN", 30, int)
 SIGMET_BAYATLIK_DAKIKA = _ortam_sayi("SIGMET_BAYATLIK_DAKIKA", 30, int)
 # >0 ise API kendi içinde bu aralıkla (dakika) SIGMET çeker; 0 = kapalı (n8n/cron tetikler).
 SIGMET_OTOMATIK_GUNCELLEME_DAKIKA = _ortam_sayi("SIGMET_OTOMATIK_GUNCELLEME_DAKIKA", 0, int)
+
+# veri_saglayicilari.py -- anlık rota için CANLI hava verisi (ERA5 reanalizi
+# birkaç gün gecikmeli yayınlandığı için "şimdi"yi kapsamaz). NOAA GFS 0.25°,
+# UCAR THREDDS NetCDF Subset Service üzerinden NetCDF olarak alınır (GRIB2
+# çözücü/ecCodes gerektirmez). Noktaları hiçbir ERA5 küpü kapsamıyorsa ve
+# zaman [şimdi - CANLI_GECMIS_SAAT, şimdi + CANLI_TAHMIN_UFKU_SAAT] içindeyse
+# devreye girer; indirilen küpler hava_durumu_kupleri kataloğuna kaydedilip
+# yeniden kullanılır.
+CANLI_HAVA_VERISI_ETKIN = _ortam_bool("CANLI_HAVA_VERISI_ETKIN", True)
+GFS_THREDDS_URL = _ortam_str(
+    "GFS_THREDDS_URL", "https://thredds.ucar.edu/thredds/ncss/grid/grib/NCEP/GFS/Global_0p25deg/Best"
+)
+CANLI_VERI_KLASORU = _ortam_str("CANLI_VERI_KLASORU", "canli_veri")
+CANLI_BASINC_SEVIYELERI_HPA = tuple(
+    float(s) for s in _ortam_str("CANLI_BASINC_SEVIYELERI_HPA", "200,250,300").split(",") if s.strip()
+)
+CANLI_GECMIS_SAAT = _ortam_sayi("CANLI_GECMIS_SAAT", 48, int)
+CANLI_TAHMIN_UFKU_SAAT = _ortam_sayi("CANLI_TAHMIN_UFKU_SAAT", 120, int)
+# Aynı bölge/zaman için indirilmiş bir GFS küpü, model çalıştırması bundan
+# eskiyse yeniden kullanılmaz (GFS 6 saatte bir yeni döngü yayınlar).
+CANLI_KUP_TAZELIK_SAAT = _ortam_sayi("CANLI_KUP_TAZELIK_SAAT", 6, int)
+# Geçerliliği bu kadar saat önce bitmiş canlı küpler (dosya + katalog kaydı) silinir.
+CANLI_KUP_SAKLAMA_SAAT = _ortam_sayi("CANLI_KUP_SAKLAMA_SAAT", 48, int)

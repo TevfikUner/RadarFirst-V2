@@ -1376,6 +1376,132 @@
         }
       }
     },
+    "/api/v1/veri/kupler": {
+      "get": {
+        "tags": [
+          "Veri Sağlayıcı"
+        ],
+        "summary": "Hava Durumu Kupleri",
+        "description": "Veri sağlayıcıların indirip kataloğa kaydettiği küpler (en yeni önce).",
+        "operationId": "hava_durumu_kupleri_api_v1_veri_kupler_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HavaDurumuKupuYaniti"
+                  },
+                  "title": "Response Hava Durumu Kupleri Api V1 Veri Kupler Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/veri/canli/hazirla": {
+      "post": {
+        "tags": [
+          "Veri Sağlayıcı"
+        ],
+        "summary": "Canli Veri Hazirla",
+        "description": "Verilen bölge/zaman için canlı NOAA GFS küpünü hazırlar (katalogda taze\nbir küp varsa onu kullanır, yoksa indirir) ve özetini döner.",
+        "operationId": "canli_veri_hazirla_api_v1_veri_canli_hazirla_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CanliVeriIstegi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HavaDurumuKupuYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/saglik": {
       "get": {
         "tags": [
@@ -1425,6 +1551,62 @@
   },
   "components": {
     "schemas": {
+      "CanliVeriIstegi": {
+        "properties": {
+          "enlem_min": {
+            "type": "number",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Enlem Min"
+          },
+          "enlem_maks": {
+            "type": "number",
+            "maximum": 90.0,
+            "minimum": -90.0,
+            "title": "Enlem Maks"
+          },
+          "boylam_min": {
+            "type": "number",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Boylam Min"
+          },
+          "boylam_maks": {
+            "type": "number",
+            "maximum": 180.0,
+            "minimum": -180.0,
+            "title": "Boylam Maks"
+          },
+          "baslangic": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baslangic"
+          },
+          "saat_sayisi": {
+            "type": "integer",
+            "maximum": 120.0,
+            "minimum": 1.0,
+            "title": "Saat Sayisi",
+            "default": 12
+          }
+        },
+        "type": "object",
+        "required": [
+          "enlem_min",
+          "enlem_maks",
+          "boylam_min",
+          "boylam_maks"
+        ],
+        "title": "CanliVeriIstegi",
+        "description": "POST /veri/canli/hazirla -- bir bölge/zaman için canlı GFS küpünü\nönceden indirir (örn. n8n her GFS döngüsünden sonra sık kullanılan\nbölgeler için), böylece ilk rota isteği indirme süresini beklemez."
+      },
       "EsiklerYaniti": {
         "properties": {
           "ti1_esik_hafif": {
@@ -1536,6 +1718,93 @@
         },
         "type": "object",
         "title": "HTTPValidationError"
+      },
+      "HavaDurumuKupuYaniti": {
+        "properties": {
+          "kaynak": {
+            "type": "string",
+            "title": "Kaynak"
+          },
+          "model_calisma_zamani": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model Calisma Zamani"
+          },
+          "gecerlilik_baslangic": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Gecerlilik Baslangic"
+          },
+          "gecerlilik_bitis": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Gecerlilik Bitis"
+          },
+          "enlem_min": {
+            "type": "number",
+            "title": "Enlem Min"
+          },
+          "enlem_maks": {
+            "type": "number",
+            "title": "Enlem Maks"
+          },
+          "boylam_min": {
+            "type": "number",
+            "title": "Boylam Min"
+          },
+          "boylam_maks": {
+            "type": "number",
+            "title": "Boylam Maks"
+          },
+          "basinc_seviyeleri_hpa": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Basinc Seviyeleri Hpa"
+          },
+          "dosya_adi": {
+            "type": "string",
+            "title": "Dosya Adi"
+          },
+          "durum": {
+            "type": "string",
+            "title": "Durum",
+            "default": "hazir"
+          },
+          "boyut_bayt": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Boyut Bayt"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kaynak",
+          "gecerlilik_baslangic",
+          "gecerlilik_bitis",
+          "enlem_min",
+          "enlem_maks",
+          "boylam_min",
+          "boylam_maks",
+          "basinc_seviyeleri_hpa",
+          "dosya_adi"
+        ],
+        "title": "HavaDurumuKupuYaniti",
+        "description": "hava_durumu_kupleri kataloğundaki bir küp (bkz. kup_katalogu.py)."
       },
       "ModelBilgisiYaniti": {
         "properties": {

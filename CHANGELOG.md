@@ -4,6 +4,24 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Veri Sağlayıcı katmanı: canlı NOAA GFS (anlık rota)
+
+- **`veri_saglayicilari.py`:** kaynaktan bağımsız `VeriSaglayici` arayüzü +
+  `GfsThreddsSaglayici` (NOAA GFS 0.25°, UCAR THREDDS NetCDF Subset Service;
+  GRIB2/ecCodes gerektirmez). Küpler ERA5 ile aynı ortak şemaya normalize
+  edilir (boylam 0-360 -> -180..180, Pa -> hPa, değişken/boyut adları).
+- **Seçim:** yerel ERA5 arşivi kapsamıyorsa ve zaman canlı penceredeyse GFS
+  (`veri_kupunu_sec`); rota simülasyonu, `/turbulans/tahmin` ve son 48
+  saatteki uçuş analizi bunu kullanıyor. Rota, küp seçimi için tahmini varış
+  zamanlarını kullanıyor (uzun uçuşta küp tüm süreyi kapsasın).
+  `ruzgar_verisi_kaynagi`'na `gfs_tahmin` eklendi, önyüz etiketi güncellendi.
+- **`kup_katalogu.py`:** indirilen küpler `hava_durumu_kupleri` tablosuna
+  kaydedilip yeniden kullanılıyor (tazelik indirme zamanına göre), eski canlı
+  küpler dosyasıyla birlikte siliniyor.
+- `POST /api/v1/veri/canli/hazirla` (önceden ısıtma), `GET /api/v1/veri/kupler`.
+- Canlı doğrulama: Türkiye bölgesi GFS küpü ~15 sn'de indi, ikinci istek
+  katalogdan anında geldi, GFS alanlarıyla TI1 hesaplandı.
+
 ## Canlı SIGMET sağlayıcısı + A* için modüler risk katmanları
 
 - **`sigmet_saglayici.py`:** aviationweather.gov `airsigmet` (ABD) +

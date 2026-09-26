@@ -35,3 +35,6 @@ pirep_kalibrasyon_verisi.csv
 .coverage
 coverage.xml
 htmlcov/
+
+# veri_saglayicilari.py -- indirilen canlı GFS küpleri (yeniden üretilebilir).
+canli_veri/

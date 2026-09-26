@@ -98,6 +98,8 @@ sigmet_dogrulama.py               -> TI1'i gerçek AWC SIGMET uyarılarıyla kar
 sigmet_saglayici.py               -> CANLI AWC SIGMET sağlayıcısı (ABD + uluslararası, Ankara FIR dahil) -> PostgreSQL
 risk_katmanlari.py                -> A*'ın modüler risk katmanları (TI1 cezası, SIGMET sert kısıtı)
 gorev_deposu.py                   -> API analiz görevlerinin kalıcı (PostgreSQL) kaydı
+veri_saglayicilari.py             -> Veri Sağlayıcı katmanı: canlı NOAA GFS (THREDDS, NetCDF) + yerel ERA5 seçimi
+kup_katalogu.py                   -> hava durumu küplerinin PostgreSQL kataloğu (ızgara diskte, meta veri DB'de)
 web/harita3d.html                 -> tek dosyalık MapLibre GL 3D/canlı harita önyüzü (api_servisi.py sunar)
 rota_optimizasyonu.py             -> gerçek ERA5 rüzgarına göre büyük daire vs yakıt-optimize rota hesabı + CZML üretimi
 web/ucus_simulasyonu.html         -> tek dosyalık CesiumJS 3D uçuş simülasyonu önyüzü (api_servisi.py sunar)
@@ -232,6 +234,8 @@ görüntü (snapshot) kolaylığı sağlar.
 | POST | `/api/v1/simulasyon/rota` | Büyük daire vs rüzgar-optimize rota + CZML döner; aktif SIGMET'ler sert kısıt olarak uygulanır (bkz. aşağıdaki bölüm) |
 | POST | `/api/v1/sigmet/guncelle` | AWC'den canlı SIGMET'leri çekip veritabanını günceller (n8n/cron periyodik tetikler) |
 | GET | `/api/v1/sigmet` | Şu an geçerli SIGMET'ler (kutu/tehlike filtresiyle) -- önyüzlerin yasak bölgeleri çizmesi için |
+| POST | `/api/v1/veri/canli/hazirla` | Bir bölge/zaman için canlı GFS küpünü önceden indirir (katalogda tazesi varsa onu kullanır) |
+| GET | `/api/v1/veri/kupler` | Hava durumu küpü kataloğu (kaynak, model çalıştırması, kapsam, seviyeler) |
 | POST | `/api/v1/turbulans/tahmin` | Tek nokta için fizik (TI1) + gerçek PIREP verisiyle eğitilmiş ML tahminini karşılaştırmalı döner |
 | GET | `/api/v1/turbulans/model-bilgisi` | ML modelinin seçim gerekçesi/metrikleri (recall, F1, ROC-AUC vb.) + eğitim tarihini döner; model henüz eğitilmediyse dürüstçe `egitildi_mi: false` |
 | GET | `/api/v1/turbulans/model-versiyonlari` | Şimdiye kadar eğitilmiş TÜM model versiyonlarını (en yeni önce) listeler |
@@ -369,6 +373,36 @@ edilen) SIGMET'lerin geçerliliği sona erdirilir, süresi dolanlar
 /api/v1/sigmet/guncelle` (n8n Schedule Trigger, örn. 10-15 dk),
 `python sigmet_saglayici.py` (cron) ya da `SIGMET_OTOMATIK_GUNCELLEME_DAKIKA`
 > 0 ile API'nin kendi zamanlayıcısı.
+
+## Canlı hava verisi: Veri Sağlayıcı katmanı (NOAA GFS)
+
+ERA5 bir reanalizdir, birkaç gün gecikmeyle yayınlanır -- "şimdi" için rota
+çizemez. `veri_saglayicilari.py` bu yüzden hava verisini kaynaktan bağımsız
+bir **Veri Sağlayıcı** arayüzüyle alır; her sağlayıcı küpü ERA5 ile AYNI
+ortak şemaya (u/v/t, `valid_time`, `pressure_level` hPa, boylam -180..180)
+normalize eder, böylece eşleştirme, risk katmanları ve A* kaynağı bilmez.
+
+- **Seçim sırası** (`veri_kupunu_sec`): önce yerel arşiv küpleri (ERA5); hiçbiri
+  noktaları kapsamıyorsa ve zaman canlı penceredeyse (şimdi
+  -`CANLI_GECMIS_SAAT` / +`CANLI_TAHMIN_UFKU_SAAT`) canlı sağlayıcı; ikisi de
+  yoksa `None` (uydurma veri yok). Rota simülasyonu, `/turbulans/tahmin` ve
+  son 48 saatteki uçuş analizleri bunu kullanır; yanıttaki
+  `ruzgar_verisi_kaynagi` `gfs_tahmin` / `era5_gercek` / `era5_kapsam_disi` olur.
+- **`GfsThreddsSaglayici`:** NOAA GFS 0.25°, UCAR THREDDS NetCDF Subset
+  Service'ten her basınç seviyesi (varsayılan 200/250/300 hPa) paralel ayrı
+  istekle NetCDF olarak alınır -- GRIB2/ecCodes gerektirmez (ecCodes'un
+  Windows/Python 3.14 için hazır paketi yok). Türkiye bölgesi, 3 seviye,
+  birkaç saatlik pencere: ~250 KB, ~15 sn.
+- **Katalog ve yeniden kullanım:** indirilen küp `CANLI_VERI_KLASORU`'na
+  yazılır, `hava_durumu_kupleri` tablosuna kaydedilir (`kup_katalogu.py`);
+  aynı bölge/zamanı kapsayan ve `CANLI_KUP_TAZELIK_SAAT` içinde indirilmiş
+  bir küp varsa yeniden indirilmez. Geçerliliği `CANLI_KUP_SAKLAMA_SAAT`
+  önce bitmiş canlı küpler (dosya + kayıt) otomatik silinir.
+- **Önceden ısıtma:** `POST /api/v1/veri/canli/hazirla` (örn. n8n her GFS
+  döngüsünden sonra sık kullanılan bölgeler için) ilk rota isteğinin indirme
+  süresini beklemesini önler.
+- Yeni bir sağlayıcı (örn. ECMWF Open Data -- GRIB2, Docker/Linux'ta)
+  `VeriSaglayici` arayüzünü uygulayarak eklenir.
 
 ## 3D uçuş simülasyonu (normal rota vs türbülanstan-kaçınma rota)
 

@@ -258,3 +258,33 @@ class ModelBilgisiYaniti(BaseModel):
     egitim_orneklem_sayisi: int | None = None
     test_orneklem_sayisi: int | None = None
     egitim_zamani: str | None = None
+
+
+class HavaDurumuKupuYaniti(BaseModel):
+    """hava_durumu_kupleri kataloğundaki bir küp (bkz. kup_katalogu.py)."""
+
+    kaynak: str
+    model_calisma_zamani: datetime | None = None
+    gecerlilik_baslangic: datetime
+    gecerlilik_bitis: datetime
+    enlem_min: float
+    enlem_maks: float
+    boylam_min: float
+    boylam_maks: float
+    basinc_seviyeleri_hpa: list[float]
+    dosya_adi: str
+    durum: str = "hazir"
+    boyut_bayt: int | None = None
+
+
+class CanliVeriIstegi(BaseModel):
+    """POST /veri/canli/hazirla -- bir bölge/zaman için canlı GFS küpünü
+    önceden indirir (örn. n8n her GFS döngüsünden sonra sık kullanılan
+    bölgeler için), böylece ilk rota isteği indirme süresini beklemez."""
+
+    enlem_min: float = Field(ge=-90, le=90)
+    enlem_maks: float = Field(ge=-90, le=90)
+    boylam_min: float = Field(ge=-180, le=180)
+    boylam_maks: float = Field(ge=-180, le=180)
+    baslangic: datetime | None = None
+    saat_sayisi: int = Field(default=12, ge=1, le=120)

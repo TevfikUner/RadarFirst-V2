@@ -92,6 +92,11 @@ def hava_durumu_onbellekli_yukle(dosya_yolu=config.HAVA_DURUMU_DOSYASI):
         return _veri_kupu_onbellegi[dosya_yolu]
 
 
+def onbellekten_cikar(dosya_yolu):
+    with _veri_kupu_kilidi:
+        _veri_kupu_onbellegi.pop(dosya_yolu, None)
+
+
 def hava_durumu_dosyalari():
     """Ana küp (config.HAVA_DURUMU_DOSYASI) + config.EK_HAVA_DURUMU_KLASORU'ndaki
     tüm .nc küpleri (örn. ml_veri_indir.py'nin indirdiği ABD küpleri) --

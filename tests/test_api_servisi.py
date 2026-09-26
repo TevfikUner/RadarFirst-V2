@@ -836,3 +836,43 @@ async def test_rota_simulasyonu_sigmet_kontrolu_alanini_icerir(istemci, api_anah
     assert govde["guvenli_rota_bulundu_mu"] is True
     assert govde["sigmet_kontrolu"]["durum"] in ("aktif_sigmet_yok", "uygulandi")
     assert "sigmet_ihlali_sayisi" in govde["normal_rota"]
+
+
+# --- Veri sağlayıcı uç noktaları ---
+
+
+@pytest.mark.parametrize(
+    "govde",
+    [
+        {"enlem_min": 40, "enlem_maks": 38, "boylam_min": 30, "boylam_maks": 36},
+        {"enlem_min": 0, "enlem_maks": 60, "boylam_min": 0, "boylam_maks": 10},
+        {"enlem_min": 30, "enlem_maks": 40, "boylam_min": -60, "boylam_maks": 20},
+    ],
+    ids=["ters_kutu", "enlem_cok_genis", "boylam_cok_genis"],
+)
+async def test_canli_veri_hazirla_gecersiz_kutu_400(istemci, api_anahtari, govde):
+    yanit = await istemci.post("/api/v1/veri/canli/hazirla", json=govde, headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 400
+
+
+async def test_canli_veri_hazirla_kup_ozetini_doner(istemci, api_anahtari, monkeypatch):
+    if api_servisi.veri_kupune_eris() is None:
+        pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı.")
+    sahte_kup = api_servisi.veri_kupune_eris().isel(valid_time=slice(0, 3)).copy()
+    sahte_kup.attrs = {"kaynak": "gfs", "model_calisma_zamani": "2026-09-26T06:00:00"}
+    monkeypatch.setattr(api_servisi, "canli_kup_hazirla", lambda kutu, bas, bit: sahte_kup)
+    yanit = await istemci.post(
+        "/api/v1/veri/canli/hazirla",
+        json={"enlem_min": 37, "enlem_maks": 40, "boylam_min": 30, "boylam_maks": 36, "saat_sayisi": 6},
+        headers={"X-API-Key": api_anahtari},
+    )
+    assert yanit.status_code == 200
+    govde = yanit.json()
+    assert govde["kaynak"] == "gfs"
+    assert govde["basinc_seviyeleri_hpa"] == [200.0, 250.0, 300.0]
+
+
+async def test_kup_katalogu_listelenir(istemci, api_anahtari):
+    yanit = await istemci.get("/api/v1/veri/kupler?limit=5", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 200
+    assert isinstance(yanit.json(), list)
