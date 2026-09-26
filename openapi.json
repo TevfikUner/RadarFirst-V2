@@ -1203,6 +1203,179 @@
         }
       }
     },
+    "/api/v1/sigmet/guncelle": {
+      "post": {
+        "tags": [
+          "SIGMET"
+        ],
+        "summary": "Sigmetleri Yenile",
+        "description": "AWC'den (aviationweather.gov: ABD `airsigmet` + uluslararası `isigmet`)\ncanlı SIGMET'leri çekip veritabanını günceller; akıştan düşen (iptal\nedilen) SIGMET'lerin geçerliliği sona erdirilir. n8n/cron'un periyodik\n(örn. 10-15 dk) tetiklemesi için -- ya da SIGMET_OTOMATIK_GUNCELLEME_DAKIKA\nile API'nin kendi zamanlayıcısı kullanılır.",
+        "operationId": "sigmetleri_yenile_api_v1_sigmet_guncelle_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigmetYenilemeYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sigmet": {
+      "get": {
+        "tags": [
+          "SIGMET"
+        ],
+        "summary": "Aktif Sigmetleri Listele",
+        "description": "ŞU AN geçerli SIGMET'ler (verilen kutuyla kesişenler) -- önyüzlerin\nharitada yasak bölgeleri çizmesi için.",
+        "operationId": "aktif_sigmetleri_listele_api_v1_sigmet_get",
+        "parameters": [
+          {
+            "name": "tehlike",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Örn. TURB, TS; verilmezse A*'ın kaçındığı set",
+              "title": "Tehlike"
+            },
+            "description": "Örn. TURB, TS; verilmezse A*'ın kaçındığı set"
+          },
+          {
+            "name": "enlem_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "default": -90,
+              "title": "Enlem Min"
+            }
+          },
+          {
+            "name": "enlem_maks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "default": 90,
+              "title": "Enlem Maks"
+            }
+          },
+          {
+            "name": "boylam_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "default": -180,
+              "title": "Boylam Min"
+            }
+          },
+          {
+            "name": "boylam_maks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "default": 180,
+              "title": "Boylam Maks"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SigmetOzetiYaniti"
+                  },
+                  "title": "Response Aktif Sigmetleri Listele Api V1 Sigmet Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/saglik": {
       "get": {
         "tags": [
@@ -1742,6 +1915,26 @@
             "type": "string",
             "title": "Kacinma Stratejisi"
           },
+          "sigmetten_kacinildi_mi": {
+            "type": "boolean",
+            "title": "Sigmetten Kacinildi Mi",
+            "default": false
+          },
+          "guvenli_rota_bulundu_mu": {
+            "type": "boolean",
+            "title": "Guvenli Rota Bulundu Mu",
+            "default": true
+          },
+          "sigmet_kontrolu": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SigmetKontroluYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "normal_rota": {
             "$ref": "#/components/schemas/RotaSonucuYaniti"
           },
@@ -1848,6 +2041,11 @@
             "type": "integer",
             "title": "Riskli Nokta Sayisi",
             "default": 0
+          },
+          "sigmet_ihlali_sayisi": {
+            "type": "integer",
+            "title": "Sigmet Ihlali Sayisi",
+            "default": 0
           }
         },
         "type": "object",
@@ -1927,6 +2125,130 @@
         "title": "SigmetDogrulamaYaniti",
         "description": "sigmet_dogrulama.py'nin ürettiği karşılaştırma raporu -- bkz. o\nmodülün docstring'i (SADECE ABD hava sahası için gerçek veri döner)."
       },
+      "SigmetKontroluYaniti": {
+        "properties": {
+          "durum": {
+            "type": "string",
+            "title": "Durum"
+          },
+          "aktif_sigmet_sayisi": {
+            "type": "integer",
+            "title": "Aktif Sigmet Sayisi",
+            "default": 0
+          },
+          "son_guncelleme": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Son Guncelleme"
+          },
+          "bayat_mi": {
+            "type": "boolean",
+            "title": "Bayat Mi",
+            "default": false
+          },
+          "sigmetler": {
+            "items": {
+              "$ref": "#/components/schemas/SigmetOzetiYaniti"
+            },
+            "type": "array",
+            "title": "Sigmetler",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "durum"
+        ],
+        "title": "SigmetKontroluYaniti",
+        "description": "durum: uygulandi | aktif_sigmet_yok | erisilemedi. bayat_mi: canlı\n(şimdiye yakın) bir hesapta son SIGMET çekimi config.SIGMET_BAYATLIK_DAKIKA'dan eski."
+      },
+      "SigmetOzetiYaniti": {
+        "properties": {
+          "id": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Id"
+          },
+          "fir_kodu": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fir Kodu"
+          },
+          "tehlike": {
+            "type": "string",
+            "title": "Tehlike"
+          },
+          "taban_ft": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Taban Ft"
+          },
+          "tavan_ft": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tavan Ft"
+          },
+          "gecerlilik_baslangic": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Gecerlilik Baslangic"
+          },
+          "gecerlilik_bitis": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Gecerlilik Bitis"
+          },
+          "poligon": {
+            "items": {
+              "items": {
+                "type": "number"
+              },
+              "type": "array"
+            },
+            "type": "array",
+            "title": "Poligon"
+          }
+        },
+        "type": "object",
+        "required": [
+          "tehlike",
+          "gecerlilik_baslangic",
+          "gecerlilik_bitis",
+          "poligon"
+        ],
+        "title": "SigmetOzetiYaniti"
+      },
       "SigmetYaniti": {
         "properties": {
           "etiket": {
@@ -1973,6 +2295,37 @@
           "poligon"
         ],
         "title": "SigmetYaniti"
+      },
+      "SigmetYenilemeYaniti": {
+        "properties": {
+          "kaydedilen": {
+            "type": "integer",
+            "title": "Kaydedilen"
+          },
+          "sonlandirilan": {
+            "type": "integer",
+            "title": "Sonlandirilan"
+          },
+          "silinen": {
+            "type": "integer",
+            "title": "Silinen"
+          },
+          "kaynak_hatalari": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object",
+            "title": "Kaynak Hatalari"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kaydedilen",
+          "sonlandirilan",
+          "silinen",
+          "kaynak_hatalari"
+        ],
+        "title": "SigmetYenilemeYaniti"
       },
       "TopluAnalizIstegi": {
         "properties": {

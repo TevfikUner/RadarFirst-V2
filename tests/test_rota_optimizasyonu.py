@@ -11,6 +11,7 @@ rota_optimizasyonu.py için birim testleri:
     test_eslestirme.py'deki aynı desen).
 """
 
+import pandas as pd
 import pytest
 
 import config
@@ -171,3 +172,62 @@ def test_gercek_era5_ile_czml_yapisi_gecerli(veri_kupu_mevcut_mu):
         duz_koordinatlar = varlik["polyline"]["positions"]["cartographicDegrees"]
         assert len(duz_koordinatlar) % 3 == 0
         assert len(duz_koordinatlar) // 3 == config.ROTA_SIMULASYONU_NOKTA_SAYISI
+
+
+# --- SIGMET sert kısıtı (risk_katmanlari.SigmetKisitKatmani) ---
+
+
+def _kare_sigmet(enlem0, enlem1, boylam0, boylam1, taban=None, tavan=45000, gun="2019-01-31"):
+    baslangic = pd.Timestamp(gun, tz="UTC") - pd.Timedelta(days=1)
+    return {
+        "id": 99,
+        "fir_kodu": "LTAA",
+        "tehlike": "TURB",
+        "taban_ft": taban,
+        "tavan_ft": tavan,
+        "gecerlilik_baslangic": baslangic,
+        "gecerlilik_bitis": baslangic + pd.Timedelta(days=2),
+        "poligon": [[boylam0, enlem0], [boylam1, enlem0], [boylam1, enlem1], [boylam0, enlem1], [boylam0, enlem0]],
+    }
+
+
+def _izmir_van(sigmetler):
+    return rota_simulasyonu_olustur(38.4, 27.1, 38.5, 43.4, 34000, "2019-01-31T00:00:00", "A320", sigmetler=sigmetler)
+
+
+def test_rota_ortasindaki_sigmetten_yanal_sapmayla_kacinilir(veri_kupu_mevcut_mu):
+    if not veri_kupu_mevcut_mu:
+        pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı, gerçek veri gerektiren test atlanıyor.")
+    sonuc = _izmir_van([_kare_sigmet(38.2, 39.6, 34.5, 35.5)])
+    assert sonuc["sigmet_kontrolu"]["durum"] == "uygulandi"
+    assert sonuc["normal_rota"]["sigmet_ihlali_sayisi"] > 0
+    assert sonuc["optimize_rota"]["sigmet_ihlali_sayisi"] == 0
+    assert sonuc["guvenli_rota_bulundu_mu"] is True
+    assert sonuc["sigmetten_kacinildi_mi"] is True
+    assert sonuc["kacinma_stratejisi"] == "yanal"
+    assert sonuc["optimize_rota"]["maks_yanal_sapma_km"] > 0
+
+
+def test_baslangic_sigmet_icindeyse_rota_onerilmez():
+    sonuc = _izmir_van([_kare_sigmet(37.9, 38.9, 26.6, 27.6)])
+    assert sonuc["guvenli_rota_bulundu_mu"] is False
+    assert sonuc["optimize_rota"]["noktalar"] == sonuc["normal_rota"]["noktalar"]
+    assert "ÖNERİ YOK" in sonuc["aciklama"]
+
+
+def test_ucusun_irtifa_bandi_disindaki_sigmet_rotayi_degistirmez():
+    sonuc = _izmir_van([_kare_sigmet(38.2, 39.6, 34.5, 35.5, taban=10000, tavan=25000)])
+    assert sonuc["normal_rota"]["sigmet_ihlali_sayisi"] == 0
+    assert sonuc["optimize_rota"]["noktalar"] == sonuc["normal_rota"]["noktalar"]
+
+
+def test_hava_verisi_olmayan_bolgede_de_sigmetten_kacinilir():
+    sigmet = _kare_sigmet(4.3, 5.9, 17.0, 18.0, gun="2019-01-15")
+    sonuc = rota_simulasyonu_olustur(5.0, 10.0, 5.0, 25.0, 36000, "2019-01-15T00:00:00", "A320", sigmetler=[sigmet])
+    assert sonuc["ruzgar_verisi_kaynagi"] == "era5_kapsam_disi"
+    assert sonuc["sigmetten_kacinildi_mi"] is True
+    assert sonuc["optimize_rota"]["sigmet_ihlali_sayisi"] == 0
+
+    sigmet_varliklari = [v for v in simulasyonu_czml_e_cevir(sonuc) if "polygon" in v]
+    assert [v["id"] for v in sigmet_varliklari] == ["sigmet-99"]
+    assert sigmet_varliklari[0]["polygon"]["extrudedHeight"] == pytest.approx(45000 * 0.3048)

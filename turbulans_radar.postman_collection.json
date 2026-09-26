@@ -527,6 +527,58 @@
       ]
     },
     {
+      "name": "SIGMET",
+      "item": [
+        {
+          "name": "Sigmetleri Yenile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/sigmet/guncelle",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sigmet",
+                "guncelle"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Aktif Sigmetleri Listele",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/sigmet",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sigmet"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Sistem",
       "item": [
         {
