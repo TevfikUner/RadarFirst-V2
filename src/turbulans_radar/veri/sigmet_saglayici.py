@@ -336,6 +336,17 @@ def gecerli_sigmetleri_getir(
         return [_satiri_sozluge_cevir(s) for s in satirlar]
 
 
+def arsiv_baslangici(motor=None, kaynaklar=_KAYNAKLAR) -> datetime | None:
+    """Arşivin kapsadığı en erken an (saklanan en eski kaydın geçerlilik
+    başlangıcı) -- bağımsız doğrulama, arşivin bir uçuşu kapsayıp
+    kapsamadığına buna bakarak karar verir."""
+    motor = motor or motor_al()
+    with Session(motor) as oturum:
+        return oturum.execute(
+            select(func.min(Sigmet.gecerlilik_baslangic)).where(Sigmet.kaynak.in_(list(kaynaklar)))
+        ).scalar_one()
+
+
 def kaynak_saglik_durumlari(kaynaklar=_KAYNAKLAR, motor=None) -> list[dict]:
     anahtarlar = [durum_anahtari(k) for k in kaynaklar]
     kayitli = {d["kaynak"]: d for d in kaynak_durumlarini_getir(anahtarlar, motor)}

@@ -478,6 +478,40 @@ ilk sonuçlar -- riskli oran: TI1 >= eşik nokta oranı:
 | THY322 | FL300 | 260 km | 0.15 / 0.24 / 0.00 | tırmanma (+2 dk) |
 | THY606 | FL380 | 101 km | 0.00 / 0.00 / 0.00 | yok (risk yok) |
 
+### Bağımsız kanıt: TI1'i TI1 ile ölçmemek
+
+Yukarıdaki "riskli oran" döngüseldir: A* rotası TI1'i düşürecek şekilde
+seçiliyor, başarı da yine TI1 ile ölçülüyor. Bu yüzden her backtest ayrıca
+A*'ın ve TI1 hesabının hiç görmediği gerçek dünya kanıtıyla ölçülür
+(`dogrulama/bagimsiz_kanit.py`); kaynak bir uçuşu kapsamıyorsa değer `None`
+kalır, "sıfır" sayılmaz:
+
+| Kaynak | İçerik | Kapsam |
+|---|---|---|
+| `sigmet_arsivi` | Sistemin kendi SIGMET arşivi (`sigmetler`), TURB/MTW | Küresel (Türkiye dahil), arşivin başladığı andan itibaren, `SIGMET_SAKLAMA_GUN` geriye |
+| `iem_sigmet` | IEM'in AWC SIGMET arşivi (2005-) | ABD sorumluluk sahası |
+| `iem_pirep` | IEM PIREP/AIREP arşivi; rota tüpünde (50 km, ±2000 ft, ±1 sa) türbülans raporları ve orta ve üstü (MOG) olanlar | Pratikte Kuzey Amerika + Kuzey Pasifik |
+
+Bağımsızlık için A* backtest'te TURB/MTW SIGMET'lerini **görmez** (oraj,
+volkanik kül, tropikal siklon SIGMET'leri ve kısıtlı sahalar sert kısıt
+olarak kalır). MOG tanımı ML etiketleriyle aynıdır (1254 etiketli PIREP'te
+ikili sınıflama %100 örtüşüyor). Sonuçlar `*_turb_sigmet`, `*_pirep_raporu`,
+`*_mog_pirep` ve `kanit_kaynaklari` sütunlarında; filo özeti azalan/artan
+maruziyetli uçuş oranlarını verir.
+
+- 2019 Türkiye uçuşları için hiçbir kaynak kapsama sağlamıyor (IEM'in
+  "Türkiye" kutusundaki PIREP'leri yanlış konumlanmış ABD raporları) --
+  kanıt alanları dürüstçe boş.
+- **Canlı örnek (26 Eylül 2026):** OpenSky'dan alınan gerçek bir uçuş
+  (PUE502, FL350, Brezilya, 1744 km'lik seyir) canlı GFS ile analiz edilip
+  backtest edildi; sistemin kendi arşivindeki aktif TURB SIGMET'lerine
+  maruziyet (nokta + bacak): gerçek iz 30, büyük daire 28, A* 33. GFS tabanlı
+  TI1 aynı bölgede hiç riskli nokta görmedi (üç rotada da 0.00). Yani bu
+  uçuşta TI1 katmanı, tahmincilerin FL340-410 için yayınladığı türbülansı
+  yakalayamadı -- döngüsel ölçümün gizleyeceği bir kör nokta. Canlı sistemde
+  bu SIGMET'lerden sert kısıt olarak yine kaçınılır; backtest yalnızca TI1'in
+  bağımsız becerisini ölçer.
+
 Karşılaştırılan bölümler kısa: THY322'nin OpenSky izinde Doğu Anadolu'da
 65 dk'lık bir veri boşluğu var; THY606 (İstanbul-Kahire) ve THY72C
 (İstanbul-Dakar) küpün dışına çıkıyor. Filo özeti, n8n ile daha çok uçuş

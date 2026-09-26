@@ -332,7 +332,11 @@ class CanliVeriIstegi(BaseModel):
 
 class BacktestSonucuYaniti(BaseModel):
     """rota_backtest.py -- gerçek iz vs büyük daire vs A* rotası (aynı ölçütle).
-    *_riskli_oran: TI1 >= eşik nokta oranı (hava verisi yoksa None)."""
+    *_riskli_oran: TI1 >= eşik nokta oranı (hava verisi yoksa None).
+    Bağımsız kanıt (bkz. bagimsiz_kanit.py; kaynak kapsamıyorsa None):
+    *_turb_sigmet: aktif TURB/MTW SIGMET'ine giren nokta + bacak sayısı (A* bunları
+    görmez); *_pirep_raporu / *_mog_pirep: rota tüpündeki türbülans raporları /
+    orta ve üstü olanlar. kanit_kaynaklari: kanıtı sağlayan kaynaklar."""
 
     ucus_numarasi: str
     tarih: str
@@ -353,6 +357,16 @@ class BacktestSonucuYaniti(BaseModel):
     optimize_sure_dk: float
     optimize_riskli_oran: float | None = None
     optimize_sigmet_ihlali: int
+    kanit_kaynaklari: list[str] | None = None
+    gercek_turb_sigmet: int | None = None
+    gercek_pirep_raporu: int | None = None
+    gercek_mog_pirep: int | None = None
+    buyuk_daire_turb_sigmet: int | None = None
+    buyuk_daire_pirep_raporu: int | None = None
+    buyuk_daire_mog_pirep: int | None = None
+    optimize_turb_sigmet: int | None = None
+    optimize_pirep_raporu: int | None = None
+    optimize_mog_pirep: int | None = None
     olusturulma_zamani: datetime | None = None
 
 

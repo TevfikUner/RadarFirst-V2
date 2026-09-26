@@ -119,6 +119,9 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Zaman adımı 3 saattir; yeni bir döngü birkaç saat gecikmeyle yayınlanır.
 
 **Backtest**
+- Bağımsız kanıt (TURB SIGMET, PIREP) yalnızca kapsanan uçuşlarda vardır:
+  sistemin SIGMET arşivi başladıktan sonraki uçuşlar ve ABD hava sahası.
+  IEM SIGMET arşivinde irtifa bandı yoktur (tüm irtifalar sayılır).
 - Şu anki sonuçlar 3 gerçek uçuşun 100-260 km'lik seyir bölümlerine
   dayanır. Bölümlerin kısa olmasının nedenleri OpenSky kapsama boşlukları ve
   küp sınırıdır. Sonuçlar istatistiksel bir kanıt değil, doğrulama hattının
@@ -149,7 +152,15 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
     anında geldi.
 - **Backtest (15 Ocak 2019, ERA5):** Riskli nokta oranı, gerçek uçuşlarda
   ortalama 0.28, önerilen rotalarda 0.00. Üç uçuşun ikisinde risk tırmanma
-  ile azaldı; büyük daireye göre ek süre 2-5 dakika.
+  ile azaldı; büyük daireye göre ek süre 2-5 dakika. Bu ölçüm döngüseldir
+  (A* TI1'i düşürür, başarı TI1 ile ölçülür); bu uçuşlar için bağımsız kanıt
+  kaynağı yoktur.
+- **Bağımsız kanıtlı backtest (26 Eylül 2026, canlı GFS):** Gerçek bir
+  uçuşta (PUE502, Brezilya, FL350) aktif TURB SIGMET maruziyeti gerçek iz 30,
+  büyük daire 28, A* 33 nokta/bacak; TI1 üç rotada da risk görmedi. TI1
+  katmanı bu olayı yakalamadı; SIGMET sert kısıtı canlı kullanımda bunu
+  telafi eder, ama TI1'in tek başına bağımsız becerisi şimdilik
+  kanıtlanmamıştır.
 
 ## 7. Uygun olmayan kullanımlar
 

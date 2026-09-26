@@ -9,6 +9,12 @@ küpünün kapsadığı seyir bölümü için üç rota AYNI ölçütle karşıl
   buyuk_daire : aynı giriş/çıkış noktaları arası büyük daire
   optimize    : rota_optimizasyonu.py'nin önerdiği rota (SIGMET > TI1 > yakıt)
 
+TI1'le optimize edilmiş rotayı yalnızca TI1 ile ölçmek döngüseldir; bu yüzden
+her rota ayrıca BAĞIMSIZ kanıta göre de ölçülür (bkz. bagimsiz_kanit.py):
+türbülans SIGMET'leri (TURB/MTW) ve PIREP'ler. Bağımsızlık için A* backtest'te
+TURB/MTW SIGMET'lerini GÖRMEZ -- konvektif/kül/TC SIGMET'leri ile kısıtlı
+sahalar sert kısıt olarak kalır.
+
 Adil karşılaştırma için gerçek iz, büyük daire/optimize rotalarla AYNI nokta
 sayısına (config.ROTA_SIMULASYONU_NOKTA_SAYISI) kümülatif mesafe boyunca
 yeniden örneklenir ve TI1 aynı hava küpüyle, aynı kodla
@@ -35,6 +41,7 @@ from sqlalchemy.orm import Session
 from turbulans_radar import config
 from turbulans_radar.depo.models import RotaBacktesti, Ucus
 from turbulans_radar.depo.veritabani import motor_al, ucus_olcumlerini_dataframe_olarak_getir
+from turbulans_radar.dogrulama.bagimsiz_kanit import TURBULANS_TEHLIKELERI, kanitlari_topla, rota_maruziyeti
 from turbulans_radar.fizik.birim_donusumleri import irtifa_metre_to_basinc_hpa
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.loglama import logger_al
@@ -46,6 +53,8 @@ from turbulans_radar.veri.veri_saglayicilari import veri_kupu_kaynagi, veri_kupu
 _logger = logger_al(__name__)
 
 _ROTALAR = ("gercek", "buyuk_daire", "optimize")
+_KANIT_METRIKLERI = ("turb_sigmet", "mog_pirep")
+_KANIT_PAYI_DERECE = 5.0
 _EN_AZ_SEYIR_NOKTASI = 10
 _SEYIR_BOSLUGU = pd.Timedelta(minutes=15)
 _YETERSIZ_SEYIR_MESAJI = (
@@ -103,7 +112,17 @@ def _seyir_bolumu(olcum_df):
     return seyir
 
 
-def ucus_backtest_et(ucus_numarasi, tarih_str, ucak_modeli=None, motor=None) -> dict:
+def _simulasyon_rotasi(ozet):
+    noktalar = ozet["noktalar"]
+    return (
+        [n["enlem"] for n in noktalar],
+        [n["boylam"] for n in noktalar],
+        [pd.Timestamp(n["zaman"]) for n in noktalar],
+        [n["irtifa_m"] / 0.3048 for n in noktalar],
+    )
+
+
+def ucus_backtest_et(ucus_numarasi, tarih_str, ucak_modeli=None, motor=None, kanit_toplayici=kanitlari_topla) -> dict:
     """Bir uçuşun backtest'ini çalıştırıp `rota_backtestleri`'ne yazar; sonucu döner."""
     ucak_modeli = ucak_modeli or config.BACKTEST_UCAK_MODELI
     motor = motor or motor_al()
@@ -116,16 +135,23 @@ def ucus_backtest_et(ucus_numarasi, tarih_str, ucak_modeli=None, motor=None) -> 
     baslangic_zamani = pd.Timestamp(ilk["zaman"]).tz_convert("UTC")
     bitis_zamani = pd.Timestamp(son["zaman"]).tz_convert("UTC")
 
-    sigmetler = gecerli_sigmetleri_getir(
-        baslangic_zamani.to_pydatetime(),
-        bitis_zamani.to_pydatetime(),
-        float(seyir["enlem"].min()) - 5.0,
-        float(seyir["enlem"].max()) + 5.0,
-        float(seyir["boylam"].min()) - 5.0,
-        float(seyir["boylam"].max()) + 5.0,
-        tehlikeler=kacinilacak_tehlikeler(),
-        motor=motor,
+    kutu = (
+        float(seyir["enlem"].min()) - _KANIT_PAYI_DERECE,
+        float(seyir["enlem"].max()) + _KANIT_PAYI_DERECE,
+        float(seyir["boylam"].min()) - _KANIT_PAYI_DERECE,
+        float(seyir["boylam"].max()) + _KANIT_PAYI_DERECE,
     )
+    sigmetler = [
+        s
+        for s in gecerli_sigmetleri_getir(
+            baslangic_zamani.to_pydatetime(),
+            bitis_zamani.to_pydatetime(),
+            *kutu,
+            tehlikeler=kacinilacak_tehlikeler(),
+            motor=motor,
+        )
+        if s["tehlike"] not in TURBULANS_TEHLIKELERI
+    ]
     simulasyon = rota_simulasyonu_olustur(
         float(ilk["enlem"]),
         float(ilk["boylam"]),
@@ -160,6 +186,18 @@ def ucus_backtest_et(ucus_numarasi, tarih_str, ucak_modeli=None, motor=None) -> 
             gercek["enlem"], gercek["boylam"], list(gercek["zaman"]), irtifa_ft * 0.3048
         ),
     }
+    kanit = kanit_toplayici(
+        baslangic_zamani - pd.Timedelta(hours=1), bitis_zamani + pd.Timedelta(hours=3), kutu, motor=motor
+    )
+    satir["kanit_kaynaklari"] = kanit.kaynaklar
+    rota_noktalari = {
+        "gercek": (gercek["enlem"], gercek["boylam"], list(gercek["zaman"]), gercek["irtifa_m"] / 0.3048),
+        "buyuk_daire": _simulasyon_rotasi(simulasyon["normal_rota"]),
+        "optimize": _simulasyon_rotasi(simulasyon["optimize_rota"]),
+    }
+    for rota, noktalar in rota_noktalari.items():
+        satir.update({f"{rota}_{metrik}": deger for metrik, deger in rota_maruziyeti(kanit, *noktalar).items()})
+
     for rota, anahtar in (("buyuk_daire", "normal_rota"), ("optimize", "optimize_rota")):
         ozet = simulasyon[anahtar]
         satir.update(
@@ -259,6 +297,30 @@ def _filo_ozeti(sonuclar):
     )
     ozet["ort_ek_mesafe_km_gercege_gore"] = float((df["optimize_mesafe_km"] - df["gercek_mesafe_km"]).mean())
     ozet["ort_ek_sure_dk_gercege_gore"] = float((df["optimize_sure_dk"] - df["gercek_sure_dk"]).mean())
+    ozet.update(_bagimsiz_kanit_ozeti(df))
+    return ozet
+
+
+def _bagimsiz_kanit_ozeti(df):
+    """Bağımsız kanıtı olan uçuşlarda A* rotasının gerçek ize göre maruziyeti.
+    Kanıt kapsamı dışındaki uçuşlar (None) sıfır sayılmaz, hesaba katılmaz."""
+    kaynaklar = df.get("kanit_kaynaklari", pd.Series(dtype=object))
+    ozet = {"bagimsiz_kanitli_ucus_sayisi": int(kaynaklar.map(lambda k: bool(k)).sum())}
+    for metrik in _KANIT_METRIKLERI:
+        sutunlar = [f"{rota}_{metrik}" for rota in _ROTALAR]
+        if not set(sutunlar) <= set(df.columns):
+            continue
+        for rota, sutun in zip(_ROTALAR, sutunlar):
+            degerler = df[sutun].dropna()
+            ozet[f"{rota}_toplam_{metrik}"] = int(degerler.sum()) if len(degerler) else None
+        ikili = df[[f"gercek_{metrik}", f"optimize_{metrik}"]].dropna()
+        ozet[f"{metrik}_karsilastirilabilir_ucus"] = len(ikili)
+        ozet[f"{metrik}_azalan_ucus_orani"] = (
+            float((ikili[f"optimize_{metrik}"] < ikili[f"gercek_{metrik}"]).mean()) if len(ikili) else None
+        )
+        ozet[f"{metrik}_artan_ucus_orani"] = (
+            float((ikili[f"optimize_{metrik}"] > ikili[f"gercek_{metrik}"]).mean()) if len(ikili) else None
+        )
     return ozet
 
 

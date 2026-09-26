@@ -178,6 +178,16 @@ class RotaBacktesti(Base):
     optimize_sure_dk: Mapped[float] = mapped_column(Float, nullable=False)
     optimize_riskli_oran: Mapped[float | None] = mapped_column(Float, nullable=True)
     optimize_sigmet_ihlali: Mapped[int] = mapped_column(Integer, nullable=False)
+    kanit_kaynaklari: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    gercek_turb_sigmet: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gercek_pirep_raporu: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gercek_mog_pirep: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    buyuk_daire_turb_sigmet: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    buyuk_daire_pirep_raporu: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    buyuk_daire_mog_pirep: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    optimize_turb_sigmet: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    optimize_pirep_raporu: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    optimize_mog_pirep: Mapped[int | None] = mapped_column(Integer, nullable=True)
     olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

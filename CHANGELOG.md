@@ -4,6 +4,24 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Backtest'e bağımsız doğrulama kaynağı
+
+- **Döngüsellik kırıldı:** A* TI1'i düşürecek şekilde rota seçiyor, backtest
+  de başarıyı TI1 ile ölçüyordu. Her rota artık A*'ın ve TI1'in görmediği
+  kanıta göre de ölçülüyor (`dogrulama/bagimsiz_kanit.py`): sistemin kendi
+  SIGMET arşivindeki TURB/MTW SIGMET'leri (küresel), IEM SIGMET arşivi (ABD),
+  IEM PIREP'leri (rota tüpünde orta ve üstü raporlar; tanım ML etiketleriyle
+  %100 örtüşüyor). Kapsam dışı uçuşta değerler `None` kalıyor.
+- Backtest'te A* TURB/MTW SIGMET'lerini görmüyor (oraj/kül/TC ve kısıtlı
+  sahalar sert kısıt olarak kalıyor). Yeni sütunlar (göç `6f630f49163d`) ve
+  filo özetinde azalan/artan maruziyet oranları.
+- Canlı doğrulamada bulunan hata: kanıt penceresinin A* için ileri
+  uzatılmış sonu "şimdi"yi geçince yeni biten uçuşlar arşiv kapsamı dışında
+  sayılıyordu; kapsam artık arşivin uçuştan önce başlamasına bakıyor.
+- Gerçek bir uçuşta (PUE502) ilk bağımsız sonuç: TURB SIGMET maruziyeti
+  gerçek 30 / büyük daire 28 / A* 33, TI1 hiç risk görmedi -- TI1'in bu
+  olayı kaçırdığı ortaya çıktı (bkz. SISTEM_KARTI).
+
 ## Yanal sapma sınırları: adım sayısı yerine mesafe ve açı
 
 - Sabit "20 km/adım" ızgara kısa rotada gerçek dışı keskin sapmalar (İstanbul-

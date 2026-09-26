@@ -2108,6 +2108,119 @@
             "type": "integer",
             "title": "Optimize Sigmet Ihlali"
           },
+          "kanit_kaynaklari": {
+            "anyOf": [
+              {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kanit Kaynaklari"
+          },
+          "gercek_turb_sigmet": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gercek Turb Sigmet"
+          },
+          "gercek_pirep_raporu": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gercek Pirep Raporu"
+          },
+          "gercek_mog_pirep": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gercek Mog Pirep"
+          },
+          "buyuk_daire_turb_sigmet": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buyuk Daire Turb Sigmet"
+          },
+          "buyuk_daire_pirep_raporu": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buyuk Daire Pirep Raporu"
+          },
+          "buyuk_daire_mog_pirep": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Buyuk Daire Mog Pirep"
+          },
+          "optimize_turb_sigmet": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimize Turb Sigmet"
+          },
+          "optimize_pirep_raporu": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimize Pirep Raporu"
+          },
+          "optimize_mog_pirep": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimize Mog Pirep"
+          },
           "olusturulma_zamani": {
             "anyOf": [
               {
@@ -2141,7 +2254,7 @@
           "optimize_sigmet_ihlali"
         ],
         "title": "BacktestSonucuYaniti",
-        "description": "rota_backtest.py -- gerçek iz vs büyük daire vs A* rotası (aynı ölçütle).\n*_riskli_oran: TI1 >= eşik nokta oranı (hava verisi yoksa None)."
+        "description": "rota_backtest.py -- gerçek iz vs büyük daire vs A* rotası (aynı ölçütle).\n*_riskli_oran: TI1 >= eşik nokta oranı (hava verisi yoksa None).\nBağımsız kanıt (bkz. bagimsiz_kanit.py; kaynak kapsamıyorsa None):\n*_turb_sigmet: aktif TURB/MTW SIGMET'ine giren nokta + bacak sayısı (A* bunları\ngörmez); *_pirep_raporu / *_mog_pirep: rota tüpündeki türbülans raporları /\norta ve üstü olanlar. kanit_kaynaklari: kanıtı sağlayan kaynaklar."
       },
       "CanliVeriIstegi": {
         "properties": {
