@@ -105,6 +105,8 @@ from semalar import (
     RotaSimulasyonuYaniti,
     SaglikYaniti,
     SigmetDogrulamaYaniti,
+    SigmetOzetiYaniti,
+    SigmetYenilemeYaniti,
     TopluSilmeYaniti,
     TurbulansTahminIstegi,
     TurbulansTahminYaniti,
@@ -113,6 +115,7 @@ from semalar import (
     UcuslarListesiYaniti,
 )
 from sigmet_dogrulama import ucus_sigmet_ile_karsilastir
+from sigmet_saglayici import gecerli_sigmetleri_getir, sigmetleri_guncelle
 from toplu_analiz import toplu_analiz_calistir
 from turbulans_ml_modeli import (
     model_bilgisini_yukle,
@@ -147,7 +150,24 @@ async def _yasam_dongusu(uygulama):
             _logger.warning("Önceki süreçten yarıda kalmış %d analiz görevi 'yarida_kaldi' olarak işaretlendi.", sayi)
     except Exception as hata:
         _logger.warning("Açılışta görev tablosuna erişilemedi: %s", dostane_hata_mesaji(hata))
+    zamanlayici = None
+    if config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA > 0:
+        zamanlayici = asyncio.create_task(_sigmet_zamanlayicisi(config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA * 60))
     yield
+    if zamanlayici is not None:
+        zamanlayici.cancel()
+
+
+async def _sigmet_zamanlayicisi(aralik_saniye):
+    """config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA > 0 ise API, n8n/cron'a gerek
+    kalmadan AWC SIGMET'lerini kendi içinde periyodik olarak yeniler."""
+    while True:
+        try:
+            ozet = await asyncio.to_thread(sigmetleri_guncelle)
+            _logger.info("SIGMET'ler yenilendi: %s", ozet)
+        except Exception as hata:
+            _logger.warning("Periyodik SIGMET yenilemesi başarısız: %s", dostane_hata_mesaji(hata))
+        await asyncio.sleep(aralik_saniye)
 
 
 app = FastAPI(
@@ -821,6 +841,40 @@ async def analiz_durumu(gorev_id: str):
     if gorev is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bilinmeyen gorev_id.")
     return gorev
+
+
+@v1.post("/sigmet/guncelle", response_model=SigmetYenilemeYaniti, tags=["SIGMET"])
+async def sigmetleri_yenile():
+    """AWC'den (aviationweather.gov: ABD `airsigmet` + uluslararası `isigmet`)
+    canlı SIGMET'leri çekip veritabanını günceller; akıştan düşen (iptal
+    edilen) SIGMET'lerin geçerliliği sona erdirilir. n8n/cron'un periyodik
+    (örn. 10-15 dk) tetiklemesi için -- ya da SIGMET_OTOMATIK_GUNCELLEME_DAKIKA
+    ile API'nin kendi zamanlayıcısı kullanılır."""
+    _hiz_sinirini_kontrol_et("sigmet")
+    return await asyncio.to_thread(sigmetleri_guncelle)
+
+
+@v1.get("/sigmet", response_model=list[SigmetOzetiYaniti], tags=["SIGMET"])
+async def aktif_sigmetleri_listele(
+    tehlike: list[str] | None = Query(default=None, description="Örn. TURB, TS; verilmezse A*'ın kaçındığı set"),
+    enlem_min: float = Query(default=-90, ge=-90, le=90),
+    enlem_maks: float = Query(default=90, ge=-90, le=90),
+    boylam_min: float = Query(default=-180, ge=-180, le=180),
+    boylam_maks: float = Query(default=180, ge=-180, le=180),
+):
+    """ŞU AN geçerli SIGMET'ler (verilen kutuyla kesişenler) -- önyüzlerin
+    haritada yasak bölgeleri çizmesi için."""
+    simdi = datetime.now(UTC)
+    return await asyncio.to_thread(
+        gecerli_sigmetleri_getir,
+        simdi,
+        simdi,
+        enlem_min,
+        enlem_maks,
+        boylam_min,
+        boylam_maks,
+        tehlike or config.SIGMET_KACINILACAK_TEHLIKELER,
+    )
 
 
 app.include_router(v1)

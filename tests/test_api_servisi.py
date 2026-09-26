@@ -783,3 +783,56 @@ async def test_rota_analizi_uctan_uca_kaydeder(istemci, api_anahtari, monkeypatc
     finally:
         with vt.motor_al().begin() as baglanti:
             baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi = 'ROTAAPI1'"))
+
+
+# --- Canlı SIGMET uç noktaları ---
+
+
+async def test_sigmet_guncelle_ozet_doner(istemci, api_anahtari, monkeypatch):
+    sahte_ozet = {"kaydedilen": 3, "sonlandirilan": 1, "silinen": 0, "kaynak_hatalari": {}}
+    monkeypatch.setattr(api_servisi, "sigmetleri_guncelle", lambda: sahte_ozet)
+    yanit = await istemci.post("/api/v1/sigmet/guncelle", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 200
+    assert yanit.json() == sahte_ozet
+
+
+async def test_aktif_sigmetler_listelenir_ve_filtrelenir(istemci, api_anahtari):
+    from test_sigmet_saglayici import ULUSLARARASI_ORNEK
+
+    import sigmet_saglayici
+
+    sigmet_saglayici.sigmetleri_guncelle(getirici=lambda k: [ULUSLARARASI_ORNEK], kaynaklar=("test",))
+    try:
+        yanit = await istemci.get(
+            "/api/v1/sigmet?enlem_min=38&enlem_maks=40&boylam_min=30&boylam_maks=32",
+            headers={"X-API-Key": api_anahtari},
+        )
+        assert yanit.status_code == 200
+        assert any(s["fir_kodu"] == "LTAA" and s["tehlike"] == "TURB" for s in yanit.json())
+
+        yanit = await istemci.get("/api/v1/sigmet?tehlike=ICE", headers={"X-API-Key": api_anahtari})
+        assert not any(s["fir_kodu"] == "LTAA" and s["tehlike"] == "TURB" for s in yanit.json())
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM sigmetler WHERE kaynak = 'test'"))
+
+
+async def test_rota_simulasyonu_sigmet_kontrolu_alanini_icerir(istemci, api_anahtari):
+    yanit = await istemci.post(
+        "/api/v1/simulasyon/rota",
+        json={
+            "baslangic_enlem": 41.0,
+            "baslangic_boylam": 28.9,
+            "bitis_enlem": 40.7,
+            "bitis_boylam": -74.0,
+            "irtifa_ft": 34000,
+            "zaman": "2019-01-15T10:00:00",
+            "ucak_modeli": "A320",
+        },
+        headers={"X-API-Key": api_anahtari},
+    )
+    assert yanit.status_code == 200
+    govde = yanit.json()
+    assert govde["guvenli_rota_bulundu_mu"] is True
+    assert govde["sigmet_kontrolu"]["durum"] in ("aktif_sigmet_yok", "uygulandi")
+    assert "sigmet_ihlali_sayisi" in govde["normal_rota"]

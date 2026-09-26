@@ -95,6 +95,9 @@ veritabani.py                     -> PostgreSQL erişimi: senkron (CLI) + asenkr
 migrations/, alembic.ini          -> Alembic veritabanı şema migration'ları
 semalar.py                        -> api_servisi.py için Pydantic yanıt (response) modelleri
 sigmet_dogrulama.py               -> TI1'i gerçek AWC SIGMET uyarılarıyla karşılaştırır (SADECE ABD hava sahası)
+sigmet_saglayici.py               -> CANLI AWC SIGMET sağlayıcısı (ABD + uluslararası, Ankara FIR dahil) -> PostgreSQL
+risk_katmanlari.py                -> A*'ın modüler risk katmanları (TI1 cezası, SIGMET sert kısıtı)
+gorev_deposu.py                   -> API analiz görevlerinin kalıcı (PostgreSQL) kaydı
 web/harita3d.html                 -> tek dosyalık MapLibre GL 3D/canlı harita önyüzü (api_servisi.py sunar)
 rota_optimizasyonu.py             -> gerçek ERA5 rüzgarına göre büyük daire vs yakıt-optimize rota hesabı + CZML üretimi
 web/ucus_simulasyonu.html         -> tek dosyalık CesiumJS 3D uçuş simülasyonu önyüzü (api_servisi.py sunar)
@@ -226,7 +229,9 @@ görüntü (snapshot) kolaylığı sağlar.
 | GET | `/api/v1/esikler` | TI1 renklendirme eşiklerini döner (web/harita3d.html bunları kullanır) |
 | GET | `/api/v1/ucuslar/{ucus_numarasi}/{tarih}/sigmet-dogrulama` | TI1'i gerçek AWC SIGMET'leriyle karşılaştırır |
 | GET | `/api/v1/simulasyon/ucak-profilleri` | 3D uçuş simülasyonu için uçak modeli seçim listesi |
-| POST | `/api/v1/simulasyon/rota` | Büyük daire vs rüzgar-optimize rota + CZML döner (bkz. aşağıdaki bölüm) |
+| POST | `/api/v1/simulasyon/rota` | Büyük daire vs rüzgar-optimize rota + CZML döner; aktif SIGMET'ler sert kısıt olarak uygulanır (bkz. aşağıdaki bölüm) |
+| POST | `/api/v1/sigmet/guncelle` | AWC'den canlı SIGMET'leri çekip veritabanını günceller (n8n/cron periyodik tetikler) |
+| GET | `/api/v1/sigmet` | Şu an geçerli SIGMET'ler (kutu/tehlike filtresiyle) -- önyüzlerin yasak bölgeleri çizmesi için |
 | POST | `/api/v1/turbulans/tahmin` | Tek nokta için fizik (TI1) + gerçek PIREP verisiyle eğitilmiş ML tahminini karşılaştırmalı döner |
 | GET | `/api/v1/turbulans/model-bilgisi` | ML modelinin seçim gerekçesi/metrikleri (recall, F1, ROC-AUC vb.) + eğitim tarihini döner; model henüz eğitilmediyse dürüstçe `egitildi_mi: false` |
 | GET | `/api/v1/turbulans/model-versiyonlari` | Şimdiye kadar eğitilmiş TÜM model versiyonlarını (en yeni önce) listeler |
@@ -327,6 +332,43 @@ var olduğunu YANLIŞ varsayıyordu) -- 5.8.0'a geçildi. Ardından
 not done loading" hatası verdiği görüldü; "globe" projeksiyonu artık
 doğrudan constructor'ın `projection` seçeneğine taşındı, `harita.on("load",
 ...)` içinde bir savunmacı ikinci deneme daha bırakıldı.
+
+## Canlı SIGMET kısıtı ve modüler risk katmanları
+
+`rota_optimizasyonu.py`'deki A* araması, maliyetini takılabilir **risk
+katmanlarından** (`risk_katmanlari.py`) alır. Her katman aynı düğüm/kenar
+grafı için yasak düğüm/kenarlar (SERT kısıt) ve saniye cinsinden cezalar
+(YUMUŞAK kısıt) üretir; yeni bir risk kaynağı eklemek A*'ı değiştirmez:
+
+| Katman | Tür | Kaynak |
+|---|---|---|
+| `Ti1CezaKatmani` | yumuşak (ceza) | ERA5'ten hesaplanan Ellrod TI1 >= `TI1_ESIK_ORTA_SIDDETLI` |
+| `SigmetKisitKatmani` | **sert (yasak)** | Canlı AWC SIGMET'leri (`sigmetler` tablosu) |
+
+SIGMET kısıtı **dört boyutludur**: yatay poligon + irtifa bandı (`taban_ft`/
+`tavan_ft`, boş taban = yerden) + uçağın o noktaya VARIŞ zamanında
+geçerlilik. Kenar kontrolü, iki ızgara düğümü arasındaki bacağın poligonu
+kesip kesmediğine de bakar (seyrek ızgarada küçük bir SIGMET "atlanmasın").
+Varsayılan kaçınılan tehlikeler: `TURB, MTW, TS, CONVECTIVE, VA, TC`
+(`SIGMET_KACINILACAK_TEHLIKELER`). Öncelik sırası: (1) SIGMET'e girmemek,
+(2) TI1 riskinden kaçınmak, (3) en ucuz yakıt/süre. SIGMET'e girmeyen hiçbir
+rota bulunamazsa (örn. varış noktası SIGMET içinde) sistem **öneri yapmaz**:
+`guvenli_rota_bulundu_mu: false` ve açıklamada "ÖNERİ YOK". SIGMET kısıtı
+hava verisinden bağımsızdır -- ERA5 kapsamı dışında da (rüzgarsız, TAS ile)
+uygulanır. Yanıttaki `sigmet_kontrolu` alanı kontrolün durumunu
+(`uygulandi` / `aktif_sigmet_yok` / `erisilemedi`), uygulanan SIGMET'leri ve
+canlı hesapta son çekim `SIGMET_BAYATLIK_DAKIKA`'dan eskiyse `bayat_mi`
+uyarısını taşır; CZML çıktısı SIGMET'leri 3D sahnede yarı saydam kırmızı
+hacimler olarak çizer.
+
+**Canlı veri:** `sigmet_saglayici.py`, aviationweather.gov'un iki uç noktasını
+(`airsigmet`: ABD iç, `isigmet`: uluslararası -- Ankara FIR/LTAA dahil)
+normalize edip `sigmetler` tablosuna upsert eder; akıştan düşen (iptal
+edilen) SIGMET'lerin geçerliliği sona erdirilir, süresi dolanlar
+`SIGMET_SAKLAMA_GUN` sonra silinir. Yenileme yolları: `POST
+/api/v1/sigmet/guncelle` (n8n Schedule Trigger, örn. 10-15 dk),
+`python sigmet_saglayici.py` (cron) ya da `SIGMET_OTOMATIK_GUNCELLEME_DAKIKA`
+> 0 ile API'nin kendi zamanlayıcısı.
 
 ## 3D uçuş simülasyonu (normal rota vs türbülanstan-kaçınma rota)
 

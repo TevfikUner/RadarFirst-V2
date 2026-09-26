@@ -74,7 +74,15 @@ import xarray as xr
 
 import config
 from birim_donusumleri import basinc_hpa_to_irtifa_metre, en_yakin_basinc_seviyesi, irtifa_metre_to_basinc_hpa
-from eslestirme import kapsam_disi_maskesi, rotayi_hava_durumuyla_eslestir
+from eslestirme import kapsam_disi_maskesi
+from loglama import logger_al
+from risk_katmanlari import (
+    SigmetKisitKatmani,
+    Ti1CezaKatmani,
+    degerlendirmeleri_birlestir,
+    rota_ti1_degerleri,
+)
+from sigmet_saglayici import gecerli_sigmetleri_getir, son_guncelleme_zamani
 from veri_yukleme import hava_durumu_onbellekli_yukle, kapsayan_veri_kupunu_bul, veri_kupu_adi
 
 DUNYA_YARICAPI_M = 6_371_000.0
@@ -100,14 +108,6 @@ UCAK_PROFILLERI = {
 # geldiği görüldü -- ince ızgara, kademeli/gerçekçi bir sapmayı ucuzlatır.
 _YANAL_SEVIYE_KM = tuple(float(k) for k in range(-400, 401, 20))
 _ORTA_SEVIYE_INDEKSI = _YANAL_SEVIYE_KM.index(0.0)
-
-# A*'ın riskli türbülans içeren bir kenardan GEÇMEYİ, mümkün olduğunca
-# kaçınacağı kadar pahalı bulması için eklenen ceza (saniye cinsinden -- 6
-# saatlik bir "sanal" süre, herhangi bir gerçekçi bacak süresinden kat kat
-# büyük). Ceza sonsuz DEĞİLDİR -- hiçbir yol tamamen güvenli değilse (bkz.
-# modül dosya başlığı), A* yine de EN AZ CEZALI (en az riskli) yolu bulur;
-# "tamamen güvenli" diye yalan söylenmez.
-_TURBULANS_CEZASI_SANIYE = 6 * 3600.0
 
 # Jet yakıtının (Jet A-1) yanma başına CO2 emisyon katsayısı -- ICAO/IPCC'nin
 # standart, halka açık "emission factor" değeridir (kaynak: ICAO Carbon
@@ -135,6 +135,12 @@ CO2_KG_PER_KG_YAKIT = 3.16
 TIRMANMA_EK_YAKIT_ORANI = 0.5
 ALCALMA_YAKIT_TASARRUFU_ORANI = 0.3
 DIKEY_HIZ_FT_DK = 1500.0
+
+# Veritabanından SIGMET çekerken rota kutusuna eklenen pay (derece): A*'ın
+# yanal ızgarası büyük daireden 400 km'ye kadar sapabilir.
+_SIGMET_ARAMA_PAYI_DERECE = 5.0
+
+_logger = logger_al(__name__)
 
 
 def veri_kupune_eris(enlemler=None, boylamlar=None, zaman=None, irtifa_m=None):
@@ -255,7 +261,9 @@ def _yanal_izgara_dugum_konumlari(enlemler_gc, boylamlar_gc):
     return konumlar
 
 
-def _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, baslangic_zamani, tas_ms, veri_kupu):
+def _a_yildiz_ile_rota_ara(
+    enlemler_gc, boylamlar_gc, irtifa_m, baslangic_zamani, tas_ms, veri_kupu, risk_katmanlari=()
+):
     """
     A* (A-star) graf araması: büyük daire etrafındaki yanal ızgarada,
     başlangıçtan bitişe TOPLAM MALİYETİ (uçuş süresi + riskli türbülans
@@ -270,6 +278,12 @@ def _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, baslangic_zamani
     -- gerçekte mümkün olabilecek en iyimser rüzgar hızlanmasını bile asla
     aşmayacak (admissible) bir alt sınır, bu yüzden A*'ın bulduğu yolun
     GERÇEKTEN optimal olduğu garantilidir.
+
+    risk_katmanlari (bkz. risk_katmanlari.py): her katmanın yasak düğüm/
+    kenarları grafdan çıkarılır (SERT kısıt), cezaları düğüme giriş
+    maliyetine eklenir. veri_kupu None ise (hava verisi yok) rüzgarsız,
+    sadece TAS ile aranır -- SIGMET kısıtı hava verisinden bağımsızdır.
+    Hiçbir geçerli yol yoksa None döner (sessizce kısıt ihlal edilmez).
     """
     n = len(enlemler_gc)
 
@@ -285,30 +299,42 @@ def _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, baslangic_zamani
 
     konumlar = _yanal_izgara_dugum_konumlari(enlemler_gc, boylamlar_gc)
 
-    # ERA5 kapsamı dışına taşan ızgara düğümleri dürüstçe ELENİR (A* onlardan
-    # asla geçemez) -- kapsam dışı bir noktada "türbülans yok" diye YANLIŞ
-    # bir varsayımda bulunmamak için.
-    aday_dugumler = list(konumlar)
-    kapsam_disi = kapsam_disi_maskesi(
-        veri_kupu,
-        [konumlar[d][0] for d in aday_dugumler],
-        [konumlar[d][1] for d in aday_dugumler],
-        [nominal_zamanlar[d[0]] for d in aday_dugumler],
-    )
-    dugumler = [d for d, disi in zip(aday_dugumler, kapsam_disi) if not disi]
+    # Hava verisi kapsamı dışına taşan ızgara düğümleri dürüstçe ELENİR (A*
+    # onlardan asla geçemez) -- kapsam dışı bir noktada "türbülans yok" diye
+    # YANLIŞ bir varsayımda bulunmamak için.
+    dugumler = list(konumlar)
+    if veri_kupu is not None:
+        kapsam_disi = kapsam_disi_maskesi(
+            veri_kupu,
+            [konumlar[d][0] for d in dugumler],
+            [konumlar[d][1] for d in dugumler],
+            [nominal_zamanlar[d[0]] for d in dugumler],
+        )
+        dugumler = [d for d, disi in zip(dugumler, kapsam_disi) if not disi]
     konum_kumesi = set(dugumler)
+    kenarlar = [(d, k) for d in dugumler for k in _komsu_dugumler(d, n) if k in konum_kumesi]
 
-    # TI1'i TÜM ızgara düğümleri için TEK vektörel çağrıyla hesapla (projenin
-    # ana analiz koduyla -- bkz. _rotanin_ti1_degerlerini_hesapla).
+    risk = degerlendirmeleri_birlestir(
+        katman.degerlendir(
+            {d: konumlar[d] for d in dugumler}, {d: nominal_zamanlar[d[0]] for d in dugumler}, kenarlar, irtifa_m
+        )
+        for katman in risk_katmanlari
+    )
+    konum_kumesi -= risk.yasak_dugumler
+
     tum_enlem = np.array([konumlar[d][0] for d in dugumler])
     tum_boylam = np.array([konumlar[d][1] for d in dugumler])
-    tum_zaman = [nominal_zamanlar[d[0]] for d in dugumler]
-    ti1_degerleri = _rotanin_ti1_degerlerini_hesapla(tum_enlem, tum_boylam, irtifa_m, tum_zaman, veri_kupu)
-    ti1_sozluk = dict(zip(dugumler, ti1_degerleri))
-
-    basinc_hpa = irtifa_metre_to_basinc_hpa(irtifa_m)
-    u_tum, v_tum = ruzgar_bilesenlerini_toplu_al(veri_kupu, tum_enlem, tum_boylam, basinc_hpa, tum_zaman)
-    ruzgar_sozluk = dict(zip(dugumler, zip(u_tum.tolist(), v_tum.tolist())))
+    if veri_kupu is not None:
+        u_tum, v_tum = ruzgar_bilesenlerini_toplu_al(
+            veri_kupu,
+            tum_enlem,
+            tum_boylam,
+            irtifa_metre_to_basinc_hpa(irtifa_m),
+            [nominal_zamanlar[d[0]] for d in dugumler],
+        )
+        ruzgar_sozluk = dict(zip(dugumler, zip(u_tum.tolist(), v_tum.tolist())))
+    else:
+        ruzgar_sozluk = dict.fromkeys(dugumler, (0.0, 0.0))
 
     def _kenar_maliyeti_saniye(dugum_a, dugum_b):
         ea, ba = konumlar[dugum_a]
@@ -318,11 +344,7 @@ def _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, baslangic_zamani
         u, v = ruzgar_sozluk[dugum_b]
         kuyruk_ruzgari_ms = u * math.sin(_bd(yon)) + v * math.cos(_bd(yon))
         yer_hizi_ms = max(tas_ms + kuyruk_ruzgari_ms, tas_ms * 0.2)
-        saniye = (mesafe_km * 1000.0) / yer_hizi_ms
-        ti1_b = ti1_sozluk.get(dugum_b)
-        if ti1_b is not None and not np.isnan(ti1_b) and ti1_b >= config.TI1_ESIK_ORTA_SIDDETLI:
-            saniye += _TURBULANS_CEZASI_SANIYE
-        return saniye
+        return (mesafe_km * 1000.0) / yer_hizi_ms + risk.dugum_cezasi.get(dugum_b, 0.0)
 
     def _sezgisel_saniye(dugum):
         e, b = konumlar[dugum]
@@ -331,6 +353,8 @@ def _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, baslangic_zamani
 
     baslangic_dugumu = (0, _ORTA_SEVIYE_INDEKSI)
     hedef_dugumu = (n - 1, _ORTA_SEVIYE_INDEKSI)
+    if baslangic_dugumu not in konum_kumesi or hedef_dugumu not in konum_kumesi:
+        return None
 
     acik_kume = [(_sezgisel_saniye(baslangic_dugumu), 0.0, baslangic_dugumu)]
     gercek_maliyet = {baslangic_dugumu: 0.0}
@@ -344,25 +368,8 @@ def _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, baslangic_zamani
         ziyaret_edildi.add(dugum)
         if dugum == hedef_dugumu:
             break
-
-        i, mevcut_seviye = dugum
-        if i >= n - 1:
-            continue
-        sonraki_i = i + 1
-        if sonraki_i == n - 1:
-            sonraki_seviyeler = [_ORTA_SEVIYE_INDEKSI]
-        else:
-            # Komşu adıma geçişte izin verilen seviye değişimi SINIRLI (±1)
-            # -- yoksa A*, uçağın fiziksel olarak yapamayacağı ani/sert yanal
-            # sıçramalar içeren, TOPLAM MESAFESİ aslında daha uzun olan bir
-            # "kısayol" bulabiliyor (gerçek veriyle doğrulandı). Bu sınır,
-            # rotanın uça giderken/dönerken KADEMELİ olmasını zorunlu kılar --
-            # önceki sinüs-şekilli tek-adaylık yaklaşımın sağladığı düzgünlüğü
-            # korur, ama A*'ın hâlâ ızgarada sistematik arama yapmasına izin verir.
-            sonraki_seviyeler = range(max(mevcut_seviye - 1, 0), min(mevcut_seviye + 1, len(_YANAL_SEVIYE_KM) - 1) + 1)
-        for j in sonraki_seviyeler:
-            komsu = (sonraki_i, j)
-            if komsu not in konum_kumesi:
+        for komsu in _komsu_dugumler(dugum, n):
+            if komsu not in konum_kumesi or (dugum, komsu) in risk.yasak_kenarlar:
                 continue
             yeni_maliyet = mevcut_maliyet + _kenar_maliyeti_saniye(dugum, komsu)
             if komsu not in gercek_maliyet or yeni_maliyet < gercek_maliyet[komsu]:
@@ -370,12 +377,8 @@ def _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, baslangic_zamani
                 ebeveyn[komsu] = dugum
                 heapq.heappush(acik_kume, (yeni_maliyet + _sezgisel_saniye(komsu), yeni_maliyet, komsu))
 
-    if hedef_dugumu not in ebeveyn and hedef_dugumu != baslangic_dugumu:
-        # Izgarada hedefe ulasan hicbir yol bulunamadi (teorik olarak olmamali,
-        # cunku 0-seviyesi -- buyuk dairenin kendisi -- her zaman baglantılıdır
-        # ve kapsam ici oldugu zaten dogrulanmisti) -- yine de dürüstçe büyük
-        # daireye geri düş.
-        return enlemler_gc.copy(), boylamlar_gc.copy(), 0.0
+    if hedef_dugumu not in ebeveyn:
+        return None
 
     yol = [hedef_dugumu]
     while yol[-1] != baslangic_dugumu:
@@ -386,6 +389,20 @@ def _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, baslangic_zamani
     yol_boylam = np.array([konumlar[d][1] for d in yol])
     maks_sapma_km = max((abs(_YANAL_SEVIYE_KM[j]) for _, j in yol), default=0.0)
     return yol_enlem, yol_boylam, maks_sapma_km
+
+
+def _komsu_dugumler(dugum, n):
+    """Bir sonraki ara noktada ulaşılabilen ızgara düğümleri. Seviye değişimi
+    SINIRLI (±1) -- yoksa A*, uçağın fiziksel olarak yapamayacağı ani/sert
+    yanal sıçramalar içeren, TOPLAM MESAFESİ aslında daha uzun olan bir
+    "kısayol" bulabiliyor (gerçek veriyle doğrulandı). Son noktaya sadece orta
+    seviyeden (bitiş sabit) girilir."""
+    i, seviye = dugum
+    if i >= n - 1:
+        return []
+    if i + 1 == n - 1:
+        return [(n - 1, _ORTA_SEVIYE_INDEKSI)]
+    return [(i + 1, j) for j in range(max(seviye - 1, 0), min(seviye + 1, len(_YANAL_SEVIYE_KM) - 1) + 1)]
 
 
 # ---------------------------------------------------------------------------
@@ -480,22 +497,6 @@ def _rotayi_zamanla(enlemler, boylamlar, irtifa_m, baslangic_zamani, tas_ms, ver
     return toplam_saniye, zamanlar
 
 
-def _rotanin_ti1_degerlerini_hesapla(enlemler, boylamlar, irtifa_m, zamanlar, veri_kupu):
-    """Bir rotanın her noktasındaki Ellrod TI1 türbülans indeksini, projenin
-    ANA analiz koduyla (eslestirme.rotayi_hava_durumuyla_eslestir) hesaplar
-    -- ayrı/tutarsız bir türbülans mantığı icat etmemek için."""
-    rota_df = pd.DataFrame(
-        {
-            "zaman": list(zamanlar),
-            "enlem": enlemler,
-            "boylam": boylamlar,
-            "geo_irtifa_m": irtifa_m,
-        }
-    )
-    eslesme = rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu)
-    return eslesme["ti1_indeksi"].to_numpy(dtype=float)
-
-
 def _ti1_ozeti_cikar(ti1_degerleri):
     """Dönüş: (maks_ti1 ya da hepsi NaN ise None, riskli_nokta_sayisi)."""
     if ti1_degerleri is None or np.all(np.isnan(ti1_degerleri)):
@@ -547,6 +548,60 @@ def _en_yakin_komsu_basinc_seviyeleri(veri_kupu, irtifa_m):
 # ---------------------------------------------------------------------------
 
 
+def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, tas_ms):
+    """Rota bölgesi/zamanı için aktif SIGMET'leri (verilmediyse veritabanından)
+    yükleyip sert kısıt katmanını kurar. Dönüş: (katman ya da None, özet)."""
+    baslangic = pd.Timestamp(zaman_iso)
+    baslangic = baslangic.tz_localize("UTC") if baslangic.tzinfo is None else baslangic.tz_convert("UTC")
+    toplam_km = sum(
+        buyuk_daire_mesafesi_km(enlemler_gc[i], boylamlar_gc[i], enlemler_gc[i + 1], boylamlar_gc[i + 1])
+        for i in range(len(enlemler_gc) - 1)
+    )
+    bitis = (baslangic + pd.Timedelta(seconds=toplam_km * 1000.0 / (tas_ms * 0.6)) + pd.Timedelta(hours=1)).ceil("s")
+    ozet = {"durum": "aktif_sigmet_yok", "aktif_sigmet_sayisi": 0, "son_guncelleme": None, "bayat_mi": False}
+
+    if sigmetler is None:
+        try:
+            sigmetler = gecerli_sigmetleri_getir(
+                baslangic.to_pydatetime(),
+                bitis.to_pydatetime(),
+                float(np.min(enlemler_gc)) - _SIGMET_ARAMA_PAYI_DERECE,
+                float(np.max(enlemler_gc)) + _SIGMET_ARAMA_PAYI_DERECE,
+                float(np.min(boylamlar_gc)) - _SIGMET_ARAMA_PAYI_DERECE,
+                float(np.max(boylamlar_gc)) + _SIGMET_ARAMA_PAYI_DERECE,
+                tehlikeler=config.SIGMET_KACINILACAK_TEHLIKELER,
+            )
+            ozet["son_guncelleme"] = son_guncelleme_zamani()
+        except Exception as hata:
+            _logger.warning("SIGMET'ler okunamadı, rota SIGMET kontrolü olmadan hesaplanıyor: %s", hata)
+            return None, {**ozet, "durum": "erisilemedi", "sigmetler": []}
+        simdi = pd.Timestamp.now(tz="UTC")
+        canli_mi = abs(simdi - baslangic) <= pd.Timedelta(hours=24)
+        esik = pd.Timedelta(minutes=config.SIGMET_BAYATLIK_DAKIKA)
+        ozet["bayat_mi"] = bool(
+            canli_mi and (ozet["son_guncelleme"] is None or simdi - pd.Timestamp(ozet["son_guncelleme"]) > esik)
+        )
+
+    katman = SigmetKisitKatmani(sigmetler)
+    ozet["sigmetler"] = [
+        {
+            "id": sg.get("id"),
+            "fir_kodu": sg.get("fir_kodu"),
+            "tehlike": sg["tehlike"],
+            "taban_ft": sg["taban_ft"],
+            "tavan_ft": sg["tavan_ft"],
+            "gecerlilik_baslangic": sg["gecerlilik_baslangic"],
+            "gecerlilik_bitis": sg["gecerlilik_bitis"],
+            "poligon": sg["poligon"],
+        }
+        for sg in katman.sigmetler
+    ]
+    ozet["aktif_sigmet_sayisi"] = len(katman.sigmetler)
+    if not katman.sigmetler:
+        return None, ozet
+    return katman, {**ozet, "durum": "uygulandi"}
+
+
 def rota_simulasyonu_olustur(
     baslangic_enlem,
     baslangic_boylam,
@@ -555,232 +610,213 @@ def rota_simulasyonu_olustur(
     irtifa_ft,
     zaman_iso,
     ucak_modeli_kodu,
+    sigmetler=None,
 ):
     """
-    İki gerçek rota üretir: büyük daire ("normal") ve öncelik sırası ÖNCE
-    türbülanstan kaçınma, SONRA en ucuz (yakıt/süre) yol olan "optimize"
-    rota. Dönüş, api_servisi.py'nin doğrudan JSON'a çevirebileceği bir
-    dict'tir (bkz. modül dosya başlığı için dürüstlük/kapsam sınırlaması).
+    İki gerçek rota üretir: büyük daire ("normal") ve "optimize" rota.
+    Öncelik sırası: (1) aktif SIGMET'lere GİRMEMEK (sert kısıt, bkz.
+    risk_katmanlari.SigmetKisitKatmani), (2) riskli TI1 türbülansından
+    kaçınmak, (3) en ucuz (yakıt/süre) yol. SIGMET'e girmeyen hiçbir aday
+    bulunamazsa rota ÖNERİLMEZ (guvenli_rota_bulundu_mu=False).
+    sigmetler: None ise veritabanındaki (sigmet_saglayici.py) aktif SIGMET'ler
+    kullanılır; test/backtest için açıkça bir liste verilebilir.
+    Dönüş, api_servisi.py'nin doğrudan JSON'a çevirebileceği bir dict'tir.
     """
     if ucak_modeli_kodu not in UCAK_PROFILLERI:
         raise ValueError(f"Bilinmeyen uçak modeli: '{ucak_modeli_kodu}'. Geçerli seçenekler: {list(UCAK_PROFILLERI)}")
 
     profil = UCAK_PROFILLERI[ucak_modeli_kodu]
+    tas_ms = profil["tas_ms"]
     irtifa_m = irtifa_ft * 0.3048
-    nokta_sayisi = config.ROTA_SIMULASYONU_NOKTA_SAYISI
-
     enlemler_gc, boylamlar_gc = buyuk_daire_rotasi_olustur(
-        baslangic_enlem, baslangic_boylam, bitis_enlem, bitis_boylam, nokta_sayisi
+        baslangic_enlem, baslangic_boylam, bitis_enlem, bitis_boylam, config.ROTA_SIMULASYONU_NOKTA_SAYISI
     )
 
     veri_kupu = veri_kupune_eris(enlemler_gc, boylamlar_gc, zaman_iso, irtifa_m)
     ruzgarli_mi = _era5_tamamen_kapsiyor_mu(veri_kupu, enlemler_gc, boylamlar_gc, zaman_iso, irtifa_m)
     kup_adi = veri_kupu_adi(veri_kupu)
+    sigmet_katmani, sigmet_kontrolu = _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, tas_ms)
 
-    # --- "Normal" rota: her zaman büyük daire; rüzgar verisi varsa onunla,
-    # yoksa sadece TAS ile zamanlanır. ---
-    normal_saniye, normal_zamanlar = _rotayi_zamanla(
-        enlemler_gc, boylamlar_gc, irtifa_m, zaman_iso, profil["tas_ms"], veri_kupu, ruzgarli_mi
-    )
+    def _aday(strateji, enlemler, boylamlar, aday_irtifa_m, yanal_sapma_km=0.0, ekstra=(0.0, 0.0)):
+        saniye, zamanlar = _rotayi_zamanla(
+            enlemler, boylamlar, aday_irtifa_m, zaman_iso, tas_ms, veri_kupu, ruzgarli_mi
+        )
+        if ruzgarli_mi:
+            maks_ti1, riskli_sayisi = _ti1_ozeti_cikar(
+                rota_ti1_degerleri(enlemler, boylamlar, aday_irtifa_m, zamanlar, veri_kupu)
+            )
+        else:
+            maks_ti1, riskli_sayisi = None, 0
+        return {
+            "strateji": strateji,
+            "enlem": enlemler,
+            "boylam": boylamlar,
+            "irtifa_m": aday_irtifa_m,
+            "zamanlar": zamanlar,
+            "saniye": saniye,
+            "ekstra_saniye": ekstra[0],
+            "ekstra_yakit_kg": ekstra[1],
+            "maks_ti1": maks_ti1,
+            "riskli_sayisi": riskli_sayisi,
+            "sigmet_ihlali": (
+                sigmet_katmani.rota_ihlal_sayisi(enlemler, boylamlar, zamanlar, aday_irtifa_m) if sigmet_katmani else 0
+            ),
+            "yanal_sapma_km": yanal_sapma_km,
+        }
 
-    if ruzgarli_mi:
-        normal_ti1 = _rotanin_ti1_degerlerini_hesapla(enlemler_gc, boylamlar_gc, irtifa_m, normal_zamanlar, veri_kupu)
-        normal_maks_ti1, normal_riskli_sayisi = _ti1_ozeti_cikar(normal_ti1)
+    def _aday_toplam_yakit_kg(aday):
+        return profil["yakit_akisi_kg_saat"] * (aday["saniye"] / 3600.0) + aday["ekstra_yakit_kg"]
+
+    normal = _aday("yok", enlemler_gc, boylamlar_gc, irtifa_m)
+    guvenli_rota_bulundu_mu = True
+
+    if normal["riskli_sayisi"] == 0 and normal["sigmet_ihlali"] == 0:
+        # Kaçınılacak risk YOK -- kullanıcıyla netleştirilen ilkeyle, uydurma
+        # bir sapma göstermek yerine optimize rota normal rotayla BİREBİR AYNI.
+        en_iyi = normal
     else:
-        normal_maks_ti1, normal_riskli_sayisi = None, 0
-
-    optimize_irtifa_ek_yakit_kg = 0.0
-    kacinma_stratejisi = "yok"
-
-    if not ruzgarli_mi:
-        # Kapsam dışı: uydurma bir "optimizasyon" göstermek yerine dürüstçe
-        # aynı rotayı/süreyi döndür (bkz. modül dosya başlığı).
-        optimize_enlemler, optimize_boylamlar, optimize_irtifa_m = enlemler_gc, boylamlar_gc, irtifa_m
-        optimize_saniye, optimize_zamanlar = normal_saniye, normal_zamanlar
-        optimize_seyir_saniye = optimize_saniye
-        maks_yanal_sapma_km = 0.0
-        optimize_maks_ti1, optimize_riskli_sayisi = None, 0
-        turbulanstan_kacinildi_mi = False
-    elif normal_riskli_sayisi == 0:
-        # Rota üzerinde riskli türbülans YOK -- kullanıcıyla netleştirilen
-        # ilkeyle, uydurma bir sapma göstermek yerine optimize rota normal
-        # rotayla BİREBİR AYNI kalır.
-        optimize_enlemler, optimize_boylamlar, optimize_irtifa_m = enlemler_gc, boylamlar_gc, irtifa_m
-        optimize_saniye, optimize_zamanlar = normal_saniye, normal_zamanlar
-        optimize_seyir_saniye = optimize_saniye
-        maks_yanal_sapma_km = 0.0
-        optimize_maks_ti1, optimize_riskli_sayisi = normal_maks_ti1, 0
-        turbulanstan_kacinildi_mi = False
-    else:
-        # Riskli türbülans VAR: ÇOK FAKTÖRLÜ karşılaştırma -- iki FARKLI
-        # kaçınma stratejisi denenir ve toplam maliyeti (yakıt + tırmanma/
-        # alçalma bedeli) en düşük, güvenliği en iyi sağlayan seçilir:
-        #   (1) YANAL: A* ile büyük daire etrafındaki ızgarada en ucuz güvenli
-        #       yolu ara (bkz. _a_yildiz_ile_rota_ara).
-        #   (2/3) İRTİFA: aynı yatay rotada kalıp bir üst/alt basınç
-        #       seviyesine geç (gerçek tırmanma/alçalma yakıt/süre bedeliyle
-        #       -- bkz. _irtifa_degisimi_maliyeti). Bazı CAT katmanları
-        #       irtifaya bağlıdır; alçalarak kaçınmak bazen yanal sapmadan
-        #       hem daha güvenli HEM daha ucuz bile çıkabilir.
+        # ÇOK FAKTÖRLÜ karşılaştırma: (1) YANAL -- A* ile büyük daire
+        # etrafındaki ızgarada, risk katmanlarına (TI1 cezası + SIGMET yasağı)
+        # göre en ucuz yol; (2/3) İRTİFA -- aynı yatay rotada bir üst/alt
+        # basınç seviyesi (gerçek tırmanma/alçalma bedeliyle, bkz.
+        # _irtifa_degisimi_maliyeti). Bazı CAT katmanları ve SIGMET'ler
+        # irtifaya bağlıdır; seviye değiştirmek bazen en ucuz güvenli seçenektir.
+        risk_katmanlari = [Ti1CezaKatmani(veri_kupu)] if ruzgarli_mi else []
+        if sigmet_katmani is not None:
+            risk_katmanlari.append(sigmet_katmani)
         adaylar = []
-
-        yanal_enlem, yanal_boylam, yanal_sapma_km = _a_yildiz_ile_rota_ara(
-            enlemler_gc, boylamlar_gc, irtifa_m, zaman_iso, profil["tas_ms"], veri_kupu
+        yanal = _a_yildiz_ile_rota_ara(
+            enlemler_gc, boylamlar_gc, irtifa_m, zaman_iso, tas_ms, veri_kupu if ruzgarli_mi else None, risk_katmanlari
         )
-        yanal_saniye, yanal_zamanlar = _rotayi_zamanla(
-            yanal_enlem, yanal_boylam, irtifa_m, zaman_iso, profil["tas_ms"], veri_kupu, ruzgarli_mi=True
-        )
-        yanal_ti1 = _rotanin_ti1_degerlerini_hesapla(yanal_enlem, yanal_boylam, irtifa_m, yanal_zamanlar, veri_kupu)
-        yanal_maks_ti1, yanal_riskli_sayisi = _ti1_ozeti_cikar(yanal_ti1)
-        adaylar.append(
-            {
-                "strateji": "yanal",
-                "enlem": yanal_enlem,
-                "boylam": yanal_boylam,
-                "irtifa_m": irtifa_m,
-                "zamanlar": yanal_zamanlar,
-                "saniye": yanal_saniye,
-                "ekstra_saniye": 0.0,
-                "ekstra_yakit_kg": 0.0,
-                "maks_ti1": yanal_maks_ti1,
-                "riskli_sayisi": yanal_riskli_sayisi,
-                "yanal_sapma_km": yanal_sapma_km,
-            }
-        )
+        if yanal is not None:
+            adaylar.append(_aday("yanal", yanal[0], yanal[1], irtifa_m, yanal_sapma_km=yanal[2]))
+        irtifa_secenekleri = _en_yakin_komsu_basinc_seviyeleri(veri_kupu, irtifa_m) if ruzgarli_mi else {}
+        for strateji_adi, yeni_irtifa_m in irtifa_secenekleri.items():
+            ekstra = _irtifa_degisimi_maliyeti(irtifa_m, yeni_irtifa_m, profil["yakit_akisi_kg_saat"])
+            adaylar.append(_aday(strateji_adi, enlemler_gc, boylamlar_gc, yeni_irtifa_m, ekstra=ekstra))
 
-        for strateji_adi, yeni_irtifa_m in _en_yakin_komsu_basinc_seviyeleri(veri_kupu, irtifa_m).items():
-            i_saniye, i_zamanlar = _rotayi_zamanla(
-                enlemler_gc, boylamlar_gc, yeni_irtifa_m, zaman_iso, profil["tas_ms"], veri_kupu, ruzgarli_mi=True
-            )
-            i_ti1 = _rotanin_ti1_degerlerini_hesapla(enlemler_gc, boylamlar_gc, yeni_irtifa_m, i_zamanlar, veri_kupu)
-            i_maks_ti1, i_riskli_sayisi = _ti1_ozeti_cikar(i_ti1)
-            ekstra_saniye, ekstra_yakit_kg = _irtifa_degisimi_maliyeti(
-                irtifa_m, yeni_irtifa_m, profil["yakit_akisi_kg_saat"]
-            )
-            adaylar.append(
-                {
-                    "strateji": strateji_adi,
-                    "enlem": enlemler_gc,
-                    "boylam": boylamlar_gc,
-                    "irtifa_m": yeni_irtifa_m,
-                    "zamanlar": i_zamanlar,
-                    "saniye": i_saniye,
-                    "ekstra_saniye": ekstra_saniye,
-                    "ekstra_yakit_kg": ekstra_yakit_kg,
-                    "maks_ti1": i_maks_ti1,
-                    "riskli_sayisi": i_riskli_sayisi,
-                    "yanal_sapma_km": 0.0,
-                }
-            )
+        sigmete_uyan = [a for a in adaylar if a["sigmet_ihlali"] == 0]
+        tam_guvenli = [a for a in sigmete_uyan if a["riskli_sayisi"] == 0]
+        if tam_guvenli or sigmete_uyan:
+            en_iyi = min(tam_guvenli or sigmete_uyan, key=_aday_toplam_yakit_kg)
+        else:
+            # SERT kısıt sağlanamadı: kısıtı ihlal eden bir rota "optimize"
+            # diye önerilmez -- normal rota gösterilir ve açıkça işaretlenir.
+            en_iyi, guvenli_rota_bulundu_mu = normal, False
 
-        def _aday_toplam_yakit_kg(aday):
-            return profil["yakit_akisi_kg_saat"] * (aday["saniye"] / 3600.0) + aday["ekstra_yakit_kg"]
-
-        guvenli_adaylar = [a for a in adaylar if a["riskli_sayisi"] == 0]
-        en_iyi = min(guvenli_adaylar if guvenli_adaylar else adaylar, key=_aday_toplam_yakit_kg)
-
-        optimize_enlemler, optimize_boylamlar = en_iyi["enlem"], en_iyi["boylam"]
-        optimize_irtifa_m = en_iyi["irtifa_m"]
-        optimize_zamanlar = en_iyi["zamanlar"]
-        optimize_seyir_saniye = en_iyi["saniye"]
-        optimize_saniye = en_iyi["saniye"] + en_iyi["ekstra_saniye"]
-        optimize_maks_ti1, optimize_riskli_sayisi = en_iyi["maks_ti1"], en_iyi["riskli_sayisi"]
-        maks_yanal_sapma_km = en_iyi["yanal_sapma_km"]
-        optimize_irtifa_ek_yakit_kg = en_iyi["ekstra_yakit_kg"]
-        kacinma_stratejisi = en_iyi["strateji"]
-        turbulanstan_kacinildi_mi = optimize_riskli_sayisi < normal_riskli_sayisi
-
-    normal_mesafe_km = sum(
-        buyuk_daire_mesafesi_km(enlemler_gc[i], boylamlar_gc[i], enlemler_gc[i + 1], boylamlar_gc[i + 1])
-        for i in range(len(enlemler_gc) - 1)
-    )
-    optimize_mesafe_km = sum(
-        buyuk_daire_mesafesi_km(
-            optimize_enlemler[i], optimize_boylamlar[i], optimize_enlemler[i + 1], optimize_boylamlar[i + 1]
-        )
-        for i in range(len(optimize_enlemler) - 1)
-    )
-
-    normal_yakit_kg = profil["yakit_akisi_kg_saat"] * (normal_saniye / 3600.0)
-    # NOT: optimize_seyir_saniye/optimize_saniye ayrımı -- irtifa değişimi
-    # stratejisinde toplam süre (raporlama için) tırmanma/alçalma süresini de
-    # içerir, ama o süre boyunca yakıt akışı SEYİR hızında DEĞİLDİR (bkz.
-    # _irtifa_degisimi_maliyeti) -- bu yüzden yakıt, seyir süresinden +
-    # ayrıca hesaplanmış optimize_irtifa_ek_yakit_kg'den hesaplanır.
-    optimize_yakit_kg = profil["yakit_akisi_kg_saat"] * (optimize_seyir_saniye / 3600.0) + optimize_irtifa_ek_yakit_kg
-    normal_co2_kg = normal_yakit_kg * CO2_KG_PER_KG_YAKIT
-    optimize_co2_kg = optimize_yakit_kg * CO2_KG_PER_KG_YAKIT
-
-    if not ruzgarli_mi:
-        aciklama = (
-            "Seçilen bölge/tarih/irtifa, projenin ERA5 veri küplerinden hiçbirinin (ana küp: "
-            f"'{config.HAVA_DURUMU_DOSYASI}', ek küpler: '{config.EK_HAVA_DURUMU_KLASORU}/') rotanın TAMAMINI "
-            "kapsadığı aralıkta DEĞİL -- bu beklenen, dürüst bir durumdur (bkz. sigmet_dogrulama.py'deki "
-            "aynı ilke). Rüzgar VE türbülans (TI1) hesaba katılamadığı için iki rota da büyük daire olarak, "
-            "sadece uçağın hava hızıyla (TAS) hesaplandı; gerçek bir yakıt tasarrufu/türbülans kaçınması iddia "
-            "edilmiyor."
-        )
-    elif normal_riskli_sayisi == 0:
-        aciklama = (
-            f"Gerçek ERA5 verisiyle hesaplandı ('{kup_adi}'). Normal rota üzerinde riskli "
-            f"türbülans (TI1 >= {config.TI1_ESIK_ORTA_SIDDETLI:.1e} s^-2) TESPİT EDİLMEDİ -- kaçınılacak bir "
-            "risk olmadığı için optimize rota normal rotayla birebir aynıdır (uydurma bir sapma gösterilmiyor)."
-        )
-    elif turbulanstan_kacinildi_mi and optimize_riskli_sayisi == 0:
-        strateji_aciklamasi = {
-            "yanal": f"A* araması ile yanal sapma (en fazla {maks_yanal_sapma_km:.0f} km)",
-            "irtifa_yukari": f"irtifayı {(optimize_irtifa_m - irtifa_m) / 0.3048:.0f} ft artırarak (tırmanma)",
-            "irtifa_asagi": f"irtifayı {(irtifa_m - optimize_irtifa_m) / 0.3048:.0f} ft azaltarak (alçalma)",
-        }[kacinma_stratejisi]
-        aciklama = (
-            f"Gerçek ERA5 verisiyle hesaplandı ('{kup_adi}'). Normal rota üzerinde "
-            f"{normal_riskli_sayisi} noktada riskli türbülans tespit edildi; ÇOK FAKTÖRLÜ karşılaştırmada "
-            f"(yanal A* aramasi vs bir üst/alt basınç seviyesine geçiş, her biri gerçek yakıt/süre maliyetiyle) "
-            f"en ucuz TAM güvenli seçenek olarak {strateji_aciklamasi} bulundu."
-        )
-    else:
-        aciklama = (
-            f"Gerçek ERA5 verisiyle hesaplandı ('{kup_adi}'). Normal rota üzerinde "
-            f"{normal_riskli_sayisi} noktada riskli türbülans tespit edildi; denenen ne yanal (A*) ne de "
-            f"irtifa değişimi adayları riski TAMAMEN ortadan kaldırabildi (türbülans alanı geniş olabilir) -- "
-            f"yine de riski en aza indiren seçenek ({kacinma_stratejisi}) seçildi ({optimize_riskli_sayisi} "
-            f"riskli nokta, normal rotadaki {normal_riskli_sayisi}'e karşı)."
-        )
+    normal_yakit_kg = _aday_toplam_yakit_kg(normal)
+    # İrtifa değişiminde toplam süre tırmanma/alçalmayı da içerir, ama o süre
+    # boyunca yakıt akışı SEYİR hızında DEĞİLDİR -- yakıt, seyir süresinden +
+    # ayrıca hesaplanan ek yakıttan hesaplanır (bkz. _irtifa_degisimi_maliyeti).
+    optimize_yakit_kg = _aday_toplam_yakit_kg(en_iyi)
+    optimize_saniye = en_iyi["saniye"] + en_iyi["ekstra_saniye"]
 
     return {
         "ruzgar_verisi_kaynagi": "era5_gercek" if ruzgarli_mi else "era5_kapsam_disi",
-        "aciklama": aciklama,
+        "aciklama": _aciklama_olustur(
+            ruzgarli_mi, kup_adi, normal, en_iyi, irtifa_m, sigmet_kontrolu, guvenli_rota_bulundu_mu
+        ),
         "ucak_modeli": ucak_modeli_kodu,
         "ucak_etiketi": profil["etiket"],
-        "turbulanstan_kacinildi_mi": turbulanstan_kacinildi_mi,
-        "kacinma_stratejisi": kacinma_stratejisi,
-        "normal_rota": {
-            "noktalar": _noktalari_paketle(enlemler_gc, boylamlar_gc, irtifa_m, normal_zamanlar),
-            "toplam_sure_dk": normal_saniye / 60.0,
-            "mesafe_km": normal_mesafe_km,
-            "tahmini_yakit_kg": normal_yakit_kg,
-            "tahmini_co2_kg": normal_co2_kg,
-            "irtifa_ft": irtifa_m / 0.3048,
-            "maks_ti1": normal_maks_ti1,
-            "riskli_nokta_sayisi": normal_riskli_sayisi,
-        },
+        "turbulanstan_kacinildi_mi": en_iyi["riskli_sayisi"] < normal["riskli_sayisi"],
+        "sigmetten_kacinildi_mi": normal["sigmet_ihlali"] > 0 and en_iyi["sigmet_ihlali"] == 0,
+        "guvenli_rota_bulundu_mu": guvenli_rota_bulundu_mu,
+        "kacinma_stratejisi": en_iyi["strateji"],
+        "sigmet_kontrolu": sigmet_kontrolu,
+        "normal_rota": _rota_ozeti(normal, normal_yakit_kg, normal["saniye"]),
         "optimize_rota": {
-            "noktalar": _noktalari_paketle(optimize_enlemler, optimize_boylamlar, optimize_irtifa_m, optimize_zamanlar),
-            "toplam_sure_dk": optimize_saniye / 60.0,
-            "mesafe_km": optimize_mesafe_km,
-            "tahmini_yakit_kg": optimize_yakit_kg,
-            "tahmini_co2_kg": optimize_co2_kg,
-            "maks_yanal_sapma_km": maks_yanal_sapma_km,
-            "irtifa_ft": optimize_irtifa_m / 0.3048,
-            "maks_ti1": optimize_maks_ti1,
-            "riskli_nokta_sayisi": optimize_riskli_sayisi,
+            **_rota_ozeti(en_iyi, optimize_yakit_kg, optimize_saniye),
+            "maks_yanal_sapma_km": en_iyi["yanal_sapma_km"],
         },
-        "sure_tasarrufu_dk": (normal_saniye - optimize_saniye) / 60.0,
+        "sure_tasarrufu_dk": (normal["saniye"] - optimize_saniye) / 60.0,
         "yakit_tasarrufu_yuzde": (
             100.0 * (normal_yakit_kg - optimize_yakit_kg) / normal_yakit_kg if normal_yakit_kg > 0 else 0.0
         ),
-        "co2_farki_kg": normal_co2_kg - optimize_co2_kg,
+        "co2_farki_kg": normal_yakit_kg * CO2_KG_PER_KG_YAKIT - optimize_yakit_kg * CO2_KG_PER_KG_YAKIT,
     }
+
+
+def _rota_ozeti(aday, yakit_kg, toplam_saniye):
+    enlemler, boylamlar = aday["enlem"], aday["boylam"]
+    return {
+        "noktalar": _noktalari_paketle(enlemler, boylamlar, aday["irtifa_m"], aday["zamanlar"]),
+        "toplam_sure_dk": toplam_saniye / 60.0,
+        "mesafe_km": sum(
+            buyuk_daire_mesafesi_km(enlemler[i], boylamlar[i], enlemler[i + 1], boylamlar[i + 1])
+            for i in range(len(enlemler) - 1)
+        ),
+        "tahmini_yakit_kg": yakit_kg,
+        "tahmini_co2_kg": yakit_kg * CO2_KG_PER_KG_YAKIT,
+        "irtifa_ft": aday["irtifa_m"] / 0.3048,
+        "maks_ti1": aday["maks_ti1"],
+        "riskli_nokta_sayisi": aday["riskli_sayisi"],
+        "sigmet_ihlali_sayisi": aday["sigmet_ihlali"],
+    }
+
+
+def _aciklama_olustur(ruzgarli_mi, kup_adi, normal, en_iyi, irtifa_m, sigmet_kontrolu, guvenli_rota_bulundu_mu):
+    cumleler = []
+    if ruzgarli_mi:
+        cumleler.append(f"Gerçek ERA5 verisiyle hesaplandı ('{kup_adi}').")
+        if normal["riskli_sayisi"] == 0:
+            cumleler.append(
+                f"Normal rota üzerinde riskli türbülans (TI1 >= {config.TI1_ESIK_ORTA_SIDDETLI:.1e} s^-2) TESPİT EDİLMEDİ."
+            )
+        else:
+            cumleler.append(f"Normal rota üzerinde {normal['riskli_sayisi']} noktada riskli türbülans tespit edildi.")
+    else:
+        cumleler.append(
+            "Seçilen bölge/tarih/irtifa, projenin ERA5 veri küplerinden hiçbirinin (ana küp: "
+            f"'{config.HAVA_DURUMU_DOSYASI}', ek küpler: '{config.EK_HAVA_DURUMU_KLASORU}/') rotanın TAMAMINI "
+            "kapsadığı aralıkta DEĞİL -- rüzgar ve türbülans (TI1) hesaba katılamadı, rotalar sadece uçağın hava "
+            "hızıyla (TAS) zamanlandı; gerçek bir yakıt tasarrufu/türbülans kaçınması iddia edilmiyor."
+        )
+
+    durum = sigmet_kontrolu["durum"]
+    if durum == "erisilemedi":
+        cumleler.append("UYARI: SIGMET veritabanına erişilemedi -- aktif SIGMET kontrolü YAPILAMADI.")
+    elif durum == "uygulandi":
+        ihlal = normal["sigmet_ihlali"]
+        cumleler.append(
+            f"{sigmet_kontrolu['aktif_sigmet_sayisi']} aktif SIGMET sert kısıt olarak uygulandı; normal rota "
+            + (f"{ihlal} nokta/bacakta bunlara giriyor." if ihlal else "bunlara girmiyor.")
+        )
+    if sigmet_kontrolu.get("bayat_mi"):
+        cumleler.append(
+            f"UYARI: son SIGMET güncellemesi {config.SIGMET_BAYATLIK_DAKIKA} dakikadan eski ya da hiç yapılmamış "
+            "(bkz. POST /api/v1/sigmet/guncelle) -- aktif uyarılar eksik olabilir."
+        )
+
+    if not guvenli_rota_bulundu_mu:
+        cumleler.append(
+            "ÖNERİ YOK: aktif SIGMET'lere girmeyen geçerli bir rota bulunamadı (başlangıç/bitiş SIGMET içinde "
+            "olabilir ya da alan arama ızgarasından geniş) -- gösterilen rota normal rotadır ve ÖNERİLMEZ."
+        )
+    elif en_iyi["strateji"] == "yok":
+        cumleler.append(
+            "Kaçınılacak bir risk olmadığı için optimize rota normal rotayla birebir aynıdır "
+            "(uydurma bir sapma gösterilmiyor)."
+        )
+    else:
+        strateji_aciklamasi = {
+            "yanal": f"A* araması ile yanal sapma (en fazla {en_iyi['yanal_sapma_km']:.0f} km)",
+            "irtifa_yukari": f"irtifayı {(en_iyi['irtifa_m'] - irtifa_m) / 0.3048:.0f} ft artırarak (tırmanma)",
+            "irtifa_asagi": f"irtifayı {(irtifa_m - en_iyi['irtifa_m']) / 0.3048:.0f} ft azaltarak (alçalma)",
+        }[en_iyi["strateji"]]
+        if not ruzgarli_mi:
+            cumleler.append(f"Aktif SIGMET'lere girmeyen en kısa rota olarak {strateji_aciklamasi} bulundu.")
+        elif en_iyi["riskli_sayisi"] == 0:
+            cumleler.append(
+                "ÇOK FAKTÖRLÜ karşılaştırmada (yanal A* araması vs bir üst/alt basınç seviyesine geçiş, her biri "
+                f"gerçek yakıt/süre maliyetiyle) en ucuz TAM güvenli seçenek olarak {strateji_aciklamasi} bulundu."
+            )
+        else:
+            cumleler.append(
+                "Denenen adaylar TI1 riskini TAMAMEN ortadan kaldıramadı (türbülans alanı geniş olabilir) -- "
+                f"SIGMET kısıtına uyan seçenekler arasından {strateji_aciklamasi} seçildi "
+                f"({en_iyi['riskli_sayisi']} riskli nokta, normal rotadaki {normal['riskli_sayisi']}'e karşı)."
+            )
+    return " ".join(cumleler)
 
 
 # ---------------------------------------------------------------------------
@@ -865,6 +901,37 @@ def simulasyonu_czml_e_cevir(sonuc):
     optimize_ucak, optimize_on_izleme = _rotayi_czml_varligina_cevir(
         sonuc["optimize_rota"], "optimize-rota", "Optimize Rota (turbulanstan kacinma)", [46, 204, 113, 255]
     )
-    # Statik ön izleme çizgileri ÖNCE eklenir ki uçak modelleri/etiketleri
-    # onların üzerinde (z-sırasında sonda) görünsün.
-    return [belge_paketi, normal_on_izleme, optimize_on_izleme, normal_ucak, optimize_ucak]
+    sigmet_varliklari = [
+        _sigmeti_czml_varligina_cevir(sigmet, i)
+        for i, sigmet in enumerate((sonuc.get("sigmet_kontrolu") or {}).get("sigmetler", []))
+    ]
+    # Statik ön izleme çizgileri ve SIGMET hacimleri ÖNCE eklenir ki uçak
+    # modelleri/etiketleri onların üzerinde (z-sırasında sonda) görünsün.
+    return [belge_paketi, *sigmet_varliklari, normal_on_izleme, optimize_on_izleme, normal_ucak, optimize_ucak]
+
+
+_SIGMET_VARSAYILAN_TAVAN_FT = 45000
+
+
+def _sigmeti_czml_varligina_cevir(sigmet, sira):
+    """Aktif SIGMET'i, taban-tavan irtifaları arasında yükseltilmiş
+    (extruded) yarı saydam kırmızı bir hacim olarak çizer -- A*'ın kaçındığı
+    'yasak bölge' 3D sahnede görünür olsun diye."""
+    taban_m = (sigmet.get("taban_ft") or 0) * 0.3048
+    tavan_m = (sigmet.get("tavan_ft") or _SIGMET_VARSAYILAN_TAVAN_FT) * 0.3048
+    koseler = [deger for boylam, enlem in sigmet["poligon"] for deger in (boylam, enlem, taban_m)]
+    baslangic = pd.Timestamp(sigmet["gecerlilik_baslangic"]).isoformat()
+    bitis = pd.Timestamp(sigmet["gecerlilik_bitis"]).isoformat()
+    return {
+        "id": f"sigmet-{sigmet.get('id') or sira}",
+        "name": f"SIGMET {sigmet.get('fir_kodu') or ''} {sigmet['tehlike']}".strip(),
+        "availability": f"{baslangic}/{bitis}",
+        "polygon": {
+            "positions": {"cartographicDegrees": koseler},
+            "height": taban_m,
+            "extrudedHeight": tavan_m,
+            "material": {"solidColor": {"color": {"rgba": [231, 76, 60, 70]}}},
+            "outline": True,
+            "outlineColor": {"rgba": [231, 76, 60, 200]},
+        },
+    }

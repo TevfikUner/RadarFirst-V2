@@ -127,3 +127,20 @@ HARITA_MAKS_ANIMASYON_NOKTASI = _ortam_sayi("HARITA_MAKS_ANIMASYON_NOKTASI", 200
 # pürüzsüzleştirir ama rüzgar-optimal rota aramasını (her aday x her nokta
 # için bir ERA5 okuması) yavaşlatır.
 ROTA_SIMULASYONU_NOKTA_SAYISI = _ortam_sayi("ROTA_SIMULASYONU_NOKTA_SAYISI", 41, int)
+
+# sigmet_saglayici.py / risk_katmanlari.py -- canlı AWC SIGMET'leri.
+# A*'ın SERT kısıt olarak kaçındığı tehlike türleri (AWC 'hazard' alanı):
+# TURB/MTW (türbülans/dağ dalgası), TS/CONVECTIVE (oraj), VA (volkanik kül),
+# TC (tropikal siklon). ICE (buzlanma) varsayılan olarak DAHİL DEĞİL -- jet
+# seyir irtifasında genelde rota değil irtifa kararıdır; istenirse eklenir.
+SIGMET_KACINILACAK_TEHLIKELER = tuple(
+    t.strip().upper()
+    for t in _ortam_str("SIGMET_KACINILACAK_TEHLIKELER", "TURB,MTW,TS,CONVECTIVE,VA,TC").split(",")
+    if t.strip()
+)
+# Süresi dolmuş SIGMET'ler bu kadar gün saklanır (geçmiş rota kararlarının izlenebilirliği için).
+SIGMET_SAKLAMA_GUN = _ortam_sayi("SIGMET_SAKLAMA_GUN", 30, int)
+# Canlı (şimdiye yakın) bir rota hesabında son SIGMET çekimi bundan eskiyse yanıt "bayat" uyarısı taşır.
+SIGMET_BAYATLIK_DAKIKA = _ortam_sayi("SIGMET_BAYATLIK_DAKIKA", 30, int)
+# >0 ise API kendi içinde bu aralıkla (dakika) SIGMET çeker; 0 = kapalı (n8n/cron tetikler).
+SIGMET_OTOMATIK_GUNCELLEME_DAKIKA = _ortam_sayi("SIGMET_OTOMATIK_GUNCELLEME_DAKIKA", 0, int)

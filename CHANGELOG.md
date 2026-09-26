@@ -4,6 +4,28 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Canlı SIGMET sağlayıcısı + A* için modüler risk katmanları
+
+- **`sigmet_saglayici.py`:** aviationweather.gov `airsigmet` (ABD) +
+  `isigmet` (uluslararası, Ankara FIR dahil) kayıtlarını normalize edip
+  `sigmetler` tablosuna upsert eder; akıştan düşen (iptal edilen)
+  SIGMET'leri sonlandırır. `POST /api/v1/sigmet/guncelle`, `GET
+  /api/v1/sigmet`, isteğe bağlı iç zamanlayıcı
+  (`SIGMET_OTOMATIK_GUNCELLEME_DAKIKA`).
+- **`risk_katmanlari.py`:** A*'ın maliyet fonksiyonu takılabilir katmanlara
+  ayrıldı (`Ti1CezaKatmani` yumuşak ceza, `SigmetKisitKatmani` sert yasak --
+  poligon + irtifa bandı + varış zamanında geçerlilik, bacak/poligon
+  kesişimi dahil). SIGMET'siz durumda üç örnek rotanın çıktısı eski kodla
+  birebir aynı (doğrulandı).
+- **Rota kararı:** öncelik SIGMET > TI1 > yakıt; SIGMET'e girmeyen rota
+  yoksa `guvenli_rota_bulundu_mu: false` ("ÖNERİ YOK"). SIGMET kısıtı ERA5
+  kapsamı dışında da (rüzgarsız A*) uygulanır. Yanıta `sigmet_kontrolu`,
+  `sigmetten_kacinildi_mi`, rota başına `sigmet_ihlali_sayisi` eklendi; CZML
+  SIGMET'leri 3D hacim olarak çiziyor.
+- Canlı doğrulama: gerçek AWC akışından 126 SIGMET alındı; aktif Ankara FIR
+  fırtına SIGMET'inden Malatya -> Musul yönü rotası 20 km yanal sapmayla
+  kaçındı, varışı SIGMET içinde kalan rota için "öneri yok" döndü.
+
 ## Canlı veri şeması + kalıcı analiz görevleri
 
 - Yeni Alembic migration'ı (`9ad326d01cac`) üç tablo ekler:

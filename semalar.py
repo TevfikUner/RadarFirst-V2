@@ -150,6 +150,36 @@ class RotaSonucuYaniti(BaseModel):
     irtifa_ft: float | None = None
     maks_ti1: float | None = None
     riskli_nokta_sayisi: int = 0
+    sigmet_ihlali_sayisi: int = 0
+
+
+class SigmetOzetiYaniti(BaseModel):
+    id: int | None = None
+    fir_kodu: str | None = None
+    tehlike: str
+    taban_ft: int | None = None
+    tavan_ft: int | None = None
+    gecerlilik_baslangic: datetime
+    gecerlilik_bitis: datetime
+    poligon: list[list[float]]
+
+
+class SigmetKontroluYaniti(BaseModel):
+    """durum: uygulandi | aktif_sigmet_yok | erisilemedi. bayat_mi: canlı
+    (şimdiye yakın) bir hesapta son SIGMET çekimi config.SIGMET_BAYATLIK_DAKIKA'dan eski."""
+
+    durum: str
+    aktif_sigmet_sayisi: int = 0
+    son_guncelleme: datetime | None = None
+    bayat_mi: bool = False
+    sigmetler: list[SigmetOzetiYaniti] = []
+
+
+class SigmetYenilemeYaniti(BaseModel):
+    kaydedilen: int
+    sonlandirilan: int
+    silinen: int
+    kaynak_hatalari: dict[str, str]
 
 
 class RotaSimulasyonuYaniti(BaseModel):
@@ -159,6 +189,9 @@ class RotaSimulasyonuYaniti(BaseModel):
     ucak_etiketi: str
     turbulanstan_kacinildi_mi: bool
     kacinma_stratejisi: str
+    sigmetten_kacinildi_mi: bool = False
+    guvenli_rota_bulundu_mu: bool = True
+    sigmet_kontrolu: SigmetKontroluYaniti | None = None
     normal_rota: RotaSonucuYaniti
     optimize_rota: RotaSonucuYaniti
     sure_tasarrufu_dk: float
