@@ -106,3 +106,13 @@ def test_gecici_kisitli_saha_sadece_penceresinde_uygulanir():
     saha = {**_kare_sigmet(), "gecerlilik_baslangic": SIMDI + timedelta(hours=1), "gecerlilik_bitis": None}
     assert not _degerlendir(KisitliSahaKatmani([saha])).yasak_dugumler
     assert _degerlendir(KisitliSahaKatmani([saha]), zaman=SIMDI + timedelta(hours=2)).yasak_dugumler == {"ic"}
+
+
+def test_zaman_belirsizligi_icinde_baslayan_sigmet_muhafazakar_olarak_uygulanir():
+    sigmet = _kare_sigmet(baslangic=SIMDI + timedelta(minutes=20), bitis=SIMDI + timedelta(hours=3))
+    konumlar = {"ic": (39.0, 31.0)}
+    katman = SigmetKisitKatmani([sigmet])
+    zamanlar = {"ic": SIMDI}
+    assert not katman.degerlendir(konumlar, zamanlar, [], 34000 * 0.3048).yasak_dugumler
+    sonuc = katman.degerlendir(konumlar, zamanlar, [], 34000 * 0.3048, zaman_belirsizligi={"ic": timedelta(minutes=30)})
+    assert sonuc.yasak_dugumler == {"ic"}

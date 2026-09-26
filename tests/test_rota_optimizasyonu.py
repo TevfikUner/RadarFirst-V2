@@ -353,3 +353,22 @@ def test_uzun_rotada_sapma_koridoru_mesafeyle_olceklenir_ve_sigmet_zincirinden_k
     assert sonuc["guvenli_rota_bulundu_mu"] is True
     assert sonuc["optimize_rota"]["sigmet_ihlali_sayisi"] == 0
     assert 0 < sonuc["optimize_rota"]["maks_yanal_sapma_km"] <= config.ROTA_MAKS_YANAL_SAPMA_KM
+
+
+def test_a_yildiz_nominal_zamandan_sonra_baslayan_sigmetten_de_kacinir():
+    """Rüzgarsız nominal zamanda henüz başlamamış ama gerçek (rüzgarlı) varışta
+    aktif olabilecek SIGMET: A* belirsizlik payıyla ondan da kaçınmalı."""
+    from turbulans_radar.rota import rota_optimizasyonu as ro
+    from turbulans_radar.rota.risk_katmanlari import SigmetKisitKatmani
+
+    enlemler, boylamlar = buyuk_daire_rotasi_olustur(5.0, 10.0, 5.0, 25.0, config.ROTA_SIMULASYONU_NOKTA_SAYISI)
+    kalkis = pd.Timestamp("2019-01-15T00:00:00", tz="UTC")
+    orta_varis = kalkis + pd.Timedelta(seconds=ro.buyuk_daire_mesafesi_km(5.0, 10.0, 5.0, 17.5) * 1000 / 230.0)
+    sigmet = {
+        **_kare_sigmet(4.3, 5.9, 17.0, 18.0, gun="2019-01-15"),
+        "gecerlilik_baslangic": orta_varis + pd.Timedelta(minutes=15),
+    }
+    yol = ro._a_yildiz_ile_rota_ara(
+        enlemler, boylamlar, 36000 * 0.3048, kalkis.isoformat(), 230.0, None, [SigmetKisitKatmani([sigmet])]
+    )
+    assert yol is not None and yol[2] > 0

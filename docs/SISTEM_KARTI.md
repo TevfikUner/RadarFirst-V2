@@ -48,7 +48,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   1. Aktif SIGMET'e ve kısıtlı/yasak hava sahasına **girmemek** (sert
      kısıtlar). Kısıt dört boyutludur: poligon, irtifa bandı, uçağın o
      noktaya varış zamanındaki geçerlilik ve iki nokta arasındaki bacağın
-     poligonu kesmesi. Kalkış ya da varış noktasını içeren kısıtlı saha
+     poligonu kesmesi. A* varış zamanını rüzgarsız hesapladığı için geçerlilik,
+     geçen sürenin %30'u + 5 dk belirsizlik payıyla kontrol edilir. Kalkış ya da varış noktasını içeren kısıtlı saha
      (örn. varış ülkesi) muaf tutulur ve raporlanır.
   2. Riskli TI1 noktalarından kaçınmak (yumuşak kısıt, 6 saatlik sanal ceza).
   3. En düşük yakıt/süre.

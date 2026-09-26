@@ -17,6 +17,12 @@ gruplanmıştır, en yeni en üstte.
   adresler; işçi gönderim anında adın çözümlendiği TÜM IP'leri kontrol
   ediyor, yönlendirme izlenmiyor. Yerel n8n için host
   `WEBHOOK_IZIN_VERILEN_HOSTLAR`'a eklenmeli (davranış değişikliği).
+- **A* sert kısıtlarda zaman belirsizliği:** A* SIGMET/kısıtlı saha
+  geçerliliğini rüzgarsız nominal varışla kontrol ediyor, adayın son kontrolü
+  rüzgarlı zamanla yapılıyordu; A*'ın "güvenli" bulduğu rota son kontrolde
+  SIGMET'e girip gereksiz "öneri yok"a düşebiliyordu. Düğüm zamanı artık
+  geçen sürenin `ROTA_ZAMAN_BELIRSIZLIK_ORANI` (%30) + 5 dk'sı kadar belirsiz
+  sayılıyor (muhafazakâr; TI1 cezası etkilenmez).
 
 ## Sağlık ucunda izleme, kütüphaneler ve altlık harita yerelden
 

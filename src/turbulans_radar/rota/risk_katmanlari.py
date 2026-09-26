@@ -48,7 +48,9 @@ class RiskDegerlendirmesi:
 class RiskKatmani(Protocol):
     ad: str
 
-    def degerlendir(self, konumlar: dict, zamanlar: dict, kenarlar: list, irtifa_m: float) -> RiskDegerlendirmesi: ...
+    def degerlendir(
+        self, konumlar: dict, zamanlar: dict, kenarlar: list, irtifa_m: float, zaman_belirsizligi: dict | None = None
+    ) -> RiskDegerlendirmesi: ...
 
 
 def degerlendirmeleri_birlestir(degerlendirmeler) -> RiskDegerlendirmesi:
@@ -82,7 +84,7 @@ class Ti1CezaKatmani:
         self.esik = config.TI1_ESIK_ORTA_SIDDETLI if esik is None else esik
         self.ceza_saniye = ceza_saniye
 
-    def degerlendir(self, konumlar, zamanlar, kenarlar, irtifa_m) -> RiskDegerlendirmesi:
+    def degerlendir(self, konumlar, zamanlar, kenarlar, irtifa_m, zaman_belirsizligi=None) -> RiskDegerlendirmesi:
         dugumler = list(konumlar)
         if not dugumler:
             return RiskDegerlendirmesi()
@@ -133,15 +135,24 @@ class PoligonKisitKatmani:
         return taban <= irtifa_ft <= tavan
 
     @staticmethod
-    def _aktif_maskesi(kayit, zamanlar) -> np.ndarray:
+    def _aktif_maskesi(kayit, zamanlar, belirsizlikler=None) -> np.ndarray:
+        """Düğüm zamanı belirsizse ([z - d, z + d]) aralık geçerlilikle
+        kesiştiğinde aktif sayılır -- muhafazakâr."""
         baslangic, bitis = kayit.get("gecerlilik_baslangic"), kayit.get("gecerlilik_bitis")
         baslangic = _utc(baslangic) if baslangic is not None else None
         bitis = _utc(bitis) if bitis is not None else None
+        belirsizlikler = belirsizlikler or [pd.Timedelta(0)] * len(zamanlar)
         return np.array(
-            [(baslangic is None or baslangic <= z) and (bitis is None or z <= bitis) for z in zamanlar], dtype=bool
+            [
+                (baslangic is None or baslangic <= z + d) and (bitis is None or z - d <= bitis)
+                for z, d in zip(zamanlar, belirsizlikler)
+            ],
+            dtype=bool,
         )
 
-    def degerlendir(self, konumlar, zamanlar, kenarlar, irtifa_m) -> RiskDegerlendirmesi:
+    def degerlendir(self, konumlar, zamanlar, kenarlar, irtifa_m, zaman_belirsizligi=None) -> RiskDegerlendirmesi:
+        """zaman_belirsizligi: düğüm -> Timedelta; A* rüzgarsız nominal
+        zamanlarla aradığı için gerçek (rüzgarlı) varış bu kadar kayabilir."""
         dugumler = list(konumlar)
         if not self.kayitlar or not dugumler:
             return RiskDegerlendirmesi()
@@ -150,6 +161,7 @@ class PoligonKisitKatmani:
         boylam = np.array([konumlar[d][1] for d in dugumler])
         enlem = np.array([konumlar[d][0] for d in dugumler])
         dugum_zamanlari = [_utc(zamanlar[d]) for d in dugumler]
+        belirsizlikler = [zaman_belirsizligi[d] for d in dugumler] if zaman_belirsizligi else None
         cizgiler = (
             shapely.linestrings(
                 [[(konumlar[a][1], konumlar[a][0]), (konumlar[b][1], konumlar[b][0])] for a, b in kenarlar]
@@ -163,7 +175,7 @@ class PoligonKisitKatmani:
         for kayit, poligon in zip(self.kayitlar, self._poligonlar):
             if not self._irtifada_mi(kayit, irtifa_ft):
                 continue
-            aktif = self._aktif_maskesi(kayit, dugum_zamanlari)
+            aktif = self._aktif_maskesi(kayit, dugum_zamanlari, belirsizlikler)
             if not aktif.any():
                 continue
             yasak_dugum |= aktif & shapely.intersects_xy(poligon, boylam, enlem)

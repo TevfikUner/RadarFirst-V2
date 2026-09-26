@@ -372,9 +372,24 @@ def _a_yildiz_ile_rota_ara(
     konum_kumesi = set(dugumler)
     kenarlar = [(d, k) for d in dugumler for k in _komsu_dugumler(d, izgara) if k in konum_kumesi]
 
+    # Sert kısıtların geçerliliği için: A* rüzgarsız nominal zamanlarla arar,
+    # oysa aday rotanın son kontrolü rüzgarlı zamanlarla yapılır. Aradaki
+    # fark yüzünden A*'ın "güvenli" bulduğu rota son kontrolde SIGMET'e girip
+    # gereksiz "öneri yok"a düşebiliyordu; bu yüzden her düğümün zamanı,
+    # kalkıştan geçen sürenin ROTA_ZAMAN_BELIRSIZLIK_ORANI'sı + sabit pay kadar
+    # belirsiz sayılır.
+    belirsizlik = {
+        d: (nominal_zamanlar[d[0]] - nominal_zamanlar[0]) * config.ROTA_ZAMAN_BELIRSIZLIK_ORANI
+        + pd.Timedelta(minutes=config.ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA)
+        for d in dugumler
+    }
     risk = degerlendirmeleri_birlestir(
         katman.degerlendir(
-            {d: konumlar[d] for d in dugumler}, {d: nominal_zamanlar[d[0]] for d in dugumler}, kenarlar, irtifa_m
+            {d: konumlar[d] for d in dugumler},
+            {d: nominal_zamanlar[d[0]] for d in dugumler},
+            kenarlar,
+            irtifa_m,
+            zaman_belirsizligi=belirsizlik,
         )
         for katman in risk_katmanlari
     )

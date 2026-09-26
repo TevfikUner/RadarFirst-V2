@@ -142,6 +142,12 @@ ROTA_SIMULASYONU_NOKTA_SAYISI = _ortam_sayi("ROTA_SIMULASYONU_NOKTA_SAYISI", 41,
 ROTA_MAKS_SAPMA_ACISI_DERECE = _ortam_sayi("ROTA_MAKS_SAPMA_ACISI_DERECE", 30.0)
 ROTA_MAKS_YANAL_SAPMA_KM = _ortam_sayi("ROTA_MAKS_YANAL_SAPMA_KM", 400.0)
 ROTA_YANAL_IZGARA_KM = _ortam_sayi("ROTA_YANAL_IZGARA_KM", 20.0)
+# A*, sert kısıtların (SIGMET, kısıtlı saha) zamanını rüzgarsız hesaplar;
+# gerçek varış rüzgarla kayar. Düğüm zamanı, kalkıştan geçen sürenin bu oranı
+# + sabit pay kadar belirsiz sayılır (jet seviyesinde ~70 m/s rüzgar TAS'ın
+# ~%30'u; yanal sapma yolu da uzatır).
+ROTA_ZAMAN_BELIRSIZLIK_ORANI = _ortam_sayi("ROTA_ZAMAN_BELIRSIZLIK_ORANI", 0.3)
+ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA = _ortam_sayi("ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA", 5.0)
 
 # isci/gorev_iscisi.py -- uzun işlerin kuyruğu (analiz_gorevleri). API kendi
 # içinde gömülü bir işçi başlatır (GOREV_GOMULU_ISCI); ayrı işçi süreçleri
