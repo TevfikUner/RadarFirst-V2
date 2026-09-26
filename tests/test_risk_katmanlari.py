@@ -67,3 +67,19 @@ def test_degerlendirmeler_birlestirilirken_cezalar_toplanir():
     assert toplam.yasak_dugumler == {1}
     assert toplam.yasak_kenarlar == {(1, 2)}
     assert toplam.dugum_cezasi == {2: 15.0, 3: 1.0}
+
+
+def test_antimeridyeni_kesen_sigmet_sadece_kendi_bolgesini_yasaklar():
+    sigmet = {**_kare_sigmet(), "poligon": [[175.0, 30.0], [185.0, 30.0], [185.0, 40.0], [175.0, 40.0], [175.0, 30.0]]}
+    katman = SigmetKisitKatmani([sigmet])
+    konumlar = {"bati_ic": (35.0, -178.0), "dogu_ic": (35.0, 178.0), "turkiye": (35.0, 32.0), "greenwich": (35.0, 0.0)}
+    sonuc = katman.degerlendir(konumlar, dict.fromkeys(konumlar, SIMDI), [], 34000 * 0.3048)
+    assert sonuc.yasak_dugumler == {"bati_ic", "dogu_ic"}
+
+
+def test_kendini_kesen_sigmet_poligonu_onarilarak_uygulanir():
+    papyon = [[30.0, 38.0], [32.0, 40.0], [32.0, 38.0], [30.0, 40.0], [30.0, 38.0]]
+    katman = SigmetKisitKatmani([{**_kare_sigmet(), "poligon": papyon}])
+    konumlar = {"sol_lob": (39.0, 30.4), "sag_lob": (39.0, 31.6), "disarida": (37.0, 31.0)}
+    sonuc = katman.degerlendir(konumlar, dict.fromkeys(konumlar, SIMDI), [], 34000 * 0.3048)
+    assert sonuc.yasak_dugumler == {"sol_lob", "sag_lob"}

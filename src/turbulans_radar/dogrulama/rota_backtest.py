@@ -36,10 +36,14 @@ from turbulans_radar import config
 from turbulans_radar.depo.models import RotaBacktesti, Ucus
 from turbulans_radar.depo.veritabani import motor_al, ucus_olcumlerini_dataframe_olarak_getir
 from turbulans_radar.fizik.birim_donusumleri import irtifa_metre_to_basinc_hpa
+from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
+from turbulans_radar.loglama import logger_al
 from turbulans_radar.rota.risk_katmanlari import SigmetKisitKatmani, rota_ti1_degerleri
 from turbulans_radar.rota.rota_optimizasyonu import buyuk_daire_mesafesi_km, rota_simulasyonu_olustur
 from turbulans_radar.veri.sigmet_saglayici import gecerli_sigmetleri_getir
 from turbulans_radar.veri.veri_saglayicilari import veri_kupu_kaynagi, veri_kupunu_sec
+
+_logger = logger_al(__name__)
 
 _ROTALAR = ("gercek", "buyuk_daire", "optimize")
 _EN_AZ_SEYIR_NOKTASI = 10
@@ -199,8 +203,9 @@ def backtest_edilmemis_ucuslar(limit=20, motor=None) -> list[tuple[str, str]]:
 
 
 def toplu_backtest(limit=20, motor=None) -> list[dict]:
-    """Henüz backtest'i olmayan uçuşları sırayla dener; yapılamayanlar
-    ('durum': 'atlandi', gerekçesiyle) raporlanır, akışı durdurmaz."""
+    """Henüz backtest'i olmayan uçuşları sırayla dener. Yapılamayanlar
+    ('atlandi') ve beklenmeyen hatayla düşenler ('hata') gerekçesiyle
+    raporlanır; tek bir uçuş toplu işi durdurmaz."""
     sonuclar = []
     for ucus_numarasi, tarih in backtest_edilmemis_ucuslar(limit, motor):
         try:
@@ -208,6 +213,11 @@ def toplu_backtest(limit=20, motor=None) -> list[dict]:
             sonuclar.append({"ucus_numarasi": ucus_numarasi, "tarih": tarih, "durum": "tamamlandi"})
         except BacktestYapilamadiHatasi as hata:
             sonuclar.append({"ucus_numarasi": ucus_numarasi, "tarih": tarih, "durum": "atlandi", "aciklama": str(hata)})
+        except Exception as hata:
+            _logger.error("Backtest başarısız (%s / %s)", ucus_numarasi, tarih, exc_info=hata)
+            sonuclar.append(
+                {"ucus_numarasi": ucus_numarasi, "tarih": tarih, "durum": "hata", "aciklama": dostane_hata_mesaji(hata)}
+            )
     return sonuclar
 
 

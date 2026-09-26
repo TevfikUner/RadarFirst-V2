@@ -906,3 +906,32 @@ async def test_toplu_backtest_gorev_olarak_calisir(istemci, api_anahtari, monkey
         await asyncio.sleep(0.05)
     assert durum["durum"] == "tamamlandi"
     assert durum["ozet"] == sahte
+
+
+async def test_turbulans_tahmini_yerel_kup_yokken_canli_veriyi_kullanir(istemci, api_anahtari, monkeypatch):
+    kup = api_servisi.veri_kupune_eris()
+    if kup is None:
+        pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı.")
+    monkeypatch.setattr(api_servisi, "hava_durumu_dosyalari", lambda: [])
+    monkeypatch.setattr(api_servisi, "veri_kupune_eris", lambda *a, **k: kup)
+    yanit = await istemci.post(
+        "/api/v1/turbulans/tahmin",
+        json={"enlem": 39.0, "boylam": 35.0, "irtifa_ft": 34000, "zaman": "2019-01-15T10:00:00"},
+        headers={"X-API-Key": api_anahtari},
+    )
+    assert yanit.status_code == 200
+    assert yanit.json()["kapsam_icinde_mi"] is True
+
+
+async def test_canli_veri_bozuk_yanitta_ic_ayrinti_sizdirmadan_502(istemci, api_anahtari, monkeypatch):
+    def bozuk(*args, **kwargs):
+        raise ValueError(r"C:\gizli\canli_veri\gfs_x.nc açılamadı")
+
+    monkeypatch.setattr(api_servisi, "canli_kup_hazirla", bozuk)
+    yanit = await istemci.post(
+        "/api/v1/veri/canli/hazirla",
+        json={"enlem_min": 37, "enlem_maks": 40, "boylam_min": 30, "boylam_maks": 36},
+        headers={"X-API-Key": api_anahtari},
+    )
+    assert yanit.status_code == 502
+    assert "gizli" not in yanit.text

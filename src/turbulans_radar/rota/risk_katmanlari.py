@@ -26,6 +26,7 @@ from typing import Protocol
 import numpy as np
 import pandas as pd
 import shapely
+import shapely.affinity
 
 from turbulans_radar import config
 from turbulans_radar.fizik.eslestirme import rotayi_hava_durumuyla_eslestir
@@ -93,13 +94,28 @@ class Ti1CezaKatmani:
         )
 
 
+def sigmet_geometrisi(poligon):
+    """SIGMET köşelerinden -180..180 boylam uzayında GEÇERLİ bir geometri.
+    Kendini kesen halkalar (AWC akışında gerçekten görülüyor) make_valid ile
+    onarılır; 180°'yi aşan (antimeridyen, bkz. sigmet_saglayici) parça -360
+    kaydırılarak batı yarım küreye taşınır."""
+    geometri = shapely.make_valid(shapely.Polygon(poligon))
+    if max(boylam for boylam, _ in poligon) <= 180.0:
+        return geometri
+    dogu = shapely.intersection(geometri, shapely.box(-180.0, -90.0, 180.0, 90.0))
+    bati = shapely.affinity.translate(
+        shapely.intersection(geometri, shapely.box(180.0, -90.0, 540.0, 90.0)), xoff=-360.0
+    )
+    return shapely.union(dogu, bati)
+
+
 class SigmetKisitKatmani:
     ad = "sigmet"
 
     def __init__(self, sigmetler, tehlikeler=None):
         tehlikeler = {t.upper() for t in (tehlikeler or config.SIGMET_KACINILACAK_TEHLIKELER)}
         self.sigmetler = [s for s in sigmetler if s["tehlike"].upper() in tehlikeler]
-        self._poligonlar = [shapely.Polygon(s["poligon"]) for s in self.sigmetler]
+        self._poligonlar = [sigmet_geometrisi(s["poligon"]) for s in self.sigmetler]
         for poligon in self._poligonlar:
             shapely.prepare(poligon)
 

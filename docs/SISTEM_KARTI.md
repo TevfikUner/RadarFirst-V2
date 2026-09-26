@@ -59,6 +59,9 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | Canlı bir hesapta son SIGMET çekimi 30 dakikadan eski | `sigmet_kontrolu.bayat_mi: true` ve açıklamada UYARI. |
 | AWC'nin bir uç noktası yanıt vermiyor | Diğer kaynak işlenir; yanıt vermeyen kaynağın mevcut kayıtlarına dokunulmaz. |
 | Bir SIGMET iptal edildi (canlı akıştan düştü) | Geçerliliği o an sona erdirilir; artık rotayı saptırmaz. |
+| AWC'den geçersiz (kendini kesen) ya da 180° boylamını kesen bir SIGMET poligonu geldi | Geometri onarılır/bölünür; yalnızca gerçek alan yasaklanır. |
+| Canlı veri sağlayıcısı bozuk ya da geçersiz yanıt döndü | `POST /veri/canli/hazirla` 502 döner (iç ayrıntı sızdırılmaz); rota/tahmin hava verisi olmadan devam eder. |
+| Toplu backtest'te bir uçuş beklenmeyen hatayla düştü | O uçuş `hata` olarak raporlanır, diğerleri işlenmeye devam eder. |
 | Hava verisi yok (bölge, tarih ya da irtifa kapsam dışı; GFS indirilemedi) | Rota rüzgarsız, sadece TAS ile hesaplanır ve TI1 raporlanmaz; bu durum açıkça belirtilir. SIGMET kısıtı yine uygulanır. |
 | Bir noktanın irtifası/zamanı küpün seviyelerinden ya da zaman adımlarından uzak | O nokta için TI1 NaN bırakılır; en yakın hücreden uydurma değer üretilmez. |
 | Analiz sonucu veritabanına yazılamadı (API) | Görev `hata` durumuna geçer; "tamamlandı" gösterilmez. |
@@ -85,7 +88,9 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Hava sahası yapısı, ATC kısıtları, NOTAM ve yasak sahalar modellenmez.
 
 **SIGMET**
-- 180° boylamını (antimeridyen) kesen poligonlar desteklenmez.
+- 180° boylamını (antimeridyen) kesen poligonlar -180..180 aralığında
+  ikiye bölünerek uygulanır; kendini kesen (geçersiz) halkalar onarılır.
+  Rotanın kendisi 180° boylamını kesiyorsa (Pasifik geçişleri) desteklenmez.
 - İptal tespiti, SIGMET'in canlı akıştan düşmesine dayanır.
 - Buzlanma (ICE) varsayılan kaçınma setinde yoktur
   (`SIGMET_KACINILACAK_TEHLIKELER` ile eklenebilir).

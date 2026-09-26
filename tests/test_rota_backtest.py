@@ -83,3 +83,22 @@ def test_uctan_uca_backtest_kaydedilir_ve_listelenir(kayitli_ucus):
     assert len(kayitlar) == 1
     assert kayitlar[0]["optimize_mesafe_km"] == pytest.approx(ikinci["optimize_mesafe_km"])
     assert ("BTEST1", "2019-01-05") not in rb.backtest_edilmemis_ucuslar(limit=1000)
+
+
+def test_toplu_backtestte_bir_ucusun_beklenmeyen_hatasi_digerlerini_durdurmaz(monkeypatch):
+    monkeypatch.setattr(
+        rb,
+        "backtest_edilmemis_ucuslar",
+        lambda limit, motor=None: [("HATA1", "2019-01-01"), ("IYI1", "2019-01-01"), ("KUPSUZ", "2019-01-01")],
+    )
+
+    def sahte_backtest(ucus_numarasi, tarih, motor=None):
+        if ucus_numarasi == "HATA1":
+            raise ConnectionError("veritabanı bağlantısı koptu")
+        if ucus_numarasi == "KUPSUZ":
+            raise rb.BacktestYapilamadiHatasi("küp yok")
+        return {}
+
+    monkeypatch.setattr(rb, "ucus_backtest_et", sahte_backtest)
+    sonuclar = rb.toplu_backtest(limit=10)
+    assert [s["durum"] for s in sonuclar] == ["hata", "tamamlandi", "atlandi"]

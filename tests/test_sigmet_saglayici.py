@@ -125,3 +125,19 @@ def test_kutu_ve_tehlike_filtresi(test_veritabani):
     assert testler(enlem_min=39, enlem_maks=41, boylam_min=31, boylam_maks=33)
     assert not testler(enlem_min=10, enlem_maks=20, boylam_min=31, boylam_maks=33)
     assert not testler(tehlikeler=["ICE"])
+
+
+def test_antimeridyeni_kesen_poligon_surekli_boylama_tasinir():
+    pasifik = {
+        **ULUSLARARASI_ORNEK,
+        "firId": "NZZO",
+        "coords": [
+            {"lat": 30.0, "lon": 175.0},
+            {"lat": 30.0, "lon": -175.0},
+            {"lat": 40.0, "lon": -175.0},
+            {"lat": 40.0, "lon": 175.0},
+        ],
+    }
+    kayit = ss.sigmet_kaydini_normalize_et("isigmet", pasifik)
+    assert [k[0] for k in kayit["poligon"]] == [175.0, 185.0, 185.0, 175.0, 175.0]
+    assert (kayit["boylam_min"], kayit["boylam_maks"]) == (-180.0, 180.0)
