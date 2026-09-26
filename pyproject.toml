@@ -7,7 +7,7 @@ name = "turbulans-radar"
 version = "1.0.0"
 description = "ERA5/GFS + OpenSky + canlı SIGMET ile türbülans analizi ve A* rota optimizasyonu yapan karar destek sistemi"
 requires-python = ">=3.12"
-dynamic = ["dependencies"]
+dynamic = ["dependencies", "optional-dependencies"]
 
 [project.scripts]
 turbulans-analiz = "turbulans_radar.analiz.ucus_analizi:ana"
@@ -19,6 +19,7 @@ turbulans-openapi = "turbulans_radar.cli.openapi_disa_aktar:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
+optional-dependencies = { dev = { file = ["requirements-dev.txt"] } }
 
 [tool.setuptools.packages.find]
 where = ["src"]

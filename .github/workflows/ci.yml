@@ -71,3 +71,12 @@ jobs:
         with:
           name: coverage-xml
           path: coverage.xml
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Docker imajını derle
+        run: docker build -t turbulans-radar:ci .
+      - name: İmaj içinde API uygulamasını yükle (duman testi)
+        run: docker run --rm turbulans-radar:ci python -c "from turbulans_radar.api.api_servisi import app; print(len(app.routes), 'rota')"

@@ -9,7 +9,8 @@ services:
     volumes:
       - turbulans_pgdata:/var/lib/postgresql/data
     ports:
-      - "5432:5432"
+      # Sadece bu makineden erişilebilir -- varsayılan şifreyle dış ağa açılmasın.
+      - "127.0.0.1:5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
@@ -30,10 +31,13 @@ services:
       # servis adı ('db') olmalı. env_file'dan SONRA geldiği için bu değer
       # üstün gelir.
       POSTGRES_HOST: db
+      # Otonom backend: API, canlı AWC SIGMET'lerini kendi içinde periyodik yeniler.
+      SIGMET_OTOMATIK_GUNCELLEME_DAKIKA: ${SIGMET_OTOMATIK_GUNCELLEME_DAKIKA:-15}
     ports:
       - "8000:8000"
     volumes:
       - ./ciktilar:/app/ciktilar
+      - ./canli_veri:/app/canli_veri
 
 volumes:
   turbulans_pgdata:

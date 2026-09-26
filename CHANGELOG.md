@@ -4,6 +4,21 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Kurulum, CI'da Docker ve sistem kartı
+
+- Geliştirme ortamı tek komut: `pip install -e ".[dev]"` (paket + sabit
+  bağımlılıklar + test/lint araçları; `requirements-dev.txt` artık sadece
+  geliştirme araçlarını içeriyor). Paket derlemesi wheel üretilerek doğrulandı.
+- `docker-compose.yml`: API konteyneri otonom -- SIGMET'leri 15 dakikada bir
+  kendisi yeniliyor, canlı GFS küpleri `canli_veri/` volume'unda; PostgreSQL
+  portu sadece `127.0.0.1`'e açık.
+- CI'ya `docker` işi eklendi: imaj derlenip içinde API uygulaması yükleniyor
+  (duman testi).
+- **`docs/SISTEM_KARTI.md`:** kullanım sınıfı (tavsiye niteliğinde,
+  sertifikasız), veri kaynakları ve tazelikleri, karar mantığı, hata
+  durumlarındaki davranış tablosu, bilinen sınırlamalar, doğrulama durumu,
+  uygun olmayan kullanımlar.
+
 ## Paket yapısı: `src/turbulans_radar/` (src layout)
 
 - Proje kökündeki 36 düz modül, sorumluluklarına göre alt paketlere taşındı
