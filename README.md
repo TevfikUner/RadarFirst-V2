@@ -15,6 +15,9 @@ katsayısı artık gerçek IEM PIREP + ERA5 gözlemleriyle kalibre edildi (bkz.
 ama bu bölgeden bağımsız, kaba bir kalibrasyondur, sertifikalı bir EDR
 sensörünün yerini TUTMAZ.
 
+Sistemin kullanım sınıfı, veri kaynakları, hata durumlarındaki davranışı ve
+bilinen sınırları için bkz. **[Sistem Kartı](docs/SISTEM_KARTI.md)**.
+
 ## Mimari
 
 ```
@@ -107,11 +110,12 @@ tests/                                         -> pytest (birim + PostgreSQL + g
 ```bash
 git clone <bu-repo>
 cd files
-pip install -r requirements.txt
-pip install -e .              # paketi ve komut satırı araçlarını kurar
+pip install -e ".[dev]"       # paket + sabitlenmiş bağımlılıklar + komut satırı araçları + test/lint araçları
 cp .env.example .env          # OpenSky + PostgreSQL + API_ANAHTARI bilgilerini gir
-alembic upgrade head          # veritabanı şemasını kur (tek seferlik)
+alembic upgrade head          # veritabanı şemasını kur/güncelle
 ```
+
+Sadece çalıştırmak (geliştirme araçları olmadan) için `pip install -e .` yeterlidir.
 
 `.env`'e girilmesi gerekenler (bkz. `.env.example`): `OPENSKY_USERNAME`/
 `OPENSKY_PASSWORD` (OpenSky hesabı, tarihsel veri erişimi onaylanmış
@@ -129,11 +133,17 @@ manuel indirilmiş) proje köküne koyman gerekir -- büyük olduğu için
 docker compose up --build
 ```
 
-Bu, PostgreSQL'i ve `api_servisi.py`'yi (önce `alembic upgrade head`
-çalıştırıp) tek komutla ayağa kaldırır. `.env` dosyanın hazır olması
-gerekir; `POSTGRES_HOST` konteynerler arası iletişim için otomatik olarak
-compose servis adına (`db`) çevrilir. API `http://localhost:8000`'de,
-Swagger `http://localhost:8000/docs`'ta olur.
+Bu, PostgreSQL'i ve API'yi (önce `alembic upgrade head` çalıştırıp) tek
+komutla ayağa kaldırır. `.env` dosyanın hazır olması gerekir;
+`POSTGRES_HOST` konteynerler arası iletişim için otomatik olarak compose
+servis adına (`db`) çevrilir. API `http://localhost:8000`'de, Swagger
+`http://localhost:8000/docs`'ta olur. Konteyner **otonom** çalışır: canlı
+AWC SIGMET'lerini 15 dakikada bir kendisi yeniler
+(`SIGMET_OTOMATIK_GUNCELLEME_DAKIKA`), anlık rotalar için canlı GFS verisini
+indirir (`canli_veri/` volume'unda saklanır). ERA5 `.nc` dosyaları imaja
+dahil değildir (boyut); geçmiş tarihli analizler için konteynere volume
+olarak bağlanmaları gerekir. PostgreSQL portu yalnızca `127.0.0.1`'e açıktır.
+CI, her push'ta imajı derleyip içinde API uygulamasının yüklendiğini doğrular.
 
 ## Kullanım
 
@@ -683,7 +693,7 @@ Bağlantı bilgisi `alembic.ini`'ye yazılmaz; `migrations/env.py`, tıpkı
 ## Testleri çalıştırmak
 
 ```bash
-pip install -r requirements-dev.txt
+pip install -e ".[dev]"
 pytest tests/
 ```
 
