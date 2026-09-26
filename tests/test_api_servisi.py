@@ -643,3 +643,110 @@ async def test_saglik_derin_db_erisilemezse_503(istemci, monkeypatch):
     assert yanit.status_code == 503
     assert yanit.json()["veritabani"] == "erisilemiyor"
     await bozuk_motor.dispose()
+
+
+# --- Şema, görev kaydı, webhook ve toplu yayın düzeltmeleri ---
+
+
+async def test_ucak_profilleri_yakit_akisini_icerir(istemci, api_anahtari):
+    yanit = await istemci.get("/api/v1/simulasyon/ucak-profilleri", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 200
+    assert all(p["yakit_akisi_kg_saat"] > 0 for p in yanit.json())
+
+
+async def test_turbulans_tahmini_kapsam_disinda_200_doner(istemci, api_anahtari):
+    yanit = await istemci.post(
+        "/api/v1/turbulans/tahmin",
+        json={"enlem": 5.0, "boylam": -150.0, "irtifa_ft": 34000, "zaman": "2019-01-15T10:00:00"},
+        headers={"X-API-Key": api_anahtari},
+    )
+    assert yanit.status_code == 200
+    assert yanit.json()["kapsam_icinde_mi"] is False
+
+
+async def test_turbulans_tahmini_kapsam_icinde_ti1_doner(istemci, api_anahtari):
+    if api_servisi.veri_kupune_eris() is None:
+        pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı.")
+    yanit = await istemci.post(
+        "/api/v1/turbulans/tahmin",
+        json={"enlem": 39.0, "boylam": 35.0, "irtifa_ft": 34000, "zaman": "2019-01-15T10:00:00"},
+        headers={"X-API-Key": api_anahtari},
+    )
+    assert yanit.status_code == 200
+    govde = yanit.json()
+    assert govde["kapsam_icinde_mi"] is True
+    assert govde["ti1_indeksi"] >= 0
+
+
+def test_gorev_kaydi_arka_plan_gorevinden_once_olusur():
+    gorev_id = api_servisi._gorev_olustur(ucus_numarasi="TESTX", tarih="2019-01-01")
+    assert api_servisi._gorevler[gorev_id]["durum"] == "calisiyor"
+    assert api_servisi._gorev_disari_ver(api_servisi._gorevler[gorev_id])["ucus_numarasi"] == "TESTX"
+
+
+async def test_veritabanina_kaydedilemeyen_analiz_hata_olarak_isaretlenir(monkeypatch):
+    from veritabani import VeritabaniKayitHatasi
+
+    def _kayit_basarisiz(ucus_numarasi, tarih):
+        raise VeritabaniKayitHatasi("Sonuçlar veritabanına kaydedilemedi.")
+
+    monkeypatch.setattr(api_servisi, "tek_ucus_analiz_et", _kayit_basarisiz)
+    gorev_id = api_servisi._gorev_olustur(ucus_numarasi="TESTX", tarih="2019-01-01")
+    await api_servisi._tek_ucus_arkaplan_gorevi(gorev_id, "TESTX", "2019-01-01", None)
+    assert api_servisi._gorevler[gorev_id]["durum"] == "hata"
+    assert api_servisi._gorevler[gorev_id]["aciklama"] == "Sonuçlar veritabanına kaydedilemedi."
+
+
+def test_api_analizi_veritabani_kaydini_zorunlu_tutar():
+    assert api_servisi.tek_ucus_analiz_et.keywords == {"kayit_zorunlu": True}
+
+
+@pytest.mark.parametrize(
+    "url",
+    ["ftp://ornek.com/x", "http://169.254.169.254/latest/meta-data", "http://0.0.0.0:8000/", "yol/olmayan-url"],
+)
+async def test_gecersiz_webhook_url_422(istemci, api_anahtari, url):
+    yanit = await istemci.post(
+        "/api/v1/analiz/ucus",
+        json={"ucus_numarasi": "TESTX", "tarih": "2019-01-01", "bildirim_webhook_url": url},
+        headers={"X-API-Key": api_anahtari},
+    )
+    assert yanit.status_code == 422
+
+
+def test_webhook_izin_listesi_disindaki_host_reddedilir(monkeypatch):
+    monkeypatch.setenv("WEBHOOK_IZIN_VERILEN_HOSTLAR", "n8n.ornek.com, localhost")
+    assert api_servisi._webhook_url_dogrula("http://localhost:5678/webhook/x") == "http://localhost:5678/webhook/x"
+    with pytest.raises(ValueError):
+        api_servisi._webhook_url_dogrula("https://baska.ornek.com/hook")
+
+
+def test_websocket_api_anahtari_tanimsizsa_reddedilir(monkeypatch):
+    monkeypatch.delenv("API_ANAHTARI", raising=False)
+    istemci = TestClient(api_servisi.app)
+    with pytest.raises(Exception):
+        with istemci.websocket_connect("/ws/uyarilar?api_key=herhangi"):
+            pass
+
+
+async def test_toplu_analiz_riskli_ucuslari_websocketten_yayinlar(monkeypatch):
+    yayinlanan = []
+
+    async def sahte_yayinla(mesaj):
+        yayinlanan.append(mesaj)
+
+    riskli_df = pd.DataFrame({"ti1_indeksi": [config.TI1_ESIK_ORTA_SIDDETLI * 2]})
+
+    def sahte_toplu(ucus_listesi_df, kayit_zorunlu=False, ucus_tamamlandi=None):
+        assert kayit_zorunlu is True
+        ucus_tamamlandi("TOPLU1", "2019-01-01", riskli_df)
+        return pd.DataFrame([{"ucus_numarasi": "TOPLU1", "durum": "başarılı"}])
+
+    monkeypatch.setattr(api_servisi.baglanti_yoneticisi, "yayinla", sahte_yayinla)
+    monkeypatch.setattr(api_servisi, "toplu_analiz_calistir", sahte_toplu)
+    gorev_id = api_servisi._gorev_olustur()
+    await api_servisi._toplu_arkaplan_gorevi(gorev_id, pd.DataFrame(), None)
+    await asyncio.sleep(0.05)
+
+    assert api_servisi._gorevler[gorev_id]["durum"] == "tamamlandi"
+    assert [m["ucus_numarasi"] for m in yayinlanan] == ["TOPLU1"]

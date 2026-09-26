@@ -7,7 +7,8 @@ def _sahte_calistir_uret(sonuclar_sozlugu):
     """ucus_no -> ('basarili' | 'basarisiz' | 'hata') eşlemesine göre
     main.calistir()'in davranışını taklit eden sahte bir fonksiyon üretir."""
 
-    def sahte_calistir(ucus_no, tarih, cikti_dosyasi=None):
+    def sahte_calistir(ucus_no, tarih, cikti_dosyasi=None, kayit_zorunlu=False):
+        sahte_calistir.kayit_zorunlu_degerleri.append(kayit_zorunlu)
         durum = sonuclar_sozlugu[ucus_no]
         if durum == "hata":
             raise ConnectionError("bağlantı koptu")
@@ -20,6 +21,7 @@ def _sahte_calistir_uret(sonuclar_sozlugu):
             }
         )
 
+    sahte_calistir.kayit_zorunlu_degerleri = []
     return sahte_calistir
 
 
@@ -59,3 +61,23 @@ def test_bir_ucusun_hatasi_digerlerini_durdurmaz(monkeypatch):
 
     assert len(ozet_df) == 2
     assert ozet_df.iloc[1]["durum"] == "başarılı"
+
+
+def test_ucus_tamamlandi_sadece_basarili_ucuslar_icin_cagrilir(monkeypatch):
+    monkeypatch.setattr(toplu_analiz.config, "TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE", 0)
+    ucus_listesi_df = pd.DataFrame(
+        {
+            "ucus_numarasi": ["AAA1", "BBB2", "CCC3"],
+            "tarih": ["2019-01-01", "2019-01-02", "2019-01-03"],
+        }
+    )
+    sahte_calistir = _sahte_calistir_uret({"AAA1": "basarili", "BBB2": "basarisiz", "CCC3": "hata"})
+    monkeypatch.setattr(toplu_analiz, "calistir", sahte_calistir)
+    cagrilar = []
+
+    toplu_analiz.toplu_analiz_calistir(
+        ucus_listesi_df, kayit_zorunlu=True, ucus_tamamlandi=lambda u, t, df: cagrilar.append((u, t, len(df)))
+    )
+
+    assert cagrilar == [("AAA1", "2019-01-01", 3)]
+    assert sahte_calistir.kayit_zorunlu_degerleri == [True, True, True]

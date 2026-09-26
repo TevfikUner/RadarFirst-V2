@@ -32,8 +32,8 @@ from harita import zaman_kaydiricili_harita_olustur
 from hata_yardimcisi import dostane_hata_mesaji
 from kimlik_dogrulama import KimlikBilgisiEksikHatasi
 from turbulans_indeksleri import DINAMIK_KARARSIZLIK_ESIGI
-from veri_yukleme import hava_durumu_yukle, trino_baglantisi_olustur, ucus_numarasi_ile_rota_cek
-from veritabani import ucus_ve_olcumleri_kaydet
+from veri_yukleme import hava_durumu_onbellekli_yukle, trino_baglantisi_olustur, ucus_numarasi_ile_rota_cek
+from veritabani import VeritabaniKayitHatasi, ucus_ve_olcumleri_kaydet
 
 
 def _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str):
@@ -88,7 +88,7 @@ def _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str):
     print("=" * 60 + "\n")
 
 
-def calistir(ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None):
+def calistir(ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None, kayit_zorunlu: bool = False):
     os.makedirs(config.CIKTI_KLASORU, exist_ok=True)
     if cikti_dosyasi is None:
         # Her uçuş/tarih için ayrı dosya adı -- farklı uçuşları denerken
@@ -114,7 +114,7 @@ def calistir(ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None):
 
     print("2. Hava durumu veri küpü yükleniyor...")
     try:
-        veri_kupu = hava_durumu_yukle(config.HAVA_DURUMU_DOSYASI)
+        veri_kupu = hava_durumu_onbellekli_yukle(config.HAVA_DURUMU_DOSYASI)
     except FileNotFoundError as hata:
         print(f"[Durduruldu] {hata}")
         return None
@@ -126,6 +126,10 @@ def calistir(ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None):
         ucus_ve_olcumleri_kaydet(eslesmis_df, ucus_numarasi, tarih_str)
         print(f"   -> Ham sonuçlar PostgreSQL'e kaydedildi (ucus_numarasi={ucus_numarasi}, tarih={tarih_str}).")
     except Exception as hata:
+        if kayit_zorunlu:
+            raise VeritabaniKayitHatasi(
+                "Analiz tamamlandı ama sonuçlar veritabanına kaydedilemedi -- sunucu loglarını kontrol et."
+            ) from hata
         print(f"[Uyarı] Sonuçlar veritabanına kaydedilemedi: {dostane_hata_mesaji(hata)}")
         print("   -> Harita yine de üretilecek, ama bu çalıştırma kalıcı olarak saklanmadı.")
 

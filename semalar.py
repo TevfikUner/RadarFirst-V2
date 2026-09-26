@@ -171,6 +171,7 @@ class UcakProfiliYaniti(BaseModel):
     kod: str
     etiket: str
     tas_ms: float
+    yakit_akisi_kg_saat: float
 
 
 class TurbulansTahminIstegi(BaseModel):
@@ -200,7 +201,6 @@ class TurbulansTahminYaniti(BaseModel):
     ml_riski_var_mi: bool | None = None
     ml_olasilik: float | None = None
     aciklama: str
-    yakit_akisi_kg_saat: float
 
 
 class ModelVersiyonuOzetiYaniti(BaseModel):

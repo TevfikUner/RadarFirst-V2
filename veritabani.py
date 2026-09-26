@@ -52,6 +52,10 @@ class VeritabaniAyarlariEksikHatasi(Exception):
     pass
 
 
+class VeritabaniKayitHatasi(Exception):
+    """Analiz sonucu veritabanına yazılamadığında fırlatılır."""
+
+
 def _tarihe_cevir(tarih_str):
     """'YYYY-MM-DD' metnini date nesnesine çevirir. asyncpg (sync psycopg2'nin
     aksine) parametre tipini açıkça bildirdiği için, bir metni doğrudan bir
@@ -347,12 +351,9 @@ def ucus_olcumlerini_dataframe_olarak_getir(ucus_numarasi, tarih_str, motor=None
         if ucus is None:
             return None
 
-        olcumler = (
-            oturum.execute(select(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus.id).order_by(EdrOlcumu.zaman))
-            .scalars()
-            .all()
-        )
-        return pd.DataFrame([_olcum_sozluge_cevir(o) for o in olcumler])
+        sutunlar = [getattr(EdrOlcumu, sutun) for sutun in _OLCUM_SUTUNLARI]
+        satirlar = oturum.execute(select(*sutunlar).where(EdrOlcumu.ucus_id == ucus.id).order_by(EdrOlcumu.zaman)).all()
+        return pd.DataFrame([tuple(satir) for satir in satirlar], columns=_OLCUM_SUTUNLARI)
 
 
 def ucus_sil(ucus_numarasi, tarih_str, motor=None):

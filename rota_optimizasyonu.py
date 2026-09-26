@@ -68,11 +68,12 @@ import math
 
 import numpy as np
 import pandas as pd
+import xarray as xr
 
 import config
 from birim_donusumleri import basinc_hpa_to_irtifa_metre, en_yakin_basinc_seviyesi, irtifa_metre_to_basinc_hpa
-from eslestirme import rotayi_hava_durumuyla_eslestir
-from veri_yukleme import hava_durumu_yukle
+from eslestirme import kapsam_disi_maskesi, rotayi_hava_durumuyla_eslestir
+from veri_yukleme import hava_durumu_onbellekli_yukle
 
 DUNYA_YARICAPI_M = 6_371_000.0
 
@@ -133,26 +134,12 @@ TIRMANMA_EK_YAKIT_ORANI = 0.5
 ALCALMA_YAKIT_TASARRUFU_ORANI = 0.3
 DIKEY_HIZ_FT_DK = 1500.0
 
-_KAPSAM_TOLERANSI_DERECE = 1.0
-_KAPSAM_TOLERANSI_ZAMAN = pd.Timedelta(hours=3)
-
-
-# ---------------------------------------------------------------------------
-# Veri küpü önbelleği -- her istek dosyayı yeniden AÇMASIN diye (bkz.
-# veri_yukleme._oauth2_kimlik_dogrulamasini_al'daki aynı tekil/singleton deseni).
-# ---------------------------------------------------------------------------
-
-_ONBELLEK = {"veri_kupu": None, "denendi": False}
-
 
 def veri_kupune_eris():
-    if not _ONBELLEK["denendi"]:
-        _ONBELLEK["denendi"] = True
-        try:
-            _ONBELLEK["veri_kupu"] = hava_durumu_yukle()
-        except FileNotFoundError:
-            _ONBELLEK["veri_kupu"] = None
-    return _ONBELLEK["veri_kupu"]
+    try:
+        return hava_durumu_onbellekli_yukle()
+    except FileNotFoundError:
+        return None
 
 
 # ---------------------------------------------------------------------------
@@ -293,11 +280,14 @@ def _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, baslangic_zamani
     # ERA5 kapsamı dışına taşan ızgara düğümleri dürüstçe ELENİR (A* onlardan
     # asla geçemez) -- kapsam dışı bir noktada "türbülans yok" diye YANLIŞ
     # bir varsayımda bulunmamak için.
-    dugumler = [
-        d
-        for d, (e, b) in konumlar.items()
-        if _era5_tamamen_kapsiyor_mu(veri_kupu, np.array([e]), np.array([b]), nominal_zamanlar[d[0]])
-    ]
+    aday_dugumler = list(konumlar)
+    kapsam_disi = kapsam_disi_maskesi(
+        veri_kupu,
+        [konumlar[d][0] for d in aday_dugumler],
+        [konumlar[d][1] for d in aday_dugumler],
+        [nominal_zamanlar[d[0]] for d in aday_dugumler],
+    )
+    dugumler = [d for d, disi in zip(aday_dugumler, kapsam_disi) if not disi]
     konum_kumesi = set(dugumler)
 
     # TI1'i TÜM ızgara düğümleri için TEK vektörel çağrıyla hesapla (projenin
@@ -309,20 +299,15 @@ def _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, baslangic_zamani
     ti1_sozluk = dict(zip(dugumler, ti1_degerleri))
 
     basinc_hpa = irtifa_metre_to_basinc_hpa(irtifa_m)
-    ruzgar_onbellegi = {}
-
-    def _ruzgar_al(dugum):
-        if dugum not in ruzgar_onbellegi:
-            e, b = konumlar[dugum]
-            ruzgar_onbellegi[dugum] = ruzgar_bilesenlerini_al(veri_kupu, e, b, basinc_hpa, nominal_zamanlar[dugum[0]])
-        return ruzgar_onbellegi[dugum]
+    u_tum, v_tum = ruzgar_bilesenlerini_toplu_al(veri_kupu, tum_enlem, tum_boylam, basinc_hpa, tum_zaman)
+    ruzgar_sozluk = dict(zip(dugumler, zip(u_tum.tolist(), v_tum.tolist())))
 
     def _kenar_maliyeti_saniye(dugum_a, dugum_b):
         ea, ba = konumlar[dugum_a]
         eb, bb = konumlar[dugum_b]
         mesafe_km = buyuk_daire_mesafesi_km(ea, ba, eb, bb)
         yon = _ilk_yon_derece(ea, ba, eb, bb)
-        u, v = _ruzgar_al(dugum_b)
+        u, v = ruzgar_sozluk[dugum_b]
         kuyruk_ruzgari_ms = u * math.sin(_bd(yon)) + v * math.cos(_bd(yon))
         yer_hizi_ms = max(tas_ms + kuyruk_ruzgari_ms, tas_ms * 0.2)
         saniye = (mesafe_km * 1000.0) / yer_hizi_ms
@@ -403,21 +388,8 @@ def _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, baslangic_zamani
 def _era5_tamamen_kapsiyor_mu(veri_kupu, enlemler, boylamlar, zaman):
     if veri_kupu is None:
         return False
-    lat_min, lat_maks = float(veri_kupu["latitude"].min()), float(veri_kupu["latitude"].max())
-    lon_min, lon_maks = float(veri_kupu["longitude"].min()), float(veri_kupu["longitude"].max())
-    if np.any(enlemler < lat_min - _KAPSAM_TOLERANSI_DERECE) or np.any(enlemler > lat_maks + _KAPSAM_TOLERANSI_DERECE):
-        return False
-    if np.any(boylamlar < lon_min - _KAPSAM_TOLERANSI_DERECE) or np.any(
-        boylamlar > lon_maks + _KAPSAM_TOLERANSI_DERECE
-    ):
-        return False
-    if "valid_time" in veri_kupu.dims:
-        zaman_min = pd.Timestamp(veri_kupu["valid_time"].min().values)
-        zaman_maks = pd.Timestamp(veri_kupu["valid_time"].max().values)
-        zaman_tz_siz = _tz_sizlestir(zaman)
-        if zaman_tz_siz < zaman_min - _KAPSAM_TOLERANSI_ZAMAN or zaman_tz_siz > zaman_maks + _KAPSAM_TOLERANSI_ZAMAN:
-            return False
-    return True
+    enlemler = np.atleast_1d(np.asarray(enlemler, dtype=float))
+    return not kapsam_disi_maskesi(veri_kupu, enlemler, boylamlar, [zaman] * len(enlemler)).any()
 
 
 def _tz_sizlestir(zaman):
@@ -438,6 +410,26 @@ def ruzgar_bilesenlerini_al(veri_kupu, enlem, boylam, basinc_hpa, zaman):
         method="nearest",
     )
     return float(dilim["u"].values), float(dilim["v"].values)
+
+
+def ruzgar_bilesenlerini_toplu_al(veri_kupu, enlemler, boylamlar, basinc_hpa, zamanlar):
+    """ruzgar_bilesenlerini_al'ın çok noktalı karşılığı -- tüm noktalar tek bir
+    vektörel .sel() ile okunur. Dönüş: (u_dizisi, v_dizisi)."""
+    enlemler = np.asarray(enlemler, dtype=float)
+    if len(enlemler) == 0:
+        return np.array([]), np.array([])
+    basinc_seviyeleri = np.sort(veri_kupu[config.BASINC_BOYUTU].values)
+    basinc_hpa = np.broadcast_to(np.asarray(basinc_hpa, dtype=float), enlemler.shape)
+    seviyeler = basinc_seviyeleri[np.abs(basinc_seviyeleri[None, :] - basinc_hpa[:, None]).argmin(axis=1)]
+    boyut = "nokta"
+    dilim = veri_kupu.sel(
+        **{config.BASINC_BOYUTU: xr.DataArray(seviyeler, dims=boyut)},
+        latitude=xr.DataArray(enlemler, dims=boyut),
+        longitude=xr.DataArray(np.asarray(boylamlar, dtype=float), dims=boyut),
+        valid_time=xr.DataArray(pd.DatetimeIndex([_tz_sizlestir(z) for z in zamanlar]).to_numpy(), dims=boyut),
+        method="nearest",
+    )
+    return dilim["u"].to_numpy(), dilim["v"].to_numpy()
 
 
 # ---------------------------------------------------------------------------

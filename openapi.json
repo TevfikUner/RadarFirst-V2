@@ -1965,17 +1965,12 @@
           "aciklama": {
             "type": "string",
             "title": "Aciklama"
-          },
-          "yakit_akisi_kg_saat": {
-            "type": "number",
-            "title": "Yakit Akisi Kg Saat"
           }
         },
         "type": "object",
         "required": [
           "kapsam_icinde_mi",
-          "aciklama",
-          "yakit_akisi_kg_saat"
+          "aciklama"
         ],
         "title": "TurbulansTahminYaniti"
       },
@@ -1992,13 +1987,18 @@
           "tas_ms": {
             "type": "number",
             "title": "Tas Ms"
+          },
+          "yakit_akisi_kg_saat": {
+            "type": "number",
+            "title": "Yakit Akisi Kg Saat"
           }
         },
         "type": "object",
         "required": [
           "kod",
           "etiket",
-          "tas_ms"
+          "tas_ms",
+          "yakit_akisi_kg_saat"
         ],
         "title": "UcakProfiliYaniti"
       },

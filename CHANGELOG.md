@@ -4,6 +4,34 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Kod taraması: hata düzeltmeleri, güvenlik ve performans
+
+- **`POST /api/v1/turbulans/tahmin` her çağrıda 500 dönüyordu:** `yakit_akisi_kg_saat`
+  alanı yanlışlıkla `TurbulansTahminYaniti`'na (zorunlu) eklenmişti; asıl ait
+  olduğu `UcakProfiliYaniti`'nda ise yoktu (uçak profillerinin yakıt akışı
+  yanıttan sessizce düşüyordu). İki uç nokta için de test eklendi.
+- **Veritabanına yazılamayan analiz "tamamlandi" görünüyordu:** API artık
+  `main.calistir(..., kayit_zorunlu=True)` kullanıyor; kayıt başarısızsa görev
+  `hata` olur. CLI davranışı değişmedi (harita yine üretilir).
+- **Görev kaydı arka plan görevi başlamadan oluşturuluyor:** 202 yanıtından
+  hemen sonra yapılan durum sorgusu artık 404 dönmüyor.
+- **Toplu analiz de canlı WebSocket uyarısı yayınlıyor** (önceden sadece tekli analiz).
+- **Güvenlik:** `bildirim_webhook_url` doğrulanıyor (sadece http(s),
+  link-local/ayrılmış IP yok, isteğe bağlı `WEBHOOK_IZIN_VERILEN_HOSTLAR`
+  izin listesi); `API_ANAHTARI` tanımsızken `/ws/uyarilar` artık herkese
+  açık değil; MCP salt-okunur sorgularına 10 sn `statement_timeout` eklendi.
+- **HDF5 çökmesi:** Paylaşılan ERA5 küpü dosyadan tembel okunuyordu; aynı
+  `.nc` farklı iş parçacıklarından açılınca Windows'ta "access violation" ile
+  süreç çöküyordu. `veri_yukleme.hava_durumu_onbellekli_yukle` küpü bir kez
+  belleğe alıp dosyayı kapatıyor; `main.py` ve `rota_optimizasyonu.py` bunu
+  kullanıyor (her analizde dosya yeniden açılmıyor).
+- **Performans (sonuçlar birebir aynı, eski çıktılarla karşılaştırılarak
+  doğrulandı):** A* kapsam kontrolü ve rüzgar okuması tek vektörel çağrıya
+  indi (3 örnek rota: 3.8 sn -> 1.0 sn); ML özellik çıkarımındaki nokta
+  nokta rüzgar döngüsü kaldırıldı; `/turbulans/tahmin` özellikleri iki kez
+  çıkarmıyor; GeoJSON dışa aktarımı ve ölçüm DataFrame'i ORM nesnesi/`iterrows`
+  olmadan üretiliyor.
+
 ## Push öncesi inceleme: 4 gerçek hata düzeltildi
 
 Tüm değişiklikler, gitignore'daki veri/model/`.env` dosyaları OLMADAN temiz

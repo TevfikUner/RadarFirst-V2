@@ -39,7 +39,7 @@ import pandas as pd
 
 from birim_donusumleri import irtifa_metre_to_basinc_hpa
 from eslestirme import rotayi_hava_durumuyla_eslestir
-from rota_optimizasyonu import ruzgar_bilesenlerini_al
+from rota_optimizasyonu import ruzgar_bilesenlerini_toplu_al
 
 OZELLIK_SUTUNLARI = ["ti1_indeksi", "richardson_sayisi", "ruzgar_hizi_ms", "basinc_hpa"]
 
@@ -83,13 +83,16 @@ def ozellikleri_cikar(nokta_df: pd.DataFrame, veri_kupu) -> pd.DataFrame:
     # yakın ama çok uzak" bir rüzgar değeri sessizce sızabilirdi.
     ruzgar_hizlari = np.full(len(nokta_df), np.nan)
     basinc_hpa = irtifa_metre_to_basinc_hpa(rota_df["geo_irtifa_m"].to_numpy())
-    for i in range(len(nokta_df)):
-        if np.isnan(ti1_degerleri[i]):
-            continue
-        u, v = ruzgar_bilesenlerini_al(
-            veri_kupu, rota_df["enlem"].iloc[i], rota_df["boylam"].iloc[i], basinc_hpa[i], rota_df["zaman"].iloc[i]
+    gecerli = ~np.isnan(ti1_degerleri)
+    if gecerli.any():
+        u, v = ruzgar_bilesenlerini_toplu_al(
+            veri_kupu,
+            rota_df["enlem"].to_numpy()[gecerli],
+            rota_df["boylam"].to_numpy()[gecerli],
+            basinc_hpa[gecerli],
+            list(rota_df["zaman"][gecerli]),
         )
-        ruzgar_hizlari[i] = float(np.hypot(u, v))
+        ruzgar_hizlari[gecerli] = np.hypot(u.astype(float), v.astype(float))
 
     return pd.DataFrame(
         {
@@ -134,17 +137,22 @@ def turbulans_riski_tahmin_et(nokta_df: pd.DataFrame, veri_kupu):
     Model henüz eğitilip kaydedilmediyse (bkz. ml_egitimi.py) None döner
     (uydurma bir tahmin üretmek yerine dürüstçe "yok" der).
     """
+    if _modeli_yukle() is None:
+        return None
+    return ozelliklerden_risk_tahmin_et(ozellikleri_cikar(nokta_df, veri_kupu))
+
+
+def ozelliklerden_risk_tahmin_et(ozellikler: pd.DataFrame):
+    """turbulans_riski_tahmin_et ile aynı, ama özellikler zaten çıkarılmışsa
+    (bkz. api_servisi.turbulans_tahmini) ikinci kez hesaplatmaz."""
     model = _modeli_yukle()
     if model is None:
         return None
-    ozellikler = ozellikleri_cikar(nokta_df, veri_kupu)
-    temiz_ozellikler, _ = ozellikleri_temizle(ozellikler)
-    if temiz_ozellikler.empty:
-        return np.full(len(nokta_df), np.nan)
-
-    tum_tahminler = np.full(len(nokta_df), np.nan)
-    gecerli_indeksler = ozellikler[OZELLIK_SUTUNLARI].notna().all(axis=1)
-    tum_tahminler[gecerli_indeksler.to_numpy()] = model.predict_proba(temiz_ozellikler)[:, 1]
+    tum_tahminler = np.full(len(ozellikler), np.nan)
+    gecerli_maske = np.isfinite(ozellikler[OZELLIK_SUTUNLARI].to_numpy()).all(axis=1)
+    if gecerli_maske.any():
+        temiz_ozellikler, _ = ozellikleri_temizle(ozellikler)
+        tum_tahminler[gecerli_maske] = model.predict_proba(temiz_ozellikler)[:, 1]
     return tum_tahminler
 
 
