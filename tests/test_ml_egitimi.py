@@ -41,14 +41,37 @@ def _sentetik_ozellik_etiket_uret(n=120, tohum=0):
 
 def test_modelleri_egit_ve_karsilastir_uc_modeli_de_doner():
     X, y = _sentetik_ozellik_etiket_uret()
-    sonuclar, (X_test, y_test) = modelleri_egit_ve_karsilastir(X, y)
+    sonuclar, degerlendirme = modelleri_egit_ve_karsilastir(X, y, tekrar_sayisi=2)
 
     assert set(sonuclar) == {"Lojistik Regresyon", "Random Forest", "Gradient Boosting"}
-    for _isim, (model, metrikler, _olcekleyici) in sonuclar.items():
+    for isim, (model, metrikler, _olcekleyici) in sonuclar.items():
         assert hasattr(model, "predict_proba")
         for anahtar in ("accuracy", "precision", "recall", "f1", "roc_auc"):
             assert 0.0 <= metrikler[anahtar] <= 1.0 or np.isnan(metrikler[anahtar])
-        assert metrikler["yanlis_negatif"] + metrikler["dogru_pozitif"] == int(y_test.sum())
+            assert metrikler[f"{anahtar}_std"] >= 0.0
+        assert metrikler["yanlis_negatif"] + metrikler["dogru_pozitif"] == int(y.sum())
+        assert len(degerlendirme["oof_olasilik"][isim]) == len(y)
+
+
+def test_gruplu_dogrulamada_ayni_gun_hem_egitimde_hem_testte_olmaz(monkeypatch):
+    import ml_egitimi
+
+    X, y = _sentetik_ozellik_etiket_uret(n=120)
+    gruplar = pd.Series(np.repeat([f"gun{i}" for i in range(20)], 6))
+    gorulen_bolmeler = []
+    gercek_cvp = ml_egitimi.cross_val_predict
+
+    def izleyen_cvp(model, X_, y_, groups=None, cv=None, method=None):
+        gorulen_bolmeler.extend(cv.split(X_, y_, groups))
+        return gercek_cvp(model, X_, y_, groups=groups, cv=cv, method=method)
+
+    monkeypatch.setattr(ml_egitimi, "cross_val_predict", izleyen_cvp)
+    sonuclar, _ = modelleri_egit_ve_karsilastir(X, y, gruplar, tekrar_sayisi=1)
+
+    assert gorulen_bolmeler
+    for egitim, test in gorulen_bolmeler:
+        assert not set(gruplar.iloc[egitim]) & set(gruplar.iloc[test])
+    assert "gruplu" in sonuclar["Random Forest"][1]["degerlendirme_yontemi"]
 
 
 def test_en_iyi_modeli_sec_ve_kaydet_en_yuksek_recalli_modeli_secer(tmp_path, monkeypatch):
@@ -103,8 +126,8 @@ def test_veriyi_hazirla_gercek_pirep_era5_verisiyle():
             "ml_veri_indir.py ile indirilmedikçe bu test atlanır."
         )
 
-    X, y = veriyi_hazirla()
-    assert len(X) == len(y)
+    X, y, gruplar = veriyi_hazirla()
+    assert len(X) == len(y) == len(gruplar)
     assert len(X) > 0
     assert set(X.columns) == {"ti1_indeksi", "richardson_sayisi", "ruzgar_hizi_ms", "basinc_hpa"}
     assert set(y.unique()) <= {0, 1}

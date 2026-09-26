@@ -459,9 +459,12 @@ versiyonu olurdu), ABD hava sahasına özgü, halka açık **IEM PIREP arşivind
 + eşleşen gerçek **ERA5** verisi indirilip (`ml_veri_indir.py`,
 `ml_egitimi.py`) GERÇEK bir eğitim kümesi kuruldu:
 
-- 179 gerçek, etiketli örnek (63 pozitif orta-şiddetli+ türbülans / 116
-  negatif) -- FL250-400 arası, projenin `TI1_ESIK_ORTA_SIDDETLI` eşiğiyle
-  AYNI ikili eşik felsefesiyle etiketlendi.
+- 167 gerçek, etiketli örnek (57 pozitif orta-şiddetli+ türbülans / 110
+  negatif, 42 farklı gün) -- FL300-400 arası, projenin
+  `TI1_ESIK_ORTA_SIDDETLI` eşiğiyle AYNI ikili eşik felsefesiyle etiketlendi.
+  (Önceki sürümde 179 örnek vardı; 12'si, aralıklı indirilmiş ERA5
+  küplerinin zaman BOŞLUĞUNA düşüp günlerce uzaktaki bir saatin havasıyla
+  eşleşen PIREP'lerdi -- artık kapsam dışı sayılıyor.)
 - Özellikler bilinçli olarak **bölgeden bağımsız** tutuldu (enlem/boylam
   KASITLI OLARAK dışarıda bırakıldı -- yoksa model ABD'nin bölgesel hava
   düzenine ezberler, Türkiye gibi hiç görmediği bir bölgede anlamsızlaşırdı):
@@ -469,19 +472,31 @@ versiyonu olurdu), ABD hava sahasına özgü, halka açık **IEM PIREP arşivind
 - Üç sınıflandırıcı (Lojistik Regresyon, Random Forest, Gradient Boosting)
   eğitilip **recall'a** göre karşılaştırıldı (accuracy değil -- havacılık
   güvenliğinde kaçırılan gerçek türbülans/false negative en kritik hata
-  türüdür). 134 eğitim / 45 test örneği üzerinde gerçek sonuçlar:
+  türüdür).
+- **Değerlendirme: gün bazında gruplu 5-kat çapraz doğrulama, 5 tekrar**
+  (ortalama ± std). Aynı günün PIREP'leri aynı hava sistemine ait, birbirine
+  çok benzer örneklerdir; eski tek rastgele %75/%25 bölme onları hem
+  eğitime hem teste koyuyordu ve metrikleri şişiriyordu (eski rapor: RF
+  recall 0.750 / ROC-AUC 0.843 -- gruplanmamış çapraz doğrulama da aynı
+  ~0.84'ü veriyor, gün bazında gruplayınca ~0.66'ya iniyor). Aşağıdaki
+  sonuçlar, modelin HİÇ GÖRMEDİĞİ günlerdeki performansıdır:
 
   | Model | Accuracy | Precision | Recall | F1 | ROC-AUC |
   |---|---|---|---|---|---|
-  | Lojistik Regresyon | 0.578 | 0.421 | 0.500 | 0.457 | 0.644 |
-  | **Random Forest (seçildi)** | **0.756** | **0.632** | **0.750** | **0.686** | **0.843** |
-  | Gradient Boosting | 0.800 | 0.733 | 0.688 | 0.710 | 0.852 |
+  | Lojistik Regresyon | 0.637 ± 0.033 | 0.473 ± 0.041 | 0.540 ± 0.044 | 0.504 ± 0.042 | 0.644 ± 0.043 |
+  | **Random Forest (seçildi)** | **0.655 ± 0.034** | **0.496 ± 0.044** | **0.554 ± 0.077** | **0.522 ± 0.053** | **0.656 ± 0.043** |
+  | Gradient Boosting | 0.607 ± 0.041 | 0.422 ± 0.058 | 0.414 ± 0.080 | 0.417 ± 0.067 | 0.558 ± 0.056 |
 
-  Gradient Boosting accuracy/F1'de biraz önde olsa da Random Forest daha
-  yüksek recall'u (0.750 vs 0.688 -- test kümesindeki 16 gerçek türbülans
-  vakasından 12'sini yakalıyor, sadece 4 kaçırıyor) nedeniyle seçildi;
-  havacılıkta bir false negative (kaçırılan gerçek türbülans) bir false
-  positive'den (gereksiz uyarı) çok daha pahalıya mal olur.
+  Random Forest en yüksek recall'u (57 gerçek türbülans vakasının ~%55'ini
+  yakalıyor) nedeniyle seçildi; havacılıkta bir false negative (kaçırılan
+  gerçek türbülans) bir false positive'den (gereksiz uyarı) çok daha
+  pahalıya mal olur. Nihai model TÜM 167 örnekle eğitilip kaydedilir.
+- **Dürüst yorum:** ROC-AUC ~0.66, şansın (0.5) üzerinde ama ZAYIF bir
+  ayırt edicilik -- 167 örnek ve ~25-30 km çözünürlüklü reanaliz verisiyle
+  beklenen bir sınır. Karşılaştırma için aynı veride SADECE Ellrod TI1'in
+  ROC-AUC'si 0.44 (tek başına ayırt edici değil); model, TI1 + Richardson +
+  rüzgar + basınç birleşimiyle bundan daha iyi. Model tahmini bir karar
+  aracı değil, fizik göstergesinin yanında ek bir işarettir.
 - `POST /api/v1/turbulans/tahmin`, tek bir nokta için hem fizik (TI1) hem
   ML olasılığını karşılaştırmalı döner. Model dosyası (`*.joblib`) repoya
   DAHİL DEĞİL (üretilmiş/büyük artefakt, `.gitignore`) -- `ml_veri_indir.py`
@@ -504,7 +519,7 @@ versiyonu olurdu), ABD hava sahasına özgü, halka açık **IEM PIREP arşivind
 
 ```bash
 python ml_veri_indir.py   # IEM PIREP + eşleşen gerçek ERA5 verisini indirir (Copernicus CDS API anahtarı gerekir, ~/.cdsapirc)
-python ml_egitimi.py      # 3 modeli eğitir/karşılaştırır, recall'a göre en iyisini turbulans_ml_modeli.joblib olarak kaydeder
+python ml_egitimi.py      # 3 modeli gün bazında gruplu CV ile karşılaştırır, recall'a göre en iyisini (tüm veriyle eğitip) turbulans_ml_modeli.joblib olarak kaydeder
 ```
 
 ## SIGMET/AIRMET doğrulaması
@@ -627,7 +642,10 @@ PostgreSQL servis konteyneriyle) çalıştırır.
   görünse de örneklem küçük (179) olduğu için gerçek belirsizlik daha
   geniş: `kalibrasyon.py`, bootstrap resampling ile bir %95 güven aralığı
   da hesaplar (`[0.15, 0.34]`, 1000 tekrarla) -- `--guven-araligi-atla` ile
-  atlanabilir.
+  atlanabilir. NOT: 179 örneğin 12'si zaman boşluğu hatasıyla yanlış güne
+  eşleşmişti (bkz. ML bölümü); düzeltilmiş 167 örnekle yeniden hesaplanan
+  katsayı 0.21 (%95 GA `[0.13, 0.33]`) -- mevcut 0.23 bu aralığın içinde
+  olduğu için değiştirilmedi.
 - Proje gerçek bir uçuşla (OpenSky/Trino + gerçek `.nc` verisi) uçtan uca
   test edildi.
 - Bu ortamda Docker daemon'ı kurulu olmadığından `Dockerfile`/

@@ -4,6 +4,25 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## ML değerlendirmesi: gün bazında gruplu çapraz doğrulama
+
+- **Metrikler aynı-gün sızıntısıyla şişiyordu:** Tek rastgele %75/%25 bölme,
+  aynı günün (aynı hava sisteminin) PIREP'lerini hem eğitime hem teste
+  koyuyordu. Doğrulandı: gruplanmamış 5-kat CV de raporlanan ROC-AUC'yi
+  (~0.84) veriyor; gün bazında gruplayınca ~0.66'ya iniyor.
+- `ml_egitimi.py` artık `StratifiedGroupKFold` (grup = PIREP günü) ile 5-kat
+  x 5 tekrar değerlendiriyor, metrikleri ortalama ± std olarak raporluyor
+  (`*_std` anahtarları, `degerlendirme_yontemi`), karışıklık matrisini fold
+  dışı tahminlerden çiziyor; Lojistik Regresyon'un ölçekleyicisi her fold
+  içinde (pipeline) öğreniliyor. Nihai model TÜM veriyle eğitiliyor.
+  `veriyi_hazirla()` artık `(X, y, gruplar)` döndürüyor.
+- Model temizlenmiş 167 örnekle yeniden eğitildi (Random Forest yine seçildi):
+  recall 0.554 ± 0.077, F1 0.522 ± 0.053, ROC-AUC 0.656 ± 0.043. Aynı veride
+  SADECE TI1'in ROC-AUC'si 0.44. Önceki model `model_versiyonlari/`'nda
+  duruyor (rollback mümkün).
+- Kalibrasyon katsayısı temiz veriyle yeniden hesaplandı: 0.21 (%95 GA
+  [0.13, 0.33]); mevcut 0.23 aralığın içinde olduğu için değiştirilmedi.
+
 ## Üç boyutlu kapsam kontrolü, çoklu ERA5 küpü, OpenSky'sız rota analizi
 
 - **İrtifa kapsamı:** Kalkış/iniş/yerdeki noktalar seyir seviyesinin (200-300
