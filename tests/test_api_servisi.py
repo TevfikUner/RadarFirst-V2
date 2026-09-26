@@ -18,7 +18,6 @@ Gerçek bir PostgreSQL bağlantısı gerektirir; bağlanılamazsa atlanır (skip
 
 import asyncio
 import os
-import time
 
 import httpx
 import pandas as pd
@@ -28,6 +27,7 @@ from starlette.testclient import TestClient
 
 import api_servisi
 import config
+import gorev_deposu
 import veritabani as vt
 
 
@@ -45,10 +45,8 @@ def _db_erisilebilir_mi():
 @pytest.fixture(autouse=True)
 def _hiz_sinirini_sifirla():
     api_servisi._analiz_istek_zamanlari.clear()
-    api_servisi._gorevler.clear()
     yield
     api_servisi._analiz_istek_zamanlari.clear()
-    api_servisi._gorevler.clear()
 
 
 @pytest.fixture
@@ -294,40 +292,6 @@ async def test_dusuk_riskli_noktalar_yayinlanmaz(monkeypatch):
     assert yayinlanan == []
 
 
-# --- Görev kaydı temizliği (bellek sızıntısı düzeltmesi) ---
-
-
-def test_eski_bitmis_gorev_temizlenir():
-    api_servisi._gorevler["eski"] = {
-        "durum": "tamamlandi",
-        "_olusturulma": time.monotonic() - api_servisi._GOREV_SAKLAMA_SANIYE - 1,
-    }
-    api_servisi._eski_gorevleri_temizle()
-    assert "eski" not in api_servisi._gorevler
-
-
-def test_yeni_bitmis_gorev_silinmez():
-    api_servisi._gorevler["yeni"] = {"durum": "tamamlandi", "_olusturulma": time.monotonic()}
-    api_servisi._eski_gorevleri_temizle()
-    assert "yeni" in api_servisi._gorevler
-
-
-def test_calisan_eski_gorev_silinmez():
-    """'calisiyor' durumundaki bir görev, ne kadar eski olursa olsun silinmemeli."""
-    api_servisi._gorevler["calisiyor"] = {
-        "durum": "calisiyor",
-        "_olusturulma": time.monotonic() - api_servisi._GOREV_SAKLAMA_SANIYE - 1,
-    }
-    api_servisi._eski_gorevleri_temizle()
-    assert "calisiyor" in api_servisi._gorevler
-
-
-def test_gorev_disari_ver_dahili_alani_gizler():
-    disari = api_servisi._gorev_disari_ver({"durum": "tamamlandi", "_olusturulma": 123.0})
-    assert "_olusturulma" not in disari
-    assert disari == {"durum": "tamamlandi"}
-
-
 async def test_analiz_durumu_dahili_alani_sizdirmiyor(istemci, api_anahtari, monkeypatch):
     monkeypatch.setattr(api_servisi, "tek_ucus_analiz_et", lambda un, t: None)
     yanit = await istemci.post(
@@ -341,7 +305,7 @@ async def test_analiz_durumu_dahili_alani_sizdirmiyor(istemci, api_anahtari, mon
         if durum.json().get("durum") != "calisiyor":
             break
         await asyncio.sleep(0.05)
-    assert "_olusturulma" not in durum.json()
+    assert set(durum.json()) == {"durum", "ucus_numarasi", "tarih", "aciklama", "ozet"}
 
 
 # --- Eşikler, SIGMET doğrulama ve 3D harita önyüzü ---
@@ -678,10 +642,11 @@ async def test_turbulans_tahmini_kapsam_icinde_ti1_doner(istemci, api_anahtari):
     assert govde["ti1_indeksi"] >= 0
 
 
-def test_gorev_kaydi_arka_plan_gorevinden_once_olusur():
-    gorev_id = api_servisi._gorev_olustur(ucus_numarasi="TESTX", tarih="2019-01-01")
-    assert api_servisi._gorevler[gorev_id]["durum"] == "calisiyor"
-    assert api_servisi._gorev_disari_ver(api_servisi._gorevler[gorev_id])["ucus_numarasi"] == "TESTX"
+async def test_gorev_kaydi_arka_plan_gorevinden_once_olusur():
+    gorev_id = await api_servisi._gorev_olustur("ucus", ucus_numarasi="TESTX", tarih="2019-01-01")
+    gorev = await gorev_deposu.gorev_getir(gorev_id)
+    assert gorev["durum"] == "calisiyor"
+    assert gorev["ucus_numarasi"] == "TESTX"
 
 
 async def test_veritabanina_kaydedilemeyen_analiz_hata_olarak_isaretlenir(monkeypatch):
@@ -691,10 +656,11 @@ async def test_veritabanina_kaydedilemeyen_analiz_hata_olarak_isaretlenir(monkey
         raise VeritabaniKayitHatasi("Sonuçlar veritabanına kaydedilemedi.")
 
     monkeypatch.setattr(api_servisi, "tek_ucus_analiz_et", _kayit_basarisiz)
-    gorev_id = api_servisi._gorev_olustur(ucus_numarasi="TESTX", tarih="2019-01-01")
+    gorev_id = await api_servisi._gorev_olustur("ucus", ucus_numarasi="TESTX", tarih="2019-01-01")
     await api_servisi._tek_ucus_arkaplan_gorevi(gorev_id, "TESTX", "2019-01-01", None)
-    assert api_servisi._gorevler[gorev_id]["durum"] == "hata"
-    assert api_servisi._gorevler[gorev_id]["aciklama"] == "Sonuçlar veritabanına kaydedilemedi."
+    gorev = await gorev_deposu.gorev_getir(gorev_id)
+    assert gorev["durum"] == "hata"
+    assert gorev["aciklama"] == "Sonuçlar veritabanına kaydedilemedi."
 
 
 def test_api_analizi_veritabani_kaydini_zorunlu_tutar():
@@ -744,11 +710,13 @@ async def test_toplu_analiz_riskli_ucuslari_websocketten_yayinlar(monkeypatch):
 
     monkeypatch.setattr(api_servisi.baglanti_yoneticisi, "yayinla", sahte_yayinla)
     monkeypatch.setattr(api_servisi, "toplu_analiz_calistir", sahte_toplu)
-    gorev_id = api_servisi._gorev_olustur()
+    gorev_id = await api_servisi._gorev_olustur("toplu")
     await api_servisi._toplu_arkaplan_gorevi(gorev_id, pd.DataFrame(), None)
     await asyncio.sleep(0.05)
 
-    assert api_servisi._gorevler[gorev_id]["durum"] == "tamamlandi"
+    gorev = await gorev_deposu.gorev_getir(gorev_id)
+    assert gorev["durum"] == "tamamlandi"
+    assert gorev["ozet"] == [{"ucus_numarasi": "TOPLU1", "durum": "başarılı"}]
     assert [m["ucus_numarasi"] for m in yayinlanan] == ["TOPLU1"]
 
 

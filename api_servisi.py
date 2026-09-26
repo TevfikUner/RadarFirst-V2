@@ -48,7 +48,7 @@ import json
 import os
 import secrets
 import time
-import uuid
+from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime
 from functools import partial
 from urllib.parse import urlsplit
@@ -85,6 +85,13 @@ from sqlalchemy.exc import SQLAlchemyError
 
 import config
 import loglama
+from gorev_deposu import (
+    eski_gorevleri_temizle,
+    gorev_getir,
+    gorev_guncelle,
+    gorev_olustur,
+    yarida_kalan_gorevleri_isaretle,
+)
 from hata_yardimcisi import dostane_hata_mesaji
 from main import calistir, rota_df_ile_calistir
 from rota_optimizasyonu import UCAK_PROFILLERI, rota_simulasyonu_olustur, simulasyonu_czml_e_cevir, veri_kupune_eris
@@ -131,10 +138,23 @@ _logger = loglama.logger_al(__name__)
 tek_ucus_analiz_et = partial(calistir, kayit_zorunlu=True)
 rota_analiz_et = partial(rota_df_ile_calistir, kayit_zorunlu=True)
 
+
+@asynccontextmanager
+async def _yasam_dongusu(uygulama):
+    try:
+        sayi = await yarida_kalan_gorevleri_isaretle()
+        if sayi:
+            _logger.warning("Önceki süreçten yarıda kalmış %d analiz görevi 'yarida_kaldi' olarak işaretlendi.", sayi)
+    except Exception as hata:
+        _logger.warning("Açılışta görev tablosuna erişilemedi: %s", dostane_hata_mesaji(hata))
+    yield
+
+
 app = FastAPI(
     title="Türbülans Radar API",
     description="Ellrod TI1 + Richardson tabanlı türbülans eşleştirme sonuçlarını JSON olarak sunar.",
     version="1.0.0",
+    lifespan=_yasam_dongusu,
 )
 
 # CORS: bir web/mobil istemcinin tarayıcıdan doğrudan bu API'ye istek
@@ -331,46 +351,8 @@ async def _webhooku_bildir(webhook_url, govde):
 
 v1 = APIRouter(prefix="/api/v1", dependencies=[Depends(api_anahtarini_dogrula)])
 
-# Süreç yeniden başlarsa sıfırlanan basit bellek-içi görev durumu takibi --
-# iskelet amaçlı; kalıcı bir görev kuyruğu (Celery/RQ) gerekirse eklenebilir.
-#
-# ÖNEMLİ: Bu sözlük eskiden HİÇ temizlenmiyordu -- süreç uzun süre ayakta
-# kaldıkça (özellikle n8n gibi bir araç periyodik olarak analiz tetikledikçe)
-# sınırsız büyüyüp bir bellek sızıntısına yol açıyordu. Artık her yeni görev
-# oluşturulmadan önce, belirli bir süre önce BİTMİŞ (çalışmakta olan değil)
-# görevler otomatik temizleniyor; ayrıca sözlük büyüklüğüne sabit bir tavan
-# konarak (aşırı istek/hız sınırı aşımı gibi uç durumlarda bile) sınırsız
-# büyüme kesin olarak engelleniyor.
-_gorevler: dict[str, dict] = {}
-_GOREV_SAKLAMA_SANIYE = 3600  # bitmiş görevler 1 saat sonra siliniyor
-_GOREV_SAYISI_TAVANI = 5000
-
-
-def _eski_gorevleri_temizle():
-    simdi = time.monotonic()
-    bitmis_durumlar = ("tamamlandi", "hata", "basarisiz")
-    for gid in [
-        g
-        for g, v in _gorevler.items()
-        if v.get("durum") in bitmis_durumlar and simdi - v.get("_olusturulma", simdi) > _GOREV_SAKLAMA_SANIYE
-    ]:
-        del _gorevler[gid]
-
-    # Süre dolmadan bile sözlük çok büyürse (örn. çok kısa aralıklarla çok
-    # sayıda görev tetiklenirse) en eski bitmiş görevleri silerek tavanı koru.
-    if len(_gorevler) > _GOREV_SAYISI_TAVANI:
-        bitmis_gorevler = sorted(
-            (g for g in _gorevler.items() if g[1].get("durum") in bitmis_durumlar),
-            key=lambda g: g[1].get("_olusturulma", 0),
-        )
-        fazlalik = len(_gorevler) - _GOREV_SAYISI_TAVANI
-        for gid, _ in bitmis_gorevler[:fazlalik]:
-            del _gorevler[gid]
-
-
-def _gorev_disari_ver(gorev: dict) -> dict:
-    """Dışa dönen yanıttan '_olusturulma' gibi dahili alanları çıkarır."""
-    return {k: v for k, v in gorev.items() if not k.startswith("_")}
+# Görev durumu PostgreSQL'de (bkz. gorev_deposu.py, models.AnalizGorevi) --
+# API yeniden başlasa da /analiz/durum/{gorev_id} çalışmaya devam eder.
 
 
 # OpenSky callsign'ları en fazla 8 karakter, harf/rakamdan oluşur (bkz.
@@ -739,11 +721,14 @@ async def ucus_sigmet_dogrulamasi(
     return await asyncio.to_thread(ucus_sigmet_ile_karsilastir, df)
 
 
-def _gorev_olustur(**alanlar):
-    _eski_gorevleri_temizle()
-    gorev_id = str(uuid.uuid4())
-    _gorevler[gorev_id] = {"durum": "calisiyor", **alanlar, "_olusturulma": time.monotonic()}
-    return gorev_id
+async def _gorev_olustur(tur, ucus_numarasi=None, tarih=None):
+    await eski_gorevleri_temizle()
+    return await gorev_olustur(tur, ucus_numarasi=ucus_numarasi, tarih=tarih)
+
+
+async def _gorevi_bitir_ve_bildir(gorev_id, webhook_url, **alanlar):
+    await gorev_guncelle(gorev_id, **alanlar)
+    await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **(await gorev_getir(gorev_id))})
 
 
 async def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih, webhook_url):
@@ -755,18 +740,17 @@ async def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih, webhook_url)
 async def _analiz_arkaplan_gorevi(gorev_id, analiz_fonksiyonu, ucus_numarasi, tarih, webhook_url):
     try:
         sonuc = await asyncio.to_thread(analiz_fonksiyonu)
-        _gorevler[gorev_id]["durum"] = "tamamlandi" if sonuc is not None else "basarisiz"
+        alanlar = {"durum": "tamamlandi" if sonuc is not None else "basarisiz"}
         await _yuksek_riskli_noktalari_yayinla(sonuc, ucus_numarasi, tarih)
     except Exception as hata:
-        _gorevler[gorev_id]["durum"] = "hata"
-        _gorevler[gorev_id]["aciklama"] = dostane_hata_mesaji(hata)
-    await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **_gorev_disari_ver(_gorevler[gorev_id])})
+        alanlar = {"durum": "hata", "aciklama": dostane_hata_mesaji(hata)}
+    await _gorevi_bitir_ve_bildir(gorev_id, webhook_url, **alanlar)
 
 
 @v1.post("/analiz/ucus", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])
 async def ucus_analizi_baslat(istek: UcusAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
     _hiz_sinirini_kontrol_et("tek_ucus")
-    gorev_id = _gorev_olustur(ucus_numarasi=istek.ucus_numarasi, tarih=istek.tarih)
+    gorev_id = await _gorev_olustur("ucus", ucus_numarasi=istek.ucus_numarasi, tarih=istek.tarih)
     arkaplan_gorevleri.add_task(
         _tek_ucus_arkaplan_gorevi, gorev_id, istek.ucus_numarasi, istek.tarih, istek.bildirim_webhook_url
     )
@@ -783,12 +767,11 @@ async def _toplu_arkaplan_gorevi(gorev_id, ucus_listesi_df, webhook_url):
         ozet_df = await asyncio.to_thread(
             toplu_analiz_calistir, ucus_listesi_df, kayit_zorunlu=True, ucus_tamamlandi=_ucus_tamamlandi
         )
-        _gorevler[gorev_id]["durum"] = "tamamlandi"
-        _gorevler[gorev_id]["ozet"] = ozet_df.to_dict(orient="records")
+        ozet = ozet_df.astype(object).where(ozet_df.notna(), None).to_dict(orient="records")
+        alanlar = {"durum": "tamamlandi", "ozet": ozet}
     except Exception as hata:
-        _gorevler[gorev_id]["durum"] = "hata"
-        _gorevler[gorev_id]["aciklama"] = dostane_hata_mesaji(hata)
-    await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **_gorev_disari_ver(_gorevler[gorev_id])})
+        alanlar = {"durum": "hata", "aciklama": dostane_hata_mesaji(hata)}
+    await _gorevi_bitir_ve_bildir(gorev_id, webhook_url, **alanlar)
 
 
 @v1.post("/analiz/rota", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])
@@ -809,7 +792,7 @@ async def rota_analizi_baslat(istek: RotaAnalizIstegi, arkaplan_gorevleri: Backg
     rota_df["ucus_numarasi"] = istek.ucus_numarasi
     tarih = rota_df["zaman"].iloc[0].date().isoformat()
 
-    gorev_id = _gorev_olustur(ucus_numarasi=istek.ucus_numarasi, tarih=tarih)
+    gorev_id = await _gorev_olustur("rota", ucus_numarasi=istek.ucus_numarasi, tarih=tarih)
     arkaplan_gorevleri.add_task(
         _analiz_arkaplan_gorevi,
         gorev_id,
@@ -827,17 +810,17 @@ async def toplu_analiz_baslat(istek: TopluAnalizIstegi, arkaplan_gorevleri: Back
     if not istek.ucuslar:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="'ucuslar' listesi boş olamaz.")
     ucus_listesi_df = pd.DataFrame([u.model_dump(exclude={"bildirim_webhook_url"}) for u in istek.ucuslar])
-    gorev_id = _gorev_olustur()
+    gorev_id = await _gorev_olustur("toplu")
     arkaplan_gorevleri.add_task(_toplu_arkaplan_gorevi, gorev_id, ucus_listesi_df, istek.bildirim_webhook_url)
     return {"gorev_id": gorev_id, "durum": "baslatildi"}
 
 
 @v1.get("/analiz/durum/{gorev_id}", response_model=GorevDurumYaniti, tags=["Analiz"])
 async def analiz_durumu(gorev_id: str):
-    gorev = _gorevler.get(gorev_id)
+    gorev = await gorev_getir(gorev_id)
     if gorev is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bilinmeyen gorev_id.")
-    return _gorev_disari_ver(gorev)
+    return gorev
 
 
 app.include_router(v1)

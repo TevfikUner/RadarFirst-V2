@@ -4,6 +4,22 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Canlı veri şeması + kalıcı analiz görevleri
+
+- Yeni Alembic migration'ı (`9ad326d01cac`) üç tablo ekler:
+  - `analiz_gorevleri`: API'nin arka plan görevleri artık bellekte değil
+    PostgreSQL'de (`gorev_deposu.py`). Yeniden başlatmada durum kaybolmuyor;
+    açılışta yarıda kalanlar `yarida_kaldi` olarak işaretleniyor.
+  - `sigmetler`: AWC canlı SIGMET'leri (ABD `airsigmet` + uluslararası
+    `isigmet`, Ankara FIR dahil) -- poligon JSONB + hızlı ön eleme için
+    sınırlayıcı kutu sütunları, irtifa bandı (`taban_ft`/`tavan_ft`),
+    geçerlilik aralığı. A* rota optimizasyonunun sert kısıtı için altyapı.
+  - `hava_durumu_kupleri`: ERA5/GFS/ECMWF küplerinin KATALOĞU (kaynak,
+    model çalıştırma zamanı, geçerlilik, kapsam, basınç seviyeleri, dosya
+    yolu, durum). Izgara verisinin kendisi diskte NetCDF olarak kalır.
+- Migration, boş bir veritabanında upgrade/downgrade ve ORM modelleriyle
+  şema karşılaştırması yapılarak doğrulandı.
+
 ## ML değerlendirmesi: gün bazında gruplu çapraz doğrulama
 
 - **Metrikler aynı-gün sızıntısıyla şişiyordu:** Tek rastgele %75/%25 bölme,
