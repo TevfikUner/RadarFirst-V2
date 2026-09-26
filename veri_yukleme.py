@@ -17,6 +17,8 @@ veri_yukleme.py
     ve tekrarlanan ihlaller hesap askıya alınmasına yol açabiliyor).
 """
 
+import threading
+
 import pandas as pd
 import trino
 import xarray as xr
@@ -71,6 +73,21 @@ def hava_durumu_yukle(dosya_yolu=config.HAVA_DURUMU_DOSYASI):
         raise FileNotFoundError(
             f"'{dosya_yolu}' bulunamadı. Copernicus veri küpünü indirip proje klasörüne koyduğundan emin ol."
         ) from e
+
+
+_veri_kupu_onbellegi = {}
+_veri_kupu_kilidi = threading.Lock()
+
+
+def hava_durumu_onbellekli_yukle(dosya_yolu=config.HAVA_DURUMU_DOSYASI):
+    """Küpü bir kez BELLEĞE yükleyip dosyayı hemen kapatır: API'nin iş
+    parçacıkları aynı .nc dosyasını paralel açık tuttuğunda HDF5 (thread-safe
+    değil) 'access violation' ile çökebiliyordu."""
+    with _veri_kupu_kilidi:
+        if dosya_yolu not in _veri_kupu_onbellegi:
+            with hava_durumu_yukle(dosya_yolu) as veri_kupu:
+                _veri_kupu_onbellegi[dosya_yolu] = veri_kupu.load()
+        return _veri_kupu_onbellegi[dosya_yolu]
 
 
 # ---------------------------------------------------------------------------

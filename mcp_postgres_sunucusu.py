@@ -29,6 +29,7 @@ from veritabani import motor_al, ucus_detayini_getir, ucuslari_listele
 sunucu = MCPServer("turbulans-postgres")
 
 _SATIR_LIMITI_TAVANI = 1000
+_SORGU_ZAMAN_ASIMI_MS = 10_000
 
 # Tek bir SELECT ifadesine izin verir; noktalı virgülle ikinci bir ifade
 # eklenmesini veya yazma amaçlı anahtar kelimeleri reddeder.
@@ -90,6 +91,7 @@ def salt_okunur_sorgu_calistir(sql: str, limit: int = 200) -> list[dict]:
     motor = motor_al()
     with motor.connect() as baglanti:
         baglanti = baglanti.execution_options(postgresql_readonly=True)
+        baglanti.execute(text(f"SET LOCAL statement_timeout = {_SORGU_ZAMAN_ASIMI_MS}"))
         sonuc = baglanti.execute(text(f"SELECT * FROM ({temiz_sql}) AS alt_sorgu LIMIT {limit}"))
         return [dict(satir._mapping) for satir in sonuc]
 

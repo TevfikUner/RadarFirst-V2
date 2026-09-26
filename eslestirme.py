@@ -109,6 +109,15 @@ def _kapsam_disi_maskesi_hesapla(
     return kapsam_disi
 
 
+def kapsam_disi_maskesi(veri_kupu, enlemler, boylamlar, zamanlar):
+    return _kapsam_disi_maskesi_hesapla(
+        veri_kupu,
+        np.asarray(enlemler, dtype=float),
+        np.asarray(boylamlar, dtype=float),
+        _zamanlari_veri_kupune_uydur(zamanlar),
+    )
+
+
 def _zamanlari_veri_kupu_izgarasina_yuvarla(veri_kupu, zaman_serisi):
     """
     Her hedef zamanı, veri küpünün 'valid_time' izgarasındaki GERÇEK en yakın

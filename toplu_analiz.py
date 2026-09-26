@@ -35,9 +35,13 @@ from hata_yardimcisi import dostane_hata_mesaji
 from main import calistir
 
 
-def toplu_analiz_calistir(ucus_listesi_df: pd.DataFrame) -> pd.DataFrame:
+def toplu_analiz_calistir(
+    ucus_listesi_df: pd.DataFrame, kayit_zorunlu: bool = False, ucus_tamamlandi=None
+) -> pd.DataFrame:
     """
     ucus_listesi_df: 'ucus_numarasi' ve 'tarih' sütunlarını içeren DataFrame.
+    ucus_tamamlandi: verilirse, başarılı her uçuştan sonra
+        (ucus_numarasi, tarih, eslesmis_df) ile çağrılır.
     Dönüş: her uçuş için bir özet satırı içeren DataFrame.
     """
     sonuclar = []
@@ -56,7 +60,7 @@ def toplu_analiz_calistir(ucus_listesi_df: pd.DataFrame) -> pd.DataFrame:
         print("=" * 60)
 
         try:
-            eslesmis_df = calistir(ucus_no, tarih)
+            eslesmis_df = calistir(ucus_no, tarih, kayit_zorunlu=kayit_zorunlu)
         except Exception as hata:
             print(f"[Hata] {dostane_hata_mesaji(hata)}")
             sonuclar.append(
@@ -87,6 +91,9 @@ def toplu_analiz_calistir(ucus_listesi_df: pd.DataFrame) -> pd.DataFrame:
                 }
             )
             continue
+
+        if ucus_tamamlandi is not None:
+            ucus_tamamlandi(ucus_no, tarih, eslesmis_df)
 
         ti1_gecerli = eslesmis_df["ti1_indeksi"].dropna()
         dinamik_kararsizlik_sayisi = (

@@ -43,12 +43,15 @@ BİLİNÇLİ OLARAK EKLENMEDİ:
 """
 
 import asyncio
+import ipaddress
 import json
 import os
 import secrets
 import time
 import uuid
 from datetime import date
+from functools import partial
+from urllib.parse import urlsplit
 
 try:
     from dotenv import load_dotenv
@@ -83,7 +86,7 @@ from sqlalchemy.exc import SQLAlchemyError
 import config
 import loglama
 from hata_yardimcisi import dostane_hata_mesaji
-from main import calistir as tek_ucus_analiz_et
+from main import calistir
 from rota_optimizasyonu import UCAK_PROFILLERI, rota_simulasyonu_olustur, simulasyonu_czml_e_cevir, veri_kupune_eris
 from semalar import (
     EsiklerYaniti,
@@ -107,8 +110,8 @@ from toplu_analiz import toplu_analiz_calistir
 from turbulans_ml_modeli import (
     model_bilgisini_yukle,
     model_versiyonlarini_listele,
+    ozelliklerden_risk_tahmin_et,
     ozellikleri_cikar,
-    turbulans_riski_tahmin_et,
     versiyona_geri_don,
 )
 from veritabani import (
@@ -123,6 +126,8 @@ from veritabani import (
 
 loglama.ayarla()
 _logger = loglama.logger_al(__name__)
+
+tek_ucus_analiz_et = partial(calistir, kayit_zorunlu=True)
 
 app = FastAPI(
     title="Türbülans Radar API",
@@ -280,7 +285,7 @@ baglanti_yoneticisi = _BaglantiYoneticisi()
 @app.websocket("/ws/uyarilar")
 async def uyarilar_websocket(websocket: WebSocket, api_key: str | None = None):
     beklenen = os.environ.get("API_ANAHTARI")
-    if beklenen and (not api_key or not secrets.compare_digest(api_key, beklenen)):
+    if not beklenen or not api_key or not secrets.compare_digest(api_key, beklenen):
         await websocket.close(code=4401)
         return
     await baglanti_yoneticisi.baglan(websocket)
@@ -381,6 +386,27 @@ def _tarihi_dogrula(deger: str) -> str:
     return deger
 
 
+def _webhook_url_dogrula(deger: str | None) -> str | None:
+    if deger is None:
+        return None
+    parcalar = urlsplit(deger)
+    if parcalar.scheme not in ("http", "https") or not parcalar.hostname:
+        raise ValueError("bildirim_webhook_url 'http(s)://' ile başlayan geçerli bir URL olmalı.")
+    host = parcalar.hostname.lower()
+    izinli_hostlar = [
+        h.strip().lower() for h in os.environ.get("WEBHOOK_IZIN_VERILEN_HOSTLAR", "").split(",") if h.strip()
+    ]
+    if izinli_hostlar and host not in izinli_hostlar:
+        raise ValueError("bildirim_webhook_url'in host'u WEBHOOK_IZIN_VERILEN_HOSTLAR listesinde değil.")
+    try:
+        ip = ipaddress.ip_address(host)
+    except ValueError:
+        return deger
+    if ip.is_link_local or ip.is_multicast or ip.is_unspecified or ip.is_reserved:
+        raise ValueError("bildirim_webhook_url link-local/multicast/ayrılmış bir adrese işaret edemez.")
+    return deger
+
+
 class UcusAnalizIstegi(BaseModel):
     ucus_numarasi: str = Field(pattern=_UCUS_NUMARASI_DESENI)
     tarih: str  # YYYY-MM-DD
@@ -391,10 +417,20 @@ class UcusAnalizIstegi(BaseModel):
     def _tarih_gecerli_mi(cls, deger):
         return _tarihi_dogrula(deger)
 
+    @field_validator("bildirim_webhook_url")
+    @classmethod
+    def _webhook_gecerli_mi(cls, deger):
+        return _webhook_url_dogrula(deger)
+
 
 class TopluAnalizIstegi(BaseModel):
     ucuslar: list[UcusAnalizIstegi]
     bildirim_webhook_url: str | None = None
+
+    @field_validator("bildirim_webhook_url")
+    @classmethod
+    def _webhook_gecerli_mi(cls, deger):
+        return _webhook_url_dogrula(deger)
 
 
 @v1.get("/esikler", response_model=EsiklerYaniti, tags=["Eşikler"])
@@ -480,7 +516,7 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi):
                 ),
             }
 
-        ml_sonuc = turbulans_riski_tahmin_et(nokta_df, veri_kupu)
+        ml_sonuc = ozelliklerden_risk_tahmin_et(ozellikler)
         ml_olasilik = float(ml_sonuc[0]) if ml_sonuc is not None and not pd.isna(ml_sonuc[0]) else None
 
         return {
@@ -647,19 +683,13 @@ async def ucus_geojson_disa_aktar(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Uçuş bulunamadı. Önce POST /api/v1/analiz/ucus ile analiz tetikle.",
         )
-    ozellik_sutunlari = [s for s in df.columns if s not in ("enlem", "boylam")]
-    df_temiz = df.astype(object).where(df.notna(), None)
-    koleksiyon = {
-        "type": "FeatureCollection",
-        "features": [
-            {
-                "type": "Feature",
-                "geometry": {"type": "Point", "coordinates": [satir["boylam"], satir["enlem"]]},
-                "properties": {sutun: satir[sutun] for sutun in ozellik_sutunlari},
-            }
-            for _, satir in df_temiz.iterrows()
-        ],
-    }
+
+    def _geojson_ozelligi(kayit):
+        boylam, enlem = kayit.pop("boylam"), kayit.pop("enlem")
+        return {"type": "Feature", "geometry": {"type": "Point", "coordinates": [boylam, enlem]}, "properties": kayit}
+
+    kayitlar = df.astype(object).where(df.notna(), None).to_dict(orient="records")
+    koleksiyon = {"type": "FeatureCollection", "features": [_geojson_ozelligi(k) for k in kayitlar]}
     dosya_adi = f"{ucus_numarasi}_{tarih.isoformat()}.geojson"
     return Response(
         content=json.dumps(koleksiyon, default=str),
@@ -686,13 +716,14 @@ async def ucus_sigmet_dogrulamasi(
     return await asyncio.to_thread(ucus_sigmet_ile_karsilastir, df)
 
 
+def _gorev_olustur(**alanlar):
+    _eski_gorevleri_temizle()
+    gorev_id = str(uuid.uuid4())
+    _gorevler[gorev_id] = {"durum": "calisiyor", **alanlar, "_olusturulma": time.monotonic()}
+    return gorev_id
+
+
 async def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih, webhook_url):
-    _gorevler[gorev_id] = {
-        "durum": "calisiyor",
-        "ucus_numarasi": ucus_numarasi,
-        "tarih": tarih,
-        "_olusturulma": time.monotonic(),
-    }
     try:
         sonuc = await asyncio.to_thread(tek_ucus_analiz_et, ucus_numarasi, tarih)
         _gorevler[gorev_id]["durum"] = "tamamlandi" if sonuc is not None else "basarisiz"
@@ -706,8 +737,7 @@ async def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih, webhook_url)
 @v1.post("/analiz/ucus", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])
 async def ucus_analizi_baslat(istek: UcusAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
     _hiz_sinirini_kontrol_et("tek_ucus")
-    _eski_gorevleri_temizle()
-    gorev_id = str(uuid.uuid4())
+    gorev_id = _gorev_olustur(ucus_numarasi=istek.ucus_numarasi, tarih=istek.tarih)
     arkaplan_gorevleri.add_task(
         _tek_ucus_arkaplan_gorevi, gorev_id, istek.ucus_numarasi, istek.tarih, istek.bildirim_webhook_url
     )
@@ -715,9 +745,15 @@ async def ucus_analizi_baslat(istek: UcusAnalizIstegi, arkaplan_gorevleri: Backg
 
 
 async def _toplu_arkaplan_gorevi(gorev_id, ucus_listesi_df, webhook_url):
-    _gorevler[gorev_id] = {"durum": "calisiyor", "_olusturulma": time.monotonic()}
+    dongu = asyncio.get_running_loop()
+
+    def _ucus_tamamlandi(ucus_numarasi, tarih, eslesmis_df):
+        asyncio.run_coroutine_threadsafe(_yuksek_riskli_noktalari_yayinla(eslesmis_df, ucus_numarasi, tarih), dongu)
+
     try:
-        ozet_df = await asyncio.to_thread(toplu_analiz_calistir, ucus_listesi_df)
+        ozet_df = await asyncio.to_thread(
+            toplu_analiz_calistir, ucus_listesi_df, kayit_zorunlu=True, ucus_tamamlandi=_ucus_tamamlandi
+        )
         _gorevler[gorev_id]["durum"] = "tamamlandi"
         _gorevler[gorev_id]["ozet"] = ozet_df.to_dict(orient="records")
     except Exception as hata:
@@ -729,11 +765,10 @@ async def _toplu_arkaplan_gorevi(gorev_id, ucus_listesi_df, webhook_url):
 @v1.post("/analiz/toplu", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])
 async def toplu_analiz_baslat(istek: TopluAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
     _hiz_sinirini_kontrol_et("toplu")
-    _eski_gorevleri_temizle()
     if not istek.ucuslar:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="'ucuslar' listesi boş olamaz.")
     ucus_listesi_df = pd.DataFrame([u.model_dump(exclude={"bildirim_webhook_url"}) for u in istek.ucuslar])
-    gorev_id = str(uuid.uuid4())
+    gorev_id = _gorev_olustur()
     arkaplan_gorevleri.add_task(_toplu_arkaplan_gorevi, gorev_id, ucus_listesi_df, istek.bildirim_webhook_url)
     return {"gorev_id": gorev_id, "durum": "baslatildi"}
 

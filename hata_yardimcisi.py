@@ -9,6 +9,7 @@ modülü kullanır -- böylece "beklenmeyen bir hata" her yerde aynı, anlaşıl
 """
 
 from kimlik_dogrulama import KimlikBilgisiEksikHatasi
+from veritabani import VeritabaniKayitHatasi
 
 
 def dostane_hata_mesaji(hata: Exception) -> str:
@@ -17,7 +18,7 @@ def dostane_hata_mesaji(hata: Exception) -> str:
     açıklama döndürür. Tanınmayan hatalar için bile en azından hatanın
     türünü ve mesajını okunabilir şekilde sunar (sessizce yutmaz).
     """
-    if isinstance(hata, KimlikBilgisiEksikHatasi):
+    if isinstance(hata, (KimlikBilgisiEksikHatasi, VeritabaniKayitHatasi)):
         return str(hata)
 
     if isinstance(hata, FileNotFoundError):
