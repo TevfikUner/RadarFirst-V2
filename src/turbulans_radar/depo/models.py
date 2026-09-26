@@ -17,6 +17,9 @@ tablo var, ORM sadece onların Python tarafındaki tanımı.
                                              verisinin kendisi diskte NetCDF olarak kalır)
     RotaBacktesti  -> 'rota_backtestleri'   (gerçek uçuş izi vs büyük daire vs A* rotası
                                              karşılaştırması, uçuş başına en son sonuç)
+    VeriKaynagiDurumu -> 'veri_kaynagi_durumlari' (her dış veri kaynağının son deneme/son
+                                             BAŞARILI çekim zamanı ve son hatası -- bayatlık
+                                             ve sağlık kontrolü buradan okunur)
 """
 
 from sqlalchemy import (
@@ -174,3 +177,14 @@ class RotaBacktesti(Base):
     optimize_riskli_oran: Mapped[float | None] = mapped_column(Float, nullable=True)
     optimize_sigmet_ihlali: Mapped[int] = mapped_column(Integer, nullable=False)
     olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class VeriKaynagiDurumu(Base):
+    __tablename__ = "veri_kaynagi_durumlari"
+
+    kaynak: Mapped[str] = mapped_column(String(32), primary_key=True)
+    son_deneme_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    son_basari_zamani: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ardisik_hata_sayisi: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    son_hata: Mapped[str | None] = mapped_column(Text, nullable=True)
+    son_ozet: Mapped[dict | None] = mapped_column(JSONB, nullable=True)

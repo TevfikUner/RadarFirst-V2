@@ -144,6 +144,14 @@ SIGMET_SAKLAMA_GUN = _ortam_sayi("SIGMET_SAKLAMA_GUN", 30, int)
 SIGMET_BAYATLIK_DAKIKA = _ortam_sayi("SIGMET_BAYATLIK_DAKIKA", 30, int)
 # >0 ise API kendi içinde bu aralıkla (dakika) SIGMET çeker; 0 = kapalı (n8n/cron tetikler).
 SIGMET_OTOMATIK_GUNCELLEME_DAKIKA = _ortam_sayi("SIGMET_OTOMATIK_GUNCELLEME_DAKIKA", 0, int)
+# Bir kaynağın akışındaki SIGMET kayıtlarının bu orandan fazlası çözümlenemezse
+# (AWC şema değişikliği şüphesi) çekim HATA sayılır: mevcut kayıtlar
+# sonlandırılmaz, kaynak "başarılı güncelleme" almaz -- sessizce "SIGMET yok"a
+# düşülmez (bkz. sigmet_saglayici._akis_sagligini_denetle).
+SIGMET_MAKS_COZUMLENEMEYEN_ORAN = _ortam_sayi("SIGMET_MAKS_COZUMLENEMEYEN_ORAN", 0.25)
+# Tehlike alanı okunamayan SIGMET'ler bu etiketle saklanır ve A* tarafından
+# (muhafazakâr olarak) her zaman kaçınılır.
+SIGMET_BILINMEYEN_TEHLIKE = "BILINMIYOR"
 
 # veri_saglayicilari.py -- anlık rota için CANLI hava verisi (ERA5 reanalizi
 # birkaç gün gecikmeli yayınlandığı için "şimdi"yi kapsamaz). NOAA GFS 0.25°,

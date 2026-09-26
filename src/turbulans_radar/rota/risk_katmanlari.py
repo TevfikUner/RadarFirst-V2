@@ -114,6 +114,7 @@ class SigmetKisitKatmani:
 
     def __init__(self, sigmetler, tehlikeler=None):
         tehlikeler = {t.upper() for t in (tehlikeler or config.SIGMET_KACINILACAK_TEHLIKELER)}
+        tehlikeler.add(config.SIGMET_BILINMEYEN_TEHLIKE)
         self.sigmetler = [s for s in sigmetler if s["tehlike"].upper() in tehlikeler]
         self._poligonlar = [sigmet_geometrisi(s["poligon"]) for s in self.sigmetler]
         for poligon in self._poligonlar:

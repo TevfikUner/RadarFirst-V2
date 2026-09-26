@@ -83,3 +83,8 @@ def test_kendini_kesen_sigmet_poligonu_onarilarak_uygulanir():
     konumlar = {"sol_lob": (39.0, 30.4), "sag_lob": (39.0, 31.6), "disarida": (37.0, 31.0)}
     sonuc = katman.degerlendir(konumlar, dict.fromkeys(konumlar, SIMDI), [], 34000 * 0.3048)
     assert sonuc.yasak_dugumler == {"sol_lob", "sag_lob"}
+
+
+def test_tehlikesi_bilinmeyen_sigmetten_muhafazakar_olarak_kacinilir():
+    sonuc = _degerlendir(SigmetKisitKatmani([_kare_sigmet(tehlike="BILINMIYOR")]))
+    assert sonuc.yasak_dugumler == {"ic"}

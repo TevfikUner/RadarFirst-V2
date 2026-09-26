@@ -2787,6 +2787,14 @@
             "title": "Bayat Mi",
             "default": false
           },
+          "sorunlu_kaynaklar": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Sorunlu Kaynaklar",
+            "default": []
+          },
           "sigmetler": {
             "items": {
               "$ref": "#/components/schemas/SigmetOzetiYaniti"
@@ -2950,6 +2958,15 @@
             },
             "type": "object",
             "title": "Kaynak Hatalari"
+          },
+          "kaynaklar": {
+            "additionalProperties": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "object",
+            "title": "Kaynaklar",
+            "default": {}
           }
         },
         "type": "object",
@@ -2959,7 +2976,8 @@
           "silinen",
           "kaynak_hatalari"
         ],
-        "title": "SigmetYenilemeYaniti"
+        "title": "SigmetYenilemeYaniti",
+        "description": "kaynak_hatalari boş değilse o kaynağın mevcut SIGMET'leri korunmuştur\n(akış çekilemedi ya da güvenilir değil); kaynaklar: kaynak başına sayım."
       },
       "TopluAnalizIstegi": {
         "properties": {

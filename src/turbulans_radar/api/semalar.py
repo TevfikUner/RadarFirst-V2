@@ -173,14 +173,19 @@ class SigmetKontroluYaniti(BaseModel):
     aktif_sigmet_sayisi: int = 0
     son_guncelleme: datetime | None = None
     bayat_mi: bool = False
+    sorunlu_kaynaklar: list[str] = []
     sigmetler: list[SigmetOzetiYaniti] = []
 
 
 class SigmetYenilemeYaniti(BaseModel):
+    """kaynak_hatalari boş değilse o kaynağın mevcut SIGMET'leri korunmuştur
+    (akış çekilemedi ya da güvenilir değil); kaynaklar: kaynak başına sayım."""
+
     kaydedilen: int
     sonlandirilan: int
     silinen: int
     kaynak_hatalari: dict[str, str]
+    kaynaklar: dict[str, dict] = {}
 
 
 class RotaSimulasyonuYaniti(BaseModel):

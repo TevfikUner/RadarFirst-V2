@@ -81,6 +81,7 @@ def test_veritabani():
     yield motor
     with motor.begin() as baglanti:
         baglanti.execute(text("DELETE FROM sigmetler WHERE kaynak = 'test'"))
+        baglanti.execute(text("DELETE FROM veri_kaynagi_durumlari WHERE kaynak IN ('sigmet:test', 'sigmet:test_yok')"))
 
 
 def test_guncelleme_upsert_eder_ve_akistan_dusen_sigmeti_sonlandirir(test_veritabani):
@@ -141,3 +142,123 @@ def test_antimeridyeni_kesen_poligon_surekli_boylama_tasinir():
     kayit = ss.sigmet_kaydini_normalize_et("isigmet", pasifik)
     assert [k[0] for k in kayit["poligon"]] == [175.0, 185.0, 185.0, 175.0, 175.0]
     assert (kayit["boylam_min"], kayit["boylam_maks"]) == (-180.0, 180.0)
+
+
+def test_cok_alanli_sigmet_her_alan_icin_ayri_kayit_uretir():
+    cok_alanli = {
+        **ULUSLARARASI_ORNEK,
+        "firId": "FCCC",
+        "hazard": "TS",
+        "geom": "AREAS",
+        "coords": [
+            [{"lon": 11.633, "lat": 1.183}, {"lon": 11.05, "lat": 0.667}, {"lon": 10.717, "lat": 1.533}],
+            [{"lon": 13.017, "lat": 4.383}, {"lon": 13.067, "lat": 3.967}, {"lon": 12.483, "lat": 4.167}],
+        ],
+    }
+    kayitlar, neden = ss.sigmet_kayitlarini_cozumle("isigmet", cok_alanli)
+    assert neden is None
+    assert len(kayitlar) == 2 and kayitlar[0]["dis_kimlik"] != kayitlar[1]["dis_kimlik"]
+    assert [k["poligon"][0] for k in kayitlar] == [[11.633, 1.183], [13.017, 4.383]]
+    assert all(k["tehlike"] == "TS" and k["fir_kodu"] == "FCCC" for k in kayitlar)
+
+
+def test_tek_alanli_kaydin_dis_kimligi_degismedi():
+    import hashlib
+    import json
+
+    anahtar = [
+        "isigmet",
+        "LTAA",
+        "LTAA",
+        "T01",
+        ULUSLARARASI_ORNEK["validTimeFrom"],
+        "TURB",
+        [(k["lat"], k["lon"]) for k in ULUSLARARASI_ORNEK["coords"]],
+    ]
+    beklenen = hashlib.sha1(json.dumps(anahtar, sort_keys=True).encode()).hexdigest()
+    assert ss.sigmet_kaydini_normalize_et("isigmet", ULUSLARARASI_ORNEK)["dis_kimlik"] == beklenen
+
+
+@pytest.mark.parametrize(
+    "ham, neden",
+    [
+        ({**ULUSLARARASI_ORNEK, "coords": [[30.0, 38.0], [30.0, 40.0], [32.0, 40.0]]}, "poligon_yok"),
+        ({**ULUSLARARASI_ORNEK, "validTimeTo": "2026-09-26T21:40:00Z"}, "bicim_hatasi"),
+        ({**ULUSLARARASI_ORNEK, "validTimeFrom": None}, "gecerlilik_yok"),
+        ("SIGMET metni", "bicim_hatasi"),
+    ],
+    ids=["koordinat_dizisi", "iso_zaman", "gecerlilik_eksik", "sozluk_degil"],
+)
+def test_bozuk_kayit_istisna_firlatmadan_nedeniyle_elenir(ham, neden):
+    assert ss.sigmet_kayitlarini_cozumle("isigmet", ham) == ([], neden)
+
+
+def test_makul_olmayan_irtifa_bandi_muhafazakar_genisletilir():
+    def bant(**alanlar):
+        kayit = ss.sigmet_kaydini_normalize_et("isigmet", {**ULUSLARARASI_ORNEK, **alanlar})
+        return kayit["taban_ft"], kayit["tavan_ft"]
+
+    assert bant(base=None, top="FL390") == (None, None)
+    assert bant(base=10000, top=390000) == (10000, None)
+    assert bant(base=30000, top=20000) == (None, None)
+
+
+def test_tehlikesi_okunamayan_sigmet_bilinmiyor_olarak_saklanir():
+    kayit = ss.sigmet_kaydini_normalize_et("isigmet", {**ULUSLARARASI_ORNEK, "hazard": None})
+    assert kayit["tehlike"] == "BILINMIYOR"
+    assert "BILINMIYOR" in ss.kacinilacak_tehlikeler()
+
+
+def _aktif_test_sigmetleri():
+    sonra = datetime.now(UTC) + timedelta(seconds=1)
+    return [s for s in ss.gecerli_sigmetleri_getir(sonra, sonra) if s["kaynak"] == "test"]
+
+
+def test_sema_degisikliginde_mevcut_sigmetler_korunur_ve_kaynak_hatali_isaretlenir(test_veritabani):
+    ikinci = {**ULUSLARARASI_ORNEK, "seriesId": "T02", "hazard": "TS"}
+    ss.sigmetleri_guncelle(getirici=lambda k: [ULUSLARARASI_ORNEK, ikinci], kaynaklar=("test",))
+    ilk_basari = ss.son_guncelleme_zamani(kaynaklar=("test",))
+    assert ilk_basari is not None and ss.sorunlu_kaynaklar(kaynaklar=("test",)) == []
+
+    yeni_sema = [{**h, "geometry": h["coords"], "coords": None} for h in (ULUSLARARASI_ORNEK, ikinci)]
+    ozet = ss.sigmetleri_guncelle(getirici=lambda k: yeni_sema, kaynaklar=("test",))
+
+    assert ozet["sonlandirilan"] == 0
+    assert "şema uyuşmazlığı" in ozet["kaynak_hatalari"]["test"]
+    kaynak_ozeti = ozet["kaynaklar"]["test"]
+    assert (kaynak_ozeti["ham"], kaynak_ozeti["cozumlenemeyen"], kaynak_ozeti["durum"]) == (2, 2, "hata")
+    assert len(_aktif_test_sigmetleri()) == 2
+    assert ss.son_guncelleme_zamani(kaynaklar=("test",)) == ilk_basari
+    assert ss.sorunlu_kaynaklar(kaynaklar=("test",)) == ["test"]
+
+
+@pytest.mark.parametrize("akis", [[], {"error": "bakim"}], ids=["bos", "liste_degil"])
+def test_bos_ya_da_liste_olmayan_akis_mevcut_sigmetleri_sonlandirmaz(test_veritabani, akis):
+    ss.sigmetleri_guncelle(getirici=lambda k: [ULUSLARARASI_ORNEK], kaynaklar=("test",))
+    ozet = ss.sigmetleri_guncelle(getirici=lambda k: akis, kaynaklar=("test",))
+    assert ozet["sonlandirilan"] == 0 and "test" in ozet["kaynak_hatalari"]
+    assert len(_aktif_test_sigmetleri()) == 1
+
+
+def test_esik_altindaki_cozumlenemeyen_kayit_guncellemeyi_durdurmaz(test_veritabani):
+    saglam = [{**ULUSLARARASI_ORNEK, "seriesId": f"T{i:02d}"} for i in range(4)]
+    bozuk = {**ULUSLARARASI_ORNEK, "seriesId": "T99", "coords": []}
+    ozet = ss.sigmetleri_guncelle(getirici=lambda k: [*saglam, bozuk], kaynaklar=("test",))
+    assert ozet["kaynak_hatalari"] == {}
+    assert ozet["kaynaklar"]["test"]["cozumlenemeyen"] == 1
+    assert ozet["kaynaklar"]["test"]["nedenler"] == {"poligon_yok": 1}
+    assert len(_aktif_test_sigmetleri()) == 4
+
+
+def test_hic_basarili_cekim_yapilmamis_kaynak_bayat_sayilir(test_veritabani):
+    assert ss.son_guncelleme_zamani(kaynaklar=("test_yok",)) is None
+    assert ss.sorunlu_kaynaklar(kaynaklar=("test_yok",)) == ["test_yok"]
+
+    def hatali(kaynak):
+        raise TimeoutError("AWC yanıt vermedi")
+
+    ss.sigmetleri_guncelle(getirici=hatali, kaynaklar=("test_yok",))
+    ss.sigmetleri_guncelle(getirici=hatali, kaynaklar=("test_yok",))
+    durum = ss.kaynak_saglik_durumlari(kaynaklar=("test_yok",))[0]
+    assert durum["ardisik_hata_sayisi"] == 2 and durum["son_basari_zamani"] is None
+    assert durum["son_hata"].startswith("TimeoutError")

@@ -789,7 +789,13 @@ async def test_rota_analizi_uctan_uca_kaydeder(istemci, api_anahtari, monkeypatc
 
 
 async def test_sigmet_guncelle_ozet_doner(istemci, api_anahtari, monkeypatch):
-    sahte_ozet = {"kaydedilen": 3, "sonlandirilan": 1, "silinen": 0, "kaynak_hatalari": {}}
+    sahte_ozet = {
+        "kaydedilen": 3,
+        "sonlandirilan": 1,
+        "silinen": 0,
+        "kaynak_hatalari": {"isigmet": "boş akış"},
+        "kaynaklar": {"airsigmet": {"ham": 5, "durum": "tamam"}},
+    }
     monkeypatch.setattr(api_servisi, "sigmetleri_guncelle", lambda: sahte_ozet)
     yanit = await istemci.post("/api/v1/sigmet/guncelle", headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 200
@@ -815,6 +821,7 @@ async def test_aktif_sigmetler_listelenir_ve_filtrelenir(istemci, api_anahtari):
     finally:
         with vt.motor_al().begin() as baglanti:
             baglanti.execute(text("DELETE FROM sigmetler WHERE kaynak = 'test'"))
+            baglanti.execute(text("DELETE FROM veri_kaynagi_durumlari WHERE kaynak = 'sigmet:test'"))
 
 
 async def test_rota_simulasyonu_sigmet_kontrolu_alanini_icerir(istemci, api_anahtari):

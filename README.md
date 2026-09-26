@@ -372,6 +372,22 @@ edilen) SIGMET'lerin geçerliliği sona erdirilir, süresi dolanlar
 `turbulans-sigmet` (cron) ya da `SIGMET_OTOMATIK_GUNCELLEME_DAKIKA`
 > 0 ile API'nin kendi zamanlayıcısı.
 
+**Sessiz kayıp koruması:** "akışta yok → sonlandır" kuralı, akış
+çözümlenemediğinde tüm aktif SIGMET'leri hata vermeden kapatabilirdi (örn.
+AWC `coords` alanını yeniden adlandırsa). Bu yüzden her akış önce denetlenir:
+boş ya da liste olmayan yanıt veya SIGMET kayıtlarının
+`SIGMET_MAKS_COZUMLENEMEYEN_ORAN`'dan (varsayılan %25) fazlasının
+çözümlenememesi **kaynak hatası** sayılır. Bu durumda mevcut kayıtlar
+sonlandırılmaz, `kaynak_hatalari` alanı doldurulur ve kaynak "başarılı
+güncelleme" almaz. Her kaynağın son deneme/son başarılı çekimi
+`veri_kaynagi_durumlari` tablosunda tutulur; `bayat_mi` artık en eski son
+BAŞARILI çekime bakar ve açıklama hata veren kaynağı adıyla belirtir. Aynı
+denetimde canlı akışta sessizce atılan bir biçim de bulundu: `geom: "AREAS"`
+(tek SIGMET'te birden fazla poligon) artık alan başına bir kayıt olarak
+saklanıyor. Okunamayan irtifa değeri daha geniş bir yasak banda, okunamayan
+tehlike türü `BILINMIYOR`'a çevrilir ve bu tür SIGMET'lerden her zaman
+kaçınılır.
+
 ## Canlı hava verisi: Veri Sağlayıcı katmanı (NOAA GFS)
 
 ERA5 bir reanalizdir, birkaç gün gecikmeyle yayınlanır -- "şimdi" için rota

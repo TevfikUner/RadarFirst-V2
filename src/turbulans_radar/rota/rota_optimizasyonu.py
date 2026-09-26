@@ -86,7 +86,12 @@ from turbulans_radar.rota.risk_katmanlari import (
     degerlendirmeleri_birlestir,
     rota_ti1_degerleri,
 )
-from turbulans_radar.veri.sigmet_saglayici import gecerli_sigmetleri_getir, son_guncelleme_zamani
+from turbulans_radar.veri.sigmet_saglayici import (
+    gecerli_sigmetleri_getir,
+    kacinilacak_tehlikeler,
+    son_guncelleme_zamani,
+    sorunlu_kaynaklar,
+)
 from turbulans_radar.veri.veri_saglayicilari import veri_kupu_kaynagi, veri_kupunu_sec
 from turbulans_radar.veri.veri_yukleme import hava_durumu_onbellekli_yukle, veri_kupu_adi
 
@@ -577,7 +582,13 @@ def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, t
         for i in range(len(enlemler_gc) - 1)
     )
     bitis = (baslangic + pd.Timedelta(seconds=toplam_km * 1000.0 / (tas_ms * 0.6)) + pd.Timedelta(hours=1)).ceil("s")
-    ozet = {"durum": "aktif_sigmet_yok", "aktif_sigmet_sayisi": 0, "son_guncelleme": None, "bayat_mi": False}
+    ozet = {
+        "durum": "aktif_sigmet_yok",
+        "aktif_sigmet_sayisi": 0,
+        "son_guncelleme": None,
+        "bayat_mi": False,
+        "sorunlu_kaynaklar": [],
+    }
 
     if sigmetler is None:
         try:
@@ -588,9 +599,10 @@ def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, t
                 float(np.max(enlemler_gc)) + _SIGMET_ARAMA_PAYI_DERECE,
                 float(np.min(boylamlar_gc)) - _SIGMET_ARAMA_PAYI_DERECE,
                 float(np.max(boylamlar_gc)) + _SIGMET_ARAMA_PAYI_DERECE,
-                tehlikeler=config.SIGMET_KACINILACAK_TEHLIKELER,
+                tehlikeler=kacinilacak_tehlikeler(),
             )
             ozet["son_guncelleme"] = son_guncelleme_zamani()
+            ozet["sorunlu_kaynaklar"] = sorunlu_kaynaklar()
         except Exception as hata:
             _logger.warning("SIGMET'ler okunamadı, rota SIGMET kontrolü olmadan hesaplanıyor: %s", hata)
             return None, {**ozet, "durum": "erisilemedi", "sigmetler": []}
@@ -818,9 +830,12 @@ def _aciklama_olustur(
             + (f"{ihlal} nokta/bacakta bunlara giriyor." if ihlal else "bunlara girmiyor.")
         )
     if sigmet_kontrolu.get("bayat_mi"):
+        sorunlu = sigmet_kontrolu.get("sorunlu_kaynaklar") or []
         cumleler.append(
-            f"UYARI: son SIGMET güncellemesi {config.SIGMET_BAYATLIK_DAKIKA} dakikadan eski ya da hiç yapılmamış "
-            "(bkz. POST /api/v1/sigmet/guncelle) -- aktif uyarılar eksik olabilir."
+            f"UYARI: son başarılı SIGMET güncellemesi {config.SIGMET_BAYATLIK_DAKIKA} dakikadan eski ya da hiç "
+            "yapılmamış (bkz. POST /api/v1/sigmet/guncelle)"
+            + (f"; hata veren kaynak: {', '.join(sorunlu)}" if sorunlu else "")
+            + " -- aktif uyarılar eksik olabilir."
         )
 
     if not guvenli_rota_bulundu_mu:

@@ -142,7 +142,7 @@ from turbulans_radar.rota.rota_optimizasyonu import (
     simulasyonu_czml_e_cevir,
     veri_kupune_eris,
 )
-from turbulans_radar.veri.sigmet_saglayici import gecerli_sigmetleri_getir, sigmetleri_guncelle
+from turbulans_radar.veri.sigmet_saglayici import gecerli_sigmetleri_getir, kacinilacak_tehlikeler, sigmetleri_guncelle
 from turbulans_radar.veri.veri_saglayicilari import Kutu, canli_kup_hazirla
 from turbulans_radar.veri.veri_yukleme import hava_durumu_dosyalari, veri_kupu_adi
 
@@ -179,6 +179,8 @@ async def _sigmet_zamanlayicisi(aralik_saniye):
     while True:
         try:
             ozet = await asyncio.to_thread(sigmetleri_guncelle)
+            if ozet["kaynak_hatalari"]:
+                _logger.error("SIGMET kaynak hataları (mevcut kayıtlar korundu): %s", ozet["kaynak_hatalari"])
             _logger.info("SIGMET'ler yenilendi: %s", ozet)
         except Exception as hata:
             _logger.warning("Periyodik SIGMET yenilemesi başarısız: %s", dostane_hata_mesaji(hata))
@@ -885,7 +887,7 @@ async def aktif_sigmetleri_listele(
         enlem_maks,
         boylam_min,
         boylam_maks,
-        tehlike or config.SIGMET_KACINILACAK_TEHLIKELER,
+        tehlike or kacinilacak_tehlikeler(),
     )
 
 

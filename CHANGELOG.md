@@ -4,6 +4,25 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## SIGMET akışında sessiz kayıp koruması
+
+- **Akış çözümlenemezse aktif SIGMET'ler artık kapatılmıyor:** "akışta yok
+  → sonlandır" kuralı, AWC şemasındaki bir değişiklikte (örn. `coords` alanının
+  adı değişirse) tüm aktif SIGMET'leri hata vermeden sonlandırıyordu (kanıtlandı:
+  `kaydedilen: 0, sonlandirilan: 1, kaynak_hatalari: {}`). Boş/liste olmayan
+  yanıt ya da SIGMET'lerin %25'inden fazlasının çözümlenememesi artık kaynak
+  hatası; mevcut kayıtlar korunuyor.
+- **Canlı akışta sessizce atılan biçim:** `geom: "AREAS"` (tek SIGMET'te birden
+  fazla poligon; denetim anında 109 uluslararası SIGMET'ten 2'si, biri aktif bir
+  oraj SIGMET'i) hiç kaydedilmiyordu. Artık alan başına bir kayıt.
+- **Kaynak başına sağlık kaydı:** yeni `veri_kaynagi_durumlari` tablosu (göç
+  `2aa66ec79c21`). Bayatlık, en son kaydedilen satırdan değil en eski son
+  BAŞARILI çekimden ölçülüyor; ABD akışının taze kayıtları uluslararası akışın
+  arızasını artık örtmüyor. Rota açıklaması hata veren kaynağı adıyla belirtiyor.
+- Bozuk tek bir kayıt (sözlük olmayan, ISO zamanlı) artık tüm güncellemeyi
+  düşürmüyor; okunamayan irtifa daha geniş bir yasak banda, okunamayan tehlike
+  `BILINMIYOR`'a çevriliyor ve bu SIGMET'lerden her zaman kaçınılıyor.
+
 ## İkinci tarama: canlı GFS yeniden kullanımı, katalog, n8n dokümantasyonu
 
 Tüm fazlar canlı bir API sunucusu üzerinden uçtan uca yeniden doğrulandı
