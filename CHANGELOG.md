@@ -31,6 +31,11 @@ gruplanmıştır, en yeni en üstte.
   bilinmeyen hız (0-`SIGMET_BILINMEYEN_HIZ_KT` kt) aralığı süpürülüyor.
 - Poligon katmanı vektörleştirildi (zaman hesapları numpy, sınır kutusu ön
   elemesi): 50 SIGMET'le A* 182 ms -> 68 ms (hareketliyle 68-77 ms).
+- **Yönetici/pilot anahtarı:** tek anahtar hem tarayıcıda (localStorage,
+  WebSocket URL'i) duruyor hem yasak saha silme, uçuş silme, model
+  aktifleştirmeye yetiyordu. `API_PILOT_ANAHTARI` (okuma, rota, tahmin,
+  uyarılar) eklendi; 13 yönetici ucu pilot anahtarına 403 dönüyor. WebSocket
+  60 sn'lik imzalı biletle açılıyor, sayfalar anahtarı `sessionStorage`'da tutuyor.
 
 ## Sağlık ucunda izleme, kütüphaneler ve altlık harita yerelden
 

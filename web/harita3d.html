@@ -136,7 +136,7 @@
 const API_TABANI = "";  // aynı origin -- göreli yollar yeterli
 
 function anahtarAl() {
-  return document.getElementById("giris-anahtar").value || localStorage.getItem("tr_api_anahtari") || "";
+  return document.getElementById("giris-anahtar").value || sessionStorage.getItem("tr_api_anahtari") || "";
 }
 
 function durumGoster(mesaj, tur) {
@@ -307,7 +307,7 @@ async function ucusuYukle() {
     durumGoster("Uçuş numarası, tarih ve API anahtarı gerekli.", "hata");
     return;
   }
-  localStorage.setItem("tr_api_anahtari", anahtar);
+  sessionStorage.setItem("tr_api_anahtari", anahtar);
 
   durumGoster("Yükleniyor...", "bilgi");
   try {
@@ -430,11 +430,20 @@ function metinSpan(metin, stil) {
   return el;
 }
 
-function canliUyarilariDinle() {
+async function canliUyarilariDinle() {
   const anahtar = anahtarAl();
   if (!anahtar) return;
+  // Anahtar URL'ye yazılmaz (loglanır): önce 60 sn'lik bilet alınır.
+  let bilet;
+  try {
+    const yanit = await fetch(API_TABANI + "/api/v1/ws-bileti", { method: "POST", headers: { "X-API-Key": anahtar } });
+    if (!yanit.ok) return;
+    bilet = (await yanit.json()).bilet;
+  } catch (e) {
+    return;
+  }
   const protokol = location.protocol === "https:" ? "wss:" : "ws:";
-  const ws = new WebSocket(`${protokol}//${location.host}/ws/uyarilar?api_key=${encodeURIComponent(anahtar)}`);
+  const ws = new WebSocket(`${protokol}//${location.host}/ws/uyarilar?bilet=${encodeURIComponent(bilet)}`);
   ws.onmessage = (olay) => {
     const veri = JSON.parse(olay.data);
     if (veri.tip !== "turbulans_uyarisi") return;
@@ -446,7 +455,7 @@ function canliUyarilariDinle() {
   ws.onerror = () => console.warn("Canlı uyarı WebSocket bağlantısı kurulamadı.");
 }
 
-document.getElementById("giris-anahtar").value = localStorage.getItem("tr_api_anahtari") || "";
+document.getElementById("giris-anahtar").value = sessionStorage.getItem("tr_api_anahtari") || "";
 document.getElementById("yukle-buton").addEventListener("click", () => { ucusuYukle(); canliUyarilariDinle(); });
 document.getElementById("sil-buton").addEventListener("click", ucusuSil);
 document.getElementById("ucuslar-arama-buton").addEventListener("click", kayitliUcuslariListele);

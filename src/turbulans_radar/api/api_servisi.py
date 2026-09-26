@@ -45,6 +45,8 @@ BİLİNÇLİ OLARAK EKLENMEDİ:
 """
 
 import asyncio
+import hashlib
+import hmac
 import inspect
 import json
 import os
@@ -108,6 +110,7 @@ from turbulans_radar.api.semalar import (
     UcakProfiliYaniti,
     UcusDetayYaniti,
     UcuslarListesiYaniti,
+    WsBiletiYaniti,
 )
 from turbulans_radar.cli.statik_indir import yerel_kutuphane_durumu
 from turbulans_radar.depo.gorev_deposu import eski_gorevleri_temizle, gorev_getir, gorev_olustur, kuyruk_durumu
@@ -253,25 +256,71 @@ app.mount("/harita", StaticFiles(directory="web", html=True), name="harita")
 
 
 # ---------------------------------------------------------------------------
-# Güvenlik: statik API anahtarı ('.env' -> API_ANAHTARI)
+# Güvenlik: iki rollü statik API anahtarı ('.env')
+#   API_ANAHTARI       -> yönetici: her şey (n8n, operasyon).
+#   API_PILOT_ANAHTARI -> pilot/EFB istemcisi (isteğe bağlı): okuma, rota
+#                         simülasyonu, tahmin, canlı uyarılar. Silme, kısıtlı
+#                         saha değişikliği, model aktifleştirme ve görev
+#                         tetikleme 403 döner -- kokpitteki bir tabletten
+#                         sızan anahtar güvenlik verisini değiştiremesin.
 # ---------------------------------------------------------------------------
 
 
-def api_anahtarini_dogrula(x_api_key: str | None = Header(default=None, alias="X-API-Key")):
-    beklenen = os.environ.get("API_ANAHTARI")
-    if not beklenen:
+def _anahtar_eslesiyor(verilen: str | None, beklenen: str | None) -> bool:
+    # secrets.compare_digest: '==' kısa devre yaptığı için yanıt süresinden
+    # anahtarın ilk kaç karakterinin tutturulduğu sızabilir (timing attack).
+    return bool(verilen and beklenen) and secrets.compare_digest(verilen, beklenen)
+
+
+def api_anahtarini_dogrula(x_api_key: str | None = Header(default=None, alias="X-API-Key")) -> str:
+    """Anahtarın rolünü döner: 'yonetici' ya da 'pilot'."""
+    yonetici = os.environ.get("API_ANAHTARI")
+    if not yonetici:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Sunucuda API_ANAHTARI tanımlı değil -- '.env' dosyasına ekle.",
         )
-    # secrets.compare_digest: '==' karakter karakter kısa devre yaptığı için
-    # yanıt süresinden doğru anahtarın ilk kaç karakterinin tutturulduğunu
-    # sızdırabilir (timing attack); sabit zamanlı karşılaştırma bunu önler.
-    if not x_api_key or not secrets.compare_digest(x_api_key, beklenen):
+    if _anahtar_eslesiyor(x_api_key, yonetici):
+        return "yonetici"
+    if _anahtar_eslesiyor(x_api_key, os.environ.get("API_PILOT_ANAHTARI")):
+        return "pilot"
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Geçersiz veya eksik API anahtarı ('X-API-Key' başlığı gerekli).",
+    )
+
+
+def yonetici_gerekli(rol: str = Depends(api_anahtarini_dogrula)):
+    if rol != "yonetici":
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Geçersiz veya eksik API anahtarı ('X-API-Key' başlığı gerekli).",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bu işlem yönetici anahtarı gerektirir; pilot anahtarı sadece okuma ve rota hesabı yapabilir.",
         )
+
+
+_YONETICI = [Depends(yonetici_gerekli)]
+_BILET_SURESI_SANIYE = 60
+
+
+def _bilet_imzasi(govde: str) -> str:
+    return hmac.new(os.environ["API_ANAHTARI"].encode(), govde.encode(), hashlib.sha256).hexdigest()
+
+
+def ws_bileti_uret(rol: str, simdi: float | None = None) -> str:
+    """WebSocket için kısa ömürlü, sunucu anahtarıyla imzalı bilet: anahtarın
+    kendisi URL'ye (proxy/erişim loglarına) yazılmasın diye."""
+    govde = f"{int((simdi if simdi is not None else time.time()) + _BILET_SURESI_SANIYE)}.{rol}"
+    return f"{govde}.{_bilet_imzasi(govde)}"
+
+
+def ws_bileti_gecerli_mi(bilet: str | None) -> bool:
+    if not bilet or not os.environ.get("API_ANAHTARI"):
+        return False
+    parcalar = bilet.split(".")
+    if len(parcalar) != 3 or not parcalar[0].isdigit():
+        return False
+    bitis, rol, imza = parcalar
+    return secrets.compare_digest(imza, _bilet_imzasi(f"{bitis}.{rol}")) and int(bitis) >= time.time()
 
 
 # ---------------------------------------------------------------------------
@@ -379,9 +428,15 @@ baglanti_yoneticisi = _BaglantiYoneticisi()
 
 
 @app.websocket("/ws/uyarilar")
-async def uyarilar_websocket(websocket: WebSocket, api_key: str | None = None):
-    beklenen = os.environ.get("API_ANAHTARI")
-    if not beklenen or not api_key or not secrets.compare_digest(api_key, beklenen):
+async def uyarilar_websocket(websocket: WebSocket, bilet: str | None = None, api_key: str | None = None):
+    """Kimlik: POST /api/v1/ws-bileti'den alınan 60 sn'lik bilet. Eski
+    istemciler için ?api_key= hâlâ kabul edilir ama önerilmez (anahtar URL'de
+    loglanır)."""
+    yonetici = os.environ.get("API_ANAHTARI")
+    anahtar_gecerli = _anahtar_eslesiyor(api_key, yonetici) or _anahtar_eslesiyor(
+        api_key, os.environ.get("API_PILOT_ANAHTARI")
+    )
+    if not yonetici or not (ws_bileti_gecerli_mi(bilet) or anahtar_gecerli):
         await websocket.close(code=4401)
         return
     await baglanti_yoneticisi.baglan(websocket)
@@ -469,6 +524,12 @@ class TopluAnalizIstegi(BaseModel):
     @classmethod
     def _webhook_gecerli_mi(cls, deger):
         return _webhook_url_dogrula(deger)
+
+
+@v1.post("/ws-bileti", response_model=WsBiletiYaniti, tags=["Sistem"])
+async def ws_bileti(rol: str = Depends(api_anahtarini_dogrula)):
+    """/ws/uyarilar?bilet=... için 60 sn geçerli bilet (yönetici ya da pilot)."""
+    return {"bilet": ws_bileti_uret(rol), "gecerlilik_saniye": _BILET_SURESI_SANIYE}
 
 
 @v1.get("/esikler", response_model=EsiklerYaniti, tags=["Eşikler"])
@@ -592,6 +653,7 @@ async def turbulans_model_versiyonlari():
 
 @v1.post(
     "/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir",
+    dependencies=_YONETICI,
     response_model=ModelBilgisiYaniti,
     tags=["Türbülans Tahmini"],
 )
@@ -623,7 +685,7 @@ async def ucuslar_listesi(
     )
 
 
-@v1.delete("/ucuslar", response_model=TopluSilmeYaniti, tags=["Uçuşlar"])
+@v1.delete("/ucuslar", dependencies=_YONETICI, response_model=TopluSilmeYaniti, tags=["Uçuşlar"])
 async def ucuslari_toplu_sil(
     ucus_numarasi_arama: str | None = Query(default=None, max_length=8, description="Uçuş numarasında kısmi arama"),
     baslangic_tarih: date | None = Query(default=None),
@@ -663,7 +725,9 @@ async def ucus_detayi(
     return detay
 
 
-@v1.delete("/ucuslar/{ucus_numarasi}/{tarih}", status_code=status.HTTP_204_NO_CONTENT, tags=["Uçuşlar"])
+@v1.delete(
+    "/ucuslar/{ucus_numarasi}/{tarih}", dependencies=_YONETICI, status_code=status.HTTP_204_NO_CONTENT, tags=["Uçuşlar"]
+)
 async def ucus_sil(
     ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
     tarih: date = Path(...),
@@ -760,7 +824,13 @@ def _kuyruga_alindi(gorev_id):
     return {"gorev_id": gorev_id, "durum": "kuyrukta"}
 
 
-@v1.post("/analiz/ucus", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])
+@v1.post(
+    "/analiz/ucus",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=GorevBaslatildiYaniti,
+    tags=["Analiz"],
+)
 async def ucus_analizi_baslat(istek: UcusAnalizIstegi):
     _hiz_sinirini_kontrol_et("tek_ucus")
     gorev_id = await _gorev_olustur(
@@ -769,7 +839,13 @@ async def ucus_analizi_baslat(istek: UcusAnalizIstegi):
     return _kuyruga_alindi(gorev_id)
 
 
-@v1.post("/analiz/rota", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])
+@v1.post(
+    "/analiz/rota",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=GorevBaslatildiYaniti,
+    tags=["Analiz"],
+)
 async def rota_analizi_baslat(istek: RotaAnalizIstegi):
     """
     OpenSky'a BAĞLANMADAN, dışarıdan alınmış bir ADS-B izini (başka bir
@@ -791,7 +867,13 @@ async def rota_analizi_baslat(istek: RotaAnalizIstegi):
     return _kuyruga_alindi(gorev_id)
 
 
-@v1.post("/analiz/toplu", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])
+@v1.post(
+    "/analiz/toplu",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=GorevBaslatildiYaniti,
+    tags=["Analiz"],
+)
 async def toplu_analiz_baslat(istek: TopluAnalizIstegi):
     _hiz_sinirini_kontrol_et("toplu")
     if not istek.ucuslar:
@@ -816,7 +898,7 @@ async def analiz_durumu(gorev_id: str):
     return gorev
 
 
-@v1.post("/sigmet/guncelle", response_model=SigmetYenilemeYaniti, tags=["SIGMET"])
+@v1.post("/sigmet/guncelle", dependencies=_YONETICI, response_model=SigmetYenilemeYaniti, tags=["SIGMET"])
 async def sigmetleri_yenile():
     """AWC'den (aviationweather.gov: ABD `airsigmet` + uluslararası `isigmet`)
     canlı SIGMET'leri çekip veritabanını günceller; akıştan düşen (iptal
@@ -865,7 +947,12 @@ async def kisitli_sahalari_listele(
     )
 
 
-@v1.post("/kisitli-sahalar", response_model=KisitliSahaIceAktarmaYaniti, tags=["Kısıtlı Hava Sahaları"])
+@v1.post(
+    "/kisitli-sahalar",
+    dependencies=_YONETICI,
+    response_model=KisitliSahaIceAktarmaYaniti,
+    tags=["Kısıtlı Hava Sahaları"],
+)
 async def kisitli_sahalari_ice_aktar(
     geojson: dict,
     kaynak: str = Query(min_length=1, max_length=32, pattern=r"^[a-z0-9_\-]+$"),
@@ -879,7 +966,12 @@ async def kisitli_sahalari_ice_aktar(
     return await asyncio.to_thread(geojson_ice_aktar, geojson, kaynak, eskileri_kaldir)
 
 
-@v1.delete("/kisitli-sahalar/{dis_kimlik}", status_code=status.HTTP_204_NO_CONTENT, tags=["Kısıtlı Hava Sahaları"])
+@v1.delete(
+    "/kisitli-sahalar/{dis_kimlik}",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["Kısıtlı Hava Sahaları"],
+)
 async def kisitli_saha_sil(dis_kimlik: str = Path(max_length=128)):
     _hiz_sinirini_kontrol_et("kisitli_saha")
     if not await asyncio.to_thread(kisitli_sahayi_sil, dis_kimlik):
@@ -898,6 +990,7 @@ async def hava_durumu_kupleri(limit: int = Query(default=50, ge=1, le=500)):
 
 @v1.post(
     "/veri/canli/hazirla",
+    dependencies=_YONETICI,
     status_code=status.HTTP_202_ACCEPTED,
     response_model=GorevBaslatildiYaniti,
     tags=["Veri Sağlayıcı"],
@@ -933,7 +1026,12 @@ async def canli_veri_hazirla(istek: CanliVeriIstegi):
     return _kuyruga_alindi(gorev_id)
 
 
-@v1.post("/backtest/ucuslar/{ucus_numarasi}/{tarih}", response_model=BacktestSonucuYaniti, tags=["Backtest"])
+@v1.post(
+    "/backtest/ucuslar/{ucus_numarasi}/{tarih}",
+    dependencies=_YONETICI,
+    response_model=BacktestSonucuYaniti,
+    tags=["Backtest"],
+)
 async def ucus_backtesti(
     ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
     tarih: date = Path(...),
@@ -945,7 +1043,11 @@ async def ucus_backtesti(
 
 
 @v1.post(
-    "/backtest/toplu", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Backtest"]
+    "/backtest/toplu",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=GorevBaslatildiYaniti,
+    tags=["Backtest"],
 )
 async def toplu_backtest_baslat(
     limit: int = Query(default=20, ge=1, le=200),
@@ -1077,7 +1179,7 @@ async def _veritabani_erisilebilir_mi() -> bool:
         return False
 
 
-@v1.get("/sistem/durum", response_model=SistemDurumuYaniti, tags=["Sistem"])
+@v1.get("/sistem/durum", dependencies=_YONETICI, response_model=SistemDurumuYaniti, tags=["Sistem"])
 async def sistem_durumu():
     """/saglik?derin=true ile aynı rapor, ek olarak kaynak başına son hata
     metinleriyle (API anahtarı gerektirir -- dış servis hata ayrıntıları

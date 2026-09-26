@@ -186,10 +186,15 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   telafi eder, ama TI1'in tek başına bağımsız becerisi şimdilik
   kanıtlanmamıştır.
 
+**Erişim**
+- İki statik anahtar (yönetici, pilot); kullanıcı başına kimlik, süre sınırlı
+  oturum ve denetim kaydı yok. Çok kullanıcılı bir filo için OAuth2/OIDC gerekir.
+
 ## 7. Uygun olmayan kullanımlar
 
 - Gerçek bir uçuşta operasyonel kararın tek dayanağı olarak kullanmak.
 - TI1/EDR proxy değerlerini sertifikalı EDR ölçümü yerine koymak.
 - ML metriklerini, doğrulanmadığı bölgelere (örn. Türkiye) genellemek.
+- Yönetici anahtarını kokpitteki cihaza koymak (pilot anahtarı kullanılmalı).
 - SIGMET kontrolü "erişilemedi" ya da "bayat" durumundayken önerilen rotayı
   SIGMET'ten arındırılmış saymak.

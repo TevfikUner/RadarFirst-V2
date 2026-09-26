@@ -987,3 +987,72 @@ async def test_saglik_kontrolu_hatasi_raporu_dusurmez(monkeypatch):
     rapor = await api_servisi._saglik_raporu(ayrintili=False)
     assert rapor["kontroller"]["canli_gfs"] == {"durum": "hata"}
     assert rapor["durum"] == "bozulmus"
+
+
+# --- Roller: yönetici ve pilot anahtarı ---
+
+PILOT = "pilot-anahtari-deneme"
+
+
+@pytest.fixture
+def pilot(monkeypatch, api_anahtari):
+    monkeypatch.setenv("API_PILOT_ANAHTARI", PILOT)
+    return {"X-API-Key": PILOT}
+
+
+async def test_pilot_anahtari_okuyabilir_ve_rota_hesaplayabilir(istemci, pilot):
+    assert (await istemci.get("/api/v1/ucuslar", headers=pilot)).status_code == 200
+    assert (await istemci.get("/api/v1/kisitli-sahalar", headers=pilot)).status_code == 200
+    yanit = await istemci.post(
+        "/api/v1/simulasyon/rota",
+        json={
+            "baslangic_enlem": 5.0,
+            "baslangic_boylam": 10.0,
+            "bitis_enlem": 5.0,
+            "bitis_boylam": 25.0,
+            "irtifa_ft": 36000,
+            "zaman": "2019-01-15T00:00:00",
+            "ucak_modeli": "A320",
+        },
+        headers=pilot,
+    )
+    assert yanit.status_code == 200
+
+
+@pytest.mark.parametrize(
+    "yontem, yol",
+    [
+        ("delete", "/api/v1/ucuslar/YOKUCUS1/1999-01-01"),
+        ("delete", "/api/v1/ucuslar?ucus_numarasi_arama=YOK"),
+        ("post", "/api/v1/kisitli-sahalar?kaynak=test_saha"),
+        ("delete", "/api/v1/kisitli-sahalar/ornek:ornek-irak"),
+        ("post", "/api/v1/turbulans/model-versiyonlari/x/aktiflestir"),
+        ("post", "/api/v1/sigmet/guncelle"),
+        ("post", "/api/v1/backtest/toplu"),
+        ("get", "/api/v1/sistem/durum"),
+    ],
+)
+async def test_pilot_anahtari_yonetici_islemlerinde_403(istemci, pilot, yontem, yol):
+    yanit = await istemci.request(yontem.upper(), yol, headers=pilot, json={} if yontem == "post" else None)
+    assert yanit.status_code == 403
+
+
+async def test_pilot_anahtari_gorev_tetikleyemez(istemci, pilot):
+    yanit = await istemci.post(
+        "/api/v1/analiz/ucus", json={"ucus_numarasi": "TESTX", "tarih": "2019-01-01"}, headers=pilot
+    )
+    assert yanit.status_code == 403
+
+
+def test_ws_bileti_ile_baglanilir_bozuk_ya_da_suresi_gecmis_bilet_reddedilir(api_anahtari, monkeypatch):
+    monkeypatch.setenv("API_PILOT_ANAHTARI", PILOT)
+    istemci = TestClient(api_servisi.app)
+    bilet = istemci.post("/api/v1/ws-bileti", headers={"X-API-Key": PILOT}).json()["bilet"]
+    with istemci.websocket_connect(f"/ws/uyarilar?bilet={bilet}"):
+        pass
+    gecmis = api_servisi.ws_bileti_uret("pilot", simdi=0)
+    oynanmis = bilet.replace("pilot", "yonetici")
+    for gecersiz in (gecmis, oynanmis, "1.2.3"):
+        with pytest.raises(Exception):
+            with istemci.websocket_connect(f"/ws/uyarilar?bilet={gecersiz}"):
+                pass

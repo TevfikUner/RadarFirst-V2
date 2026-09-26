@@ -394,3 +394,8 @@ class BacktestSonucuYaniti(BaseModel):
 class BacktestListesiYaniti(BaseModel):
     ozet: dict
     sonuclar: list[BacktestSonucuYaniti]
+
+
+class WsBiletiYaniti(BaseModel):
+    bilet: str
+    gecerlilik_saniye: int

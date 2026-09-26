@@ -271,6 +271,16 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
   başlığı gerektirir (`.env` -> `API_ANAHTARI`), sabit zamanlı
   (`secrets.compare_digest`) karşılaştırılır. Anahtar yanlış/eksikse 401,
   sunucuda hiç tanımlı değilse 503.
+- **Roller:** `API_ANAHTARI` yöneticidir (n8n, operasyon). İsteğe bağlı
+  `API_PILOT_ANAHTARI` EFB/pilot istemcisi içindir: okuma, rota simülasyonu,
+  tahmin ve canlı uyarılar; uçuş silme, kısıtlı saha değişikliği, model
+  aktifleştirme, görev tetikleme ve `/sistem/durum` için 403. Kokpitteki
+  cihaza sadece pilot anahtarı konur. Web sayfaları anahtarı sadece oturum
+  boyunca (`sessionStorage`) tutar.
+- **WebSocket bileti:** `/ws/uyarilar` anahtarı URL'de (erişim loglarında)
+  taşımamak için `POST /api/v1/ws-bileti`'den alınan 60 sn'lik, sunucu
+  anahtarıyla imzalı bilet (`?bilet=`) kullanır; `?api_key=` eski istemciler
+  için hâlâ kabul edilir ama önerilmez.
 - **Girdi doğrulama:** `tarih` gerçek bir tarih olarak, `ucus_numarasi`
   harf/rakam + en fazla 8 karakter olarak doğrulanır (422 döner).
 - **Hata gizliliği:** 500/503 yanıtları ham exception mesajını (SQL,

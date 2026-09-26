@@ -6,6 +6,56 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/v1/ws-bileti": {
+      "post": {
+        "tags": [
+          "Sistem"
+        ],
+        "summary": "Ws Bileti",
+        "description": "/ws/uyarilar?bilet=... için 60 sn geçerli bilet (yönetici ya da pilot).",
+        "operationId": "ws_bileti_api_v1_ws_bileti_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/WsBiletiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/esikler": {
       "get": {
         "tags": [
@@ -4091,6 +4141,24 @@
           "type"
         ],
         "title": "ValidationError"
+      },
+      "WsBiletiYaniti": {
+        "properties": {
+          "bilet": {
+            "type": "string",
+            "title": "Bilet"
+          },
+          "gecerlilik_saniye": {
+            "type": "integer",
+            "title": "Gecerlilik Saniye"
+          }
+        },
+        "type": "object",
+        "required": [
+          "bilet",
+          "gecerlilik_saniye"
+        ],
+        "title": "WsBiletiYaniti"
       }
     }
   }

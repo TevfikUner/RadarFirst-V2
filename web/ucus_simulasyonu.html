@@ -149,7 +149,7 @@
 const API_TABANI = "";  // aynı origin -- göreli yollar yeterli
 
 function anahtarAl() {
-  return document.getElementById("giris-anahtar").value || localStorage.getItem("tr_api_anahtari") || "";
+  return document.getElementById("giris-anahtar").value || sessionStorage.getItem("tr_api_anahtari") || "";
 }
 
 function durumGoster(mesaj, tur) {
@@ -372,7 +372,7 @@ async function simulasyonuCalistir() {
   const anahtar = anahtarAl();
   if (!anahtar) { durumGoster("API anahtarı gerekli.", "hata"); return; }
   if (!govde.ucak_modeli) { durumGoster("Uçak modeli listesi yüklenemedi -- API anahtarını kontrol et.", "hata"); return; }
-  localStorage.setItem("tr_api_anahtari", anahtar);
+  sessionStorage.setItem("tr_api_anahtari", anahtar);
 
   const buton = document.getElementById("simule-et-buton");
   buton.disabled = true;
@@ -434,7 +434,7 @@ async function ucusSirasindaYenidenHesapla() {
   }
 }
 
-document.getElementById("giris-anahtar").value = localStorage.getItem("tr_api_anahtari") || "";
+document.getElementById("giris-anahtar").value = sessionStorage.getItem("tr_api_anahtari") || "";
 document.getElementById("giris-anahtar").addEventListener("change", ucakProfilleriniYukle);
 document.getElementById("simule-et-buton").addEventListener("click", simulasyonuCalistir);
 document.getElementById("yeniden-hesapla-buton").addEventListener("click", ucusSirasindaYenidenHesapla);
