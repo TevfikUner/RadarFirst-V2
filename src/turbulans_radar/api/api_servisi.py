@@ -116,7 +116,7 @@ from turbulans_radar.depo.gorev_deposu import (
     gorev_olustur,
     yarida_kalan_gorevleri_isaretle,
 )
-from turbulans_radar.depo.kup_katalogu import katalogu_listele, kup_meta_verisi
+from turbulans_radar.depo.kup_katalogu import katalogu_listele, kup_meta_verisi, yerel_kupleri_katalogla
 from turbulans_radar.depo.veritabani import (
     VeritabaniAyarlariEksikHatasi,
     async_motor_al,
@@ -161,6 +161,10 @@ async def _yasam_dongusu(uygulama):
             _logger.warning("Önceki süreçten yarıda kalmış %d analiz görevi 'yarida_kaldi' olarak işaretlendi.", sayi)
     except Exception as hata:
         _logger.warning("Açılışta görev tablosuna erişilemedi: %s", dostane_hata_mesaji(hata))
+    try:
+        await asyncio.to_thread(yerel_kupleri_katalogla)
+    except Exception as hata:
+        _logger.warning("Yerel hava küpleri kataloğa kaydedilemedi: %s", dostane_hata_mesaji(hata))
     zamanlayici = None
     if config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA > 0:
         zamanlayici = asyncio.create_task(_sigmet_zamanlayicisi(config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA * 60))

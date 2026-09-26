@@ -97,6 +97,9 @@ def tarayici_sayfasi(canli_sunucu):
             # unutulmuşsa -- hata yerine atla.
             pytest.skip(f"Chromium başlatılamadı (playwright install chromium?): {hata}")
         sayfa = tarayici.new_page()
+        # CesiumJS (~5.8 MB) CDN'den iniyor; yavaş ağda 30 sn'lik varsayılan
+        # sayfa yükleme sınırı aşılıp test, kod hatası olmadan düşüyordu.
+        sayfa.set_default_navigation_timeout(120_000)
         hatalar = []
         sayfa.on("pageerror", lambda err: hatalar.append(str(err)))
         yield {"sayfa": sayfa, "hatalar": hatalar}

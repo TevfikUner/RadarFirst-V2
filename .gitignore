@@ -38,3 +38,8 @@ htmlcov/
 
 # veri_saglayicilari.py -- indirilen canlı GFS küpleri (yeniden üretilebilir).
 canli_veri/
+
+# pip install -e . / paket derleme artıkları.
+*.egg-info/
+build/
+dist/

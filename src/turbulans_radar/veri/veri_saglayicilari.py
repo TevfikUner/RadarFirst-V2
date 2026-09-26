@@ -20,6 +20,7 @@ istendiğinde yeniden indirilmez.
 """
 
 import hashlib
+import math
 import os
 import tempfile
 from concurrent.futures import ThreadPoolExecutor
@@ -57,6 +58,20 @@ class Kutu:
             min(90.0, self.enlem_maks + pay_derece),
             max(-180.0, self.boylam_min - pay_derece),
             min(180.0, self.boylam_maks + pay_derece),
+        )
+
+    def izgaraya_hizala(self, adim_derece: float | None) -> "Kutu":
+        """Sınırları sağlayıcının ızgarasına DIŞA doğru hizalar. Sağlayıcı
+        (THREDDS) ızgara noktalarını kutunun içinden seçtiği için hizalanmamış
+        bir kutu (örn. 34.9°) küpün ilk noktasından (35.0°) önce başlar; küp
+        katalogda hiç "kapsayan" sayılmaz ve her istekte yeniden indirilirdi."""
+        if not adim_derece:
+            return self
+        return Kutu(
+            max(-90.0, math.floor(self.enlem_min / adim_derece) * adim_derece),
+            min(90.0, math.ceil(self.enlem_maks / adim_derece) * adim_derece),
+            max(-180.0, math.floor(self.boylam_min / adim_derece) * adim_derece),
+            min(180.0, math.ceil(self.boylam_maks / adim_derece) * adim_derece),
         )
 
 
@@ -106,6 +121,7 @@ _yeniden_dene = retry(
 class GfsThreddsSaglayici:
     kaynak = "gfs"
     zaman_adimi = "3h"
+    izgara_derece = 0.25
 
     def __init__(self, url=None, basinc_seviyeleri_hpa=None, timeout=60.0):
         self.url = url or config.GFS_THREDDS_URL
@@ -172,7 +188,7 @@ def canli_kup_hazirla(kutu: Kutu, baslangic, bitis, saglayici: VeriSaglayici | N
     sağlayıcıdan indirip kataloğa kaydeder. Katalog (PostgreSQL) erişilemezse
     küp yine indirilip kullanılır, sadece kaydedilmez."""
     saglayici = saglayici or GfsThreddsSaglayici()
-    kutu = kutu.genislet(_KUTU_PAYI_DERECE)
+    kutu = kutu.genislet(_KUTU_PAYI_DERECE).izgaraya_hizala(getattr(saglayici, "izgara_derece", None))
     # Pencere sağlayıcının zaman adımına hizalanır: GFS 3 saatlik adımlarla gelir;
     # saate yuvarlanmış bir pencere (örn. 10:00) küpün ilk adımından (12:00)
     # önce başlayacağı için katalogdaki küp hiç "kapsayan" sayılmaz ve her
@@ -210,6 +226,21 @@ def canli_kup_hazirla(kutu: Kutu, baslangic, bitis, saglayici: VeriSaglayici | N
     return kup
 
 
+def _canli_seviyeler_kapsar_mi(basinc_hpa) -> bool:
+    """Canlı sağlayıcının indireceği basınç seviyeleri noktalardan en az birini
+    (eslestirme'deki AYNI dikey toleransla) kapsıyor mu -- kapsamıyorsa
+    (örn. 3000 m) indirilen küp zaten kullanılamayacağı için indirme yapılmaz."""
+    seviyeler = config.CANLI_BASINC_SEVIYELERI_HPA
+    basinc = np.asarray(basinc_hpa, dtype=float)
+    with np.errstate(invalid="ignore"):
+        return bool(
+            np.any(
+                (basinc >= min(seviyeler) - config.DIKEY_KAPSAM_TOLERANSI_HPA)
+                & (basinc <= max(seviyeler) + config.DIKEY_KAPSAM_TOLERANSI_HPA)
+            )
+        )
+
+
 def veri_kupunu_sec(enlemler, boylamlar, zamanlar, basinc_hpa=None, saglayici: VeriSaglayici | None = None):
     """Noktalar için hava küpü: önce yerel arşiv küpleri (ERA5, bkz.
     veri_yukleme.kapsayan_veri_kupunu_bul); hiçbiri kapsamıyorsa ve tüm zamanlar
@@ -218,6 +249,8 @@ def veri_kupunu_sec(enlemler, boylamlar, zamanlar, basinc_hpa=None, saglayici: V
     kup = kapsayan_veri_kupunu_bul(enlemler, boylamlar, zamanlar, basinc_hpa)
     if kup is not None or not config.CANLI_HAVA_VERISI_ETKIN:
         return kup
+    if basinc_hpa is not None and not _canli_seviyeler_kapsar_mi(basinc_hpa):
+        return None
     zaman_dizisi = pd.DatetimeIndex([_utc(z) for z in zamanlar])
     if len(zaman_dizisi) == 0 or not (canli_zaman_mi(zaman_dizisi.min()) and canli_zaman_mi(zaman_dizisi.max())):
         return None

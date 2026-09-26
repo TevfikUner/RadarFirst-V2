@@ -662,13 +662,20 @@ modülün kendi docstring'indeki örnek: Anchorage FIR, 2019-01-15, gerçek bir
 
 ## n8n ile periyodik otomasyon
 
-`toplu_analiz.py`'yi doğrudan çağırmak yerine, n8n'in bir **Schedule
-Trigger**'ı bir **HTTP Request** node'uyla `POST /api/v1/analiz/toplu`'yu
-periyodik çağırır; ardından ya `bildirim_webhook_url` ile anlık bildirim
-alır ya da `GET /api/v1/analiz/durum/{gorev_id}`'yi yoklar. Bu tasarım,
-otomasyon tarafının projenin Python iç yapısını hiç bilmesine gerek
-bırakmaz -- `api_servisi.py` sadece `.env`'den beslenen, `uvicorn`/Docker
-ile başlatılan bağımsız bir HTTP servisidir.
+Otomasyon tarafı projenin Python iç yapısını bilmez; her iş, n8n'de bir
+**Schedule Trigger** + **HTTP Request** node çiftidir. Tüm isteklere
+`X-API-Key` başlığı eklenir (anahtarı n8n'de bir Credential ya da ortam
+değişkeni olarak tut, iş akışına düz metin yazma):
+
+| İş | Sıklık | HTTP Request | Not |
+|---|---|---|---|
+| Canlı SIGMET yenileme | 10-15 dk | `POST /api/v1/sigmet/guncelle` | A*'ın sert kısıtı bu tabloyu kullanır; son çekim 30 dk'dan eskiyse canlı rota yanıtları `bayat_mi` uyarısı taşır. Alternatif: `SIGMET_OTOMATIK_GUNCELLEME_DAKIKA` ile API'nin kendi zamanlayıcısı (Docker'da varsayılan 15 dk) -- ikisini aynı anda açmaya gerek yok. |
+| Canlı GFS önceden ısıtma (isteğe bağlı) | 6 saatte bir, döngülerden ~4 sa sonra | `POST /api/v1/veri/canli/hazirla` (gövde: bölge kutusu, `saat_sayisi`) | Sık kullanılan bölgenin ilk rota isteği indirme süresini beklemez. |
+| Toplu uçuş analizi | ihtiyaca göre | `POST /api/v1/analiz/toplu` | `bildirim_webhook_url` ile bitince n8n Webhook node'una bildirim ya da `GET /api/v1/analiz/durum/{gorev_id}` yoklaması. |
+| Toplu backtest (isteğe bağlı) | günlük | `POST /api/v1/backtest/toplu?limit=50` | Yeni analiz edilen uçuşları A* rotasıyla karşılaştırır; özet `GET /api/v1/backtest`. |
+
+API sadece `.env`'den beslenen, `uvicorn`/Docker ile başlatılan bağımsız bir
+HTTP servisidir.
 
 ## Claude Code'dan veritabanına MCP ile bağlanmak
 

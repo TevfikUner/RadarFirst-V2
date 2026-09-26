@@ -4,6 +4,29 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## İkinci tarama: canlı GFS yeniden kullanımı, katalog, n8n dokümantasyonu
+
+Tüm fazlar canlı bir API sunucusu üzerinden uçtan uca yeniden doğrulandı
+(SIGMET yenileme/listeleme, "şimdi" tarihli rota ve tahmin, katalog,
+backtest, görev durumu). Bulunan sorunlar:
+
+- **Canlı GFS küpü her rota isteğinde yeniden iniyordu (~13 sn):** istek
+  kutusu 0.25° GFS ızgarasına denk gelmiyordu; THREDDS noktaları kutunun
+  içinden seçtiği için dönen küp (örn. 35.0°K) istenen sınırı (34.9°K)
+  kapsamıyor sayılıyordu. Kutu artık sağlayıcının ızgarasına dışa doğru
+  hizalanıyor -- canlı doğrulamada ilk istek 9.1 sn, sonrakiler 0.1 sn.
+- **Kapsanamayacak irtifada boşa indirme:** FL100 gibi, canlı sağlayıcının
+  basınç seviyelerinin (200-300 hPa ± 50) dışındaki istekler için artık
+  indirme başlatılmıyor.
+- **Yerel ERA5 küpleri katalogda yoktu:** API açılışında
+  `hava_durumu_kupleri`'ne kaydediliyorlar (dosya belleğe yüklenmeden);
+  `GET /api/v1/veri/kupler` sunucudaki tüm hava verisini gösteriyor.
+- **n8n:** README'deki bölüm artık dört periyodik işi (SIGMET yenileme, GFS
+  önceden ısıtma, toplu analiz, toplu backtest) node ayarlarıyla anlatıyor.
+- Playwright tarayıcı testi, CesiumJS (~5.8 MB) CDN'den yavaş indiğinde 30
+  sn'lik varsayılan sınırı aşıp kod hatası olmadan düşüyordu; sayfa yükleme
+  sınırı 120 sn yapıldı. `*.egg-info/`, `build/`, `dist/` gitignore'da.
+
 ## Tarama: canlı veri katmanlarında 5 hata düzeltildi
 
 - **Antimeridyen SIGMET'leri:** 180° boylamını kesen poligonlar (Pasifik

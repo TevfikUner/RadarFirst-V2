@@ -14,6 +14,7 @@ from datetime import UTC, datetime, timedelta
 
 import numpy as np
 import pandas as pd
+import xarray as xr
 from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
@@ -21,7 +22,7 @@ from sqlalchemy.orm import Session
 from turbulans_radar import config
 from turbulans_radar.depo.models import HavaDurumuKupu
 from turbulans_radar.depo.veritabani import motor_al
-from turbulans_radar.veri.veri_yukleme import onbellekten_cikar
+from turbulans_radar.veri.veri_yukleme import hava_durumu_dosyalari, onbellekten_cikar
 
 
 def _utc(deger) -> datetime:
@@ -141,3 +142,16 @@ def eski_canli_kupleri_temizle(kaynak="gfs", saklama_saat=None, motor=None) -> i
         oturum.execute(delete(HavaDurumuKupu).where(HavaDurumuKupu.dosya_yolu.in_(eskiler)))
         oturum.commit()
         return len(eskiler)
+
+
+def yerel_kupleri_katalogla(motor=None) -> int:
+    """Diskteki yerel arşiv küplerini (ERA5, bkz. veri_yukleme.hava_durumu_
+    dosyalari) kataloğa kaydeder -- GET /veri/kupler sunucudaki TÜM hava
+    verisini göstersin diye. Dosyalar sadece koordinatları okumak için açılır
+    (belleğe yüklenmez); canlı küplerin temizliği bunlara dokunmaz."""
+    sayi = 0
+    for dosya in hava_durumu_dosyalari():
+        with xr.open_dataset(dosya) as veri_kupu:
+            kup_kaydet("era5", dosya, veri_kupu, motor=motor)
+        sayi += 1
+    return sayi

@@ -61,6 +61,7 @@ class SahteSaglayici:
 
     kaynak = "test_gfs"
     zaman_adimi = "3h"
+    izgara_derece = 0.25
 
     def __init__(self):
         self.indirme_sayisi = 0
@@ -70,6 +71,9 @@ class SahteSaglayici:
         era5 = hava_durumu_onbellekli_yukle(config.HAVA_DURUMU_DOSYASI)
         saatler = pd.date_range(pd.Timestamp(baslangic).ceil("3h"), pd.Timestamp(bitis).floor("3h"), freq="3h")
         kup = era5[["u", "v", "t"]].isel(valid_time=slice(0, len(saatler)))
+        kup = kup.sel(
+            latitude=slice(kutu.enlem_maks, kutu.enlem_min), longitude=slice(kutu.boylam_min, kutu.boylam_maks)
+        )
         kup = kup.assign_coords(valid_time=saatler.tz_convert("UTC").tz_localize(None).values)
         kup.attrs = {"kaynak": "gfs", "model_calisma_zamani": "2026-09-26T06:00:00"}
         os.makedirs(os.path.dirname(hedef_yol), exist_ok=True)
@@ -114,6 +118,22 @@ def test_gfs_adimina_denk_gelmeyen_saatlerde_de_katalogdaki_kup_yeniden_kullanil
     vs.canli_kup_hazirla(kutu, gun + pd.Timedelta("13h10min"), gun + pd.Timedelta("15h10min"))
     vs.canli_kup_hazirla(kutu, gun + pd.Timedelta("14h50min"), gun + pd.Timedelta("16h"))
     assert sahte_canli_ortam.indirme_sayisi == 1
+
+
+def test_izgaraya_denk_gelmeyen_kutuda_da_katalogdaki_kup_yeniden_kullanilir(sahte_canli_ortam):
+    simdi = pd.Timestamp.now(tz="UTC")
+    vs.canli_kup_hazirla(vs.Kutu(38.1, 38.9, 31.1, 34.9), simdi, simdi + pd.Timedelta(hours=1))
+    vs.canli_kup_hazirla(vs.Kutu(38.1, 38.9, 31.1, 34.9), simdi, simdi + pd.Timedelta(hours=1))
+    assert sahte_canli_ortam.indirme_sayisi == 1
+
+
+def test_saglayicinin_kapsamadigi_irtifa_icin_indirme_yapilmaz(sahte_canli_ortam):
+    from turbulans_radar.fizik.birim_donusumleri import irtifa_metre_to_basinc_hpa
+
+    simdi = pd.Timestamp.now(tz="UTC")
+    alcak = irtifa_metre_to_basinc_hpa(3000.0)
+    assert vs.veri_kupunu_sec([38.5], [33.0], [simdi], [alcak]) is None
+    assert sahte_canli_ortam.indirme_sayisi == 0
 
 
 def test_yerel_kup_yoksa_ve_zaman_canliysa_saglayiciya_gidilir(sahte_canli_ortam):

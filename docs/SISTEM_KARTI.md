@@ -60,6 +60,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | AWC'nin bir uç noktası yanıt vermiyor | Diğer kaynak işlenir; yanıt vermeyen kaynağın mevcut kayıtlarına dokunulmaz. |
 | Bir SIGMET iptal edildi (canlı akıştan düştü) | Geçerliliği o an sona erdirilir; artık rotayı saptırmaz. |
 | AWC'den geçersiz (kendini kesen) ya da 180° boylamını kesen bir SIGMET poligonu geldi | Geometri onarılır/bölünür; yalnızca gerçek alan yasaklanır. |
+| İstenen irtifa canlı sağlayıcının basınç seviyelerinin dışında (örn. FL100) | İndirme yapılmaz; rota/tahmin hava verisi olmadan (kapsam dışı olarak) döner. |
 | Canlı veri sağlayıcısı bozuk ya da geçersiz yanıt döndü | `POST /veri/canli/hazirla` 502 döner (iç ayrıntı sızdırılmaz); rota/tahmin hava verisi olmadan devam eder. |
 | Toplu backtest'te bir uçuş beklenmeyen hatayla düştü | O uçuş `hata` olarak raporlanır, diğerleri işlenmeye devam eder. |
 | Hava verisi yok (bölge, tarih ya da irtifa kapsam dışı; GFS indirilemedi) | Rota rüzgarsız, sadece TAS ile hesaplanır ve TI1 raporlanmaz; bu durum açıkça belirtilir. SIGMET kısıtı yine uygulanır. |
@@ -114,7 +115,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 215 test. Kapsamı: birim testleri, gerçek PostgreSQL
+- **Otomatik testler:** 225 test. Kapsamı: birim testleri, gerçek PostgreSQL
   üzerinde API ve depo testleri, gerçek ERA5 küpüyle eşleştirme ve rota
   testleri, Playwright ile iki web önyüzünün tarayıcı testleri. Ağa çıkan
   bileşenler (GFS, AWC) testlerde sahte sağlayıcılarla çalışır.
