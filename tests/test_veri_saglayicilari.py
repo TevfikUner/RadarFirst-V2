@@ -6,10 +6,10 @@ import pytest
 import xarray as xr
 from sqlalchemy import text
 
-import config
-import veri_saglayicilari as vs
-import veritabani as vt
-from veri_yukleme import hava_durumu_onbellekli_yukle
+from turbulans_radar import config
+from turbulans_radar.depo import veritabani as vt
+from turbulans_radar.veri import veri_saglayicilari as vs
+from turbulans_radar.veri.veri_yukleme import hava_durumu_onbellekli_yukle
 
 
 def _thredds_benzeri_ham_kup():
@@ -125,7 +125,7 @@ def test_canli_veri_kapaliysa_saglayiciya_gidilmez(sahte_canli_ortam, monkeypatc
 
 
 def test_anlik_rota_canli_gfs_verisiyle_hesaplanir(sahte_canli_ortam):
-    from rota_optimizasyonu import rota_simulasyonu_olustur
+    from turbulans_radar.rota.rota_optimizasyonu import rota_simulasyonu_olustur
 
     simdi = pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%dT%H:%M:%S")
     sonuc = rota_simulasyonu_olustur(38.4, 27.1, 38.5, 43.4, 34000, simdi, "A320", sigmetler=[])

@@ -1,3 +1,28 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "turbulans-radar"
+version = "1.0.0"
+description = "ERA5/GFS + OpenSky + canlı SIGMET ile türbülans analizi ve A* rota optimizasyonu yapan karar destek sistemi"
+requires-python = ">=3.12"
+dynamic = ["dependencies"]
+
+[project.scripts]
+turbulans-analiz = "turbulans_radar.analiz.ucus_analizi:ana"
+turbulans-toplu-analiz = "turbulans_radar.analiz.toplu_analiz:ana"
+turbulans-sigmet = "turbulans_radar.veri.sigmet_saglayici:ana"
+turbulans-backtest = "turbulans_radar.dogrulama.rota_backtest:ana"
+turbulans-mcp = "turbulans_radar.cli.mcp_postgres_sunucusu:ana"
+turbulans-openapi = "turbulans_radar.cli.openapi_disa_aktar:ana"
+
+[tool.setuptools.dynamic]
+dependencies = { file = ["requirements.txt"] }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
 [tool.ruff]
 line-length = 120
 target-version = "py312"
@@ -22,18 +47,14 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = [
-    "config", "veri_yukleme", "eslestirme", "harita", "hata_yardimcisi",
-    "kimlik_dogrulama", "turbulans_indeksleri", "veritabani", "models",
-    "birim_donusumleri", "konsol_kurulumu", "loglama",
-]
+known-first-party = ["turbulans_radar"]
 
 [tool.coverage.run]
 # Sadece proje kodu -- migrations/ (Alembic'in kendi ürettiği kod) ve
 # tests/'in kendisi kapsam yüzdesine dahil edilmez (aksi halde "testin
 # kendisi test edilmedi" gibi anlamsız bir eksiklik raporlanır).
-source = ["."]
-omit = ["migrations/*", "tests/*", "*/site-packages/*", "src/*"]
+source = ["src/turbulans_radar"]
+omit = ["*/site-packages/*"]
 
 [tool.coverage.report]
 # Gerçek veri/servis gerektirip CI'da atlanan (skip) testlerin (PostgreSQL,

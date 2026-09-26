@@ -14,7 +14,7 @@ import pandas as pd
 import pytest
 from sqlalchemy import text
 
-import veritabani as vt
+from turbulans_radar.depo import veritabani as vt
 
 _TEST_UCUS_NUMARASI = "PYTEST_TEST_UCUSU"
 _TEST_TARIH = "2000-01-01"

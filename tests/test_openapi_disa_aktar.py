@@ -11,7 +11,7 @@ import json
 
 import pytest
 
-from openapi_disa_aktar import OPENAPI_DOSYA_YOLU, openapi_semasini_al, postman_koleksiyonuna_cevir
+from turbulans_radar.cli.openapi_disa_aktar import OPENAPI_DOSYA_YOLU, openapi_semasini_al, postman_koleksiyonuna_cevir
 
 
 def test_repodaki_openapi_json_guncel():

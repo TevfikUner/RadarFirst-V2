@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from turbulans_indeksleri import (
+from turbulans_radar.fizik.turbulans_indeksleri import (
     dusey_ruzgar_kaymasi_hesapla,
     ti1_den_edr_proxy_olcegine_cevir,
     ti1_indeksi_hesapla,

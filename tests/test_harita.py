@@ -4,8 +4,14 @@ import tempfile
 import numpy as np
 import pandas as pd
 
-import config
-from harita import _turbulans_rengi, pd_isna, pd_to_iso, pd_to_str, zaman_kaydiricili_harita_olustur
+from turbulans_radar import config
+from turbulans_radar.arayuz.harita import (
+    _turbulans_rengi,
+    pd_isna,
+    pd_to_iso,
+    pd_to_str,
+    zaman_kaydiricili_harita_olustur,
+)
 
 
 def test_turbulans_rengi_esik_altinda_yesil():

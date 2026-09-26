@@ -3,8 +3,8 @@ from datetime import UTC, datetime, timedelta
 import pytest
 from sqlalchemy import text
 
-import sigmet_saglayici as ss
-import veritabani as vt
+from turbulans_radar.depo import veritabani as vt
+from turbulans_radar.veri import sigmet_saglayici as ss
 
 _SIMDI = int(datetime.now(UTC).timestamp())
 

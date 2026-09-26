@@ -5,11 +5,11 @@ import pandas as pd
 import pytest
 from sqlalchemy import text
 
-import config
-import rota_backtest as rb
-import veritabani as vt
-from eslestirme import rotayi_hava_durumuyla_eslestir
-from veri_yukleme import hava_durumu_onbellekli_yukle
+from turbulans_radar import config
+from turbulans_radar.depo import veritabani as vt
+from turbulans_radar.dogrulama import rota_backtest as rb
+from turbulans_radar.fizik.eslestirme import rotayi_hava_durumuyla_eslestir
+from turbulans_radar.veri.veri_yukleme import hava_durumu_onbellekli_yukle
 
 
 def _olcum_df(dakikalar, ti1_dolu):

@@ -5,13 +5,12 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
-# migrations/ bir alt klasör olduğu için, proje kökünü (models.py/
-# veritabani.py'nin bulunduğu yer) sys.path'e ekliyoruz -- alembic komutu
-# hangi dizinden çalıştırılırsa çalıştırılsın import'ların bulunabilmesi için.
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+# Paket src/ altında (src layout) -- alembic komutu hangi dizinden
+# çalıştırılırsa çalıştırılsın turbulans_radar import edilebilsin diye.
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "src"))
 
-from models import Base  # noqa: E402
-from veritabani import baglanti_dizesini_olustur  # noqa: E402
+from turbulans_radar.depo.models import Base  # noqa: E402
+from turbulans_radar.depo.veritabani import baglanti_dizesini_olustur  # noqa: E402
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

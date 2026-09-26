@@ -14,8 +14,8 @@ rota_optimizasyonu.py için birim testleri:
 import pandas as pd
 import pytest
 
-import config
-from rota_optimizasyonu import (
+from turbulans_radar import config
+from turbulans_radar.rota.rota_optimizasyonu import (
     CO2_KG_PER_KG_YAKIT,
     buyuk_daire_mesafesi_km,
     buyuk_daire_rotasi_olustur,
@@ -121,7 +121,7 @@ def test_gercek_era5_turbulans_varsa_tamamen_atlatilir(veri_kupu_mevcut_mu):
 
 
 def test_irtifa_degisimi_maliyeti_tirmanma_pahali_alcalma_ucuz():
-    from rota_optimizasyonu import _irtifa_degisimi_maliyeti
+    from turbulans_radar.rota.rota_optimizasyonu import _irtifa_degisimi_maliyeti
 
     tirmanma_saniye, tirmanma_ek_yakit = _irtifa_degisimi_maliyeti(9000.0, 10000.0, 2400.0)
     alcalma_saniye, alcalma_ek_yakit = _irtifa_degisimi_maliyeti(10000.0, 9000.0, 2400.0)

@@ -2,7 +2,7 @@ from datetime import date
 
 import pytest
 
-from veri_indirme import (
+from turbulans_radar.veri.veri_indirme import (
     MAKS_ENLEM_BOYLAM_ARALIGI_DERECE,
     MAKS_GUN_SAYISI,
     IstekSinirAsimiHatasi,

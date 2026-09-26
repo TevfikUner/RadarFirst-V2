@@ -68,55 +68,38 @@ flowchart TB
     DB --> MCP["mcp_postgres_sunucusu.py<br/>(Claude Code, salt okunur)"]
 ```
 
-Dosya dosya kısa açıklama:
+Paket yapısı (`src/turbulans_radar/`, src layout -- `pip install -e .` ile
+kurulur, komut satırı araçları `[project.scripts]` ile gelir):
 
 ```
-config.py                     -> sabitler, eşik değerleri (ortam değişkeniyle ezilebilir)
-kimlik_dogrulama.py            -> .env'den güvenli OpenSky kimlik bilgisi okuma
-birim_donusumleri.py           -> irtifa <-> basınç dönüşümleri (ISA formülü)
-turbulans_indeksleri.py        -> Ellrod TI1 + Richardson sayısı hesabı + EDR-proxy ölçekleme
-veri_yukleme.py                 -> NetCDF yükleme + OpenSky/Trino sorguları (parametreli, retry'li)
-eslestirme.py                    -> uçuş rotası <-> hava durumu grid eşleştirme (vektörel)
-harita.py                        -> zaman kaydırıcılı Folium haritası (büyük rotalarda seyreltilir)
-main.py                          -> uçtan uca çalıştırma (CLI)
-ornek_ucus_bul.py               -> OpenSky'da kayıtlı gerçek callsign'ları listeler
-veri_kontrol.py                  -> veri küpü çözünürlüğünü / TI1 çeşitliliğini kontrol eder
-kimlik_kontrol.py               -> .env'in doğru okunduğunu kontrol eder
-kalibrasyon.py                   -> gerçek PIREP/AMDAR verisiyle EDR ölçekleme katsayısını kalibre eder
-pirep_kalibrasyon_verisi_uret.py -> ML eğitimi için indirilen gerçek IEM PIREP+ERA5 verisinden kalibrasyon.py'nin beklediği gözlem CSV'sini üretir
-toplu_analiz.py                  -> bir CSV listesindeki birden fazla uçuşu sırayla analiz eder
-web_arayuzu.py                   -> tarayıcıdan kullanılabilir arayüz (Streamlit)
-hata_yardimcisi.py               -> ham Python hatalarını anlaşılır Türkçe mesaja çevirir
-veri_indirme.py                  -> ERA5 verisi otomatik indirme ALTYAPISI (gerçek indirme kapalı)
-konsol_kurulumu.py               -> Windows konsolunda Türkçe/özel karakter çökmesini önler
-loglama.py                        -> api_servisi.py için ortak logging yapılandırması
-models.py                         -> PostgreSQL tabloları için SQLAlchemy ORM modelleri
-veritabani.py                     -> PostgreSQL erişimi: senkron (CLI) + asenkron (API)
-migrations/, alembic.ini          -> Alembic veritabanı şema migration'ları
-semalar.py                        -> api_servisi.py için Pydantic yanıt (response) modelleri
-sigmet_dogrulama.py               -> TI1'i gerçek AWC SIGMET uyarılarıyla karşılaştırır (SADECE ABD hava sahası)
-sigmet_saglayici.py               -> CANLI AWC SIGMET sağlayıcısı (ABD + uluslararası, Ankara FIR dahil) -> PostgreSQL
-risk_katmanlari.py                -> A*'ın modüler risk katmanları (TI1 cezası, SIGMET sert kısıtı)
-gorev_deposu.py                   -> API analiz görevlerinin kalıcı (PostgreSQL) kaydı
-veri_saglayicilari.py             -> Veri Sağlayıcı katmanı: canlı NOAA GFS (THREDDS, NetCDF) + yerel ERA5 seçimi
-kup_katalogu.py                   -> hava durumu küplerinin PostgreSQL kataloğu (ızgara diskte, meta veri DB'de)
-rota_backtest.py                  -> A* rotasının gerçek uçuş izleriyle otomatik karşılaştırması (backtest)
-web/harita3d.html                 -> tek dosyalık MapLibre GL 3D/canlı harita önyüzü (api_servisi.py sunar)
-rota_optimizasyonu.py             -> gerçek ERA5 rüzgarına göre büyük daire vs yakıt-optimize rota hesabı + CZML üretimi
-web/ucus_simulasyonu.html         -> tek dosyalık CesiumJS 3D uçuş simülasyonu önyüzü (api_servisi.py sunar)
-web/models/ucak.glb               -> 3D uçak modeli (CesiumJS resmi örnek verisi, Apache 2.0)
-turbulans_ml_modeli.py            -> gerçek IEM PIREP + ERA5 ile eğitilmiş türbülans risk sınıflandırıcısı (özellik çıkarma + tahmin)
-ml_veri_indir.py                  -> ML eğitim verisi: PIREP raporlarına eşleşen gerçek ERA5 pencerelerini Copernicus CDS'ten indirir
-ml_egitimi.py                     -> ML eğitim/karşılaştırma betiği (Lojistik Regresyon / Random Forest / Gradient Boosting, recall'a göre seçim)
-api_servisi.py                    -> FastAPI REST API'si (API anahtarlı, /api/v1, async, WebSocket)
-mcp_postgres_sunucusu.py         -> Claude Code/Desktop için salt okunur PostgreSQL MCP sunucusu
-openapi_disa_aktar.py            -> openapi.json + Postman koleksiyonunu dosyaya yazar (sunucusuz keşif için)
-.mcp.json                          -> Claude Code'un mcp_postgres_sunucusu.py'yi tanıması için
-Dockerfile, docker-compose.yml     -> tek komutla (Postgres + API) çalıştırma
-.github/workflows/ci.yml           -> lint + test GitHub Actions iş akışı
-pyproject.toml, .pre-commit-config.yaml -> ruff lint/format + pre-commit ayarları
-tests/, pytest.ini                 -> pytest birim testleri (async testler tek event loop paylaşır)
-ciktilar/                           -> üretilen harita HTML'leri ve özet CSV (git'e dahil değil)
+turbulans_radar/
+  config.py, loglama.py, hata_yardimcisi.py, konsol_kurulumu.py   -> çekirdek: ayarlar, log, hata mesajları
+  depo/       models.py, veritabani.py         -> SQLAlchemy ORM + senkron/asenkron PostgreSQL erişimi
+              gorev_deposu.py                  -> API analiz görevlerinin kalıcı kaydı
+              kup_katalogu.py                  -> hava durumu küplerinin kataloğu (ızgara diskte, meta veri DB'de)
+  veri/       veri_yukleme.py                  -> NetCDF yükleme/önbellek, yerel küp seçimi, OpenSky/Trino sorguları
+              veri_saglayicilari.py            -> Veri Sağlayıcı katmanı: canlı NOAA GFS (THREDDS) + ERA5 seçimi
+              sigmet_saglayici.py              -> canlı AWC SIGMET'leri (ABD + uluslararası, Ankara FIR dahil)
+              veri_indirme.py                  -> ERA5 indirme altyapısı (güvenlik sınırlı, varsayılan kuru deneme)
+              kimlik_dogrulama.py              -> .env'den OpenSky kimlik bilgisi
+  fizik/      turbulans_indeksleri.py          -> Ellrod TI1, Richardson, EDR proxy
+              eslestirme.py                    -> rota <-> hava küpü vektörel eşleştirme, 3 boyutlu kapsam kontrolü
+              birim_donusumleri.py             -> irtifa <-> basınç (ISA)
+              kalibrasyon.py                   -> EDR ölçekleme katsayısı kalibrasyonu (bootstrap GA)
+  rota/       rota_optimizasyonu.py            -> büyük daire vs A* rotası (yanal + irtifa), CZML üretimi
+              risk_katmanlari.py               -> A*'ın modüler risk katmanları (TI1 cezası, SIGMET sert kısıtı)
+  dogrulama/  rota_backtest.py                 -> A* rotası vs gerçek uçuş izi (otomatik backtest)
+              sigmet_dogrulama.py              -> TI1'in tarihsel AWC SIGMET'leriyle karşılaştırması (ABD)
+  ml/         turbulans_ml_modeli.py           -> PIREP + ERA5 ile eğitilmiş risk sınıflandırıcısı, versiyonlama
+              ml_egitimi.py, ml_veri_indir.py, pirep_kalibrasyon_verisi_uret.py
+  analiz/     ucus_analizi.py                  -> uçtan uca uçuş analizi (OpenSky ya da hazır iz -> küp -> DB -> harita)
+              toplu_analiz.py                  -> CSV listesindeki uçuşları sırayla analiz
+  api/        api_servisi.py, semalar.py       -> FastAPI REST + WebSocket, Pydantic şemaları
+  arayuz/     harita.py, web_arayuzu.py        -> Folium zaman kaydırıcılı harita, Streamlit arayüzü
+  cli/        ornek_ucus_bul.py, veri_kontrol.py, kimlik_kontrol.py, openapi_disa_aktar.py, mcp_postgres_sunucusu.py
+web/                                           -> harita3d.html (MapLibre) + ucus_simulasyonu.html (CesiumJS)
+migrations/, alembic.ini                       -> Alembic şema migration'ları
+tests/                                         -> pytest (birim + PostgreSQL + gerçek veri + Playwright)
 ```
 
 ## Kurulum
@@ -125,6 +108,7 @@ ciktilar/                           -> üretilen harita HTML'leri ve özet CSV (
 git clone <bu-repo>
 cd files
 pip install -r requirements.txt
+pip install -e .              # paketi ve komut satırı araçlarını kurar
 cp .env.example .env          # OpenSky + PostgreSQL + API_ANAHTARI bilgilerini gir
 alembic upgrade head          # veritabanı şemasını kur (tek seferlik)
 ```
@@ -156,8 +140,8 @@ Swagger `http://localhost:8000/docs`'ta olur.
 ### Tek bir uçuşu analiz etmek (CLI)
 
 ```bash
-python ornek_ucus_bul.py                    # gerçek, o gün kayıtlı bir callsign bul
-python main.py THY1234 2019-01-01           # analiz et -- PostgreSQL'e yazar + harita üretir
+python -m turbulans_radar.cli.ornek_ucus_bul   # gerçek, o gün kayıtlı bir callsign bul
+turbulans-analiz THY1234 2019-01-01            # analiz et -- PostgreSQL'e yazar + harita üretir
 ```
 
 Her script `--help` ile kullanım bilgisi verir. Sonuç `ucuslar`/
@@ -168,7 +152,7 @@ edilirse eski kayıt silinip yenisiyle değiştirilir); harita
 ### Web arayüzü
 
 ```bash
-streamlit run web_arayuzu.py
+streamlit run src/turbulans_radar/arayuz/web_arayuzu.py
 ```
 
 Uçuş numarası ve tarihi bir kutuya yazıp "Analiz Et"e basman yeterli;
@@ -178,7 +162,7 @@ mantığı çalışır -- bu sadece görsel bir ön yüz.
 ### Birden fazla uçuşu birden analiz etmek
 
 ```bash
-python toplu_analiz.py ucuslar.csv     # en az ucus_numarasi, tarih sütunları
+turbulans-toplu-analiz ucuslar.csv     # en az ucus_numarasi, tarih sütunları
 ```
 
 Her uçuş kendi kaydını PostgreSQL'e yazar ve kendi haritasını üretir; ayrıca
@@ -189,7 +173,7 @@ arasına kısa bir bekleme konur.
 ### Veri kalitesini kontrol etmek
 
 ```bash
-python veri_kontrol.py N10VZ 2019-01-15     # önce main.py ile analiz etmiş olman gerekir
+python -m turbulans_radar.cli.veri_kontrol N10VZ 2019-01-15   # önce turbulans-analiz ile analiz etmiş olman gerekir
 ```
 
 Veri küpünün çözünürlüğünü (grid/zaman adımı) ve PostgreSQL'deki TI1
@@ -199,7 +183,7 @@ küpü muhtemelen çok kaba) kontrol eder.
 ## FastAPI servis katmanı
 
 ```bash
-uvicorn api_servisi:app --reload --port 8000
+uvicorn turbulans_radar.api.api_servisi:app --reload --port 8000
 # Swagger/OpenAPI: http://localhost:8000/docs
 ```
 
@@ -212,7 +196,7 @@ Sunucuyu ayağa kaldırmadan API'yi keşfetmek için: `openapi.json` (ham OpenAP
 (tüm uç noktaları `X-API-Key` başlığıyla hazır içeren bir Postman
 koleksiyonu -- `taban_url`/`api_anahtari` koleksiyon değişkenlerini
 doldurman yeterli) repoya dahil. Endpoint eklendikçe/değiştikçe
-`python openapi_disa_aktar.py` ile yeniden üretilebilir -- canlı `/openapi.json`
+`turbulans-openapi` ile yeniden üretilebilir -- canlı `/openapi.json`
 her zaman en güncel/otoriter kaynaktır, bu iki dosya sadece bir anlık
 görüntü (snapshot) kolaylığı sağlar.
 
@@ -306,7 +290,7 @@ kullanıcılı bir sürüme geçilirse yükseltilebilir).
 ## 3D/canlı harita önyüzü
 
 ```bash
-uvicorn api_servisi:app --reload --port 8000
+uvicorn turbulans_radar.api.api_servisi:app --reload --port 8000
 # tarayıcıda aç: http://localhost:8000/harita/harita3d.html
 ```
 
@@ -375,7 +359,7 @@ normalize edip `sigmetler` tablosuna upsert eder; akıştan düşen (iptal
 edilen) SIGMET'lerin geçerliliği sona erdirilir, süresi dolanlar
 `SIGMET_SAKLAMA_GUN` sonra silinir. Yenileme yolları: `POST
 /api/v1/sigmet/guncelle` (n8n Schedule Trigger, örn. 10-15 dk),
-`python sigmet_saglayici.py` (cron) ya da `SIGMET_OTOMATIK_GUNCELLEME_DAKIKA`
+`turbulans-sigmet` (cron) ya da `SIGMET_OTOMATIK_GUNCELLEME_DAKIKA`
 > 0 ile API'nin kendi zamanlayıcısı.
 
 ## Canlı hava verisi: Veri Sağlayıcı katmanı (NOAA GFS)
@@ -419,7 +403,8 @@ Karşılaştırma, hava küpünün kapsadığı **en uzun kesintisiz seyir bloğ
 üzerinde yapılır (15 dk'dan uzun veri boşluğu bloğu böler -- OpenSky
 kapsamasının olmadığı bölümler uydurma bir rotayla doldurulmaz). Sonuçlar
 `rota_backtestleri` tablosuna yazılır (uçuş başına en son çalıştırma);
-`GET /api/v1/backtest` filo geneli özeti döner. Ölçümler artık irtifayı da
+`GET /api/v1/backtest` filo geneli özeti döner; komut satırından
+`turbulans-backtest --hepsi`. Ölçümler artık irtifayı da
 saklıyor (`edr_olcumleri.irtifa_m`).
 
 Depodaki gerçek uçuşlarla (15 Ocak 2019, Türkiye ERA5 küpü, A320 profili)
@@ -440,7 +425,7 @@ analiz edildikçe (`POST /api/v1/backtest/toplu`) anlamlı hale gelir. N10VZ
 ## 3D uçuş simülasyonu (normal rota vs türbülanstan-kaçınma rota)
 
 ```bash
-uvicorn api_servisi:app --reload --port 8000
+uvicorn turbulans_radar.api.api_servisi:app --reload --port 8000
 # tarayıcıda aç: http://localhost:8000/harita/ucus_simulasyonu.html
 ```
 
@@ -629,8 +614,8 @@ versiyonu olurdu), ABD hava sahasına özgü, halka açık **IEM PIREP arşivind
   eğitim çalıştırması beklenenden kötü çıkarsa.
 
 ```bash
-python ml_veri_indir.py   # IEM PIREP + eşleşen gerçek ERA5 verisini indirir (Copernicus CDS API anahtarı gerekir, ~/.cdsapirc)
-python ml_egitimi.py      # 3 modeli gün bazında gruplu CV ile karşılaştırır, recall'a göre en iyisini (tüm veriyle eğitip) turbulans_ml_modeli.joblib olarak kaydeder
+python -m turbulans_radar.ml.ml_veri_indir   # IEM PIREP + eşleşen gerçek ERA5 verisini indirir (Copernicus CDS API anahtarı gerekir, ~/.cdsapirc)
+python -m turbulans_radar.ml.ml_egitimi      # 3 modeli gün bazında gruplu CV ile karşılaştırır, recall'a göre en iyisini (tüm veriyle eğitip) turbulans_ml_modeli.joblib olarak kaydeder
 ```
 
 ## SIGMET/AIRMET doğrulaması
@@ -649,7 +634,7 @@ penceresi) kontrol edilir, sadece TÜRBÜLANSLA ilgili SIGMET'ler (metninde
 "TURB" geçenler) dikkate alınır.
 
 ```bash
-python sigmet_dogrulama.py THY1234 2019-01-01
+python -m turbulans_radar.dogrulama.sigmet_dogrulama THY1234 2019-01-01
 # veya API üzerinden:
 curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01/sigmet-dogrulama \
   -H "X-API-Key: $API_ANAHTARI"

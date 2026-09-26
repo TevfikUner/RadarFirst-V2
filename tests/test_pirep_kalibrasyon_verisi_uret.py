@@ -12,7 +12,12 @@ import os
 
 import pytest
 
-from pirep_kalibrasyon_verisi_uret import ERA5_KLASORU, PIREP_DOSYASI, SINIF_MAKS_DEGERI, kalibrasyon_verisini_hazirla
+from turbulans_radar.ml.pirep_kalibrasyon_verisi_uret import (
+    ERA5_KLASORU,
+    PIREP_DOSYASI,
+    SINIF_MAKS_DEGERI,
+    kalibrasyon_verisini_hazirla,
+)
 
 
 @pytest.fixture(scope="module")

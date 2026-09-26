@@ -4,6 +4,22 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Paket yapısı: `src/turbulans_radar/` (src layout)
+
+- Proje kökündeki 36 düz modül, sorumluluklarına göre alt paketlere taşındı
+  (`git mv` ile, geçmiş korunarak): `depo`, `veri`, `fizik`, `rota`,
+  `dogrulama`, `ml`, `analiz`, `api`, `arayuz`, `cli` + çekirdek (`config`,
+  `loglama`, `hata_yardimcisi`, `konsol_kurulumu`). `main.py` ->
+  `analiz/ucus_analizi.py`. Tüm import'lar paket yoluna çevrildi.
+- `pyproject.toml` artık kurulabilir bir paket tanımlıyor (`pip install -e .`,
+  bağımlılıklar `requirements.txt`'ten) ve komut satırı araçları sunuyor:
+  `turbulans-analiz`, `turbulans-toplu-analiz`, `turbulans-sigmet`,
+  `turbulans-backtest`, `turbulans-mcp`, `turbulans-openapi`.
+- Uvicorn yolu `turbulans_radar.api.api_servisi:app` (Dockerfile, test
+  sunucusu); Alembic/pytest `src`'yi yola ekliyor; `.mcp.json` sunucuyu `-m`
+  ile başlatıyor. Davranış değişmedi: 215 testin tamamı geçiyor (Playwright
+  tarayıcı testleri dahil), MCP sunucusu JSON-RPC ile doğrulandı.
+
 ## Otomatik backtest: A* rotası vs gerçek uçuş izleri
 
 - **`rota_backtest.py`:** gerçek iz / büyük daire / A* rotası aynı ölçütle
