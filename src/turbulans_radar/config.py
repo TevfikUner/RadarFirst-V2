@@ -143,6 +143,21 @@ ROTA_MAKS_SAPMA_ACISI_DERECE = _ortam_sayi("ROTA_MAKS_SAPMA_ACISI_DERECE", 30.0)
 ROTA_MAKS_YANAL_SAPMA_KM = _ortam_sayi("ROTA_MAKS_YANAL_SAPMA_KM", 400.0)
 ROTA_YANAL_IZGARA_KM = _ortam_sayi("ROTA_YANAL_IZGARA_KM", 20.0)
 
+# isci/gorev_iscisi.py -- uzun işlerin kuyruğu (analiz_gorevleri). API kendi
+# içinde gömülü bir işçi başlatır (GOREV_GOMULU_ISCI); ayrı işçi süreçleri
+# (turbulans-isci, docker-compose 'worker' servisi) kullanılıyorsa kapatılır.
+# GOREV_ISCI_SAYISI: bir süreçte aynı anda çalışan en fazla görev. Kalp atışı
+# GOREV_BAYAT_SANIYE'den eski görev (işçisi öldü) GOREV_MAKS_DENEME'ye kadar
+# yeniden kuyruğa girer.
+GOREV_GOMULU_ISCI = _ortam_bool("GOREV_GOMULU_ISCI", True)
+GOREV_ISCI_SAYISI = _ortam_sayi("GOREV_ISCI_SAYISI", 2, int)
+GOREV_KUYRUK_BEKLEME_SANIYE = _ortam_sayi("GOREV_KUYRUK_BEKLEME_SANIYE", 1.0)
+GOREV_KALP_ATISI_SANIYE = _ortam_sayi("GOREV_KALP_ATISI_SANIYE", 15.0)
+GOREV_BAYAT_SANIYE = _ortam_sayi("GOREV_BAYAT_SANIYE", 120.0)
+GOREV_MAKS_DENEME = _ortam_sayi("GOREV_MAKS_DENEME", 2, int)
+# Boş değilse işçi sadece bu türlerdeki görevleri alır (virgülle: ucus,rota,toplu,backtest,canli_veri).
+GOREV_ISCI_TURLERI = tuple(t.strip() for t in _ortam_str("GOREV_ISCI_TURLERI", "").split(",") if t.strip())
+
 # sigmet_saglayici.py / risk_katmanlari.py -- canlı AWC SIGMET'leri.
 # A*'ın SERT kısıt olarak kaçındığı tehlike türleri (AWC 'hazard' alanı):
 # TURB/MTW (türbülans/dağ dalgası), TS/CONVECTIVE (oraj), VA (volkanik kül),

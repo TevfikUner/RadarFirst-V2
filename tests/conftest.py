@@ -14,6 +14,12 @@ event loop'a bağlanmaya çalışmasına ("attached to a different loop" hatası
 yol açardı. Gerçek bir alt süreç, kendi taze Python yorumlayıcısı + event
 loop'uyla bu sorunu tamamen ortadan kaldırıyor -- tıpkı gerçek bir
 `uvicorn` dağıtımının çalışma şekli gibi.
+
+Görev kuyruğu (analiz_gorevleri) geliştirme veritabanında paylaşılır: kuyruğa
+görev ekleyen testler gorev_kuyrugunu_temizle ile kendi bıraktıklarını siler
+-- yoksa sonradan başlayan gerçek bir işçi bunları gerçek analizle
+(OpenSky'a bağlanarak) çalıştırırdı. Tarayıcı testlerinin sunucusu bu yüzden
+gömülü işçi olmadan başlatılır.
 """
 
 import os
@@ -59,7 +65,7 @@ def canli_sunucu():
     surec = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "turbulans_radar.api.api_servisi:app", "--port", str(port)],
         cwd=_PROJE_KOKU,
-        env={**os.environ, "PYTHONPATH": os.path.join(_PROJE_KOKU, "src")},
+        env={**os.environ, "PYTHONPATH": os.path.join(_PROJE_KOKU, "src"), "GOREV_GOMULU_ISCI": "false"},
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
@@ -104,3 +110,37 @@ def tarayici_sayfasi(canli_sunucu):
         sayfa.on("pageerror", lambda err: hatalar.append(str(err)))
         yield {"sayfa": sayfa, "hatalar": hatalar}
         tarayici.close()
+
+
+@pytest.fixture
+def gorev_kuyrugunu_temizle():
+    """Test sırasında kuyruğa eklenip bitmemiş (kuyrukta/calisiyor) görevleri siler."""
+    from sqlalchemy import text
+
+    from turbulans_radar.depo import veritabani as vt
+
+    try:
+        with vt.motor_al().connect() as baglanti:
+            baslangic = baglanti.execute(text("SELECT now()")).scalar_one()
+    except Exception:
+        yield
+        return
+    yield
+    with vt.motor_al().begin() as baglanti:
+        baglanti.execute(
+            text(
+                "DELETE FROM analiz_gorevleri WHERE olusturulma_zamani >= :baslangic "
+                "AND durum IN ('kuyrukta', 'calisiyor')"
+            ),
+            {"baslangic": baslangic},
+        )
+
+
+@pytest.fixture
+def calisan_isci():
+    """Test süresince aynı süreçte kuyruğu işleyen bir görev işçisi."""
+    from turbulans_radar.isci.gorev_iscisi import GorevIscisi
+
+    isci = GorevIscisi(isci_sayisi=1, bekleme_saniye=0.05).baslat()
+    yield isci
+    isci.durdur(zaman_asimi=10.0)

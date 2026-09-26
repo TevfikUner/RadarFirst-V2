@@ -85,6 +85,12 @@ def baglanti_dizesini_olustur():
     return f"postgresql+psycopg2://{kullanici}:{sifre}@{host}:{port}/{veritabani}"
 
 
+def asyncpg_baglanti_parametreleri() -> dict:
+    """Doğrudan asyncpg bağlantısı için (örn. LISTEN/NOTIFY dinleyicisi)."""
+    host, port, kullanici, sifre, veritabani = _baglanti_parcalarini_al()
+    return {"host": host, "port": int(port), "user": kullanici, "password": sifre, "database": veritabani}
+
+
 def async_baglanti_dizesini_olustur():
     host, port, kullanici, sifre, veritabani = _baglanti_parcalarini_al()
     return f"postgresql+asyncpg://{kullanici}:{sifre}@{host}:{port}/{veritabani}"

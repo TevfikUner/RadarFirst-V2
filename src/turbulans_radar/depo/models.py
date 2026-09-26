@@ -10,8 +10,9 @@ tablo var, ORM sadece onların Python tarafındaki tanımı.
 
     Ucus           -> 'ucuslar' tablosu     (her uçuş/tarih çifti için bir satır)
     EdrOlcumu      -> 'edr_olcumleri'       (rota üzerindeki her nokta için bir satır)
-    AnalizGorevi   -> 'analiz_gorevleri'    (API'nin arka plan analiz görevleri -- süreç
-                                             yeniden başlasa da kaybolmaz)
+    AnalizGorevi   -> 'analiz_gorevleri'    (uzun işlerin KUYRUĞU: API ekler, işçiler
+                                             FOR UPDATE SKIP LOCKED ile alır; kalp atışı
+                                             kesilen görev yeniden kuyruğa girer)
     Sigmet         -> 'sigmetler'           (AWC'den çekilen canlı SIGMET'ler; A*'ın sert kısıtı)
     HavaDurumuKupu -> 'hava_durumu_kupleri' (ERA5/GFS/ECMWF küplerinin KATALOĞU -- ızgara
                                              verisinin kendisi diskte NetCDF olarak kalır)
@@ -98,6 +99,13 @@ class AnalizGorevi(Base):
     tarih: Mapped[str | None] = mapped_column(String(10), nullable=True)
     aciklama: Mapped[str | None] = mapped_column(Text, nullable=True)
     ozet: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    parametreler: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    bildirim_webhook_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    deneme_sayisi: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    isci: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    baslama_zamani: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    kalp_atisi: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    bitis_zamani: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
     olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
     guncellenme_zamani: Mapped[object] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()

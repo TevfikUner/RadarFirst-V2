@@ -70,14 +70,21 @@ class GorevBaslatildiYaniti(BaseModel):
 
 
 class GorevDurumYaniti(BaseModel):
-    """Görev durumu, ilerledikçe farklı alanlar kazanır (aciklama sadece
-    hatada, ozet sadece toplu analizde dolar) -- bu yüzden hepsi opsiyonel."""
+    """Kuyruktaki görevin durumu: kuyrukta -> calisiyor -> tamamlandi |
+    basarisiz | hata | yarida_kaldi. aciklama hatada, ozet sonuç üreten
+    işlerde (toplu analiz, backtest, canlı veri) dolar; deneme_sayisi >1 ise
+    görev işçisi durduğu için yeniden kuyruğa alınmıştır."""
 
     durum: str
+    tur: str | None = None
     ucus_numarasi: str | None = None
     tarih: str | None = None
     aciklama: str | None = None
     ozet: list[dict] | None = None
+    deneme_sayisi: int = 0
+    olusturulma_zamani: datetime | None = None
+    baslama_zamani: datetime | None = None
+    bitis_zamani: datetime | None = None
 
 
 class EsiklerYaniti(BaseModel):
@@ -328,6 +335,7 @@ class CanliVeriIstegi(BaseModel):
     boylam_maks: float = Field(ge=-180, le=180)
     baslangic: datetime | None = None
     saat_sayisi: int = Field(default=12, ge=1, le=120)
+    bildirim_webhook_url: str | None = None
 
 
 class BacktestSonucuYaniti(BaseModel):

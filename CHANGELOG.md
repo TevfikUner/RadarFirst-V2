@@ -4,6 +4,22 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## İşçi/kuyruk mimarisi ve `/veri/canli/hazirla` için 202
+
+- **Uzun işler API sürecinden çıktı:** arka plan görevleri API sürecinin
+  içinde (BackgroundTasks) çalışıyordu: kuyruk/işçi yoktu, eşzamanlılık sınırı
+  yoktu, API yeniden başlayınca görev kayboluyordu. Artık `analiz_gorevleri`
+  tablosu bir kuyruk (göç `d95d5ec32901`): API ekler ve 202 döner; işçiler
+  (`isci/gorev_iscisi.py`, gömülü ya da `turbulans-isci`) `FOR UPDATE SKIP
+  LOCKED` ile alır, `GOREV_ISCI_SAYISI` ile sınırlı çalışır, kalp atışı
+  gönderir. Ölen işçinin görevi yeniden kuyruğa girer.
+- `/veri/canli/hazirla` artık senkron değil: 202 + `gorev_id`, küp özeti
+  görevin `ozet` alanında (yavaş ağda istek zaman aşımına düşmez).
+- Canlı WebSocket uyarıları PostgreSQL `NOTIFY` ile taşınıyor; işçi ayrı
+  süreçte de olsa uyarılar istemcilere ulaşıyor.
+- docker-compose: ayrı `worker` servisi (`--scale worker=N`), API'ye sağlık
+  kontrolü. Testler kuyruğa bıraktıkları görevleri temizliyor.
+
 ## Küp seçimi katalogdan, belleğe tam yükleme yerine pencere
 
 - **Seçim:** `kapsayan_veri_kupunu_bul` her yerel küpü belleğe yükleyip

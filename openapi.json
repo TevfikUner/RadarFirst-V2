@@ -1151,6 +1151,7 @@
           "Analiz"
         ],
         "summary": "Analiz Durumu",
+        "description": "Kuyruktaki uzun işlerin (analiz, toplu analiz, backtest, canlı veri)\ndurumu: kuyrukta -> calisiyor -> tamamlandi | basarisiz | hata |\nyarida_kaldi. Sonucu olan işlerde (toplu, backtest, canlı veri) sonuç\n'ozet' alanındadır.",
         "operationId": "analiz_durumu_api_v1_analiz_durum__gorev_id__get",
         "parameters": [
           {
@@ -1686,7 +1687,7 @@
           "Veri Sağlayıcı"
         ],
         "summary": "Canli Veri Hazirla",
-        "description": "Verilen bölge/zaman için canlı NOAA GFS küpünü hazırlar (katalogda taze\nbir küp varsa onu kullanır, yoksa indirir) ve özetini döner.",
+        "description": "Verilen bölge/zaman için canlı NOAA GFS küpünü arka planda hazırlar\n(katalogda taze bir küp varsa onu kullanır, yoksa indirir). Yavaş ağda\nindirme dakikalar sürebildiği için istek beklemez: 202 + gorev_id döner,\nküp özeti GET /analiz/durum/{gorev_id} yanıtının 'ozet' alanındadır.",
         "operationId": "canli_veri_hazirla_api_v1_veri_canli_hazirla_post",
         "parameters": [
           {
@@ -1717,12 +1718,12 @@
           }
         },
         "responses": {
-          "200": {
+          "202": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/HavaDurumuKupuYaniti"
+                  "$ref": "#/components/schemas/GorevBaslatildiYaniti"
                 }
               }
             }
@@ -2300,6 +2301,17 @@
             "minimum": 1.0,
             "title": "Saat Sayisi",
             "default": 12
+          },
+          "bildirim_webhook_url": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bildirim Webhook Url"
           }
         },
         "type": "object",
@@ -2355,6 +2367,17 @@
             "type": "string",
             "title": "Durum"
           },
+          "tur": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tur"
+          },
           "ucus_numarasi": {
             "anyOf": [
               {
@@ -2402,6 +2425,47 @@
               }
             ],
             "title": "Ozet"
+          },
+          "deneme_sayisi": {
+            "type": "integer",
+            "title": "Deneme Sayisi",
+            "default": 0
+          },
+          "olusturulma_zamani": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Olusturulma Zamani"
+          },
+          "baslama_zamani": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baslama Zamani"
+          },
+          "bitis_zamani": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Bitis Zamani"
           }
         },
         "type": "object",
@@ -2409,7 +2473,7 @@
           "durum"
         ],
         "title": "GorevDurumYaniti",
-        "description": "Görev durumu, ilerledikçe farklı alanlar kazanır (aciklama sadece\nhatada, ozet sadece toplu analizde dolar) -- bu yüzden hepsi opsiyonel."
+        "description": "Kuyruktaki görevin durumu: kuyrukta -> calisiyor -> tamamlandi |\nbasarisiz | hata | yarida_kaldi. aciklama hatada, ozet sonuç üreten\nişlerde (toplu analiz, backtest, canlı veri) dolar; deneme_sayisi >1 ise\ngörev işçisi durduğu için yeniden kuyruğa alınmıştır."
       },
       "HTTPValidationError": {
         "properties": {

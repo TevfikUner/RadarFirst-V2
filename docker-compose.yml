@@ -33,8 +33,32 @@ services:
       POSTGRES_HOST: db
       # Otonom backend: API, canlı AWC SIGMET'lerini kendi içinde periyodik yeniler.
       SIGMET_OTOMATIK_GUNCELLEME_DAKIKA: ${SIGMET_OTOMATIK_GUNCELLEME_DAKIKA:-15}
+      # Uzun işler (analiz, backtest, canlı veri) ayrı 'worker' servisinde çalışır.
+      GOREV_GOMULU_ISCI: "false"
     ports:
       - "8000:8000"
+    volumes:
+      - ./ciktilar:/app/ciktilar
+      - ./canli_veri:/app/canli_veri
+    healthcheck:
+      test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/saglik').raise_for_status()"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  worker:
+    build: .
+    restart: unless-stopped
+    command: ["python", "-m", "turbulans_radar.isci.gorev_iscisi"]
+    depends_on:
+      # API açılışta şemayı (alembic upgrade head) günceller; işçi ondan sonra başlar.
+      api:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+      GOREV_ISCI_SAYISI: ${GOREV_ISCI_SAYISI:-2}
     volumes:
       - ./ciktilar:/app/ciktilar
       - ./canli_veri:/app/canli_veri

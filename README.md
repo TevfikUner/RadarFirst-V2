@@ -134,8 +134,9 @@ manuel indirilmiş) proje köküne koyman gerekir -- büyük olduğu için
 docker compose up --build
 ```
 
-Bu, PostgreSQL'i ve API'yi (önce `alembic upgrade head` çalıştırıp) tek
-komutla ayağa kaldırır. `.env` dosyanın hazır olması gerekir;
+Bu, PostgreSQL'i, API'yi (önce `alembic upgrade head` çalıştırıp) ve uzun
+işleri çalıştıran ayrı **worker** servisini tek komutla ayağa kaldırır
+(ölçeklemek için: `docker compose up --scale worker=3`). `.env` dosyanın hazır olması gerekir;
 `POSTGRES_HOST` konteynerler arası iletişim için otomatik olarak compose
 servis adına (`db`) çevrilir. API `http://localhost:8000`'de, Swagger
 `http://localhost:8000/docs`'ta olur. Konteyner **otonom** çalışır: canlı
@@ -233,7 +234,7 @@ görüntü (snapshot) kolaylığı sağlar.
 | GET | `/api/v1/kisitli-sahalar` | Şu an geçerli kısıtlı/yasak hava sahaları (kutu filtresiyle) |
 | POST | `/api/v1/kisitli-sahalar?kaynak=...` | GeoJSON FeatureCollection içe aktarır (örn. n8n: NOTAM -> geçici kısıt); `eskileri_kaldir=true` kaynağı tamamen yeniler |
 | DELETE | `/api/v1/kisitli-sahalar/{dis_kimlik}` | Bir kısıtlı sahayı siler |
-| POST | `/api/v1/veri/canli/hazirla` | Bir bölge/zaman için canlı GFS küpünü önceden indirir (katalogda tazesi varsa onu kullanır) |
+| POST | `/api/v1/veri/canli/hazirla` | Bir bölge/zaman için canlı GFS küpünü arka planda hazırlar (katalogda tazesi varsa onu kullanır), 202 + `gorev_id` döner |
 | GET | `/api/v1/veri/kupler` | Hava durumu küpü kataloğu (kaynak, model çalıştırması, kapsam, seviyeler) |
 | POST | `/api/v1/backtest/ucuslar/{ucus_numarasi}/{tarih}` | Bir uçuşun gerçek izini büyük daire ve A* rotasıyla karşılaştırıp kaydeder |
 | POST | `/api/v1/backtest/toplu` | Backtest'i olmayan uçuşları arka planda karşılaştırır (n8n gece tetiklemesi), `gorev_id` döner |
@@ -275,15 +276,24 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
   toplu silme) da AYNI desenle (kendi ayrı penceresiyle) korunur --
   yanlışlıkla/kötüye kullanımla art arda çok sayıda silme isteğine karşı.
 - **Asenkron:** okuma uç noktaları `asyncpg` tabanlı, event loop'u
-  bloklamaz. Analiz tetikleme, `main.py`/`toplu_analiz.py`'deki aynı
-  (bloklayan) mantığı `asyncio.to_thread` ile ayrı bir thread'de çalıştırır.
+  bloklamaz. Uzun işler API sürecinde çalışmaz (bkz. aşağıdaki görev kuyruğu).
 - **CORS:** varsayılan kapalı; `.env`'deki `CORS_IZIN_VERILEN_KAYNAKLAR`
   (virgülle ayrılmış origin listesi) ile açılır.
-- **Görev durumu** PostgreSQL'deki `analiz_gorevleri` tablosunda tutulur
-  (bkz. `gorev_deposu.py`): API yeniden başlasa da `/analiz/durum/{gorev_id}`
-  çalışır. Açılışta önceki süreçten `calisiyor` kalmış görevler
-  `yarida_kaldi` olarak işaretlenir (iş parçacıkları artık yok); bitmiş
-  görevler 7 gün sonra otomatik silinir.
+- **Görev kuyruğu ve işçiler:** uzun işler (`/analiz/ucus`, `/analiz/rota`,
+  `/analiz/toplu`, `/backtest/toplu`, `/veri/canli/hazirla`) PostgreSQL'deki
+  `analiz_gorevleri` tablosuna **kuyruk** olarak eklenir ve istek hemen
+  `202 {"gorev_id", "durum": "kuyrukta"}` döner; ayrı bir mesaj kuyruğu
+  altyapısı gerekmez (`gorev_deposu.py`). İşçiler (`isci/gorev_iscisi.py`)
+  sıradaki görevi `FOR UPDATE SKIP LOCKED` ile alır -- birden çok işçi süreci
+  aynı görevi iki kez almaz. Eşzamanlılık `GOREV_ISCI_SAYISI` ile sınırlıdır
+  (ağır bir toplu iş API'yi yavaşlatmaz). Çalışan görevin işçisi kalp atışı
+  gönderir; işçi çökerse ya da yeniden başlarsa görev `GOREV_BAYAT_SANIYE`
+  sonra yeniden kuyruğa girer (`GOREV_MAKS_DENEME`'ye kadar), sonra
+  `yarida_kaldi` olur. Durumlar: `kuyrukta -> calisiyor -> tamamlandi |
+  basarisiz | hata | yarida_kaldi`. Varsayılan olarak API kendi içinde
+  gömülü bir işçi başlatır (`GOREV_GOMULU_ISCI`); ayrı süreç için
+  `turbulans-isci` (Docker'da `worker` servisi), belirli işlere ayrılmış işçi
+  için `GOREV_ISCI_TURLERI`. Bitmiş görevler 7 gün sonra otomatik silinir.
 - **Webhook bildirimi:** `bildirim_webhook_url` verilirse, analiz bitince
   sonuç oraya POST edilir -- n8n'in Webhook node'u bunu dinleyip
   `/api/v1/analiz/durum/{gorev_id}`'yi periyodik yoklamaya gerek bırakmaz.
@@ -294,7 +304,9 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
   yazılamazsa görev `tamamlandi` değil `hata` olur (CLI ise haritayı yine
   üretir, sadece uyarır).
 - **WebSocket:** `API_ANAHTARI` sunucuda tanımlı değilse `/ws/uyarilar` de
-  bağlantıyı reddeder (REST ile aynı "kapalı başla" davranışı).
+  bağlantıyı reddeder (REST ile aynı "kapalı başla" davranışı). İşçi başka
+  bir süreçte çalışabildiği için canlı uyarılar PostgreSQL `NOTIFY` ile
+  (`turbulans_uyarilari` kanalı) API'ye gelir ve oradan istemcilere iletilir.
 
 **Bilinçli olarak eklenmedi:** `veri_indirme.py`'nin gerçek ERA5 indirmesini
 tetikleyen bir uç nokta (rate-limit/ban riski), JWT/OAuth2 kullanıcı girişi
@@ -784,12 +796,15 @@ değişkeni olarak tut, iş akışına düz metin yazma):
 | İş | Sıklık | HTTP Request | Not |
 |---|---|---|---|
 | Canlı SIGMET yenileme | 10-15 dk | `POST /api/v1/sigmet/guncelle` | A*'ın sert kısıtı bu tabloyu kullanır; son çekim 30 dk'dan eskiyse canlı rota yanıtları `bayat_mi` uyarısı taşır. Alternatif: `SIGMET_OTOMATIK_GUNCELLEME_DAKIKA` ile API'nin kendi zamanlayıcısı (Docker'da varsayılan 15 dk) -- ikisini aynı anda açmaya gerek yok. |
-| Canlı GFS önceden ısıtma (isteğe bağlı) | 6 saatte bir, döngülerden ~4 sa sonra | `POST /api/v1/veri/canli/hazirla` (gövde: bölge kutusu, `saat_sayisi`) | Sık kullanılan bölgenin ilk rota isteği indirme süresini beklemez. |
+| Canlı GFS önceden ısıtma (isteğe bağlı) | 6 saatte bir, döngülerden ~4 sa sonra | `POST /api/v1/veri/canli/hazirla` (gövde: bölge kutusu, `saat_sayisi`) | Kuyruğa girer (202); küp özeti görevin `ozet` alanında. Sık kullanılan bölgenin ilk rota isteği indirme süresini beklemez. |
 | Toplu uçuş analizi | ihtiyaca göre | `POST /api/v1/analiz/toplu` | `bildirim_webhook_url` ile bitince n8n Webhook node'una bildirim ya da `GET /api/v1/analiz/durum/{gorev_id}` yoklaması. |
 | Toplu backtest (isteğe bağlı) | günlük | `POST /api/v1/backtest/toplu?limit=50` | Yeni analiz edilen uçuşları A* rotasıyla karşılaştırır; özet `GET /api/v1/backtest`. |
 
-API sadece `.env`'den beslenen, `uvicorn`/Docker ile başlatılan bağımsız bir
-HTTP servisidir.
+Uzun işlerde n8n asla beklemez: istek 202 + `gorev_id` döner. Sonuç için
+ya `bildirim_webhook_url` (n8n Webhook node'u) verilir ya da `GET
+/api/v1/analiz/durum/{gorev_id}` durum `kuyrukta`/`calisiyor` olduğu sürece
+yoklanır. API sadece `.env`'den beslenen, `uvicorn`/Docker ile başlatılan
+bağımsız bir HTTP servisidir.
 
 ## Claude Code'dan veritabanına MCP ile bağlanmak
 

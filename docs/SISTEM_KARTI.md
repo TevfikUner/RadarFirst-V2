@@ -72,12 +72,13 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | Bir SIGMET iptal edildi (canlı akıştan düştü) | Geçerliliği o an sona erdirilir; artık rotayı saptırmaz. |
 | AWC'den geçersiz (kendini kesen) ya da 180° boylamını kesen bir SIGMET poligonu geldi | Geometri onarılır/bölünür; yalnızca gerçek alan yasaklanır. |
 | İstenen irtifa canlı sağlayıcının basınç seviyelerinin dışında (örn. FL100) | İndirme yapılmaz; rota/tahmin hava verisi olmadan (kapsam dışı olarak) döner. |
-| Canlı veri sağlayıcısı bozuk ya da geçersiz yanıt döndü | `POST /veri/canli/hazirla` 502 döner (iç ayrıntı sızdırılmaz); rota/tahmin hava verisi olmadan devam eder. |
+| Canlı veri sağlayıcısı bozuk ya da geçersiz yanıt döndü | `POST /veri/canli/hazirla` görevi `hata` olur, genel bir mesajla (iç ayrıntı sızdırılmaz); rota/tahmin hava verisi olmadan devam eder. |
 | Toplu backtest'te bir uçuş beklenmeyen hatayla düştü | O uçuş `hata` olarak raporlanır, diğerleri işlenmeye devam eder. |
 | Hava verisi yok (bölge, tarih ya da irtifa kapsam dışı; GFS indirilemedi) | Rota rüzgarsız, sadece TAS ile hesaplanır ve TI1 raporlanmaz; bu durum açıkça belirtilir. SIGMET ve kısıtlı saha kısıtları yine uygulanır. |
 | Bir noktanın irtifası/zamanı küpün seviyelerinden ya da zaman adımlarından uzak | O nokta için TI1 NaN bırakılır; en yakın hücreden uydurma değer üretilmez. |
 | Analiz sonucu veritabanına yazılamadı (API) | Görev `hata` durumuna geçer; "tamamlandı" gösterilmez. |
-| API görev bitmeden yeniden başladı | Açılışta bu görevler `yarida_kaldi` olarak işaretlenir. |
+| API ya da işçi görev bitmeden yeniden başladı/çöktü | Kuyruktaki görevler kaybolmaz. Çalışan görevin kalp atışı kesilir; `GOREV_BAYAT_SANIYE` (120 sn) sonra görev yeniden kuyruğa girer, `GOREV_MAKS_DENEME` (2) aşılırsa `yarida_kaldi` olur. API'nin yeniden başlaması başka süreçteki işçinin görevine dokunmaz. |
+| Uzun ya da ağır bir iş (toplu analiz, yavaş ağda GFS indirme) | API'yi bloklamaz: iş kuyruğa girer, en fazla `GOREV_ISCI_SAYISI` iş aynı anda çalışır. |
 
 ## 5. Bilinen sınırlamalar
 
@@ -129,8 +130,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 **İşletim**
 - Hız sınırı bellekte ve süreç başına tutulur.
-- Açılışta yarıda kalan görevlerin işaretlenmesi tek süreçli dağıtımı
-  varsayar.
+- Görev kuyruğu PostgreSQL'dedir; işçiler 1 sn aralıkla yoklar (kuyruğa
+  giriş ile başlama arasında ~1 sn gecikme).
 
 ## 6. Doğrulama durumu
 
