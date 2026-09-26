@@ -292,7 +292,11 @@ def veri_kupunu_sec(
     if len(zaman_dizisi) == 0 or not (canli_zaman_mi(zaman_dizisi.min()) and canli_zaman_mi(zaman_dizisi.max())):
         return None
     enlemler, boylamlar = np.asarray(enlemler, dtype=float), np.asarray(boylamlar, dtype=float)
-    kutu = Kutu(enlemler.min(), enlemler.max(), boylamlar.min(), boylamlar.max())
+    # Canlı küp de noktaların pay_derece çevresini kapsamalı: rota için bu A*
+    # koridorudur (±ROTA_MAKS_YANAL_SAPMA_KM). Eskiden sadece ±2° indiriliyor,
+    # koridorun dışında kalan ızgara düğümleri "kapsam dışı" diye atılıyordu.
+    # (pay_derece'nin 1°'si eşleştirme toleransıdır; canli_kup_hazirla 2° ekler.)
+    kutu = Kutu(enlemler.min(), enlemler.max(), boylamlar.min(), boylamlar.max()).genislet(max(0.0, pay_derece - 1.0))
     try:
         return canli_kup_hazirla(kutu, zaman_dizisi.min(), zaman_dizisi.max(), saglayici)
     except Exception as hata:

@@ -4,6 +4,14 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## İkinci güvenlik/doğruluk turu
+
+- **Canlı rotada A* koridoru daralmıyor:** canlı GFS küpü rotanın sadece ±2°
+  çevresini indiriyordu; A* 400 km'ye (40°K'de ~4.7° boylam) kadar
+  sapabildiği için koridorun dışındaki düğümler "kapsam dışı" diye grafikten
+  atılıyordu (pratik koridor ~220 km). Küp artık A* payıyla iniyor
+  (İzmir-Van: 31.75-45.5°K, 20.25-50.25°D, 545 KB; eskiden ~250 KB).
+
 ## Sağlık ucunda izleme, kütüphaneler ve altlık harita yerelden
 
 - **`/saglik?derin=true`** artık sadece PostgreSQL'e değil, EFB'nin güvendiği

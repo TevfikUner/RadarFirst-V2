@@ -68,6 +68,7 @@ class SahteSaglayici:
 
     def kup_indir(self, kutu, baslangic, bitis, hedef_yol):
         self.indirme_sayisi += 1
+        self.son_kutu = kutu
         era5 = hava_durumu_onbellekli_yukle(config.HAVA_DURUMU_DOSYASI)
         saatler = pd.date_range(pd.Timestamp(baslangic).ceil("3h"), pd.Timestamp(bitis).floor("3h"), freq="3h")
         kup = era5[["u", "v", "t"]].isel(valid_time=slice(0, len(saatler)))
@@ -197,3 +198,22 @@ def test_canli_veri_alinamazsa_kapsam_disi_degil_alinamadi_denir(sahte_canli_ort
     sonuc = rota_simulasyonu_olustur(38.4, 27.1, 38.5, 43.4, 34000, simdi, "A320", sigmetler=[], kisitli_sahalar=[])
     assert sonuc["ruzgar_verisi_kaynagi"] == "canli_veri_alinamadi"
     assert vs.CANLI_VERI_ALINAMADI in sonuc["aciklama"]
+
+
+def test_canli_kup_a_yildiz_koridorunu_da_kapsar(sahte_canli_ortam):
+    simdi = pd.Timestamp.now(tz="UTC")
+    vs.veri_kupunu_sec([38.5], [33.0], [simdi])
+    assert sahte_canli_ortam.son_kutu.enlem_min == 36.5
+    vs.veri_kupunu_sec([38.5], [33.0], [simdi + pd.Timedelta(hours=1)], pay_derece=5.7)
+    kutu = sahte_canli_ortam.son_kutu
+    assert kutu.enlem_min <= 38.5 - 6.7 and kutu.boylam_maks >= 33.0 + 6.7
+
+
+def test_canli_rotada_a_yildiz_koridoru_kapsam_disi_diye_daralmaz(sahte_canli_ortam):
+    from turbulans_radar.rota import rota_optimizasyonu as ro
+
+    simdi = pd.Timestamp.now(tz="UTC").strftime("%Y-%m-%dT%H:%M:%S")
+    ro.rota_simulasyonu_olustur(39.0, 30.0, 39.0, 36.0, 34000, simdi, "A320", sigmetler=[], kisitli_sahalar=[])
+    kutu = sahte_canli_ortam.son_kutu
+    pay = ro._a_yildiz_pay_derecesi([39.0])
+    assert kutu.enlem_min <= 39.0 - pay and kutu.enlem_maks >= 39.0 + pay
