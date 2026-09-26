@@ -454,6 +454,23 @@ normalize eder, böylece eşleştirme, risk katmanları ve A* kaynağı bilmez.
 - Yeni bir sağlayıcı (örn. ECMWF Open Data -- GRIB2, Docker/Linux'ta)
   `VeriSaglayici` arayüzünü uygulayarak eklenir.
 
+### Küp seçimi ve bellek (GB boyutlu arşive hazırlık)
+
+- **Seçim katalogdan:** noktaları kapsayan yerel küp, dosyalar açılmadan
+  `hava_durumu_kupleri` kataloğundan (bölge/zaman kesişimi) bulunur; sadece
+  aday küpler yüklenir. Katalogda henüz olmayan dosya ya da veritabanına
+  erişilemediğinde dosyanın yalnızca koordinatları okunur (önbellekli).
+  Eskiden ilk seçimde TÜM yerel küpler belleğe yükleniyordu (16 küp, 92 MB).
+- **Pencereli okuma:** `KUP_TAM_YUKLEME_ESIGI_MB`'den (256) büyük küplerden
+  sadece noktaların çevresi okunur (rota için A* koridoru kadar pay, eşleştirme
+  için 1°; 1° ve 6 saatlik sınırlara hizalı). İzmir-Van rotası için pencere
+  1.2 MB (tüm Türkiye küpü 69 MB); TI1 sonuçları tam küple birebir aynı
+  (testle doğrulanıyor).
+- **Bütçeli önbellek:** yüklenen tüm küp/pencereler `KUP_ONBELLEK_MAKS_MB`
+  (2048) bütçeli bir LRU önbellekte; bütçe aşılınca en uzun süre kullanılmayan
+  atılır (eskiden hiçbir küp atılmıyordu). NetCDF/HDF5 erişimi (okuma, GFS
+  yazma) tek kilitle sıraya alınır; önbellek isabetleri yüklemeyi beklemez.
+
 ## Otomatik doğrulama: gerçek uçuşlarla backtest
 
 `rota_backtest.py`, analiz edilmiş her uçuşun gerçek izini (OpenSky, gerçek

@@ -64,6 +64,13 @@ TRINO_SCHEMA = _ortam_str("TRINO_SCHEMA", "osky")
 # her state-vector sorgusuna hour filtresi de ekliyor.
 MAKS_STATE_VECTOR_SATIRI = _ortam_sayi("MAKS_STATE_VECTOR_SATIRI", 50_000, int)
 
+# veri_yukleme.py -- bu boyuttan (MB) küçük küpler tamamen belleğe yüklenir;
+# büyükleri (örn. GB boyutlu ERA5 arşivi) sadece rotanın bölge/zaman
+# penceresiyle okunur. Tüm yüklenen küp/pencereler KUP_ONBELLEK_MAKS_MB
+# bütçeli bir LRU önbellekte tutulur (bütçe aşılınca en eski atılır).
+KUP_TAM_YUKLEME_ESIGI_MB = _ortam_sayi("KUP_TAM_YUKLEME_ESIGI_MB", 256.0)
+KUP_ONBELLEK_MAKS_MB = _ortam_sayi("KUP_ONBELLEK_MAKS_MB", 2048.0)
+
 # Copernicus/ERA5 veri küpündeki basınç seviyesi boyutunun adı.
 # (eslestirme.py bunu kullanıyordu ama tanımlı değildi -- eksikti, eklendi.)
 BASINC_BOYUTU = _ortam_str("BASINC_BOYUTU", "pressure_level")

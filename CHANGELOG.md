@@ -4,6 +4,18 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Küp seçimi katalogdan, belleğe tam yükleme yerine pencere
+
+- **Seçim:** `kapsayan_veri_kupunu_bul` her yerel küpü belleğe yükleyip
+  kapsama bakıyordu (16 küp, 92 MB, ilk istekte). Adaylar artık
+  `hava_durumu_kupleri` kataloğundan (`kesisen_kup_yollari`) ya da dosyanın
+  koordinat meta verisinden bulunuyor; kesişmeyen küp hiç yüklenmiyor.
+- **Bellek:** `KUP_TAM_YUKLEME_ESIGI_MB`'den büyük küplerden sadece rota
+  penceresi okunuyor (İzmir-Van: 69 MB yerine 1.2 MB, TI1 birebir aynı).
+  Önbellek `KUP_ONBELLEK_MAKS_MB` bütçeli LRU; eskiden sınırsız büyüyordu.
+- GFS küpünün yazılması ve katalog kaydı da HDF5 kilidine alındı (eşzamanlı
+  NetCDF okuma/yazma çökmesine karşı).
+
 ## Backtest'e bağımsız doğrulama kaynağı
 
 - **Döngüsellik kırıldı:** A* TI1'i düşürecek şekilde rota seçiyor, backtest

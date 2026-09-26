@@ -37,7 +37,7 @@ from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_ex
 from turbulans_radar import config
 from turbulans_radar.depo.kup_katalogu import eski_canli_kupleri_temizle, kapsayan_hazir_kup_yolu, kup_kaydet
 from turbulans_radar.loglama import logger_al
-from turbulans_radar.veri.veri_yukleme import hava_durumu_onbellekli_yukle, kapsayan_veri_kupunu_bul
+from turbulans_radar.veri.veri_yukleme import hava_durumu_onbellekli_yukle, hdf5_kilidi, kapsayan_veri_kupunu_bul
 
 _logger = logger_al(__name__)
 
@@ -159,12 +159,14 @@ class GfsThreddsSaglayici:
                     )
                 )
             parcalar = []
-            for yol in yollar:
-                with xr.open_dataset(yol) as ham:
-                    parcalar.append(gfs_kupunu_normalize_et(ham).load())
+            with hdf5_kilidi:
+                for yol in yollar:
+                    with xr.open_dataset(yol) as ham:
+                        parcalar.append(gfs_kupunu_normalize_et(ham).load())
         kup = xr.concat(parcalar, dim=config.BASINC_BOYUTU).sortby(config.BASINC_BOYUTU, ascending=False)
         kup.attrs = parcalar[0].attrs
-        kup.to_netcdf(hedef_yol)
+        with hdf5_kilidi:
+            kup.to_netcdf(hedef_yol)
         return kup.attrs.get("model_calisma_zamani")
 
 
@@ -241,12 +243,15 @@ def _canli_seviyeler_kapsar_mi(basinc_hpa) -> bool:
         )
 
 
-def veri_kupunu_sec(enlemler, boylamlar, zamanlar, basinc_hpa=None, saglayici: VeriSaglayici | None = None):
+def veri_kupunu_sec(
+    enlemler, boylamlar, zamanlar, basinc_hpa=None, saglayici: VeriSaglayici | None = None, pay_derece=1.0
+):
     """Noktalar için hava küpü: önce yerel arşiv küpleri (ERA5, bkz.
-    veri_yukleme.kapsayan_veri_kupunu_bul); hiçbiri kapsamıyorsa ve tüm zamanlar
-    canlı penceredeyse canlı sağlayıcı (GFS). Hiçbiri yoksa None -- uydurma veri
+    veri_yukleme.kapsayan_veri_kupunu_bul -- büyük küplerden noktaların
+    pay_derece çevresi okunur); hiçbiri kapsamıyorsa ve tüm zamanlar canlı
+    penceredeyse canlı sağlayıcı (GFS). Hiçbiri yoksa None -- uydurma veri
     üretilmez."""
-    kup = kapsayan_veri_kupunu_bul(enlemler, boylamlar, zamanlar, basinc_hpa)
+    kup = kapsayan_veri_kupunu_bul(enlemler, boylamlar, zamanlar, basinc_hpa, pay_derece=pay_derece)
     if kup is not None or not config.CANLI_HAVA_VERISI_ETKIN:
         return kup
     if basinc_hpa is not None and not _canli_seviyeler_kapsar_mi(basinc_hpa):

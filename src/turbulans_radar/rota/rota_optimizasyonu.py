@@ -159,7 +159,21 @@ def veri_kupune_eris(enlemler=None, boylamlar=None, zaman=None, irtifa_m=None, z
             return None
     enlemler = np.atleast_1d(np.asarray(enlemler, dtype=float))
     basinc_hpa = None if irtifa_m is None else np.full(len(enlemler), irtifa_metre_to_basinc_hpa(irtifa_m))
-    return veri_kupunu_sec(enlemler, boylamlar, zamanlar or [zaman] * len(enlemler), basinc_hpa)
+    return veri_kupunu_sec(
+        enlemler,
+        boylamlar,
+        zamanlar or [zaman] * len(enlemler),
+        basinc_hpa,
+        pay_derece=_a_yildiz_pay_derecesi(enlemler),
+    )
+
+
+def _a_yildiz_pay_derecesi(enlemler):
+    """A* ızgarası büyük daireden ROTA_MAKS_YANAL_SAPMA_KM kadar sapabilir;
+    büyük küplerden okunan pencere bu koridoru da kapsasın (boylamda enleme
+    göre genişletilmiş, +1° eşleştirme toleransı)."""
+    enlem = min(float(np.max(np.abs(enlemler))), 75.0)
+    return config.ROTA_MAKS_YANAL_SAPMA_KM / (111.0 * math.cos(math.radians(enlem))) + 1.0
 
 
 def _tahmini_varis_zamanlari(enlemler, boylamlar, zaman_iso, tas_ms):

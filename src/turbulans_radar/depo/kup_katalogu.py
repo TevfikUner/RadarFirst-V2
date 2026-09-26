@@ -22,7 +22,7 @@ from sqlalchemy.orm import Session
 from turbulans_radar import config
 from turbulans_radar.depo.models import HavaDurumuKupu
 from turbulans_radar.depo.veritabani import motor_al
-from turbulans_radar.veri.veri_yukleme import hava_durumu_dosyalari, onbellekten_cikar
+from turbulans_radar.veri.veri_yukleme import hava_durumu_dosyalari, hdf5_kilidi, onbellekten_cikar
 
 
 def _utc(deger) -> datetime:
@@ -43,7 +43,9 @@ def kup_meta_verisi(veri_kupu) -> dict:
     }
 
 
-def kup_kaydet(kaynak, dosya_yolu, veri_kupu, model_calisma_zamani=None, durum="hazir", motor=None) -> None:
+def kup_kaydet(
+    kaynak, dosya_yolu, veri_kupu=None, model_calisma_zamani=None, durum="hazir", motor=None, meta_verisi=None
+) -> None:
     motor = motor or motor_al()
     satir = {
         "kaynak": kaynak,
@@ -51,7 +53,7 @@ def kup_kaydet(kaynak, dosya_yolu, veri_kupu, model_calisma_zamani=None, durum="
         "model_calisma_zamani": _utc(model_calisma_zamani) if model_calisma_zamani is not None else None,
         "durum": durum,
         "boyut_bayt": os.path.getsize(dosya_yolu) if os.path.exists(dosya_yolu) else None,
-        **kup_meta_verisi(veri_kupu),
+        **(meta_verisi if meta_verisi is not None else kup_meta_verisi(veri_kupu)),
     }
     ifade = insert(HavaDurumuKupu).values(satir)
     with Session(motor) as oturum:
@@ -91,6 +93,31 @@ def kapsayan_hazir_kup_yolu(
             .order_by(HavaDurumuKupu.model_calisma_zamani.desc().nulls_last())
         ).scalars()
         return next((y for y in yollar if os.path.exists(y)), None)
+
+
+def kesisen_kup_yollari(
+    kaynak, enlem_min, enlem_maks, boylam_min, boylam_maks, baslangic, bitis, motor=None
+) -> tuple[set, set]:
+    """(bölge/zamanla KESİŞEN küplerin yolları, bu kaynağın kayıtlı TÜM yolları)
+    -- küp seçimi dosyaları açmadan buradan aday bulur (bkz.
+    veri_yukleme._aday_dosyalar). Zaman, eşleştirmenin 3 saatlik toleransıyla
+    genişletilir."""
+    motor = motor or motor_al()
+    pay = timedelta(hours=3)
+    baslangic, bitis = pd.Timestamp(baslangic).floor("s"), pd.Timestamp(bitis).ceil("s")
+    with Session(motor) as oturum:
+        tumu = oturum.execute(
+            select(
+                HavaDurumuKupu.dosya_yolu,
+                (HavaDurumuKupu.enlem_min <= float(enlem_maks))
+                & (HavaDurumuKupu.enlem_maks >= float(enlem_min))
+                & (HavaDurumuKupu.boylam_min <= float(boylam_maks))
+                & (HavaDurumuKupu.boylam_maks >= float(boylam_min))
+                & (HavaDurumuKupu.gecerlilik_baslangic <= _utc(bitis) + pay)
+                & (HavaDurumuKupu.gecerlilik_bitis >= _utc(baslangic) - pay),
+            ).where(HavaDurumuKupu.kaynak == kaynak)
+        ).all()
+    return {yol for yol, kesisiyor in tumu if kesisiyor}, {yol for yol, _ in tumu}
 
 
 def katalogu_listele(limit=100, motor=None) -> list[dict]:
@@ -151,7 +178,8 @@ def yerel_kupleri_katalogla(motor=None) -> int:
     (belleğe yüklenmez); canlı küplerin temizliği bunlara dokunmaz."""
     sayi = 0
     for dosya in hava_durumu_dosyalari():
-        with xr.open_dataset(dosya) as veri_kupu:
-            kup_kaydet("era5", dosya, veri_kupu, motor=motor)
+        with hdf5_kilidi, xr.open_dataset(dosya) as veri_kupu:
+            meta = kup_meta_verisi(veri_kupu)
+        kup_kaydet("era5", dosya, meta_verisi=meta, motor=motor)
         sayi += 1
     return sayi
