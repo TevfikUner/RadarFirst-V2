@@ -120,8 +120,11 @@ Sadece çalıştırmak (geliştirme araçları olmadan) için `pip install -e .`
 
 Web arayüzlerinin kütüphanelerini (CesiumJS, MapLibre) yerelden sunmak için
 bir kez `turbulans-statik` çalıştır (yaklaşık 30 MB, `web/vendor/`'a; git'e
-girmez). Çalıştırılmazsa sayfalar aynı sürümü CDN'den yükler. Docker imajı
-bunu derlenirken kendisi yapar.
+girmez). Çalıştırılmazsa sayfalar aynı sürümü CDN'den yükler. Aynı komut,
+koordinatsız SIGMET'ler için FIR sınır verisini de `veri_dosyalari/`'na
+indirir (bkz. "Koordinatsız SIGMET'ler" bölümü); çalıştırılmazsa bu SIGMET'ler
+eski (eleme) davranışıyla işlenir. Docker imajı ikisini de derlenirken
+kendisi yapar.
 
 `.env`'e girilmesi gerekenler (bkz. `.env.example`): `OPENSKY_USERNAME`/
 `OPENSKY_PASSWORD` (OpenSky hesabı, tarihsel veri erişimi onaylanmış
@@ -424,6 +427,18 @@ denetimde canlı akışta sessizce atılan bir biçim de bulundu: `geom: "AREAS"
 saklanıyor. Okunamayan irtifa değeri daha geniş bir yasak banda, okunamayan
 tehlike türü `BILINMIYOR`'a çevrilir ve bu tür SIGMET'lerden her zaman
 kaçınılır.
+
+**Koordinatsız SIGMET'ler (FIR yedeği):** AWC bazı SIGMET'leri ("ENTIRE FIR"
+ya da metinle tarif edilmiş, koordinat listesi boş gelen alanlar) hiç poligon
+vermeden yayınlıyor -- bunlar eskiden sessizce elenip A* tarafından hiç
+görülmüyordu. `veri/fir_sinirlari.py`, VATSIM'in FIR sınır verisiyle
+(`turbulans-statik` indirir; bkz. Kurulum) bu SIGMET'i FIR'ın TAMAMINA
+genişletir -- kısmi bir alanı FIR'a büyütmek, hiç uygulamamaktan daha
+muhafazakârdır. FIR bilinmiyorsa (sınır verisi yoksa ya da kod eşleşmiyorsa)
+eski davranış (eleme) korunur. Bu genişletmeler `_akis_sagligini_denetle`
+tarafından da "çözümlenemeyen" gibi sayılır -- AWC koordinatları TOPTAN
+kaldırırsa (madde 1'in koruduğu senaryo) FIR yedeği bunu maskeleyip akışı
+"sağlıklı" göstermez.
 
 ## Kısıtlı / yasak hava sahaları
 

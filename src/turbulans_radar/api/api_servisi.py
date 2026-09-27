@@ -144,6 +144,7 @@ from turbulans_radar.rota.rota_optimizasyonu import (
     simulasyonu_czml_e_cevir,
     veri_kupune_eris,
 )
+from turbulans_radar.veri.fir_sinirlari import fir_verisi_var_mi
 from turbulans_radar.veri.kisitli_saha_saglayici import (
     ORNEK_KAYNAK,
     gecerli_kisitli_sahalari_getir,
@@ -1187,6 +1188,7 @@ async def _saglik_raporu(ayrintili: bool) -> dict:
         "kisitli_sahalar": await _kontrol_et(_kisitli_saha_kontrolu),
         "kup_onbellegi": {"durum": "tamam", **onbellek_durumu()},
         "statik_dosyalar": yerel_kutuphane_durumu(),
+        "fir_sinirlari": {"durum": "tamam" if await asyncio.to_thread(fir_verisi_var_mi) else "veri_yok"},
     }
     if not ayrintili:
         kontroller = {ad: {k: v for k, v in k_.items() if k not in _AYRINTI_ALANLARI} for ad, k_ in kontroller.items()}

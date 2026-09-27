@@ -69,6 +69,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | AWC'nin bir uç noktası yanıt vermiyor | Diğer kaynak işlenir; yanıt vermeyen kaynağın mevcut kayıtlarına dokunulmaz. |
 | AWC akışı boş, liste değil ya da SIGMET'lerinin %25'inden fazlası çözümlenemiyor (şema değişikliği) | Kaynak hatası sayılır: mevcut SIGMET'ler sonlandırılmaz, `kaynak_hatalari` doldurulur, kaynak başarılı güncelleme almaz (bayatlık uyarısı devreye girer). |
 | Tek SIGMET'te birden fazla poligon (`geom: "AREAS"`) | Her alan ayrı kayıt olarak saklanır ve uygulanır. |
+| SIGMET koordinatsız geldi (örn. "ENTIRE FIR") | FIR sınır verisi varsa ve FIR kodu biliniyorsa alan FIR'ın TAMAMINA genişletilir (muhafazakâr); yoksa eski davranış (eleme). Bu genişletme şema-uyuşmazlığı eşiğinde çözümlenemeyen gibi sayılır. |
 | SIGMET'in irtifa bandı ya da tehlike türü okunamıyor | Bant genişletilir (taban yer, tavan sınırsız); tehlike `BILINMIYOR` olur ve her zaman kaçınılır. |
 | Bir SIGMET iptal edildi (canlı akıştan düştü) | Geçerliliği o an sona erdirilir; artık rotayı saptırmaz. |
 | AWC'den geçersiz (kendini kesen) ya da 180° boylamını kesen bir SIGMET poligonu geldi | Geometri onarılır/bölünür; yalnızca gerçek alan yasaklanır. |
@@ -122,6 +123,9 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Buzlanma (ICE) varsayılan kaçınma setinde yoktur
   (`SIGMET_KACINILACAK_TEHLIKELER` ile eklenebilir).
 - Uluslararası kapsam, AWC'ye ulaşan mesajlarla sınırlıdır.
+- FIR sınır verisi (VATSIM vatspy-data-project, CC BY-SA 4.0) simülasyon
+  topluluğunun güncel tuttuğu yaklaşık çizimlerdir, resmi AIP sınırı değildir;
+  `turbulans-statik` çalıştırılmazsa hiç yoktur.
 
 **GFS**
 - UCAR THREDDS ücretsiz bir akademik servistir; hizmet düzeyi garantisi (SLA)

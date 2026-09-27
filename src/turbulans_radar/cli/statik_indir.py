@@ -11,6 +11,8 @@ değiştirilmiş bir paket kurulmaz. Sadece gereken alt küme web/vendor/ altın
 çıkarılır (git'e girmez; Docker imajı derlenirken üretilir).
 
 Sayfalar önce yerel kopyayı yükler, yoksa CDN'e düşer (geliştirme ortamı).
+Aynı komut, koordinatsız SIGMET'ler için FIR sınırlarını da (bkz.
+veri/fir_sinirlari.py) sha256 doğrulamasıyla veri_dosyalari/'na indirir.
 Cesium paketiyle gelen NaturalEarthII dokusu çevrimdışı altlık haritadır.
 
     turbulans-statik            (ya da python -m turbulans_radar.cli.statik_indir)
@@ -53,6 +55,17 @@ PAKETLER = {
             "package/dist/maplibre-gl.css": "maplibre-gl/maplibre-gl.css",
         },
         "zorunlu": ["maplibre-gl/maplibre-gl.js", "maplibre-gl/maplibre-gl.css"],
+    },
+}
+
+
+# Tek dosyalık veri kaynakları: sabit URL + sha256 (sürüm değişince güncellenir).
+DOSYALAR = {
+    "fir_sinirlari": {
+        "url": "https://github.com/vatsimnetwork/vatspy-data-project/releases/download/v2609.2/Boundaries.geojson",
+        "butunluk": "sha256-"
+        + base64.b64encode(bytes.fromhex("83594a837eb1155d202b69c5e8709b70e5deba294f62a278282c83fb50a444dc")).decode(),
+        "lisans": "CC BY-SA 4.0 (VATSIM vatspy-data-project)",
     },
 }
 
@@ -155,6 +168,27 @@ def paketi_kur(ad: str, hedef: Path = VARSAYILAN_HEDEF, zorla=False, indirici=_i
     return "kuruldu"
 
 
+def dosyayi_kur(ad: str, hedef_yol: str | None = None, zorla=False, indirici=_indir) -> str:
+    from turbulans_radar import config
+
+    bilgi = DOSYALAR[ad]
+    yol = Path(hedef_yol or config.FIR_SINIRLARI_DOSYASI)
+    if not zorla and yol.exists():
+        try:
+            butunlugu_dogrula(yol.read_bytes(), bilgi["butunluk"])
+            return "guncel"
+        except ButunlukHatasi:
+            pass
+    print(f"{ad} indiriliyor ({bilgi['lisans']})...")
+    veri = indirici(bilgi["url"])
+    butunlugu_dogrula(veri, bilgi["butunluk"])
+    yol.parent.mkdir(parents=True, exist_ok=True)
+    gecici = yol.with_suffix(yol.suffix + ".gecici")
+    gecici.write_bytes(veri)
+    os.replace(gecici, yol)
+    return "kuruldu"
+
+
 def yerel_kutuphane_durumu(hedef: Path = VARSAYILAN_HEDEF) -> dict:
     """Sağlık kontrolü için: her kütüphane yerelden mi sunuluyor (yoksa
     sayfalar CDN'e düşer)."""
@@ -177,6 +211,7 @@ def ana():
     argumanlar = ayristirici.parse_args()
     for ad in PAKETLER:
         print(f"{ad}: {paketi_kur(ad, Path(argumanlar.hedef), argumanlar.zorla)}")
+    print(f"fir_sinirlari: {dosyayi_kur('fir_sinirlari', zorla=argumanlar.zorla)}")
 
 
 if __name__ == "__main__":

@@ -191,6 +191,9 @@ SIGMET_BILINMEYEN_TEHLIKE = "BILINMIYOR"
 # Hareket yönü verilmiş ama hızı bilinmeyen ("MOV NE", spd=UNK) SIGMET için
 # varsayılan en yüksek hız: alan 0 ile bu hız arasındaki tüm konumları süpürür.
 SIGMET_BILINMEYEN_HIZ_KT = _ortam_sayi("SIGMET_BILINMEYEN_HIZ_KT", 30.0)
+# Koordinatsız SIGMET'lerin FIR'ın tamamı olarak uygulanması için FIR sınırları
+# (turbulans-statik indirir; bkz. veri/fir_sinirlari.py).
+FIR_SINIRLARI_DOSYASI = _ortam_str("FIR_SINIRLARI_DOSYASI", os.path.join("veri_dosyalari", "fir_sinirlari.geojson"))
 
 # veri_saglayicilari.py -- anlık rota için CANLI hava verisi (ERA5 reanalizi
 # birkaç gün gecikmeli yayınlandığı için "şimdi"yi kapsamaz). NOAA GFS 0.25°,

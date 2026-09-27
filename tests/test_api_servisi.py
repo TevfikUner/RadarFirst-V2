@@ -935,7 +935,15 @@ async def test_kisitli_saha_ice_aktarma_listeleme_ve_silme(istemci, api_anahtari
 
 # --- Sağlık / izleme ---
 
-_KONTROLLER = {"sigmet", "canli_gfs", "gorev_kuyrugu", "kisitli_sahalar", "kup_onbellegi", "statik_dosyalar"}
+_KONTROLLER = {
+    "sigmet",
+    "canli_gfs",
+    "gorev_kuyrugu",
+    "kisitli_sahalar",
+    "kup_onbellegi",
+    "statik_dosyalar",
+    "fir_sinirlari",
+}
 
 
 async def test_derin_saglik_tum_bagimliliklari_raporlar_ham_hata_sizdirmaz(istemci):

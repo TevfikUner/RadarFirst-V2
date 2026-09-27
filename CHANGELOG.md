@@ -4,6 +4,23 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Koordinatsız SIGMET'ler artık FIR'a genişletilerek uygulanıyor
+
+- **Poligonu olmayan SIGMET'ler eskiden sessizce eleniyordu:** AWC bazı
+  SIGMET'leri ("ENTIRE FIR" ya da metin tarifli alanlar) koordinatsız
+  yayınlıyor; bu kayıtlar `poligon_yok` diye elenip A* tarafından hiç
+  görülmüyordu -- oysa gerçek bir tehlike bildirimiydi. Yeni
+  `veri/fir_sinirlari.py`, VATSIM vatspy-data-project'in FIR sınır verisiyle
+  (CC BY-SA 4.0, `turbulans-statik` ile sha256 doğrulamalı indirilir) bu
+  SIGMET'i FIR'ın TAMAMINA genişletir; FIR bilinmiyorsa eski davranış
+  (eleme) korunur. Doğrulandı: LTAA için koordinatsız bir SIGMET artık
+  112 köşeli FIR poligonuna dönüşüyor.
+- Bu genişletme `_akis_sagligini_denetle`'de "çözümlenemeyen" gibi sayılıyor
+  -- AWC koordinatları TOPTAN kaldırırsa (madde 1'in koruduğu senaryo) FIR
+  yedeği bunu maskeleyip akışı yanlışlıkla "sağlıklı" göstermiyor.
+- `/saglik?derin=true` artık `fir_sinirlari` verisinin var olup olmadığını
+  da raporluyor.
+
 ## İkinci güvenlik/doğruluk turu
 
 - **Canlı rotada A* koridoru daralmıyor:** canlı GFS küpü rotanın sadece ±2°

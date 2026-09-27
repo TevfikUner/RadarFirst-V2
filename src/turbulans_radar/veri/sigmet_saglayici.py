@@ -35,6 +35,7 @@ import re
 from datetime import UTC, datetime, timedelta
 
 import httpx
+import shapely
 from sqlalchemy import delete, func, select, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
@@ -45,6 +46,7 @@ from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir, kaynak_
 from turbulans_radar.depo.models import Sigmet
 from turbulans_radar.depo.veritabani import motor_al
 from turbulans_radar.loglama import logger_al
+from turbulans_radar.veri.fir_sinirlari import fir_geometrisi
 
 _logger = logger_al(__name__)
 
@@ -178,7 +180,7 @@ def _poligon_kaydi(kaynak: str, ham: dict, alan: list) -> dict | None:
     taban_ft, tavan_ft = _irtifa_bandi(ham)
     hareket = _hareket(ham)
     boylamlar, enlemler = [k[0] for k in koseler], [k[1] for k in koseler]
-    antimeridyen = max(abs(b - a) for a, b in zip(boylamlar, boylamlar[1:])) > 180.0
+    antimeridyen = max(abs(b - a) for a, b in zip(boylamlar, boylamlar[1:])) > 180.0 or max(boylamlar) > 180.0
     if antimeridyen:
         koseler = [((b + 360.0) % 360.0, e) for b, e in koseler]
         boylam_min, boylam_maks = -180.0, 180.0
@@ -206,11 +208,28 @@ def _poligon_kaydi(kaynak: str, ham: dict, alan: list) -> dict | None:
     }
 
 
+def _fir_poligon_kayitlari(kaynak: str, ham: dict) -> list[dict]:
+    """Koordinatsız SIGMET için FIR'ın tamamı (parça başına bir kayıt)."""
+    geometri = fir_geometrisi(ham.get("firId") or ham.get("icaoId"))
+    if geometri is None:
+        return []
+    kayitlar = []
+    for parca in shapely.get_parts(geometri):
+        if parca.geom_type != "Polygon" or parca.is_empty:
+            continue
+        alan = [{"lon": round(x, 4), "lat": round(y, 4)} for x, y in parca.exterior.coords]
+        kayit = _poligon_kaydi(kaynak, ham, alan)
+        if kayit is not None:
+            kayitlar.append(kayit)
+    return kayitlar
+
+
 def sigmet_kayitlarini_cozumle(kaynak: str, ham) -> tuple[list[dict], str | None]:
     """AWC JSON kaydını `sigmetler` satırlarına çevirir (çok alanlı SIGMET ->
     alan başına bir satır). Dönüş: (satırlar, neden). neden None ise başarılı;
     'sigmet_degil' (AIRMET/outlook) beklenen bir elemedir; 'poligon_yok',
     'gecerlilik_yok' ve 'bicim_hatasi' çözümlenemeyen SIGMET'lerdir.
+    'fir_poligonu': koordinatı yoktu, FIR'ın tamamı kullanıldı (satırlar dolu).
 
     180° boylamını kesen (Pasifik FIR'ları) poligonların boylamları sürekli
     olacak şekilde 0..360 aralığına taşınır ve sınırlayıcı kutu tüm boylamları
@@ -227,7 +246,10 @@ def sigmet_kayitlarini_cozumle(kaynak: str, ham) -> tuple[list[dict], str | None
         kayitlar = [k for k in (_poligon_kaydi(kaynak, ham, alan) for alan in _alanlar(ham)) if k is not None]
     except (TypeError, ValueError, KeyError, OverflowError, OSError):
         return [], "bicim_hatasi"
-    return (kayitlar, None) if kayitlar else ([], "poligon_yok")
+    if kayitlar:
+        return kayitlar, None
+    fir_kayitlari = _fir_poligon_kayitlari(kaynak, ham)
+    return (fir_kayitlari, "fir_poligonu") if fir_kayitlari else ([], "poligon_yok")
 
 
 def sigmet_kaydini_normalize_et(kaynak: str, ham: dict) -> dict | None:
@@ -277,14 +299,22 @@ def eski_sigmetleri_temizle(saklama_suresi: timedelta | None = None, motor=None)
 
 def _akisi_cozumle(kaynak: str, ham_liste: list) -> tuple[dict, dict]:
     kayitlar = {}
-    sayim = {"ham": len(ham_liste), "sigmet": 0, "cozumlenen": 0, "cozumlenemeyen": 0, "nedenler": {}}
+    sayim = {
+        "ham": len(ham_liste),
+        "sigmet": 0,
+        "cozumlenen": 0,
+        "cozumlenemeyen": 0,
+        "fir_poligonu": 0,
+        "nedenler": {},
+    }
     for ham in ham_liste:
         satirlar, neden = sigmet_kayitlarini_cozumle(kaynak, ham)
         if neden == "sigmet_degil":
             continue
         sayim["sigmet"] += 1
-        if neden is None:
+        if neden in (None, "fir_poligonu"):
             sayim["cozumlenen"] += 1
+            sayim["fir_poligonu"] += neden == "fir_poligonu"
             kayitlar.update((s["dis_kimlik"], s) for s in satirlar)
         else:
             sayim["cozumlenemeyen"] += 1
@@ -298,10 +328,13 @@ def _akis_sagligini_denetle(ham_liste, sayim: dict | None) -> str | None:
         return f"beklenmeyen yanıt biçimi ({type(ham_liste).__name__}, liste bekleniyordu)"
     if not ham_liste:
         return "boş akış"
-    if sayim["sigmet"] and sayim["cozumlenemeyen"] / sayim["sigmet"] > config.SIGMET_MAKS_COZUMLENEMEYEN_ORAN:
+    # FIR'a genişletilen (koordinatsız) kayıtlar da sayılır: koordinatlar
+    # toptan kaybolursa FIR yedeği şema değişikliğini örtmesin.
+    sorunlu = sayim["cozumlenemeyen"] + sayim.get("fir_poligonu", 0)
+    if sayim["sigmet"] and sorunlu / sayim["sigmet"] > config.SIGMET_MAKS_COZUMLENEMEYEN_ORAN:
         return (
-            f"şema uyuşmazlığı şüphesi: {sayim['cozumlenemeyen']}/{sayim['sigmet']} SIGMET çözümlenemedi "
-            f"{sayim['nedenler']}"
+            f"şema uyuşmazlığı şüphesi: {sorunlu}/{sayim['sigmet']} SIGMET'in koordinatı çözümlenemedi "
+            f"{sayim['nedenler']} (FIR'a genişletilen: {sayim.get('fir_poligonu', 0)})"
         )
     return None
 

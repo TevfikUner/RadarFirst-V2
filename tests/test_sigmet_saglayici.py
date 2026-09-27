@@ -1,12 +1,23 @@
 from datetime import UTC, datetime, timedelta
 
 import pytest
+import shapely
 from sqlalchemy import text
 
 from turbulans_radar.depo import veritabani as vt
 from turbulans_radar.veri import sigmet_saglayici as ss
 
 _SIMDI = int(datetime.now(UTC).timestamp())
+
+
+@pytest.fixture(autouse=True)
+def _fir_verisi_varsayilan_yok(monkeypatch):
+    """Testler makinede gerçekten indirilmiş fir_sinirlari.geojson olsun ya
+    da olmasın AYNI (deterministik) sonucu vermeli -- bu yüzden FIR sınırı
+    varsayılan olarak 'yok' sayılır; FIR yedeğini test eden testler kendi
+    içinde fir_geometrisi'ni açıkça mockluyor (bkz. aşağıdaki testler)."""
+    monkeypatch.setattr(ss, "fir_geometrisi", lambda fir_kodu: None)
+
 
 ULUSLARARASI_ORNEK = {
     "icaoId": "LTAA",
@@ -289,3 +300,50 @@ def test_abd_sigmet_hareketi_geldigi_yondan_yoneldigi_yone_cevrilir():
     assert (kayit["hareket_yonu_derece"], kayit["hareket_hizi_kt"]) == (80.0, 25.0)
     az = ss.sigmet_kaydini_normalize_et("airsigmet", {**ABD_ORNEK, "movementDir": 260, "rawAirSigmet": "MOV LTL"})
     assert (az["hareket_yonu_derece"], az["hareket_hizi_kt"]) == (None, None)
+
+
+# --- FIR sınır yedeği: koordinatsız SIGMET'ler (bkz. fir_sinirlari.py) ---
+
+_FIR_KARESI = shapely.Polygon([(28.0, 36.0), (36.0, 36.0), (36.0, 42.0), (28.0, 42.0), (28.0, 36.0)])
+
+
+def test_koordinati_olmayan_sigmet_fir_bilinmiyorsa_yine_elenir():
+    """fir_geometrisi None dönerse (varsayılan mock) eski davranış korunur."""
+    koordinatsiz = {**ULUSLARARASI_ORNEK, "coords": []}
+    assert ss.sigmet_kayitlarini_cozumle("isigmet", koordinatsiz) == ([], "poligon_yok")
+
+
+def test_koordinati_olmayan_sigmet_fir_biliniyorsa_firin_tamamina_genisler(monkeypatch):
+    monkeypatch.setattr(ss, "fir_geometrisi", lambda fir_kodu: _FIR_KARESI if fir_kodu == "LTAA" else None)
+    koordinatsiz = {**ULUSLARARASI_ORNEK, "coords": [], "rawSigmet": "LTAA SIGMET T01 ENTIRE FIR SEV TURB"}
+    kayitlar, neden = ss.sigmet_kayitlarini_cozumle("isigmet", koordinatsiz)
+    assert neden == "fir_poligonu"
+    assert len(kayitlar) == 1
+    assert kayitlar[0]["fir_kodu"] == "LTAA"
+    assert (kayitlar[0]["enlem_min"], kayitlar[0]["enlem_maks"]) == (36.0, 42.0)
+    assert (kayitlar[0]["boylam_min"], kayitlar[0]["boylam_maks"]) == (28.0, 36.0)
+    # Bilinmeyen FIR kodu için hâlâ eski (elenen) davranış.
+    assert ss.sigmet_kayitlarini_cozumle("isigmet", {**koordinatsiz, "firId": "ZZZZ"}) == ([], "poligon_yok")
+
+
+def test_fir_yedegi_gecerli_kayittan_farkli_cok_parcali_firda_parca_basina_kayit(monkeypatch):
+    ikinci_parca = shapely.Polygon([(100.0, 10.0), (110.0, 10.0), (110.0, 20.0), (100.0, 20.0), (100.0, 10.0)])
+    coklu = shapely.union_all([_FIR_KARESI, ikinci_parca])
+    monkeypatch.setattr(ss, "fir_geometrisi", lambda fir_kodu: coklu)
+    kayitlar, neden = ss.sigmet_kayitlarini_cozumle("isigmet", {**ULUSLARARASI_ORNEK, "coords": []})
+    assert neden == "fir_poligonu"
+    assert len(kayitlar) == 2
+    assert len({k["dis_kimlik"] for k in kayitlar}) == 2  # kimlikler benzersiz üretildi
+
+
+def test_fir_yedegi_esik_hesabinda_cozumlenemeyen_gibi_sayilir(test_veritabani, monkeypatch):
+    """FIR'a genişletme çözümlenemeyen gibi sayılmazsa, AWC koordinatları TOPTAN
+    kaldırsa bile her SIGMET FIR'a genişleyip 'akış sağlıklı' görünebilirdi --
+    bu da gerçek şema bozulmasını (madde 1'in koruduğu senaryo) maskelerdi."""
+    monkeypatch.setattr(ss, "fir_geometrisi", lambda fir_kodu: _FIR_KARESI if fir_kodu == "LTAA" else None)
+    hepsi_koordinatsiz = [{**ULUSLARARASI_ORNEK, "seriesId": f"T{i:02d}", "coords": []} for i in range(4)]
+    ozet = ss.sigmetleri_guncelle(getirici=lambda k: hepsi_koordinatsiz, kaynaklar=("test",))
+    assert "şema uyuşmazlığı" in ozet["kaynak_hatalari"]["test"]
+    assert ozet["kaynaklar"]["test"]["fir_poligonu"] == 4
+    # Kayıtlar hesaplanıp DB'ye yazılsa da (dürüst geçici bilgi), akış "tamam" sayılmaz.
+    assert ozet["kaynaklar"]["test"]["durum"] == "hata"
