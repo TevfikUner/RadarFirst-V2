@@ -16,6 +16,15 @@ ENV PYTHONPATH=/app/src
 # sabitlenmiş sha512 bütünlük değeriyle doğrulanır (bkz. statik_indir.py).
 RUN python -m turbulans_radar.cli.statik_indir
 
+# Model deposu (MODEL_KLASORU): docker-compose buraya adlandırılmış bir volume
+# bağlar. Docker boş bir volume'u ilk bağlamada imajdaki içerikle doldurur --
+# derleme makinesinde eğitilmiş model varsa ilk açılışta hazır gelir, sonraki
+# eğitim/geri dönüşler volume'da kalıcıdır.
+RUN mkdir -p model_deposu \
+    && for f in turbulans_ml_modeli.joblib turbulans_ml_modeli_bilgisi.json model_versiyonlari; do \
+         if [ -e "$f" ]; then cp -r "$f" model_deposu/; fi; \
+       done
+
 EXPOSE 8000
 
 # Önce şemayı kur/güncelle (alembic upgrade head -- veritabanı zaten

@@ -150,10 +150,20 @@ servis adına (`db`) çevrilir. API `http://localhost:8000`'de, Swagger
 `http://localhost:8000/docs`'ta olur. Konteyner **otonom** çalışır: canlı
 AWC SIGMET'lerini 15 dakikada bir kendisi yeniler
 (`SIGMET_OTOMATIK_GUNCELLEME_DAKIKA`), anlık rotalar için canlı GFS verisini
-indirir (`canli_veri/` volume'unda saklanır). ERA5 `.nc` dosyaları imaja
-dahil değildir (boyut); geçmiş tarihli analizler için konteynere volume
-olarak bağlanmaları gerekir. PostgreSQL portu yalnızca `127.0.0.1`'e açıktır.
-CI, her push'ta imajı derleyip içinde API uygulamasının yüklendiğini doğrular.
+indirir (`canli_veri/` volume'unda saklanır). PostgreSQL portu yalnızca
+`127.0.0.1`'e açıktır.
+
+- **ERA5 arşiv küpleri** imaja dahil değildir (boyut); proje kökü API ve
+  işçiye `/veri` olarak **salt okunur** bağlanır, `ocak_2019_turbulans.nc` ve
+  `era5_egitim_verisi/*.nc` oradan okunur. Başka bir klasör için `.env`'de
+  `YEREL_VERI_KOKU`, `HAVA_DURUMU_DOSYA_ADI`, `EK_HAVA_DURUMU_KLASOR_ADI`.
+  Dosya yoksa sadece o küp atlanır.
+- **ML modeli ve sürümleri** `turbulans_modeller` adlı volume'da
+  (`MODEL_KLASORU=/app/model_deposu`) tutulur: `/aktiflestir` ile yapılan
+  geri dönüş ve konteyner içinde yapılan eğitim
+  (`docker compose run --rm api python -m turbulans_radar.ml.ml_egitimi`)
+  konteyner yeniden oluşturulunca kaybolmaz. Volume ilk oluşturulduğunda
+  imajı derleyen makinedeki model (varsa) ile dolar.
 
 ## Kullanım
 

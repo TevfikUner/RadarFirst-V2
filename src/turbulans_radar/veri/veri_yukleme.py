@@ -189,7 +189,7 @@ def hava_durumu_dosyalari():
     dosyalar = [config.HAVA_DURUMU_DOSYASI]
     if config.EK_HAVA_DURUMU_KLASORU:
         dosyalar += sorted(glob.glob(os.path.join(config.EK_HAVA_DURUMU_KLASORU, "*.nc")))
-    return [d for d in dosyalar if os.path.exists(d)]
+    return [d for d in dosyalar if os.path.isfile(d)]
 
 
 def dosya_meta_verisi(dosya_yolu) -> dict:

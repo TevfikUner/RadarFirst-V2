@@ -238,6 +238,12 @@ OPENAIP_SAHA_TURLERI = tuple(int(t) for t in _ortam_str("OPENAIP_SAHA_TURLERI", 
 # GND referanslı üst limite eklenen arazi payı (arazi yüksekliği bilinmiyor; muhafazakâr).
 OPENAIP_AGL_UST_PAYI_FT = _ortam_sayi("OPENAIP_AGL_UST_PAYI_FT", 15000.0)
 
+# turbulans_ml_modeli.py -- aktif model, bilgi JSON'u ve model_versiyonlari/
+# bu klasörde tutulur. Docker'da kalıcı bir volume'a işaret eder (bkz.
+# docker-compose.yml); aksi halde geri dönüş (rollback) konteyner yeniden
+# oluşturulunca kaybolurdu.
+MODEL_KLASORU = _ortam_str("MODEL_KLASORU", ".")
+
 # rota_backtest.py -- gerçek uçuşla karşılaştırılan A* rotasında kullanılan
 # uçak profili (bkz. rota_optimizasyonu.UCAK_PROFILLERI).
 BACKTEST_UCAK_MODELI = _ortam_str("BACKTEST_UCAK_MODELI", "A320")

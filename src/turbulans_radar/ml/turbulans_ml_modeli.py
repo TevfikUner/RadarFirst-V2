@@ -34,24 +34,35 @@ AYNI eşik felsefesiyle, gerçek pilot gözlemine dayalı.
 
 from __future__ import annotations
 
+import os
+
 import numpy as np
 import pandas as pd
 
+from turbulans_radar import config
 from turbulans_radar.fizik.birim_donusumleri import irtifa_metre_to_basinc_hpa
 from turbulans_radar.fizik.eslestirme import rotayi_hava_durumuyla_eslestir
 from turbulans_radar.rota.rota_optimizasyonu import ruzgar_bilesenlerini_toplu_al
 
 OZELLIK_SUTUNLARI = ["ti1_indeksi", "richardson_sayisi", "ruzgar_hizi_ms", "basinc_hpa"]
 
-MODEL_DOSYA_YOLU = "turbulans_ml_modeli.joblib"
-MODEL_BILGI_DOSYA_YOLU = "turbulans_ml_modeli_bilgisi.json"
+# Tüm model dosyaları config.MODEL_KLASORU altında (Docker'da kalıcı volume).
+MODEL_DOSYA_YOLU = os.path.join(config.MODEL_KLASORU, "turbulans_ml_modeli.joblib")
+MODEL_BILGI_DOSYA_YOLU = os.path.join(config.MODEL_KLASORU, "turbulans_ml_modeli_bilgisi.json")
 
 # Her ml_egitimi.py çalıştırması, MODEL_DOSYA_YOLU'nun (aktif model) yanına
 # bu klasöre KALICI bir kopya + manifest kaydı bırakır -- yeniden eğitim
 # gerekmeden eski bir modele geri dönebilmek (rollback) için, bkz.
 # versiyon_kaydet/versiyona_geri_don.
-MODEL_VERSIYONLARI_KLASORU = "model_versiyonlari"
-MODEL_VERSIYONLARI_MANIFEST_YOLU = MODEL_VERSIYONLARI_KLASORU + "/manifest.json"
+MODEL_VERSIYONLARI_KLASORU = os.path.join(config.MODEL_KLASORU, "model_versiyonlari")
+MODEL_VERSIYONLARI_MANIFEST_YOLU = os.path.join(MODEL_VERSIYONLARI_KLASORU, "manifest.json")
+
+
+def _versiyon_dosyasi(versiyon) -> str:
+    """Manifest'teki dosya_yolu yazıldığı andaki çalışma dizinine göreliydi
+    (örn. 'model_versiyonlari/x.joblib'); klasör taşınınca (MODEL_KLASORU,
+    Docker volume) kırılmasın diye dosya adı bugünkü klasörde aranır."""
+    return os.path.join(MODEL_VERSIYONLARI_KLASORU, os.path.basename(versiyon["dosya_yolu"]))
 
 
 def ozellikleri_cikar(nokta_df: pd.DataFrame, veri_kupu) -> pd.DataFrame:
@@ -217,7 +228,7 @@ def versiyon_kaydet(gecici_model_dosya_yolu, model_bilgisi):
 
     os.makedirs(MODEL_VERSIYONLARI_KLASORU, exist_ok=True)
     versiyon_id = f"{model_bilgisi['egitim_zamani'].replace(':', '-')}_{uuid.uuid4().hex[:8]}"
-    hedef_dosya_yolu = f"{MODEL_VERSIYONLARI_KLASORU}/{versiyon_id}.joblib"
+    hedef_dosya_yolu = os.path.join(MODEL_VERSIYONLARI_KLASORU, f"{versiyon_id}.joblib")
     shutil.copyfile(gecici_model_dosya_yolu, hedef_dosya_yolu)
 
     versiyonlar = _versiyonlari_oku()
@@ -240,7 +251,10 @@ def versiyona_geri_don(versiyon_id):
     if versiyon is None:
         raise ValueError(f"Bilinmeyen versiyon_id: '{versiyon_id}'.")
 
-    _atomik_kopyala(versiyon["dosya_yolu"], MODEL_DOSYA_YOLU)
+    kaynak = _versiyon_dosyasi(versiyon)
+    if not os.path.isfile(kaynak):
+        raise ValueError(f"'{versiyon_id}' versiyonunun model dosyası bulunamadı: {os.path.basename(kaynak)}")
+    _atomik_kopyala(kaynak, MODEL_DOSYA_YOLU)
     aktif_bilgi = {k: v for k, v in versiyon.items() if k not in ("versiyon_id", "dosya_yolu")}
     gecici = f"{MODEL_BILGI_DOSYA_YOLU}.{os.getpid()}.gecici"
     with open(gecici, "w", encoding="utf-8") as dosya:

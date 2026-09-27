@@ -213,6 +213,7 @@ def en_iyi_modeli_sec_ve_kaydet(sonuclar, egitim_orneklem_sayisi, test_orneklem_
     # Çalışan API dosya değişince modeli yeniden yükler (bkz.
     # turbulans_ml_modeli._modeli_yukle): yarım yazılmış dosyayı okumasın diye
     # önce geçici dosyaya yazılıp tek adımda yerine konur.
+    os.makedirs(os.path.dirname(MODEL_DOSYA_YOLU) or ".", exist_ok=True)
     gecici_model = f"{MODEL_DOSYA_YOLU}.{os.getpid()}.gecici"
     joblib.dump(model, gecici_model)
     os.replace(gecici_model, MODEL_DOSYA_YOLU)

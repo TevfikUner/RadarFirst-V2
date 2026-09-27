@@ -216,3 +216,29 @@ def test_egitilmis_model_varsa_0_1_arasi_olasilik_doner():
     assert sonuc is not None
     gecerli = sonuc[np.isfinite(sonuc)]
     assert ((gecerli >= 0.0) & (gecerli <= 1.0)).all()
+
+
+def test_klasor_tasininca_eski_goreli_manifest_yolu_ile_geri_donulur(tmp_path, monkeypatch):
+    """Manifest'teki dosya_yolu yazıldığı andaki çalışma dizinine göreli
+    ('model_versiyonlari/x.joblib'); MODEL_KLASORU başka yere (Docker volume)
+    taşındığında geri dönüş yine çalışmalı."""
+    import json
+
+    tm = _versiyonlama_yollarini_gecici_klasore_tasi(tmp_path, monkeypatch)
+    klasor = tmp_path / "model_versiyonlari"
+    klasor.mkdir()
+    (klasor / "v1.joblib").write_bytes(b"tasinmis-model")
+    (klasor / "manifest.json").write_text(
+        json.dumps(
+            [
+                {"versiyon_id": "v1", "dosya_yolu": "model_versiyonlari/v1.joblib", "egitim_zamani": "t1"},
+                {"versiyon_id": "v2", "dosya_yolu": "model_versiyonlari/v2.joblib", "egitim_zamani": "t2"},
+            ]
+        ),
+        encoding="utf-8",
+    )
+    tm.versiyona_geri_don("v1")
+    with open(tm.MODEL_DOSYA_YOLU, "rb") as f:
+        assert f.read() == b"tasinmis-model"
+    with pytest.raises(ValueError, match="bulunamadı"):
+        tm.versiyona_geri_don("v2")

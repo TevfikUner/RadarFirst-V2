@@ -1,3 +1,18 @@
+# ERA5 arşiv küpleri imaja girmez (.dockerignore: *.nc); proje kökü (ya da
+# YEREL_VERI_KOKU) /veri'ye SALT OKUNUR bağlanır ve API ile işçi AYNI yollardan
+# okur (katalogdaki dosya_yolu iki serviste de geçerli olsun diye). Dosya yoksa
+# sadece o küp atlanır, yığın yine ayağa kalkar.
+x-veri-ortami: &veri_ortami
+  HAVA_DURUMU_DOSYASI: /veri/${HAVA_DURUMU_DOSYA_ADI:-ocak_2019_turbulans.nc}
+  EK_HAVA_DURUMU_KLASORU: /veri/${EK_HAVA_DURUMU_KLASOR_ADI:-era5_egitim_verisi}
+  MODEL_KLASORU: /app/model_deposu
+
+x-ortak-volumeler: &ortak_volumeler
+  - ./ciktilar:/app/ciktilar
+  - ./canli_veri:/app/canli_veri
+  - ${YEREL_VERI_KOKU:-.}:/veri:ro
+  - turbulans_modeller:/app/model_deposu
+
 services:
   db:
     image: postgres:16
@@ -35,11 +50,10 @@ services:
       SIGMET_OTOMATIK_GUNCELLEME_DAKIKA: ${SIGMET_OTOMATIK_GUNCELLEME_DAKIKA:-15}
       # Uzun işler (analiz, backtest, canlı veri) ayrı 'worker' servisinde çalışır.
       GOREV_GOMULU_ISCI: "false"
+      <<: *veri_ortami
     ports:
       - "8000:8000"
-    volumes:
-      - ./ciktilar:/app/ciktilar
-      - ./canli_veri:/app/canli_veri
+    volumes: *ortak_volumeler
     healthcheck:
       test: ["CMD", "python", "-c", "import httpx; httpx.get('http://localhost:8000/saglik').raise_for_status()"]
       interval: 10s
@@ -59,9 +73,11 @@ services:
     environment:
       POSTGRES_HOST: db
       GOREV_ISCI_SAYISI: ${GOREV_ISCI_SAYISI:-2}
-    volumes:
-      - ./ciktilar:/app/ciktilar
-      - ./canli_veri:/app/canli_veri
+      <<: *veri_ortami
+    volumes: *ortak_volumeler
 
 volumes:
   turbulans_pgdata:
+  # Aktif ML modeli + model_versiyonlari/ (rollback konteyner yeniden
+  # oluşturulunca kaybolmasın; ilk açılışta imajdaki model ile dolar).
+  turbulans_modeller:
