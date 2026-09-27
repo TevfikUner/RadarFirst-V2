@@ -108,7 +108,9 @@ def _veri_kupunu_sec(rota_df):
     return veri_kupu if veri_kupu is not None else hava_durumu_onbellekli_yukle(config.HAVA_DURUMU_DOSYASI)
 
 
-def calistir(ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None, kayit_zorunlu: bool = False):
+def calistir(
+    ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None, kayit_zorunlu: bool = False, harita_uret: bool = True
+):
     print(f"1. '{ucus_numarasi}' uçuşu {tarih_str} tarihi için OpenSky'da aranıyor...")
     try:
         baglanti = trino_baglantisi_olustur()
@@ -124,17 +126,30 @@ def calistir(ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None, kayi
         )
         return None
     print(f"   -> {len(rota_df)} state-vector kaydı bulundu.")
-    return rota_df_ile_calistir(rota_df, ucus_numarasi, tarih_str, cikti_dosyasi, kayit_zorunlu)
+    return rota_df_ile_calistir(rota_df, ucus_numarasi, tarih_str, cikti_dosyasi, kayit_zorunlu, harita_uret)
 
 
 def rota_df_ile_calistir(
-    rota_df, ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None, kayit_zorunlu: bool = False
+    rota_df,
+    ucus_numarasi: str,
+    tarih_str: str,
+    cikti_dosyasi: str = None,
+    kayit_zorunlu: bool = False,
+    harita_uret: bool = True,
 ):
     """Hazır bir rota (OpenSky'dan ya da dışarıdan yüklenmiş bir ADS-B izi --
     bkz. api_servisi POST /analiz/rota) için 2-4. adımları çalıştırır.
-    rota_df: en az zaman, enlem, boylam, geo_irtifa_m sütunları."""
-    os.makedirs(config.CIKTI_KLASORU, exist_ok=True)
-    if cikti_dosyasi is None:
+    rota_df: en az zaman, enlem, boylam, geo_irtifa_m sütunları.
+
+    harita_uret=False: API/görev kuyruğundan (n8n toplu analiz, tek uçuş,
+    rota) tetiklenen çalıştırmalar için -- sunucuda kimsenin açmayacağı bir
+    Folium HTML'i `ciktilar/`'a yazmak yerine sonuç zaten PostgreSQL'e
+    kaydedilir ve GET /ucuslar/{ucus}/{tarih} (+ csv/geojson) ile okunur.
+    Onlarca/yüzlerce uçuşluk bir toplu işte bu, disk'i sınırsız büyütmeyi
+    önler (bkz. isci/gorev_iscisi.py). CLI çalıştırması (turbulans-analiz)
+    varsayılan olarak haritayı üretmeye devam eder."""
+    if harita_uret and cikti_dosyasi is None:
+        os.makedirs(config.CIKTI_KLASORU, exist_ok=True)
         # Her uçuş/tarih için ayrı dosya adı -- farklı uçuşları denerken
         # birbirinin üzerine yazmasın diye. ciktilar/ altına yazılır --
         # proje kökü artık her çalıştırmada yeni bir HTML'le dolmuyor.
@@ -164,8 +179,9 @@ def rota_df_ile_calistir(
 
     _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str)
 
-    print("4. İnteraktif harita oluşturuluyor...")
-    zaman_kaydiricili_harita_olustur(eslesmis_df, dosya_adi=cikti_dosyasi)
+    if harita_uret:
+        print("4. İnteraktif harita oluşturuluyor...")
+        zaman_kaydiricili_harita_olustur(eslesmis_df, dosya_adi=cikti_dosyasi)
 
     print("Tamamlandı.")
     return eslesmis_df

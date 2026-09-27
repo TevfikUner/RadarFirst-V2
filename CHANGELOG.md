@@ -4,6 +4,23 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Şema sapması düzeltildi, API/kuyruk yollarında disk sınırsız büyümüyor
+
+- **`ucuslar.olusturulma_zamani` şema sapması:** ORM modeli bu sütunu
+  `NOT NULL` olarak tanımlıyordu, ilk migration (`64f50586f90c`) `NULL`'a
+  izin veriyordu (gerçek NULL hiç oluşmadı, `server_default=now()` sayesinde)
+  -- `create_all()` (testler) ile `alembic upgrade head` (üretim) farklı şema
+  üretiyordu. Yeni göç (`f83780f8a3bf`) ile giderildi; ORM/migration
+  karşılaştırması artık tam eşleşiyor.
+- **API/kuyruk yollarında sınırsız HTML üretimi:** `POST /analiz/ucus`,
+  `/analiz/rota` ve özellikle `/analiz/toplu` (n8n'in onlarca/yüzlerce
+  uçuşla tetikleyebileceği) her uçuş için `ciktilar/`'a bir Folium HTML
+  haritası yazıyordu -- sunucuda kimse açmıyor, sadece disk büyüyordu. Yeni
+  `harita_uret` parametresi (`ucus_analizi.py`, `toplu_analiz.py`) ile bu
+  görevler artık harita üretmiyor; sonuç zaten PostgreSQL'de ve `GET
+  /ucuslar/{ucus}/{tarih}` (+ csv/geojson) ile okunuyor. CLI kullanımı
+  (`turbulans-analiz`, `turbulans-toplu-analiz`) değişmedi.
+
 ## TI1'in doğrulanmamış olduğu artık her yanıtta ve arayüzde görünüyor
 
 - **Bağımsız kanıt bölümünün bulgusu (PUE502: TI1 aktif TURB SIGMET'in işaret

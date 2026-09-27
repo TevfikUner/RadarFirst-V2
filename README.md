@@ -190,6 +190,14 @@ hepsinin özetini `ciktilar/toplu_analiz_ozeti.csv`'de toplar. Bir uçuşta
 hata olursa diğerlerinin analizi durmaz; OpenSky'yi yormamak için uçuşlar
 arasına kısa bir bekleme konur.
 
+`POST /api/v1/analiz/toplu` ile n8n'in tetiklediği (onlarca/yüzlerce uçuşluk
+olabilen) toplu işlerde harita üretimi otomatik olarak kapatılır
+(`harita_uret=False`, bkz. `isci/gorev_iscisi.py`) -- sunucuda kimsenin
+açmayacağı bir HTML dosyasıyla `ciktilar/`'ı sınırsız büyütmek yerine sonuç
+zaten PostgreSQL'e yazılır ve `GET /ucuslar/{ucus}/{tarih}` (+ csv/geojson)
+ile okunur. CLI'dan (`turbulans-toplu-analiz`) çalıştırıldığında harita
+üretimi varsayılan olarak açık kalır.
+
 ### Veri kalitesini kontrol etmek
 
 ```bash

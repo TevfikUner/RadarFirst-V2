@@ -36,12 +36,16 @@ from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 
 
 def toplu_analiz_calistir(
-    ucus_listesi_df: pd.DataFrame, kayit_zorunlu: bool = False, ucus_tamamlandi=None
+    ucus_listesi_df: pd.DataFrame, kayit_zorunlu: bool = False, ucus_tamamlandi=None, harita_uret: bool = True
 ) -> pd.DataFrame:
     """
     ucus_listesi_df: 'ucus_numarasi' ve 'tarih' sütunlarını içeren DataFrame.
     ucus_tamamlandi: verilirse, başarılı her uçuştan sonra
         (ucus_numarasi, tarih, eslesmis_df) ile çağrılır.
+    harita_uret=False: n8n gibi onlarca/yüzlerce uçuşluk otomatik toplu işler
+    için -- her uçuş başına bir Folium HTML'i `ciktilar/`'a yazmak yerine
+    (bkz. ucus_analizi.rota_df_ile_calistir) sadece bu fonksiyonun döndürdüğü
+    özet DataFrame'e güvenilir; disk sınırsız büyümez.
     Dönüş: her uçuş için bir özet satırı içeren DataFrame.
     """
     sonuclar = []
@@ -60,7 +64,7 @@ def toplu_analiz_calistir(
         print("=" * 60)
 
         try:
-            eslesmis_df = calistir(ucus_no, tarih, kayit_zorunlu=kayit_zorunlu)
+            eslesmis_df = calistir(ucus_no, tarih, kayit_zorunlu=kayit_zorunlu, harita_uret=harita_uret)
         except Exception as hata:
             print(f"[Hata] {dostane_hata_mesaji(hata)}")
             sonuclar.append(

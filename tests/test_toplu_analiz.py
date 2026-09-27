@@ -7,8 +7,9 @@ def _sahte_calistir_uret(sonuclar_sozlugu):
     """ucus_no -> ('basarili' | 'basarisiz' | 'hata') eşlemesine göre
     main.calistir()'in davranışını taklit eden sahte bir fonksiyon üretir."""
 
-    def sahte_calistir(ucus_no, tarih, cikti_dosyasi=None, kayit_zorunlu=False):
+    def sahte_calistir(ucus_no, tarih, cikti_dosyasi=None, kayit_zorunlu=False, harita_uret=True):
         sahte_calistir.kayit_zorunlu_degerleri.append(kayit_zorunlu)
+        sahte_calistir.harita_uret_degerleri.append(harita_uret)
         durum = sonuclar_sozlugu[ucus_no]
         if durum == "hata":
             raise ConnectionError("bağlantı koptu")
@@ -22,6 +23,7 @@ def _sahte_calistir_uret(sonuclar_sozlugu):
         )
 
     sahte_calistir.kayit_zorunlu_degerleri = []
+    sahte_calistir.harita_uret_degerleri = []
     return sahte_calistir
 
 
@@ -81,3 +83,18 @@ def test_ucus_tamamlandi_sadece_basarili_ucuslar_icin_cagrilir(monkeypatch):
 
     assert cagrilar == [("AAA1", "2019-01-01", 3)]
     assert sahte_calistir.kayit_zorunlu_degerleri == [True, True, True]
+
+
+def test_harita_uret_false_her_ucusa_iletilir_ve_varsayilan_true_kalir(monkeypatch):
+    """n8n gibi onlarca uçuşluk toplu işlerde ciktilar/'in sınırsız büyümesini
+    önlemek için harita_uret=False her uçuşa aktarılmalı; CLI kullanımını
+    (turbulans-toplu-analiz) bozmamak için varsayılan True kalmalı."""
+    ucus_listesi_df = pd.DataFrame({"ucus_numarasi": ["AAA1", "BBB2"], "tarih": ["2019-01-01", "2019-01-02"]})
+    sahte_calistir = _sahte_calistir_uret({"AAA1": "basarili", "BBB2": "basarili"})
+    monkeypatch.setattr(toplu_analiz, "calistir", sahte_calistir)
+
+    toplu_analiz.toplu_analiz_calistir(ucus_listesi_df, harita_uret=False)
+    assert sahte_calistir.harita_uret_degerleri == [False, False]
+
+    toplu_analiz.toplu_analiz_calistir(ucus_listesi_df)
+    assert sahte_calistir.harita_uret_degerleri == [False, False, True, True]

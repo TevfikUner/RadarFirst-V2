@@ -150,6 +150,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Hız sınırı bellekte ve süreç başına tutulur.
 - Görev kuyruğu PostgreSQL'dedir; işçiler 1 sn aralıkla yoklar (kuyruğa
   giriş ile başlama arasında ~1 sn gecikme).
+- API/kuyruk üzerinden tetiklenen analizler (`/analiz/ucus`, `/analiz/rota`,
+  `/analiz/toplu`) HTML harita üretmez (sonuç PostgreSQL'de, `GET
+  /ucuslar/{ucus}/{tarih}` ile okunur); harita yalnızca CLI'dan
+  (`turbulans-analiz`, `turbulans-toplu-analiz`) üretilir.
 
 ## 6. Doğrulama durumu
 

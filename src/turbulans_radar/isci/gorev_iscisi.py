@@ -54,8 +54,11 @@ _logger = loglama.logger_al(__name__)
 BILDIRIM_KANALI = "turbulans_uyarilari"
 CANLI_VERI_HATA_MESAJI = "Canlı hava verisi sağlayıcısından geçerli veri alınamadı."
 
-tek_ucus_analiz_et = partial(calistir, kayit_zorunlu=True)
-rota_analiz_et = partial(rota_df_ile_calistir, kayit_zorunlu=True)
+# harita_uret=False: sunucuda kimsenin açmayacağı bir Folium HTML'i
+# ciktilar/'a yazmak yerine sonuç PostgreSQL'den (GET /ucuslar/{..} + csv/
+# geojson) okunur -- disk sınırsız büyümesin diye (bkz. ucus_analizi.py).
+tek_ucus_analiz_et = partial(calistir, kayit_zorunlu=True, harita_uret=False)
+rota_analiz_et = partial(rota_df_ile_calistir, kayit_zorunlu=True, harita_uret=False)
 
 
 def bildirim_yayinla(mesaj: dict, motor=None) -> None:
@@ -113,6 +116,7 @@ def _toplu_gorevi(gorev):
         ucus_tamamlandi=lambda ucus_numarasi, tarih, eslesmis_df: riskli_noktalari_bildir(
             eslesmis_df, ucus_numarasi, tarih
         ),
+        harita_uret=False,
     )
     return {
         "durum": "tamamlandi",

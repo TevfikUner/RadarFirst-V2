@@ -25,8 +25,8 @@ def _gorev(tur, **alanlar):
 
 
 def test_api_analizi_veritabani_kaydini_zorunlu_tutar():
-    assert gi.tek_ucus_analiz_et.keywords == {"kayit_zorunlu": True}
-    assert gi.rota_analiz_et.keywords == {"kayit_zorunlu": True}
+    assert gi.tek_ucus_analiz_et.keywords == {"kayit_zorunlu": True, "harita_uret": False}
+    assert gi.rota_analiz_et.keywords == {"kayit_zorunlu": True, "harita_uret": False}
 
 
 def test_riskli_ucus_analizi_tamamlanir_ve_uyari_yayinlanir(monkeypatch, bildirimler):
@@ -71,8 +71,9 @@ def test_rota_gorevi_json_noktalarindan_izi_yeniden_kurar(monkeypatch, bildiriml
 
 
 def test_toplu_gorev_ozet_uretir_ve_riskli_ucusu_bildirir(monkeypatch, bildirimler):
-    def sahte_toplu(ucus_listesi_df, kayit_zorunlu=False, ucus_tamamlandi=None):
-        assert kayit_zorunlu is True and list(ucus_listesi_df["ucus_numarasi"]) == ["TOPLU1"]
+    def sahte_toplu(ucus_listesi_df, kayit_zorunlu=False, ucus_tamamlandi=None, harita_uret=True):
+        assert kayit_zorunlu is True and harita_uret is False
+        assert list(ucus_listesi_df["ucus_numarasi"]) == ["TOPLU1"]
         ucus_tamamlandi("TOPLU1", "2019-01-01", RISKLI)
         return pd.DataFrame([{"ucus_numarasi": "TOPLU1", "durum": "başarılı", "maks_ti1": float("nan")}])
 
