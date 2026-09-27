@@ -14,6 +14,8 @@ Kayıt/anahtar gerektirmeyen standart OpenStreetMap tile'larına geçildi.
 tekrar koyu temaya dönebilirsin -- aşağıda nasıl yapılacağı yorum olarak var.
 """
 
+import html
+
 import folium
 import pandas as pd
 from folium.plugins import TimestampedGeoJson
@@ -110,15 +112,17 @@ def zaman_kaydiricili_harita_olustur(
         ti1_degeri = satir.get("ti1_indeksi", float("nan"))
         renk = _turbulans_rengi(ti1_degeri)
 
+        # Popup HTML olarak çizilir; dış kaynaktan (OpenSky/ADS-B) gelen
+        # metin alanları kaçışlanır.
         aciklama_parcalari = [f"<b>Saat:</b> {pd_to_str(satir['zaman'])}"]
         if "ucus_numarasi" in satir and not pd_isna(satir.get("ucus_numarasi")):
-            aciklama_parcalari.append(f"<b>Uçuş No:</b> {satir['ucus_numarasi']}")
+            aciklama_parcalari.append(f"<b>Uçuş No:</b> {html.escape(str(satir['ucus_numarasi']))}")
         if "icao24" in satir and not pd_isna(satir.get("icao24")):
-            aciklama_parcalari.append(f"<b>ICAO24:</b> {satir['icao24']}")
+            aciklama_parcalari.append(f"<b>ICAO24:</b> {html.escape(str(satir['icao24']))}")
         if "kalkis_havaalani" in satir and not pd_isna(satir.get("kalkis_havaalani")):
-            aciklama_parcalari.append(
-                f"<b>Rota:</b> {satir.get('kalkis_havaalani', '?')} → {satir.get('varis_havaalani', '?')}"
-            )
+            kalkis = html.escape(str(satir.get("kalkis_havaalani", "?")))
+            varis = html.escape(str(satir.get("varis_havaalani", "?")))
+            aciklama_parcalari.append(f"<b>Rota:</b> {kalkis} → {varis}")
         if "basinc_hpa" in satir and not pd_isna(satir.get("basinc_hpa")):
             aciklama_parcalari.append(f"<b>Basınç Seviyesi:</b> {satir['basinc_hpa']:.0f} hPa")
         aciklama_parcalari.append(

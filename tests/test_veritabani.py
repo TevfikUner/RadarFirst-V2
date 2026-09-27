@@ -89,6 +89,28 @@ def test_listeleme_ucus_numarasi_aramasi_filtreler(motor):
     assert eslesmeyen == []
 
 
+def test_ozel_karakterli_sifre_url_de_dogru_ayristirilir(monkeypatch):
+    from alembic.config import Config
+    from sqlalchemy.engine import make_url
+
+    sifre = "p@ss:w/rd%#"
+    for ad, deger in {
+        "POSTGRES_HOST": "db.ornek",
+        "POSTGRES_PORT": "5433",
+        "POSTGRES_USER": "kul@nici",
+        "POSTGRES_PASSWORD": sifre,
+        "POSTGRES_DB": "vt",
+    }.items():
+        monkeypatch.setenv(ad, deger)
+    for url in (vt.baglanti_dizesini_olustur(), vt.async_baglanti_dizesini_olustur()):
+        ayrik = make_url(url)
+        assert (ayrik.username, ayrik.password, ayrik.host, ayrik.port) == ("kul@nici", sifre, "db.ornek", 5433)
+    # migrations/env.py ile aynı kaçış: Alembic ConfigParser '%' dizilerini reddetmemeli.
+    alembic_ayari = Config()
+    alembic_ayari.set_main_option("sqlalchemy.url", vt.baglanti_dizesini_olustur().replace("%", "%%"))
+    assert make_url(alembic_ayari.get_main_option("sqlalchemy.url")).password == sifre
+
+
 @pytest.mark.parametrize("joker", ["%", "_", "PYTEST%"])
 def test_arama_like_jokerlerini_harfiyen_arar(motor, joker):
     vt.ucus_ve_olcumleri_kaydet(_ornek_df(), _TEST_UCUS_NUMARASI, _TEST_TARIH, motor)

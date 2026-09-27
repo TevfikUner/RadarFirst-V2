@@ -54,7 +54,11 @@ for (yil, ay), grup in gunler_df.groupby(["yil", "ay"]):
         "data_format": "netcdf",
     }
     print(f"[Indiriliyor] {yil}-{ay:02d}, gunler={gunler_listesi} -> {hedef}")
-    istemci.retrieve("reanalysis-era5-pressure-levels", istek, hedef)
+    # Yarıda kesilen indirme hedef adıyla kalırsa sonraki çalıştırma onu
+    # "zaten var" diye atlar ve eğitim bozuk küple yapılırdı.
+    gecici = f"{hedef}.indiriliyor"
+    istemci.retrieve("reanalysis-era5-pressure-levels", istek, gecici)
+    os.replace(gecici, hedef)
     print(f"[Tamamlandi] {hedef}")
 
 print("Tum indirmeler tamamlandi.")

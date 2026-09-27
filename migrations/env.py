@@ -25,7 +25,9 @@ if config.config_file_name is not None:
 # commitlenir). veritabani.py'nin kullandığı AYNI kaynaktan -- '.env'
 # dosyasındaki POSTGRES_* değişkenlerinden -- okunup burada programatik
 # olarak ayarlanıyor. Böylece kimlik bilgisi tek bir yerde toplanmış olur.
-config.set_main_option("sqlalchemy.url", baglanti_dizesini_olustur())
+# '%%': set_main_option ConfigParser interpolasyonu kullanır; URL-kaçışlı
+# şifredeki '%40' gibi dizileri "invalid interpolation syntax" ile reddeder.
+config.set_main_option("sqlalchemy.url", baglanti_dizesini_olustur().replace("%", "%%"))
 
 # models.py'deki ORM modelleri -- 'alembic revision --autogenerate' bu
 # metadata'yı canlı veritabanının şemasıyla karşılaştırır.

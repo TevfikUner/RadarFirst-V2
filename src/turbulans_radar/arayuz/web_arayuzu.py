@@ -125,9 +125,7 @@ if gonder:
                     kararsiz_sayisi = int(eslesmis_df["dinamik_kararsizlik"].fillna(False).astype(bool).sum())
                     sutun3.metric("Dinamik kararsız nokta", kararsiz_sayisi)
 
-            harita_dosyasi = os.path.join(
-                config.CIKTI_KLASORU, f"turbulans_haritasi_{ucus_numarasi}_{tarih}.html"
-            )
+            harita_dosyasi = os.path.join(config.CIKTI_KLASORU, f"turbulans_haritasi_{ucus_numarasi}_{tarih}.html")
             try:
                 with open(harita_dosyasi, encoding="utf-8") as f:
                     st.subheader("Türbülans Haritası")
