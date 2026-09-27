@@ -39,7 +39,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session
 
-from turbulans_radar.depo.models import Base, EdrOlcumu, Ucus
+from turbulans_radar.depo.models import EdrOlcumu, Ucus
 
 try:
     from dotenv import load_dotenv
@@ -144,24 +144,32 @@ def async_oturum_al():
     return _AsyncOturum()
 
 
+_guncel_semalar: set[str] = set()
+
+
 def tablolari_olustur(motor=None):
     """
-    Base.metadata.create_all() ile şemayı oluşturur.
+    Şemayı Alembic migration'larıyla (`alembic upgrade head`) günceller --
+    testler bunu kullanır. Süreç başına veritabanı başına bir kez çalışır.
 
-    ÜRETİMDE ARTIK KULLANILMIYOR: Şema kurulumu artık Alembic migration'ları
-    (bkz. migrations/, README'deki "Veritabanı şeması" bölümü) ile yapılıyor
-    -- `alembic upgrade head` tek seferlik kurulum adımı, sonraki şema
-    değişiklikleri de yeni migration'larla takip ediliyor. create_all()'un
-    aksine Alembic şema DEĞİŞİKLİKLERİNİ (sütun ekleme/silme vb.) de
-    uygulayabiliyor; create_all() sadece hiç var olmayan tabloları oluşturur.
-
-    Bu fonksiyon YİNE DE burada duruyor -- testlerin hızlıca (migration
-    çalıştırmadan) geçici bir test veritabanı kurması için kullanışlı; bu,
-    "testler create_all, üretim Alembic kullanır" ayrımı birçok gerçek
-    SQLAlchemy+Alembic projesinde standart bir pratiktir.
+    ESKİDEN Base.metadata.create_all() kullanılıyordu: testler geliştirme
+    veritabanında yeni bir tabloyu migration'dan ÖNCE oluşturuyor, ardından
+    `alembic upgrade head` "relation already exists" ile kırılıyordu. Artık
+    testler, CI ve üretim aynı şema yolundan geçer.
     """
     motor = motor or motor_al()
-    Base.metadata.create_all(motor)
+    anahtar = motor.url.render_as_string(hide_password=True)
+    if anahtar in _guncel_semalar:
+        return
+    from alembic import command
+    from alembic.config import Config
+
+    proje_koku = os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))
+    ayar = Config(os.path.join(proje_koku, "alembic.ini"))
+    with motor.begin() as baglanti:
+        ayar.attributes["connection"] = baglanti
+        command.upgrade(ayar, "head")
+    _guncel_semalar.add(anahtar)
 
 
 _OLCUM_SUTUNLARI = [

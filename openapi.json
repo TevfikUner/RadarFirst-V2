@@ -166,7 +166,7 @@
           "Simülasyon"
         ],
         "summary": "Rota Simulasyonu",
-        "description": "Verilen başlangıç/bitiş/irtifa/tarih/uçak için iki rota üretir: büyük\ndaire (\"normal\") ve ERA5 rüzgarına göre yanal kaydırılmış en hızlı aday\n(\"optimize\") -- bkz. rota_optimizasyonu.py (kapsam dışı bölge/tarih için\ndürüst geri düşüş davranışı dahil). Dış bir servise istek atmadığı için\n(sadece yerel NetCDF dosyasını okur) ayrı bir hız sınırlaması yok; event\nloop'u bloklamaması için hesaplama ayrı bir thread'de çalıştırılır.",
+        "description": "Verilen başlangıç/bitiş/irtifa/tarih/uçak için iki rota üretir: büyük\ndaire (\"normal\") ve ERA5 rüzgarına göre yanal kaydırılmış en hızlı aday\n(\"optimize\") -- bkz. rota_optimizasyonu.py (kapsam dışı bölge/tarih için\ndürüst geri düşüş davranışı dahil). A* CPU ağır olduğu ve pilot anahtarı\nda çağırabildiği için istemci başına hız sınırı (ROTA_HESABI_DAKIKADA_MAKS)\nve süreç başına eşzamanlılık tavanı uygulanır; hesap ayrı thread'dedir.",
         "operationId": "rota_simulasyonu_api_v1_simulasyon_rota_post",
         "parameters": [
           {

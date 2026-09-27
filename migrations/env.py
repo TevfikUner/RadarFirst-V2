@@ -16,9 +16,13 @@ from turbulans_radar.depo.veritabani import baglanti_dizesini_olustur  # noqa: E
 # access to the values within the .ini file in use.
 config = context.config
 
+# Kodun içinden (veritabani.tablolari_olustur) çağrılırken hazır bağlantı
+# verilir; o durumda uygulamanın logging ayarı ezilmez ve URL gerekmez.
+_verilen_baglanti = config.attributes.get("connection")
+
 # Interpret the config file for Python logging.
 # This line sets up loggers basically.
-if config.config_file_name is not None:
+if config.config_file_name is not None and _verilen_baglanti is None:
     fileConfig(config.config_file_name)
 
 # ÖNEMLİ: Bağlantı dizesi alembic.ini'ye YAZILMIYOR (o dosya git'e
@@ -27,7 +31,8 @@ if config.config_file_name is not None:
 # olarak ayarlanıyor. Böylece kimlik bilgisi tek bir yerde toplanmış olur.
 # '%%': set_main_option ConfigParser interpolasyonu kullanır; URL-kaçışlı
 # şifredeki '%40' gibi dizileri "invalid interpolation syntax" ile reddeder.
-config.set_main_option("sqlalchemy.url", baglanti_dizesini_olustur().replace("%", "%%"))
+if _verilen_baglanti is None:
+    config.set_main_option("sqlalchemy.url", baglanti_dizesini_olustur().replace("%", "%%"))
 
 # models.py'deki ORM modelleri -- 'alembic revision --autogenerate' bu
 # metadata'yı canlı veritabanının şemasıyla karşılaştırır.
@@ -70,6 +75,12 @@ def run_migrations_online() -> None:
     and associate a connection with the context.
 
     """
+    if _verilen_baglanti is not None:
+        context.configure(connection=_verilen_baglanti, target_metadata=target_metadata)
+        with context.begin_transaction():
+            context.run_migrations()
+        return
+
     connectable = engine_from_config(
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
