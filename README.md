@@ -958,7 +958,23 @@ pre-commit install         # her commit'te otomatik çalıştır
 ```
 
 `.github/workflows/ci.yml`, her push/PR'da lint ve testleri (gerçek bir
-PostgreSQL servis konteyneriyle) çalıştırır.
+PostgreSQL servis konteyneriyle) Python 3.12 (üretim, kilit dosyasıyla) ve
+3.14 (geliştirme) için çalıştırır.
+
+### Bağımlılık kilidi
+
+Üretim ortamı Python 3.12'dir (`.python-version`, Docker imajı).
+`requirements.txt` doğrudan bağımlılıkları sabitler; `requirements.lock` ise
+bunların Linux/3.12 için **tüm geçişli bağımlılıklarıyla hash'li** çözümüdür.
+Docker ve CI (3.12) `pip install --require-hashes -r requirements.lock` ile
+kurar: her derleme bit bit aynı paketleri alır, yayında değiştirilmiş bir
+paket kurulmaz. `requirements.txt` değişince kilit yeniden üretilir
+(`tests/test_bagimlilik_kilidi.py` unutulursa yakalar):
+
+```bash
+python -m uv pip compile requirements.txt --python-version 3.12 \
+  --python-platform x86_64-manylinux_2_28 --generate-hashes --no-header -o requirements.lock
+```
 
 ## Bilinmesi gerekenler / sınırlamalar
 

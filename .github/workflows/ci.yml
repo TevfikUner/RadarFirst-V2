@@ -22,6 +22,13 @@ jobs:
 
   test:
     runs-on: ubuntu-latest
+    # 3.12 = üretim (Docker) ortamı, hash'li kilit dosyasıyla; 3.14 = yerel
+    # geliştirme ortamı. İkisi arasındaki sapma (örn. derlenmiş eklenti ABI
+    # uyumsuzluğu) böylece CI'da görünür.
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.12", "3.14"]
     # Testlerin bir kısmı (test_veritabani.py, test_api_servisi.py) gerçek
     # bir PostgreSQL bağlantısı gerektiriyor -- bağlanamazlarsa otomatik
     # atlanırlar (skip), ama CI'da gerçekten çalıştırılabilmeleri için bir
@@ -51,10 +58,14 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
-          python-version: "3.12"
+          python-version: ${{ matrix.python }}
       - name: Bağımlılıkları kur
         run: |
-          pip install -r requirements.txt
+          if [ "${{ matrix.python }}" = "3.12" ]; then
+            pip install --require-hashes -r requirements.lock
+          else
+            pip install -r requirements.txt
+          fi
           pip install -r requirements-dev.txt
       - name: Veritabanı şemasını kur (alembic upgrade head)
         run: alembic upgrade head
@@ -69,7 +80,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: coverage-xml
+          name: coverage-xml-${{ matrix.python }}
           path: coverage.xml
 
   docker:

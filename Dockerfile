@@ -5,8 +5,11 @@ FROM python:3.12-slim
 
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# requirements.lock: requirements.txt'nin Linux/Python 3.12 için tüm geçişli
+# bağımlılıklarıyla, hash'li çözümü (bkz. README "Bağımlılık kilidi") --
+# her derleme aynı paketleri kurar, değiştirilmiş bir paket kurulmaz.
+COPY requirements.lock .
+RUN pip install --no-cache-dir --require-hashes -r requirements.lock
 
 COPY . .
 ENV PYTHONPATH=/app/src
