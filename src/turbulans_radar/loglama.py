@@ -23,9 +23,33 @@ protokolü bozar. stderr + gerçek program çıktısının stdout'ta kalması,
 standart Unix pratiğiyle de uyumludur.
 """
 
+import json
 import logging
 import os
 import sys
+from datetime import UTC, datetime
+
+
+class JsonBicimleyici(logging.Formatter):
+    """LOG_BICIMI=json: satır başına bir JSON nesnesi (Loki/ELK gibi log
+    toplayıcılar alanları ayrıştırmadan sorgulayabilsin). Zaman UTC ISO 8601."""
+
+    def format(self, kayit: logging.LogRecord) -> str:
+        nesne = {
+            "zaman": datetime.fromtimestamp(kayit.created, UTC).isoformat(timespec="milliseconds"),
+            "seviye": kayit.levelname,
+            "kaynak": kayit.name,
+            "mesaj": kayit.getMessage(),
+        }
+        if kayit.exc_info:
+            nesne["hata"] = self.formatException(kayit.exc_info)
+        return json.dumps(nesne, ensure_ascii=False)
+
+
+def _bicimleyici(zaman_bicimi=None) -> logging.Formatter:
+    if os.environ.get("LOG_BICIMI", "metin").strip().lower() == "json":
+        return JsonBicimleyici()
+    return logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s", datefmt=zaman_bicimi)
 
 
 def ayarla():
@@ -36,17 +60,14 @@ def ayarla():
     seviye_adi = os.environ.get("LOG_SEVIYESI", "INFO").upper()
     seviye = getattr(logging, seviye_adi, logging.INFO)
 
-    logging.basicConfig(
-        level=seviye,
-        format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-        datefmt="%H:%M:%S",
-        stream=sys.stderr,
-    )
+    konsol = logging.StreamHandler(sys.stderr)
+    konsol.setFormatter(_bicimleyici("%H:%M:%S"))
+    logging.basicConfig(level=seviye, handlers=[konsol])
 
     dosya_yolu = os.environ.get("LOG_DOSYASI")
     if dosya_yolu:
         dosya_handler = logging.FileHandler(dosya_yolu, encoding="utf-8")
-        dosya_handler.setFormatter(logging.Formatter("%(asctime)s [%(levelname)s] %(name)s: %(message)s"))
+        dosya_handler.setFormatter(_bicimleyici())
         logging.getLogger().addHandler(dosya_handler)
 
 

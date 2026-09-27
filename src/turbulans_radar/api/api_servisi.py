@@ -82,11 +82,13 @@ from fastapi import (
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response
 from fastapi.staticfiles import StaticFiles
+from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 from pydantic import BaseModel, Field, field_validator
 from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from turbulans_radar import config, loglama
+from turbulans_radar.api import metrikler
 from turbulans_radar.api.semalar import (
     BacktestListesiYaniti,
     BacktestSonucuYaniti,
@@ -451,6 +453,7 @@ async def _hiz_sinirini_kontrol_et(
         _logger.warning("Hız sınırı sayacına ulaşılamadı, sınır atlandı (%s): %s", anahtar, dostane_hata_mesaji(hata))
         return
     if sayi > maks:
+        metrikler.HIZ_SINIRI_REDDI.labels(anahtar.split(":", 1)[0]).inc()
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
             detail=f"Çok fazla istek ({maks}/{pencere_saniye}s). Lütfen biraz bekleyip tekrar dene.",
@@ -483,6 +486,7 @@ async def _agir_hesap_yuvasi():
     try:
         await asyncio.wait_for(semafor.acquire(), timeout=config.AGIR_HESAP_BEKLEME_SANIYE)
     except TimeoutError:
+        metrikler.AGIR_HESAP_REDDI.inc()
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Sunucu şu an çok sayıda rota/tahmin hesaplıyor. Birkaç saniye sonra tekrar dene.",
@@ -531,6 +535,25 @@ def _denetim_yolu(request: Request) -> str:
         for ad, deger in parse_qsl(request.url.query, keep_blank_values=True)
     ]
     return f"{request.url.path}?{urlencode(parcalar)}"
+
+
+@app.middleware("http")
+async def _http_metrikleri(request: Request, call_next):
+    baslangic = time.monotonic()
+    durum_kodu = 500
+    try:
+        yanit = await call_next(request)
+        durum_kodu = yanit.status_code
+        return yanit
+    finally:
+        # Ham yol değil route şablonu: her uçuş numarası ayrı seri açmasın.
+        rota = request.scope.get("route")
+        if rota is not None and getattr(rota, "path", None):
+            yol = rota.path
+        else:
+            yol = "/harita" if request.url.path.startswith("/harita") else "eslesmeyen"
+        metrikler.HTTP_ISTEKLERI.labels(request.method, yol, str(durum_kodu)).inc()
+        metrikler.HTTP_SURESI.labels(request.method, yol).observe(time.monotonic() - baslangic)
 
 
 @app.middleware("http")
@@ -797,6 +820,7 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
         f"rota_hesabi:{_istemci_kimligi(request, rol)}", maks=config.ROTA_HESABI_DAKIKADA_MAKS, pencere_saniye=60
     )
     async with _agir_hesap_yuvasi():
+        hesap_baslangici = time.monotonic()
         sonuc = await asyncio.to_thread(
             rota_simulasyonu_olustur,
             istek.baslangic_enlem,
@@ -808,6 +832,7 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
             istek.ucak_modeli,
             canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
         )
+        metrikler.ROTA_HESABI_SURESI.observe(time.monotonic() - hesap_baslangici)
     sonuc["czml"] = simulasyonu_czml_e_cevir(sonuc)
     return sonuc
 
@@ -1480,6 +1505,42 @@ async def sistem_durumu():
     if not await _veritabani_erisilebilir_mi():
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Veritabanına şu anda ulaşılamıyor.")
     return await _saglik_raporu(ayrintili=True)
+
+
+async def _anlik_metrikleri_guncelle():
+    try:
+        kuyruk = await kuyruk_durumu()
+        metrikler.GOREV_KUYRUGU.labels("kuyrukta").set(kuyruk["kuyrukta"])
+        metrikler.GOREV_KUYRUGU.labels("calisiyor").set(kuyruk["calisiyor"])
+        metrikler.KUYRUK_EN_ESKI_BEKLEME.set(kuyruk["en_eski_bekleme_saniye"] or 0)
+    except Exception as hata:
+        _logger.warning("Kuyruk metrikleri okunamadı: %s", dostane_hata_mesaji(hata))
+    try:
+        son = await asyncio.to_thread(son_guncelleme_zamani)
+        metrikler.SIGMET_YASI.set((datetime.now(UTC) - son).total_seconds() if son else float("nan"))
+    except Exception as hata:
+        _logger.warning("SIGMET yaşı metriği okunamadı: %s", dostane_hata_mesaji(hata))
+    metrikler.WS_BAGLANTILARI.set(len(baglanti_yoneticisi.baglantilar))
+
+
+@app.get("/metrics", include_in_schema=False)
+async def prometheus_metrikleri(
+    x_api_key: str | None = Header(default=None, alias="X-API-Key"),
+    authorization: str | None = Header(default=None),
+):
+    """Prometheus metin biçimi. Yönetici anahtarı ister: X-API-Key ya da
+    'Authorization: Bearer <anahtar>' (Prometheus scrape_config'in
+    authorization ayarı). Metrikler iç yapı bilgisi taşıdığı için açık değil."""
+    verilen = x_api_key
+    if not verilen and authorization and authorization.lower().startswith("bearer "):
+        verilen = authorization[7:].strip()
+    cozum = _anahtari_coz(verilen) if os.environ.get("API_ANAHTARI") else None
+    if cozum is None:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Metrikler için yönetici anahtarı gerekli.")
+    if cozum[1] != "yonetici":
+        raise HTTPException(status.HTTP_403_FORBIDDEN, "Metrikler için yönetici anahtarı gerekli.")
+    await _anlik_metrikleri_guncelle()
+    return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
 
 
 @app.get("/saglik", response_model=SaglikYaniti, tags=["Sistem"])

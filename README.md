@@ -884,6 +884,18 @@ modülün kendi docstring'indeki örnek: Anchorage FIR, 2019-01-15, gerçek bir
 
 ## İzleme ve çevrimdışı kullanım
 
+- **Prometheus (`GET /metrics`):** yönetici anahtarı ister (`X-API-Key` ya
+  da `Authorization: Bearer <anahtar>`, Prometheus `scrape_config` ->
+  `authorization`). Zaman serileri: `turbulans_http_istekleri_total` ve
+  `turbulans_http_istek_suresi_saniye` (etiket: route şablonu, ham yol değil),
+  `turbulans_rota_hesabi_suresi_saniye` (A* dağılımı),
+  `turbulans_hiz_siniri_reddi_total`, `turbulans_agir_hesap_reddi_total`,
+  `turbulans_gorev_kuyrugu{durum}`, `turbulans_gorev_kuyrugu_en_eski_bekleme_saniye`,
+  `turbulans_sigmet_yas_saniye`, `turbulans_ws_baglanti_sayisi`. Örnek alarmlar:
+  SIGMET yaşı > 1800 sn, A* p95 > 5 sn, en eski bekleme > 120 sn.
+- **Yapılandırılmış log:** `LOG_BICIMI=json` ile satır başına bir JSON
+  nesnesi (`zaman` UTC, `seviye`, `kaynak`, `mesaj`, `hata`) -- Loki/ELK
+  alanları ayrıştırmadan sorgular.
 - **`GET /saglik?derin=true`** (anahtarsız, monitoring için): PostgreSQL
   erişilemezse 503. Erişilebilirse HTTP 200 ve bağımlılık başına durum:
   `sigmet` (son BAŞARILI çekimin yaşı `SIGMET_BAYATLIK_DAKIKA`'yı aşarsa

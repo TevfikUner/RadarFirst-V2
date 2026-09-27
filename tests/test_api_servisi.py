@@ -1309,3 +1309,46 @@ def test_otomatik_yenileme_acikken_basari_yoksa_kisitli_saha_bayat(monkeypatch):
     assert kontrol["durum"] == "bayat" and kontrol["openaip_son_basari"] is None
     monkeypatch.setattr(config, "OPENAIP_OTOMATIK_GUNCELLEME_SAAT", 0.0)
     assert "openaip_son_basari" not in api_servisi._kisitli_saha_kontrolu()
+
+
+# --- Prometheus metrikleri ---
+
+
+async def test_metrics_yonetici_ister_route_sablonuyla_etiketler(istemci, api_anahtari, monkeypatch):
+    monkeypatch.setenv("API_PILOT_ANAHTARI", "metrik-pilot")
+    assert (await istemci.get("/metrics")).status_code == 401
+    assert (await istemci.get("/metrics", headers={"X-API-Key": "metrik-pilot"})).status_code == 403
+
+    await istemci.get("/api/v1/ucuslar/METRIK1/1999-01-01", headers={"X-API-Key": api_anahtari})
+    yanit = await istemci.get("/metrics", headers={"Authorization": f"Bearer {api_anahtari}"})
+    assert yanit.status_code == 200 and yanit.headers["content-type"].startswith("text/plain")
+    metin = yanit.text
+    assert 'yol="/api/v1/ucuslar/{ucus_numarasi}/{tarih}"' in metin and "METRIK1" not in metin
+    for ad in (
+        "turbulans_http_istekleri_total",
+        "turbulans_http_istek_suresi_saniye_bucket",
+        "turbulans_gorev_kuyrugu",
+        "turbulans_sigmet_yas_saniye",
+        "turbulans_ws_baglanti_sayisi",
+    ):
+        assert ad in metin
+
+
+def test_json_log_bicimi_satir_basina_ayrisabilir_nesne(monkeypatch):
+    import json
+    import logging
+
+    from turbulans_radar import loglama
+
+    monkeypatch.setenv("LOG_BICIMI", "json")
+    bicimleyici = loglama._bicimleyici()
+    try:
+        raise ValueError("örnek hata")
+    except ValueError:
+        kayit = logging.LogRecord("turbulans.deneme", logging.ERROR, __file__, 1, "Görev %s bitti", ("g1",), None)
+        kayit.exc_info = __import__("sys").exc_info()
+    nesne = json.loads(bicimleyici.format(kayit))
+    assert (nesne["seviye"], nesne["kaynak"], nesne["mesaj"]) == ("ERROR", "turbulans.deneme", "Görev g1 bitti")
+    assert "ValueError: örnek hata" in nesne["hata"] and nesne["zaman"].endswith("+00:00")
+    monkeypatch.setenv("LOG_BICIMI", "metin")
+    assert not isinstance(loglama._bicimleyici(), loglama.JsonBicimleyici)
