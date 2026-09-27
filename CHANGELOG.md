@@ -4,6 +4,20 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## TI1'in doğrulanmamış olduğu artık her yanıtta ve arayüzde görünüyor
+
+- **Bağımsız kanıt bölümünün bulgusu (PUE502: TI1 aktif TURB SIGMET'in işaret
+  ettiği türbülansı hiç yakalamadı) tek bir doküman satırında kalmıştı** --
+  pilotun/EFB istemcisinin gördüğü API yanıtlarında hiçbir uyarı yoktu. Yeni
+  `TI1_GUVENILIRLIK_NOTU` sabiti (`fizik/turbulans_indeksleri.py`) artık
+  `POST /simulasyon/rota` (`ti1_guvenilirlik_notu` alanı, her yanıtta) ve
+  `POST /turbulans/tahmin` (kapsam içindeyse) yanıtlarında ayrı bir alan
+  olarak taşınıyor; rota açıklamasına gömülmüyor ki her yanıtta baskın bir
+  uyarı gibi görünmesin.
+- İki web arayüzü de bu notu gösteriyor: `ucus_simulasyonu.html` sonuç
+  panelinde (sunucudan geldiği gibi, dinamik), `harita3d.html`nin TI1
+  lejantında (statik, sayfanın diğer dürüstlük notlarıyla aynı desende).
+
 ## Koordinatsız SIGMET'ler artık FIR'a genişletilerek uygulanıyor
 
 - **Poligonu olmayan SIGMET'ler eskiden sessizce eleniyordu:** AWC bazı

@@ -645,6 +645,7 @@ async def test_turbulans_tahmini_kapsam_icinde_ti1_doner(istemci, api_anahtari):
     govde = yanit.json()
     assert govde["kapsam_icinde_mi"] is True
     assert govde["ti1_indeksi"] >= 0
+    assert govde["ti1_guvenilirlik_notu"] and "KANITLANMAMIŞTIR" in govde["ti1_guvenilirlik_notu"]
 
 
 async def test_gorev_kuyruga_eklenir_ve_islenmeden_kuyrukta_kalir():

@@ -3357,6 +3357,10 @@
             "type": "number",
             "title": "Sure Tasarrufu Dk"
           },
+          "ti1_guvenilirlik_notu": {
+            "type": "string",
+            "title": "Ti1 Guvenilirlik Notu"
+          },
           "yakit_tasarrufu_yuzde": {
             "type": "number",
             "title": "Yakit Tasarrufu Yuzde"
@@ -3385,6 +3389,7 @@
           "normal_rota",
           "optimize_rota",
           "sure_tasarrufu_dk",
+          "ti1_guvenilirlik_notu",
           "yakit_tasarrufu_yuzde",
           "co2_farki_kg",
           "czml"
@@ -3970,6 +3975,17 @@
               }
             ],
             "title": "Ti1 Riskli Mi"
+          },
+          "ti1_guvenilirlik_notu": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ti1 Guvenilirlik Notu"
           },
           "ml_riski_var_mi": {
             "anyOf": [

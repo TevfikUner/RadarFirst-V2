@@ -93,7 +93,12 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - TI1'den türetilen EDR proxy sertifikalı bir EDR değeri değildir.
 - ERA5/GFS'nin ~25-30 km çözünürlüğü küçük ölçekli türbülansı çözemez.
 - 167 PIREP gözleminde TI1'in tek başına ayırt ediciliği zayıftır
-  (ROC-AUC 0.44).
+  (ROC-AUC 0.44). Bu, tek başına KANITLANMAMIŞ bir gösterge olduğu anlamına
+  gelir; bu not (`TI1_GUVENILIRLIK_NOTU`, bkz. `fizik/turbulans_indeksleri.py`)
+  artık `POST /simulasyon/rota` ve `POST /turbulans/tahmin` yanıtlarında ayrı
+  bir alan olarak (`ti1_guvenilirlik_notu`) ve iki web arayüzünde de
+  gösteriliyor -- bugün rota güvenliğinin gerçek garantisi TI1'den değil
+  SIGMET sert kısıtından geliyor (bkz. "Bağımsız kanıt" bölümü, PUE502 uçuşu).
 - EDR ölçekleme katsayısı 0.23'tür; %95 güven aralığı [0.13, 0.33].
 
 **ML sınıflandırıcısı**

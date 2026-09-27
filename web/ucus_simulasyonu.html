@@ -127,6 +127,7 @@
   <hr>
   <div id="strateji-satiri" style="font-size:11px; color:#9fd6ff; margin-bottom:4px;"></div>
   <div id="tasarruf-satiri"></div>
+  <div id="ti1-guvenilirlik-notu" style="font-size:10px; color:#e67e22; margin-top:6px; border-top:1px solid #444; padding-top:6px;"></div>
 </div>
 
 <div id="lejant" class="panel">
@@ -301,6 +302,13 @@ function sonucPanelDoldur(sonuc) {
   } else {
     tasarrufEl.innerHTML = `<span class="tasarruf-yok">Türbülans verisi/rüzgar değerlendirilemedi.</span>`;
   }
+
+  // Madde 6 (bkz. konuşma geçmişi): TI1'in tek başına doğrulanmadığı notu
+  // sunucudan (turbulans_indeksleri.TI1_GUVENILIRLIK_NOTU) geldiği gibi
+  // gösterilir -- metin değişirse arayüz otomatik güncellenir.
+  document.getElementById("ti1-guvenilirlik-notu").textContent = sonuc.ti1_guvenilirlik_notu
+    ? `⚠ ${sonuc.ti1_guvenilirlik_notu}`
+    : "";
 
   kabinBildirimiGoster(sonuc);
 }

@@ -89,6 +89,25 @@ def ti1_indeksi_hesapla(vws, deformasyon):
     return np.abs(vws) * deformasyon
 
 
+# DÜRÜSTLÜK NOTU (madde 6, bkz. konuşma geçmişi): TI1'in TEK BAŞINA gerçek
+# türbülans olaylarını ayırt ettiği BAĞIMSIZ olarak kanıtlanmamıştır. 167
+# PIREP gözleminde TI1'in tek başına ayırt ediciliği zayıftır (ROC-AUC 0.44,
+# bkz. kalibrasyon.py). Bağımsız kanıt modülüyle (dogrulama/bagimsiz_kanit.py)
+# yapılan canlı bir sınamada (PUE502, 26 Eylül 2026) aktif TURB SIGMET'lerin
+# işaret ettiği bir bölgede TI1 HİÇ risk görmedi -- yani bugün rota
+# güvenliğini fiilen SIGMET sert kısıtı sağlıyor, TI1 değil. Bu yüzden bu not
+# API yanıtlarında (bkz. rota_optimizasyonu.rota_simulasyonu_olustur,
+# api_servisi.turbulans_tahmini) ayrı bir alan olarak taşınır -- rota
+# açıklamasına gömülmez ki her yanıtta baskın bir uyarı gibi görünmesin, ama
+# istemci (EFB arayüzü) TI1'e "kanıtlanmış" güvenmesin diye elinin altında olsun.
+TI1_GUVENILIRLIK_NOTU = (
+    "TI1 fiziksel göstergesi, gerçek türbülans olaylarını TEK BAŞINA güvenilir şekilde ayırt ettiği bağımsız "
+    "olarak KANITLANMAMIŞTIR (167 PIREP'te ROC-AUC 0.44; gerçek bir uçuşta [PUE502] aktif SIGMET'in işaret "
+    "ettiği türbülansı TI1 hiç yakalamadı). Bugün güvenlik garantisi TI1'den değil SIGMET sert kısıtından "
+    "gelir; TI1 yalnızca ek/yumuşak bir gösterge olarak değerlendirilmelidir."
+)
+
+
 def ti1_den_edr_proxy_olcegine_cevir(ti1_degeri, olceklendirme_katsayisi=0.23):
     """
     TI1'in tipik değer aralığı (~1e-7 - 1e-6 s^-2) EDR'nin alışılan 0-1

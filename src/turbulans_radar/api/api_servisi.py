@@ -128,6 +128,7 @@ from turbulans_radar.depo.veritabani import (
 )
 from turbulans_radar.dogrulama.rota_backtest import backtestleri_listele, ucus_backtest_et
 from turbulans_radar.dogrulama.sigmet_dogrulama import ucus_sigmet_ile_karsilastir
+from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.isci.gorev_iscisi import BILDIRIM_KANALI, GorevIscisi
 from turbulans_radar.ml.turbulans_ml_modeli import (
@@ -632,6 +633,7 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi):
             "kapsam_icinde_mi": True,
             "ti1_indeksi": float(ti1),
             "ti1_riskli_mi": bool(ti1 >= config.TI1_ESIK_ORTA_SIDDETLI),
+            "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
             "ml_riski_var_mi": (ml_olasilik >= 0.5) if ml_olasilik is not None else None,
             "ml_olasilik": ml_olasilik,
             "aciklama": (

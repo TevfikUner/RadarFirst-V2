@@ -73,6 +73,16 @@ def test_kapsam_disi_bolge_durustce_ruzgarsiz_sonuc_doner():
     assert sonuc["normal_rota"]["mesafe_km"] > 8000  # İstanbul-New York büyük daire mesafesi ~8065 km
 
 
+def test_ti1_guvenilirlik_notu_her_yanitta_bulunur():
+    """Madde 6 (bkz. konuşma geçmişi): TI1 bağımsız olarak doğrulanmadığı için
+    bu not, kapsam içi/dışı fark etmeksizin HER rota yanıtında bulunmalı."""
+    from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
+
+    sonuc = rota_simulasyonu_olustur(41.0, 28.9, 40.7, -74.0, 34000, "2019-01-15T10:00:00", "A320")
+    assert sonuc["ti1_guvenilirlik_notu"] == TI1_GUVENILIRLIK_NOTU
+    assert "KANITLANMAMIŞTIR" in sonuc["ti1_guvenilirlik_notu"]
+
+
 @pytest.fixture(scope="module")
 def veri_kupu_mevcut_mu():
     try:

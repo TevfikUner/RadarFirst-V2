@@ -83,6 +83,7 @@ from turbulans_radar.fizik.birim_donusumleri import (
     irtifa_metre_to_basinc_hpa,
 )
 from turbulans_radar.fizik.eslestirme import kapsam_disi_maskesi
+from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.rota.risk_katmanlari import (
     KisitliSahaKatmani,
@@ -955,6 +956,7 @@ def rota_simulasyonu_olustur(
             100.0 * (normal_yakit_kg - optimize_yakit_kg) / normal_yakit_kg if normal_yakit_kg > 0 else 0.0
         ),
         "co2_farki_kg": normal_yakit_kg * CO2_KG_PER_KG_YAKIT - optimize_yakit_kg * CO2_KG_PER_KG_YAKIT,
+        "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
     }
 
 

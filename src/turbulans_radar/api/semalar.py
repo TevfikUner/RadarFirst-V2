@@ -255,6 +255,7 @@ class RotaSimulasyonuYaniti(BaseModel):
     normal_rota: RotaSonucuYaniti
     optimize_rota: RotaSonucuYaniti
     sure_tasarrufu_dk: float
+    ti1_guvenilirlik_notu: str
     yakit_tasarrufu_yuzde: float
     co2_farki_kg: float
     czml: list[dict]
@@ -291,6 +292,7 @@ class TurbulansTahminYaniti(BaseModel):
     kapsam_icinde_mi: bool
     ti1_indeksi: float | None = None
     ti1_riskli_mi: bool | None = None
+    ti1_guvenilirlik_notu: str | None = None
     ml_riski_var_mi: bool | None = None
     ml_olasilik: float | None = None
     aciklama: str

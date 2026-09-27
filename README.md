@@ -587,6 +587,12 @@ maruziyetli uçuş oranlarını verir.
   yakalayamadı -- döngüsel ölçümün gizleyeceği bir kör nokta. Canlı sistemde
   bu SIGMET'lerden sert kısıt olarak yine kaçınılır; backtest yalnızca TI1'in
   bağımsız becerisini ölçer.
+- Bu bulgu tek bir uçuşla sınırlı kalmayıp **her rota yanıtına** taşınır:
+  `POST /simulasyon/rota` ve `POST /turbulans/tahmin` yanıtlarında ayrı bir
+  `ti1_guvenilirlik_notu` alanı (`fizik/turbulans_indeksleri.
+  TI1_GUVENILIRLIK_NOTU`) her zaman bulunur ve iki web arayüzünde de
+  gösterilir -- TI1'in tek başına doğrulanmadığı bir dipnot olarak değil,
+  arayüzün elinin altında bir uyarı olarak.
 
 Karşılaştırılan bölümler kısa: THY322'nin OpenSky izinde Doğu Anadolu'da
 65 dk'lık bir veri boşluğu var; THY606 (İstanbul-Kahire) ve THY72C
