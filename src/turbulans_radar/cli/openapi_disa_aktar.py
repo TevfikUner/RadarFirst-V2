@@ -17,6 +17,7 @@ eklenir (bkz. api_servisi.api_anahtarini_dogrula), `{{taban_url}}` ve
 """
 
 import json
+import re
 import uuid
 
 from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
@@ -37,12 +38,21 @@ def _postman_istegi_olustur(yol, yontem, detay):
         if istek_govdesi_semasi is not None:
             govde = {"mode": "raw", "raw": "{}", "options": {"raw": {"language": "json"}}}
 
+    # OpenAPI '{ad}' yol parametrelerini Postman ':ad' olarak tanır; aksi halde
+    # süslü parantezler URL'ye düz metin olarak girer.
+    postman_yolu = re.sub(r"\{([^}]+)\}", r":\1", yol)
+    yol_degiskenleri = re.findall(r"\{([^}]+)\}", yol)
     return {
         "name": detay.get("summary") or f"{yontem.upper()} {yol}",
         "request": {
             "method": yontem.upper(),
             "header": baslangic,
-            "url": {"raw": "{{taban_url}}" + yol, "host": ["{{taban_url}}"], "path": yol.strip("/").split("/")},
+            "url": {
+                "raw": "{{taban_url}}" + postman_yolu,
+                "host": ["{{taban_url}}"],
+                "path": postman_yolu.strip("/").split("/"),
+                **({"variable": [{"key": ad, "value": ""} for ad in yol_degiskenleri]} if yol_degiskenleri else {}),
+            },
             **({"body": govde} if govde else {}),
         },
     }

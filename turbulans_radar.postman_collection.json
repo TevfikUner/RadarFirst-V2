@@ -269,7 +269,7 @@
               }
             ],
             "url": {
-              "raw": "{{taban_url}}/api/v1/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir",
+              "raw": "{{taban_url}}/api/v1/turbulans/model-versiyonlari/:versiyon_id/aktiflestir",
               "host": [
                 "{{taban_url}}"
               ],
@@ -278,8 +278,14 @@
                 "v1",
                 "turbulans",
                 "model-versiyonlari",
-                "{versiyon_id}",
+                ":versiyon_id",
                 "aktiflestir"
+              ],
+              "variable": [
+                {
+                  "key": "versiyon_id",
+                  "value": ""
+                }
               ]
             }
           }
@@ -346,7 +352,7 @@
               }
             ],
             "url": {
-              "raw": "{{taban_url}}/api/v1/ucuslar/{ucus_numarasi}/{tarih}",
+              "raw": "{{taban_url}}/api/v1/ucuslar/:ucus_numarasi/:tarih",
               "host": [
                 "{{taban_url}}"
               ],
@@ -354,8 +360,18 @@
                 "api",
                 "v1",
                 "ucuslar",
-                "{ucus_numarasi}",
-                "{tarih}"
+                ":ucus_numarasi",
+                ":tarih"
+              ],
+              "variable": [
+                {
+                  "key": "ucus_numarasi",
+                  "value": ""
+                },
+                {
+                  "key": "tarih",
+                  "value": ""
+                }
               ]
             }
           }
@@ -371,7 +387,7 @@
               }
             ],
             "url": {
-              "raw": "{{taban_url}}/api/v1/ucuslar/{ucus_numarasi}/{tarih}",
+              "raw": "{{taban_url}}/api/v1/ucuslar/:ucus_numarasi/:tarih",
               "host": [
                 "{{taban_url}}"
               ],
@@ -379,8 +395,18 @@
                 "api",
                 "v1",
                 "ucuslar",
-                "{ucus_numarasi}",
-                "{tarih}"
+                ":ucus_numarasi",
+                ":tarih"
+              ],
+              "variable": [
+                {
+                  "key": "ucus_numarasi",
+                  "value": ""
+                },
+                {
+                  "key": "tarih",
+                  "value": ""
+                }
               ]
             }
           }
@@ -396,7 +422,7 @@
               }
             ],
             "url": {
-              "raw": "{{taban_url}}/api/v1/ucuslar/{ucus_numarasi}/{tarih}/csv",
+              "raw": "{{taban_url}}/api/v1/ucuslar/:ucus_numarasi/:tarih/csv",
               "host": [
                 "{{taban_url}}"
               ],
@@ -404,9 +430,19 @@
                 "api",
                 "v1",
                 "ucuslar",
-                "{ucus_numarasi}",
-                "{tarih}",
+                ":ucus_numarasi",
+                ":tarih",
                 "csv"
+              ],
+              "variable": [
+                {
+                  "key": "ucus_numarasi",
+                  "value": ""
+                },
+                {
+                  "key": "tarih",
+                  "value": ""
+                }
               ]
             }
           }
@@ -422,7 +458,7 @@
               }
             ],
             "url": {
-              "raw": "{{taban_url}}/api/v1/ucuslar/{ucus_numarasi}/{tarih}/geojson",
+              "raw": "{{taban_url}}/api/v1/ucuslar/:ucus_numarasi/:tarih/geojson",
               "host": [
                 "{{taban_url}}"
               ],
@@ -430,9 +466,19 @@
                 "api",
                 "v1",
                 "ucuslar",
-                "{ucus_numarasi}",
-                "{tarih}",
+                ":ucus_numarasi",
+                ":tarih",
                 "geojson"
+              ],
+              "variable": [
+                {
+                  "key": "ucus_numarasi",
+                  "value": ""
+                },
+                {
+                  "key": "tarih",
+                  "value": ""
+                }
               ]
             }
           }
@@ -448,7 +494,7 @@
               }
             ],
             "url": {
-              "raw": "{{taban_url}}/api/v1/ucuslar/{ucus_numarasi}/{tarih}/sigmet-dogrulama",
+              "raw": "{{taban_url}}/api/v1/ucuslar/:ucus_numarasi/:tarih/sigmet-dogrulama",
               "host": [
                 "{{taban_url}}"
               ],
@@ -456,9 +502,19 @@
                 "api",
                 "v1",
                 "ucuslar",
-                "{ucus_numarasi}",
-                "{tarih}",
+                ":ucus_numarasi",
+                ":tarih",
                 "sigmet-dogrulama"
+              ],
+              "variable": [
+                {
+                  "key": "ucus_numarasi",
+                  "value": ""
+                },
+                {
+                  "key": "tarih",
+                  "value": ""
+                }
               ]
             }
           }
@@ -578,7 +634,7 @@
               }
             ],
             "url": {
-              "raw": "{{taban_url}}/api/v1/analiz/durum/{gorev_id}",
+              "raw": "{{taban_url}}/api/v1/analiz/durum/:gorev_id",
               "host": [
                 "{{taban_url}}"
               ],
@@ -587,7 +643,13 @@
                 "v1",
                 "analiz",
                 "durum",
-                "{gorev_id}"
+                ":gorev_id"
+              ],
+              "variable": [
+                {
+                  "key": "gorev_id",
+                  "value": ""
+                }
               ]
             }
           }
@@ -739,7 +801,7 @@
               }
             ],
             "url": {
-              "raw": "{{taban_url}}/api/v1/kisitli-sahalar/{dis_kimlik}",
+              "raw": "{{taban_url}}/api/v1/kisitli-sahalar/:dis_kimlik",
               "host": [
                 "{{taban_url}}"
               ],
@@ -747,7 +809,13 @@
                 "api",
                 "v1",
                 "kisitli-sahalar",
-                "{dis_kimlik}"
+                ":dis_kimlik"
+              ],
+              "variable": [
+                {
+                  "key": "dis_kimlik",
+                  "value": ""
+                }
               ]
             }
           }
@@ -831,7 +899,7 @@
               }
             ],
             "url": {
-              "raw": "{{taban_url}}/api/v1/backtest/ucuslar/{ucus_numarasi}/{tarih}",
+              "raw": "{{taban_url}}/api/v1/backtest/ucuslar/:ucus_numarasi/:tarih",
               "host": [
                 "{{taban_url}}"
               ],
@@ -840,8 +908,18 @@
                 "v1",
                 "backtest",
                 "ucuslar",
-                "{ucus_numarasi}",
-                "{tarih}"
+                ":ucus_numarasi",
+                ":tarih"
+              ],
+              "variable": [
+                {
+                  "key": "ucus_numarasi",
+                  "value": ""
+                },
+                {
+                  "key": "tarih",
+                  "value": ""
+                }
               ]
             }
           }

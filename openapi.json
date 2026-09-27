@@ -3880,6 +3880,7 @@
               "$ref": "#/components/schemas/UcusAnalizIstegi"
             },
             "type": "array",
+            "maxItems": 500,
             "title": "Ucuslar"
           },
           "bildirim_webhook_url": {

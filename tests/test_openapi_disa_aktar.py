@@ -32,3 +32,11 @@ def test_postman_koleksiyonu_deterministik_ve_api_anahtarli():
     assert v1_istekleri
     for istek in v1_istekleri:
         assert {"key": "X-API-Key", "value": "{{api_anahtari}}"} in istek["request"]["header"]
+
+
+def test_postman_yol_parametreleri_iki_nokta_bicimindedir():
+    koleksiyon = postman_koleksiyonuna_cevir(openapi_semasini_al())
+    istekler = [istek for grup in koleksiyon["item"] for istek in grup["item"]]
+    detay = next(i for i in istekler if i["request"]["url"]["raw"].endswith("/ucuslar/:ucus_numarasi/:tarih"))
+    assert "{" not in "".join(detay["request"]["url"]["path"])
+    assert {d["key"] for d in detay["request"]["url"]["variable"]} == {"ucus_numarasi", "tarih"}
