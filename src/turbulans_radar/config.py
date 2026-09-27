@@ -247,6 +247,9 @@ TAHMIN_DAKIKADA_MAKS = _ortam_sayi("TAHMIN_DAKIKADA_MAKS", 60, int)
 AGIR_HESAP_MAKS_ESZAMANLI = _ortam_sayi("AGIR_HESAP_MAKS_ESZAMANLI", 4, int)
 AGIR_HESAP_BEKLEME_SANIYE = _ortam_sayi("AGIR_HESAP_BEKLEME_SANIYE", 15.0)
 
+# depo/denetim.py -- API denetim kayıtları bu kadar gün saklanır.
+DENETIM_SAKLAMA_GUN = _ortam_sayi("DENETIM_SAKLAMA_GUN", 180, int)
+
 # Anahtarsız /saglik?derin=true yanıtı bu kadar saniye önbellekte tutulur
 # (0 = kapalı); yönetici /api/v1/sistem/durum her zaman taze hesaplanır.
 SAGLIK_ONBELLEK_SANIYE = _ortam_sayi("SAGLIK_ONBELLEK_SANIYE", 15.0)

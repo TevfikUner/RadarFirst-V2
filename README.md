@@ -298,6 +298,21 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
   aktifleştirme, görev tetikleme ve `/sistem/durum` için 403. Kokpitteki
   cihaza sadece pilot anahtarı konur. Web sayfaları anahtarı sadece oturum
   boyunca (`sessionStorage`) tutar.
+- **Kişi/cihaz başına anahtar ve rotasyon:** `API_ANAHTARLARI` ile
+  `kimlik:rol:anahtar` biçiminde (virgülle) ek anahtarlar tanımlanır, örn.
+  `ops-ayse:yonetici:...,efb-tc-jfa:pilot:...`. Rotasyon: yeni anahtarı ekle,
+  istemciler geçince eskisini çıkar.
+- **Denetim kaydı:** `/api/v1` altındaki her değiştirici istek (POST/PUT/
+  PATCH/DELETE; kısıtlı saha silme, model aktifleştirme, toplu silme, rota
+  hesabı...) `denetim_kayitlari` tablosuna yazılır: anahtar kimliği, rol,
+  yöntem, yol, sonuç kodu, IP, süre. Reddedilen denemeler `kimliksiz` olarak
+  görünür; sorgu dizesindeki webhook URL'si maskelenir. Okuma:
+  `GET /api/v1/denetim` (yönetici). Saklama: `DENETIM_SAKLAMA_GUN` (180).
+- **Hız sınırı ve yük:** Sayaç PostgreSQL'de, tüm API süreçlerince
+  paylaşılır. Rota/tahmin uçları istemci başına sınırlı ve süreç başına
+  eşzamanlılık tavanlı (`ROTA_HESABI_DAKIKADA_MAKS`, `TAHMIN_DAKIKADA_MAKS`,
+  `AGIR_HESAP_MAKS_ESZAMANLI`); anahtarsız `/saglik?derin=true`
+  `SAGLIK_ONBELLEK_SANIYE` önbelleklidir.
 - **WebSocket bileti:** `/ws/uyarilar` anahtarı URL'de (erişim loglarında)
   taşımamak için `POST /api/v1/ws-bileti`'den alınan 60 sn'lik, sunucu
   anahtarıyla imzalı bilet (`?bilet=`) kullanır; `?api_key=` eski istemciler

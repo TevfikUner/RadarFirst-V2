@@ -226,6 +226,25 @@ class HizSiniriSayaci(Base):
     sayi: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
+class DenetimKaydi(Base):
+    """/api/v1 altındaki her değiştirici istek (POST/PUT/PATCH/DELETE): kim
+    (anahtarın kimliği), hangi rolle, ne yaptı, sonuç ne oldu. Reddedilen
+    denemeler de (kimlik 'kimliksiz') kaydedilir (bkz. depo/denetim.py)."""
+
+    __tablename__ = "denetim_kayitlari"
+    __table_args__ = (Index("ix_denetim_kayitlari_zaman", "zaman"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    zaman: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    kimlik: Mapped[str] = mapped_column(String(64), nullable=False)
+    rol: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    yontem: Mapped[str] = mapped_column(String(8), nullable=False)
+    yol: Mapped[str] = mapped_column(String(500), nullable=False)
+    durum_kodu: Mapped[int] = mapped_column(Integer, nullable=False)
+    istemci_ip: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    sure_ms: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
 class KisitliHavaSahasi(Base):
     __tablename__ = "kisitli_hava_sahalari"
     __table_args__ = (

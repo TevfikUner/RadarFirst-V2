@@ -401,3 +401,17 @@ class BacktestListesiYaniti(BaseModel):
 class WsBiletiYaniti(BaseModel):
     bilet: str
     gecerlilik_saniye: int
+
+
+class DenetimKaydiYaniti(BaseModel):
+    """GET /api/v1/denetim -- bir değiştirici isteğin denetim kaydı."""
+
+    id: int
+    zaman: datetime
+    kimlik: str
+    rol: str | None = None
+    yontem: str
+    yol: str
+    durum_kodu: int
+    istemci_ip: str | None = None
+    sure_ms: int

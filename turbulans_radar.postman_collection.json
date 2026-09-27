@@ -43,6 +43,29 @@
           }
         },
         {
+          "name": "Denetim Kayitlari",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/denetim",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "denetim"
+              ]
+            }
+          }
+        },
+        {
           "name": "Sistem Durumu",
           "request": {
             "method": "GET",

@@ -1164,3 +1164,54 @@ async def test_derin_saglik_onbellekten_doner_ve_suresi_dolunca_yenilenir(istemc
     await istemci.get("/saglik?derin=true")
     await istemci.get("/saglik?derin=true")
     assert cagri["sayi"] == 4
+
+
+# --- Kişi başına anahtarlar ve denetim kaydı ---
+
+
+async def _denetim_kayitlari(yol_parcasi):
+    with vt.motor_al().connect() as baglanti:
+        return baglanti.execute(
+            text("SELECT kimlik, rol, yontem, yol, durum_kodu FROM denetim_kayitlari WHERE yol LIKE :y ORDER BY id"),
+            {"y": f"%{yol_parcasi}%"},
+        ).all()
+
+
+async def test_kisiye_ozel_anahtar_rolunu_alir_ve_denetime_kimligiyle_yazilir(istemci, api_anahtari, monkeypatch):
+    monkeypatch.setenv(
+        "API_ANAHTARLARI", "ops-deneme:yonetici:kisisel-yonetici-anahtari, efb-deneme:pilot:kisisel-pilot"
+    )
+    yanit = await istemci.delete(
+        "/api/v1/kisitli-sahalar/denetim-testi-yok", headers={"X-API-Key": "kisisel-yonetici-anahtari"}
+    )
+    assert yanit.status_code == 404
+    yanit = await istemci.delete("/api/v1/kisitli-sahalar/denetim-testi-yok", headers={"X-API-Key": "kisisel-pilot"})
+    assert yanit.status_code == 403
+    yanit = await istemci.delete("/api/v1/kisitli-sahalar/denetim-testi-yok", headers={"X-API-Key": "yanlis"})
+    assert yanit.status_code == 401
+
+    kayitlar = await _denetim_kayitlari("denetim-testi-yok")
+    assert [(k.kimlik, k.rol, k.yontem, k.durum_kodu) for k in kayitlar[-3:]] == [
+        ("ops-deneme", "yonetici", "DELETE", 404),
+        ("efb-deneme", "pilot", "DELETE", 403),
+        ("kimliksiz", None, "DELETE", 401),
+    ]
+    liste = await istemci.get("/api/v1/denetim?kimlik=efb-deneme", headers={"X-API-Key": api_anahtari})
+    assert liste.status_code == 200 and liste.json()[0]["durum_kodu"] == 403
+    assert (await istemci.get("/api/v1/denetim", headers={"X-API-Key": "kisisel-pilot"})).status_code == 403
+
+
+def test_bicimi_bozuk_anahtar_girdisi_atlanir(monkeypatch):
+    monkeypatch.setenv("API_ANAHTARLARI", "eksik:yonetici,:pilot:x,a:superuser:y,gecerli:pilot:z:iki-nokta")
+    assert [a for a in api_servisi._tanimli_anahtarlar() if a[0] not in ("yonetici", "pilot")] == [
+        ("gecerli", "pilot", "z:iki-nokta")
+    ]
+
+
+async def test_denetimde_webhook_url_maskelenir(istemci, api_anahtari):
+    await istemci.post(
+        "/api/v1/backtest/toplu?limit=1&bildirim_webhook_url=https://n8n.ornek.com/webhook/gizli-belirtec",
+        headers={"X-API-Key": api_anahtari},
+    )
+    (kayit,) = (await _denetim_kayitlari("/api/v1/backtest/toplu"))[-1:]
+    assert "gizli-belirtec" not in kayit.yol and "bildirim_webhook_url=%2A%2A%2A" in kayit.yol

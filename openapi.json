@@ -2060,6 +2060,110 @@
         }
       }
     },
+    "/api/v1/denetim": {
+      "get": {
+        "tags": [
+          "Sistem"
+        ],
+        "summary": "Denetim Kayitlari",
+        "description": "Değiştirici isteklerin (POST/PUT/PATCH/DELETE) denetim kaydı, en yeni\nönce: kim (anahtar kimliği), hangi rolle, ne yaptı, sonuç kodu. Reddedilen\ndenemeler 'kimliksiz' görünür. Sorgu dizesindeki webhook URL'si maskelenir.",
+        "operationId": "denetim_kayitlari_api_v1_denetim_get",
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "kimlik",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "maxLength": 64
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Sadece bu anahtar kimliğinin kayıtları",
+              "title": "Kimlik"
+            },
+            "description": "Sadece bu anahtar kimliğinin kayıtları"
+          },
+          {
+            "name": "baslangic",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Bu zamandan sonraki kayıtlar",
+              "title": "Baslangic"
+            },
+            "description": "Bu zamandan sonraki kayıtlar"
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DenetimKaydiYaniti"
+                  },
+                  "title": "Response Denetim Kayitlari Api V1 Denetim Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sistem/durum": {
       "get": {
         "tags": [
@@ -2494,6 +2598,73 @@
         ],
         "title": "CanliVeriIstegi",
         "description": "POST /veri/canli/hazirla -- bir bölge/zaman için canlı GFS küpünü\nönceden indirir (örn. n8n her GFS döngüsünden sonra sık kullanılan\nbölgeler için), böylece ilk rota isteği indirme süresini beklemez."
+      },
+      "DenetimKaydiYaniti": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "zaman": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Zaman"
+          },
+          "kimlik": {
+            "type": "string",
+            "title": "Kimlik"
+          },
+          "rol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Rol"
+          },
+          "yontem": {
+            "type": "string",
+            "title": "Yontem"
+          },
+          "yol": {
+            "type": "string",
+            "title": "Yol"
+          },
+          "durum_kodu": {
+            "type": "integer",
+            "title": "Durum Kodu"
+          },
+          "istemci_ip": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Istemci Ip"
+          },
+          "sure_ms": {
+            "type": "integer",
+            "title": "Sure Ms"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "zaman",
+          "kimlik",
+          "yontem",
+          "yol",
+          "durum_kodu",
+          "sure_ms"
+        ],
+        "title": "DenetimKaydiYaniti",
+        "description": "GET /api/v1/denetim -- bir değiştirici isteğin denetim kaydı."
       },
       "EsiklerYaniti": {
         "properties": {

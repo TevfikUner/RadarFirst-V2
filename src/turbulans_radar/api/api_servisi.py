@@ -55,6 +55,7 @@ import time
 import weakref
 from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime
+from urllib.parse import parse_qsl, urlencode
 
 try:
     from dotenv import load_dotenv
@@ -90,6 +91,7 @@ from turbulans_radar.api.semalar import (
     BacktestListesiYaniti,
     BacktestSonucuYaniti,
     CanliVeriIstegi,
+    DenetimKaydiYaniti,
     EsiklerYaniti,
     GorevBaslatildiYaniti,
     GorevDurumYaniti,
@@ -114,6 +116,7 @@ from turbulans_radar.api.semalar import (
     WsBiletiYaniti,
 )
 from turbulans_radar.cli.statik_indir import yerel_kutuphane_durumu
+from turbulans_radar.depo.denetim import denetim_kaydet, denetim_kayitlarini_listele
 from turbulans_radar.depo.gorev_deposu import eski_gorevleri_temizle, gorev_getir, gorev_olustur, kuyruk_durumu
 from turbulans_radar.depo.hiz_siniri import istegi_say
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir
@@ -182,6 +185,7 @@ async def _yasam_dongusu(uygulama):
                 _logger.warning("%d ÖRNEK kısıtlı hava sahası yüklendi (resmi veri değil).", sayi)
         except Exception as hata:
             _logger.warning("Örnek kısıtlı sahalar yüklenemedi: %s", dostane_hata_mesaji(hata))
+    _anahtar_ayarlarini_denetle()
     zamanlayici = None
     if config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA > 0:
         zamanlayici = asyncio.create_task(_sigmet_zamanlayicisi(config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA * 60))
@@ -261,14 +265,22 @@ app.mount("/harita", StaticFiles(directory="web", html=True), name="harita")
 
 
 # ---------------------------------------------------------------------------
-# Güvenlik: iki rollü statik API anahtarı ('.env')
-#   API_ANAHTARI       -> yönetici: her şey (n8n, operasyon).
+# Güvenlik: rollü statik API anahtarları ('.env')
+#   API_ANAHTARI       -> yönetici: her şey (n8n, operasyon). Zorunlu; WS
+#                         biletlerinin imza anahtarıdır da.
 #   API_PILOT_ANAHTARI -> pilot/EFB istemcisi (isteğe bağlı): okuma, rota
 #                         simülasyonu, tahmin, canlı uyarılar. Silme, kısıtlı
 #                         saha değişikliği, model aktifleştirme ve görev
 #                         tetikleme 403 döner -- kokpitteki bir tabletten
 #                         sızan anahtar güvenlik verisini değiştiremesin.
+#   API_ANAHTARLARI    -> isteğe bağlı, kişi/cihaz başına anahtarlar:
+#                         'kimlik:rol:anahtar' virgülle ayrılmış (örn.
+#                         'ops-ayse:yonetici:...,efb-tc-jfa:pilot:...').
+#                         Denetim kaydında kimlik görünür; rotasyon için yeni
+#                         anahtar eklenir, eskisi çıkarılır.
 # ---------------------------------------------------------------------------
+
+_ROLLER = ("yonetici", "pilot")
 
 
 def _anahtar_eslesiyor(verilen: str | None, beklenen: str | None) -> bool:
@@ -279,22 +291,61 @@ def _anahtar_eslesiyor(verilen: str | None, beklenen: str | None) -> bool:
     return bool(verilen and beklenen) and secrets.compare_digest(verilen.encode(), beklenen.encode())
 
 
-def api_anahtarini_dogrula(x_api_key: str | None = Header(default=None, alias="X-API-Key")) -> str:
-    """Anahtarın rolünü döner: 'yonetici' ya da 'pilot'."""
-    yonetici = os.environ.get("API_ANAHTARI")
-    if not yonetici:
+def _tanimli_anahtarlar() -> list[tuple[str, str, str]]:
+    """(kimlik, rol, anahtar) listesi. Biçimi bozuk API_ANAHTARLARI girdileri
+    atlanır (açılışta bir kez uyarılır, bkz. _anahtar_ayarlarini_denetle)."""
+    anahtarlar = []
+    if yonetici := os.environ.get("API_ANAHTARI"):
+        anahtarlar.append(("yonetici", "yonetici", yonetici))
+    if pilot := os.environ.get("API_PILOT_ANAHTARI"):
+        anahtarlar.append(("pilot", "pilot", pilot))
+    for girdi in os.environ.get("API_ANAHTARLARI", "").split(","):
+        if _gecerli_anahtar_girdisi(girdi):
+            anahtarlar.append(tuple(p.strip() for p in girdi.split(":", 2)))
+    return anahtarlar
+
+
+def _anahtar_ayarlarini_denetle():
+    gecersiz = [
+        g for g in os.environ.get("API_ANAHTARLARI", "").split(",") if g.strip() and not _gecerli_anahtar_girdisi(g)
+    ]
+    if gecersiz:
+        _logger.warning(
+            "API_ANAHTARLARI'nda %d geçersiz girdi atlandı ('kimlik:rol:anahtar', rol: %s).", len(gecersiz), _ROLLER
+        )
+
+
+def _gecerli_anahtar_girdisi(girdi: str) -> bool:
+    parcalar = [p.strip() for p in girdi.split(":", 2)]
+    return len(parcalar) == 3 and bool(parcalar[0]) and parcalar[1] in _ROLLER and bool(parcalar[2])
+
+
+def _anahtari_coz(verilen: str | None) -> tuple[str, str] | None:
+    """Eşleşen anahtarın (kimlik, rol) çifti. Sabit süre için TÜM anahtarlar
+    karşılaştırılır (ilk eşleşmede dönülmez)."""
+    bulunan = None
+    for kimlik, rol, anahtar in _tanimli_anahtarlar():
+        if _anahtar_eslesiyor(verilen, anahtar) and bulunan is None:
+            bulunan = (kimlik, rol)
+    return bulunan
+
+
+def api_anahtarini_dogrula(request: Request, x_api_key: str | None = Header(default=None, alias="X-API-Key")) -> str:
+    """Anahtarın rolünü döner: 'yonetici' ya da 'pilot'. Kimlik denetim kaydı
+    için request.state'e yazılır."""
+    if not os.environ.get("API_ANAHTARI"):
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Sunucuda API_ANAHTARI tanımlı değil -- '.env' dosyasına ekle.",
         )
-    if _anahtar_eslesiyor(x_api_key, yonetici):
-        return "yonetici"
-    if _anahtar_eslesiyor(x_api_key, os.environ.get("API_PILOT_ANAHTARI")):
-        return "pilot"
-    raise HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Geçersiz veya eksik API anahtarı ('X-API-Key' başlığı gerekli).",
-    )
+    cozum = _anahtari_coz(x_api_key)
+    if cozum is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Geçersiz veya eksik API anahtarı ('X-API-Key' başlığı gerekli).",
+        )
+    request.state.kimlik, request.state.rol = cozum
+    return cozum[1]
 
 
 def yonetici_gerekli(rol: str = Depends(api_anahtarini_dogrula)):
@@ -415,6 +466,54 @@ def _hatayi_sunucu_tarafinda_logla(hata: Exception, baglam: str = ""):
     _logger.error("Sunucu hatası%s", f" ({baglam})" if baglam else "", exc_info=hata)
 
 
+# ---------------------------------------------------------------------------
+# Denetim kaydı: /api/v1 altındaki her değiştirici istek (bkz. depo/denetim.py)
+# ---------------------------------------------------------------------------
+
+_DENETLENEN_YONTEMLER = {"POST", "PUT", "PATCH", "DELETE"}
+_DENETIM_DISI_YOLLAR = {"/api/v1/ws-bileti"}
+# Sorgu dizesinde sır taşıyabilecek parametreler (n8n webhook URL'leri gizli
+# yol belirteci içerir) denetim tablosuna maskelenerek yazılır.
+_MASKELENEN_PARAMETRELER = {"bildirim_webhook_url", "api_key", "bilet"}
+
+
+def _denetim_yolu(request: Request) -> str:
+    if not request.url.query:
+        return request.url.path
+    parcalar = [
+        (ad, "***" if ad in _MASKELENEN_PARAMETRELER else deger)
+        for ad, deger in parse_qsl(request.url.query, keep_blank_values=True)
+    ]
+    return f"{request.url.path}?{urlencode(parcalar)}"
+
+
+@app.middleware("http")
+async def _denetim_kaydi_tut(request: Request, call_next):
+    yol = request.url.path
+    if request.method not in _DENETLENEN_YONTEMLER or not yol.startswith("/api/v1/") or yol in _DENETIM_DISI_YOLLAR:
+        return await call_next(request)
+    baslangic = time.monotonic()
+    durum_kodu = 500
+    try:
+        yanit = await call_next(request)
+        durum_kodu = yanit.status_code
+        return yanit
+    finally:
+        try:
+            await denetim_kaydet(
+                getattr(request.state, "kimlik", "kimliksiz"),
+                getattr(request.state, "rol", None),
+                request.method,
+                _denetim_yolu(request),
+                durum_kodu,
+                request.client.host if request.client else None,
+                int((time.monotonic() - baslangic) * 1000),
+            )
+        except Exception as hata:
+            # Kayıt yazılamasa da istek sonucu değişmez; kayıp ERROR loglanır.
+            _logger.error("Denetim kaydı yazılamadı (%s %s): %s", request.method, yol, dostane_hata_mesaji(hata))
+
+
 @app.exception_handler(VeritabaniAyarlariEksikHatasi)
 async def veritabani_ayar_hatasi_isle(request: Request, hata: VeritabaniAyarlariEksikHatasi):
     # Bu mesaj bilerek operatöre yönelik ve güvenli (sır içermiyor):
@@ -482,10 +581,7 @@ async def uyarilar_websocket(websocket: WebSocket, bilet: str | None = None, api
     istemciler için ?api_key= hâlâ kabul edilir ama önerilmez (anahtar URL'de
     loglanır)."""
     yonetici = os.environ.get("API_ANAHTARI")
-    anahtar_gecerli = _anahtar_eslesiyor(api_key, yonetici) or _anahtar_eslesiyor(
-        api_key, os.environ.get("API_PILOT_ANAHTARI")
-    )
-    if not yonetici or not (ws_bileti_gecerli_mi(bilet) or anahtar_gecerli):
+    if not yonetici or not (ws_bileti_gecerli_mi(bilet) or _anahtari_coz(api_key) is not None):
         await websocket.close(code=4401)
         return
     await baglanti_yoneticisi.baglan(websocket)
@@ -1267,6 +1363,18 @@ async def _veritabani_erisilebilir_mi() -> bool:
     except Exception as hata:
         _logger.warning("Derin sağlık kontrolünde PostgreSQL'e erişilemedi: %s", dostane_hata_mesaji(hata))
         return False
+
+
+@v1.get("/denetim", dependencies=_YONETICI, response_model=list[DenetimKaydiYaniti], tags=["Sistem"])
+async def denetim_kayitlari(
+    limit: int = Query(default=100, ge=1, le=1000),
+    kimlik: str | None = Query(default=None, max_length=64, description="Sadece bu anahtar kimliğinin kayıtları"),
+    baslangic: datetime | None = Query(default=None, description="Bu zamandan sonraki kayıtlar"),
+):
+    """Değiştirici isteklerin (POST/PUT/PATCH/DELETE) denetim kaydı, en yeni
+    önce: kim (anahtar kimliği), hangi rolle, ne yaptı, sonuç kodu. Reddedilen
+    denemeler 'kimliksiz' görünür. Sorgu dizesindeki webhook URL'si maskelenir."""
+    return await denetim_kayitlarini_listele(limit, kimlik, baslangic)
 
 
 @v1.get("/sistem/durum", dependencies=_YONETICI, response_model=SistemDurumuYaniti, tags=["Sistem"])
