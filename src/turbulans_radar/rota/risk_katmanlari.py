@@ -217,6 +217,13 @@ class PoligonKisitKatmani:
             if not aktif.any():
                 continue
             kayma = self._kayma_araliklari(kayit, kos_enlem, t, d)
+            # "- 1e-9": sabit (bilinen) hızlı ve zaman_belirsizligi=None/0 olan bir
+            # SIGMET'te kayma[0] == kayma[1] olabilir (örn. rota_ihlal_sayisi ve her
+            # backtest çağrısı) -- bu durumda ilk == son olur ve shapely.linestrings
+            # SIFIR UZUNLUKLU, GEÇERSİZ bir çizgi üretir (doğrulandı: is_valid=False).
+            # GEOS'un geçersiz geometride intersects() sonucu tanımsızdır. Bu payla
+            # (~1e-10 km, gerçek SIGMET hassasiyetinin çok altında) çizgi her zaman
+            # geçerli kalır; sonucu asla değiştirmez.
             ilk, son = (nokta, nokta) if kayma is None else (nokta - kayma[0], nokta - kayma[1] - 1e-9)
             aday = np.flatnonzero(aktif & self._kutu_kesisiyor(np.minimum(ilk, son), np.maximum(ilk, son), sinir))
             if len(aday):
