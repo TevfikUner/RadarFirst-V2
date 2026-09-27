@@ -553,23 +553,58 @@ async def genel_hata_isle(request: Request, hata: Exception):
 
 
 class _BaglantiYoneticisi:
+    """Her istemcinin kendi sınırlı kuyruğu ve gönderici görevi vardır.
+    ESKİDEN yayın sıralı ve zaman aşımsızdı: tek bir yavaş/donmuş istemci
+    (kötü bağlantılı bir kokpit tableti) tüm pilotlara giden türbülans
+    uyarılarını bekletebiliyordu. Artık yayinla hiç beklemez; kuyruğu dolan
+    (WS_ISTEMCI_KUYRUK_BOYUTU) ya da bir mesajı WS_GONDERIM_ZAMAN_ASIMI_SANIYE
+    içinde alamayan istemci 1013 ile düşürülür -- istemci yeniden bağlanır."""
+
     def __init__(self):
-        self.baglantilar: list[WebSocket] = []
+        self._kuyruklar: dict[WebSocket, asyncio.Queue] = {}
+        self._gondericiler: dict[WebSocket, asyncio.Task] = {}
+
+    @property
+    def baglantilar(self) -> list[WebSocket]:
+        return list(self._kuyruklar)
 
     async def baglan(self, websocket: WebSocket):
         await websocket.accept()
-        self.baglantilar.append(websocket)
+        kuyruk = asyncio.Queue(maxsize=config.WS_ISTEMCI_KUYRUK_BOYUTU)
+        self._kuyruklar[websocket] = kuyruk
+        self._gondericiler[websocket] = asyncio.create_task(self._gonder(websocket, kuyruk))
 
     def ayril(self, websocket: WebSocket):
-        if websocket in self.baglantilar:
-            self.baglantilar.remove(websocket)
+        self._kuyruklar.pop(websocket, None)
+        gonderici = self._gondericiler.pop(websocket, None)
+        if gonderici is not None and gonderici is not asyncio.current_task():
+            gonderici.cancel()
+
+    async def _gonder(self, websocket: WebSocket, kuyruk: asyncio.Queue):
+        try:
+            while True:
+                mesaj = await kuyruk.get()
+                await asyncio.wait_for(websocket.send_json(mesaj), timeout=config.WS_GONDERIM_ZAMAN_ASIMI_SANIYE)
+        except asyncio.CancelledError:
+            raise
+        except Exception as hata:
+            _logger.warning("WebSocket istemcisine gönderilemedi, düşürülüyor: %s", type(hata).__name__)
+            await self._dusur(websocket)
+
+    async def _dusur(self, websocket: WebSocket):
+        self.ayril(websocket)
+        try:
+            await websocket.close(code=1013)
+        except Exception:
+            pass
 
     async def yayinla(self, mesaj: dict):
-        for websocket in list(self.baglantilar):
+        for websocket, kuyruk in list(self._kuyruklar.items()):
             try:
-                await websocket.send_json(mesaj)
-            except Exception:
-                self.ayril(websocket)
+                kuyruk.put_nowait(mesaj)
+            except asyncio.QueueFull:
+                _logger.warning("Yavaş WebSocket istemcisi düşürüldü (kuyruk dolu).")
+                asyncio.create_task(self._dusur(websocket))
 
 
 baglanti_yoneticisi = _BaglantiYoneticisi()
@@ -588,7 +623,9 @@ async def uyarilar_websocket(websocket: WebSocket, bilet: str | None = None, api
     try:
         while True:
             await websocket.receive_text()
-    except WebSocketDisconnect:
+    except (WebSocketDisconnect, RuntimeError):
+        # RuntimeError: yavaş istemci sunucu tarafından kapatıldıysa (bkz.
+        # _BaglantiYoneticisi._dusur) receive artık çağrılamaz.
         pass
     finally:
         baglanti_yoneticisi.ayril(websocket)

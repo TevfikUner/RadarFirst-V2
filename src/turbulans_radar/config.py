@@ -247,6 +247,12 @@ TAHMIN_DAKIKADA_MAKS = _ortam_sayi("TAHMIN_DAKIKADA_MAKS", 60, int)
 AGIR_HESAP_MAKS_ESZAMANLI = _ortam_sayi("AGIR_HESAP_MAKS_ESZAMANLI", 4, int)
 AGIR_HESAP_BEKLEME_SANIYE = _ortam_sayi("AGIR_HESAP_BEKLEME_SANIYE", 15.0)
 
+# api_servisi.py /ws/uyarilar -- istemci başına bekleyen en fazla mesaj ve tek
+# mesajın gönderim zaman aşımı; aşan (yavaş/donmuş) istemci düşürülür, diğer
+# pilotların uyarıları beklemez.
+WS_ISTEMCI_KUYRUK_BOYUTU = _ortam_sayi("WS_ISTEMCI_KUYRUK_BOYUTU", 100, int)
+WS_GONDERIM_ZAMAN_ASIMI_SANIYE = _ortam_sayi("WS_GONDERIM_ZAMAN_ASIMI_SANIYE", 5.0)
+
 # depo/denetim.py -- API denetim kayıtları bu kadar gün saklanır.
 DENETIM_SAKLAMA_GUN = _ortam_sayi("DENETIM_SAKLAMA_GUN", 180, int)
 

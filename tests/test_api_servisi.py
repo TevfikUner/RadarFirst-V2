@@ -1215,3 +1215,55 @@ async def test_denetimde_webhook_url_maskelenir(istemci, api_anahtari):
     )
     (kayit,) = (await _denetim_kayitlari("/api/v1/backtest/toplu"))[-1:]
     assert "gizli-belirtec" not in kayit.yol and "bildirim_webhook_url=%2A%2A%2A" in kayit.yol
+
+
+# --- WebSocket yayını: istemci başına kuyruk ---
+
+
+class _SahteWebSocket:
+    def __init__(self, gecikme=0.0):
+        self.gecikme, self.alinan, self.kapanis_kodu = gecikme, [], None
+
+    async def accept(self):
+        pass
+
+    async def send_json(self, mesaj):
+        await asyncio.sleep(self.gecikme)
+        self.alinan.append(mesaj)
+
+    async def close(self, code=1000):
+        self.kapanis_kodu = code
+
+
+async def test_yavas_istemci_digerlerinin_uyarisini_geciktirmez_ve_dusurulur(monkeypatch):
+    monkeypatch.setattr(config, "WS_GONDERIM_ZAMAN_ASIMI_SANIYE", 0.2)
+    yonetici = api_servisi._BaglantiYoneticisi()
+    hizli, donmus = _SahteWebSocket(), _SahteWebSocket(gecikme=3600)
+    await yonetici.baglan(hizli)
+    await yonetici.baglan(donmus)
+
+    baslangic = asyncio.get_running_loop().time()
+    await yonetici.yayinla({"n": 1})
+    assert asyncio.get_running_loop().time() - baslangic < 0.05
+    for _ in range(50):
+        if hizli.alinan and donmus.kapanis_kodu:
+            break
+        await asyncio.sleep(0.02)
+    assert hizli.alinan == [{"n": 1}]
+    assert donmus.kapanis_kodu == 1013 and yonetici.baglantilar == [hizli]
+    yonetici.ayril(hizli)
+
+
+async def test_kuyrugu_dolan_istemci_dusurulur(monkeypatch):
+    monkeypatch.setattr(config, "WS_ISTEMCI_KUYRUK_BOYUTU", 2)
+    monkeypatch.setattr(config, "WS_GONDERIM_ZAMAN_ASIMI_SANIYE", 3600)
+    yonetici = api_servisi._BaglantiYoneticisi()
+    yavas = _SahteWebSocket(gecikme=3600)
+    await yonetici.baglan(yavas)
+    for i in range(4):
+        await yonetici.yayinla({"n": i})
+    for _ in range(50):
+        if yavas.kapanis_kodu:
+            break
+        await asyncio.sleep(0.02)
+    assert yavas.kapanis_kodu == 1013 and yonetici.baglantilar == []
