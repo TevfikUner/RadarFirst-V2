@@ -64,6 +64,13 @@ TRINO_SCHEMA = _ortam_str("TRINO_SCHEMA", "osky")
 # her state-vector sorgusuna hour filtresi de ekliyor.
 MAKS_STATE_VECTOR_SATIRI = _ortam_sayi("MAKS_STATE_VECTOR_SATIRI", 50_000, int)
 
+# veri_yukleme.py -- bu boyuttan (MB) küçük küpler tamamen belleğe yüklenir;
+# büyükleri (örn. GB boyutlu ERA5 arşivi) sadece rotanın bölge/zaman
+# penceresiyle okunur. Tüm yüklenen küp/pencereler KUP_ONBELLEK_MAKS_MB
+# bütçeli bir LRU önbellekte tutulur (bütçe aşılınca en eski atılır).
+KUP_TAM_YUKLEME_ESIGI_MB = _ortam_sayi("KUP_TAM_YUKLEME_ESIGI_MB", 256.0)
+KUP_ONBELLEK_MAKS_MB = _ortam_sayi("KUP_ONBELLEK_MAKS_MB", 2048.0)
+
 # Copernicus/ERA5 veri küpündeki basınç seviyesi boyutunun adı.
 # (eslestirme.py bunu kullanıyordu ama tanımlı değildi -- eksikti, eklendi.)
 BASINC_BOYUTU = _ortam_str("BASINC_BOYUTU", "pressure_level")
@@ -128,6 +135,35 @@ HARITA_MAKS_ANIMASYON_NOKTASI = _ortam_sayi("HARITA_MAKS_ANIMASYON_NOKTASI", 200
 # için bir ERA5 okuması) yavaşlatır.
 ROTA_SIMULASYONU_NOKTA_SAYISI = _ortam_sayi("ROTA_SIMULASYONU_NOKTA_SAYISI", 41, int)
 
+# A*'ın yanal ızgarası (bkz. rota_optimizasyonu._YanalIzgara): her bacağın
+# büyük daire yönüne göre azami açısı, toplam azami yanal sapma ve azami ızgara
+# aralığı. Açı sınırı, kısa rotada keskin zikzakları, uzun rotada gereksiz dar
+# koridoru önler (sınır adım sayısıyla değil mesafeyle ölçeklenir).
+ROTA_MAKS_SAPMA_ACISI_DERECE = _ortam_sayi("ROTA_MAKS_SAPMA_ACISI_DERECE", 30.0)
+ROTA_MAKS_YANAL_SAPMA_KM = _ortam_sayi("ROTA_MAKS_YANAL_SAPMA_KM", 400.0)
+ROTA_YANAL_IZGARA_KM = _ortam_sayi("ROTA_YANAL_IZGARA_KM", 20.0)
+# A*, sert kısıtların (SIGMET, kısıtlı saha) zamanını rüzgarsız hesaplar;
+# gerçek varış rüzgarla kayar. Düğüm zamanı, kalkıştan geçen sürenin bu oranı
+# + sabit pay kadar belirsiz sayılır (jet seviyesinde ~70 m/s rüzgar TAS'ın
+# ~%30'u; yanal sapma yolu da uzatır).
+ROTA_ZAMAN_BELIRSIZLIK_ORANI = _ortam_sayi("ROTA_ZAMAN_BELIRSIZLIK_ORANI", 0.3)
+ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA = _ortam_sayi("ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA", 5.0)
+
+# isci/gorev_iscisi.py -- uzun işlerin kuyruğu (analiz_gorevleri). API kendi
+# içinde gömülü bir işçi başlatır (GOREV_GOMULU_ISCI); ayrı işçi süreçleri
+# (turbulans-isci, docker-compose 'worker' servisi) kullanılıyorsa kapatılır.
+# GOREV_ISCI_SAYISI: bir süreçte aynı anda çalışan en fazla görev. Kalp atışı
+# GOREV_BAYAT_SANIYE'den eski görev (işçisi öldü) GOREV_MAKS_DENEME'ye kadar
+# yeniden kuyruğa girer.
+GOREV_GOMULU_ISCI = _ortam_bool("GOREV_GOMULU_ISCI", True)
+GOREV_ISCI_SAYISI = _ortam_sayi("GOREV_ISCI_SAYISI", 2, int)
+GOREV_KUYRUK_BEKLEME_SANIYE = _ortam_sayi("GOREV_KUYRUK_BEKLEME_SANIYE", 1.0)
+GOREV_KALP_ATISI_SANIYE = _ortam_sayi("GOREV_KALP_ATISI_SANIYE", 15.0)
+GOREV_BAYAT_SANIYE = _ortam_sayi("GOREV_BAYAT_SANIYE", 120.0)
+GOREV_MAKS_DENEME = _ortam_sayi("GOREV_MAKS_DENEME", 2, int)
+# Boş değilse işçi sadece bu türlerdeki görevleri alır (virgülle: ucus,rota,toplu,backtest,canli_veri).
+GOREV_ISCI_TURLERI = tuple(t.strip() for t in _ortam_str("GOREV_ISCI_TURLERI", "").split(",") if t.strip())
+
 # sigmet_saglayici.py / risk_katmanlari.py -- canlı AWC SIGMET'leri.
 # A*'ın SERT kısıt olarak kaçındığı tehlike türleri (AWC 'hazard' alanı):
 # TURB/MTW (türbülans/dağ dalgası), TS/CONVECTIVE (oraj), VA (volkanik kül),
@@ -144,6 +180,20 @@ SIGMET_SAKLAMA_GUN = _ortam_sayi("SIGMET_SAKLAMA_GUN", 30, int)
 SIGMET_BAYATLIK_DAKIKA = _ortam_sayi("SIGMET_BAYATLIK_DAKIKA", 30, int)
 # >0 ise API kendi içinde bu aralıkla (dakika) SIGMET çeker; 0 = kapalı (n8n/cron tetikler).
 SIGMET_OTOMATIK_GUNCELLEME_DAKIKA = _ortam_sayi("SIGMET_OTOMATIK_GUNCELLEME_DAKIKA", 0, int)
+# Bir kaynağın akışındaki SIGMET kayıtlarının bu orandan fazlası çözümlenemezse
+# (AWC şema değişikliği şüphesi) çekim HATA sayılır: mevcut kayıtlar
+# sonlandırılmaz, kaynak "başarılı güncelleme" almaz -- sessizce "SIGMET yok"a
+# düşülmez (bkz. sigmet_saglayici._akis_sagligini_denetle).
+SIGMET_MAKS_COZUMLENEMEYEN_ORAN = _ortam_sayi("SIGMET_MAKS_COZUMLENEMEYEN_ORAN", 0.25)
+# Tehlike alanı okunamayan SIGMET'ler bu etiketle saklanır ve A* tarafından
+# (muhafazakâr olarak) her zaman kaçınılır.
+SIGMET_BILINMEYEN_TEHLIKE = "BILINMIYOR"
+# Hareket yönü verilmiş ama hızı bilinmeyen ("MOV NE", spd=UNK) SIGMET için
+# varsayılan en yüksek hız: alan 0 ile bu hız arasındaki tüm konumları süpürür.
+SIGMET_BILINMEYEN_HIZ_KT = _ortam_sayi("SIGMET_BILINMEYEN_HIZ_KT", 30.0)
+# Koordinatsız SIGMET'lerin FIR'ın tamamı olarak uygulanması için FIR sınırları
+# (turbulans-statik indirir; bkz. veri/fir_sinirlari.py).
+FIR_SINIRLARI_DOSYASI = _ortam_str("FIR_SINIRLARI_DOSYASI", os.path.join("veri_dosyalari", "fir_sinirlari.geojson"))
 
 # veri_saglayicilari.py -- anlık rota için CANLI hava verisi (ERA5 reanalizi
 # birkaç gün gecikmeli yayınlandığı için "şimdi"yi kapsamaz). NOAA GFS 0.25°,
@@ -167,6 +217,26 @@ CANLI_TAHMIN_UFKU_SAAT = _ortam_sayi("CANLI_TAHMIN_UFKU_SAAT", 120, int)
 CANLI_KUP_TAZELIK_SAAT = _ortam_sayi("CANLI_KUP_TAZELIK_SAAT", 6, int)
 # Geçerliliği bu kadar saat önce bitmiş canlı küpler (dosya + katalog kaydı) silinir.
 CANLI_KUP_SAKLAMA_SAAT = _ortam_sayi("CANLI_KUP_SAKLAMA_SAAT", 48, int)
+# Etkileşimli uçlar (rota simülasyonu, tahmin) katalogda olmayan bir canlı küp
+# için en fazla bu kadar bekler; indirme arka planda sürer, yanıt rüzgarsız
+# ön sonuçla "canli_veri_hazirlaniyor" döner (yavaş ağda istek askıda kalmaz).
+CANLI_VERI_BEKLEME_SANIYE = _ortam_sayi("CANLI_VERI_BEKLEME_SANIYE", 8.0)
+
+# kisitli_saha_saglayici.py -- True iken API açılışında, tabloda 'ornek'
+# kaynaklı kayıt yoksa paketle gelen ÖRNEK kısıtlı sahalar (Natural Earth
+# ülke sınırından Suriye/Irak) yüklenir. Resmi AIP/CZIB verisiyle çalışan bir
+# kurulumda kapatılmalıdır.
+KISITLI_SAHA_ORNEK_VERI_YUKLE = _ortam_bool("KISITLI_SAHA_ORNEK_VERI_YUKLE", True)
+# Kalkış/varış noktasını içeren kısıtlı sahada (örn. varış ülkesi) sadece planlı
+# rotanın (büyük daire) bu kadar km çevresi serbesttir; sahanın geri kalanına
+# sapma önerilmez.
+KISITLI_SAHA_UC_KORIDORU_KM = _ortam_sayi("KISITLI_SAHA_UC_KORIDORU_KM", 100.0)
+# openaip_saglayici.py -- gerçek kısıtlı saha verisi (OPENAIP_API_ANAHTARI .env'de).
+# Türler (openAIP kodları): 1 Restricted, 2 Danger, 3 Prohibited, 8 TRA, 9 TSA.
+OPENAIP_ULKELER = tuple(u.strip() for u in _ortam_str("OPENAIP_ULKELER", "TR").split(",") if u.strip())
+OPENAIP_SAHA_TURLERI = tuple(int(t) for t in _ortam_str("OPENAIP_SAHA_TURLERI", "1,3").split(",") if t.strip())
+# GND referanslı üst limite eklenen arazi payı (arazi yüksekliği bilinmiyor; muhafazakâr).
+OPENAIP_AGL_UST_PAYI_FT = _ortam_sayi("OPENAIP_AGL_UST_PAYI_FT", 15000.0)
 
 # rota_backtest.py -- gerçek uçuşla karşılaştırılan A* rotasında kullanılan
 # uçak profili (bkz. rota_optimizasyonu.UCAK_PROFILLERI).

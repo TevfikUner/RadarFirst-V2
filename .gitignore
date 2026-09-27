@@ -43,3 +43,5 @@ canli_veri/
 *.egg-info/
 build/
 dist/
+web/vendor/
+veri_dosyalari/

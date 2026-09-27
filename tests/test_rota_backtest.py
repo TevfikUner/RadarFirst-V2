@@ -77,6 +77,9 @@ def test_uctan_uca_backtest_kaydedilir_ve_listelenir(kayitli_ucus):
     assert sonuc["gercek_riskli_oran"] is not None
     assert sonuc["optimize_riskli_oran"] <= sonuc["buyuk_daire_riskli_oran"]
     assert sonuc["optimize_sigmet_ihlali"] == 0
+    # 2019 Türkiye: ne sistemin SIGMET arşivi ne IEM kapsıyor -- kanıt yok, "sıfır" değil.
+    assert sonuc["kanit_kaynaklari"] == []
+    assert sonuc["gercek_turb_sigmet"] is None and sonuc["optimize_mog_pirep"] is None
 
     ikinci = rb.ucus_backtest_et(*kayitli_ucus)
     kayitlar = [s for s in rb.backtestleri_listele()["sonuclar"] if s["ucus_numarasi"] == "BTEST1"]
@@ -102,3 +105,49 @@ def test_toplu_backtestte_bir_ucusun_beklenmeyen_hatasi_digerlerini_durdurmaz(mo
     monkeypatch.setattr(rb, "ucus_backtest_et", sahte_backtest)
     sonuclar = rb.toplu_backtest(limit=10)
     assert [s["durum"] for s in sonuclar] == ["hata", "tamamlandi", "atlandi"]
+
+
+def _kare(tehlike, enlem0, enlem1, boylam0, boylam1):
+    return {
+        "id": None,
+        "fir_kodu": "LTAA",
+        "tehlike": tehlike,
+        "taban_ft": None,
+        "tavan_ft": None,
+        "gecerlilik_baslangic": pd.Timestamp("2019-01-05T11:00:00", tz="UTC"),
+        "gecerlilik_bitis": pd.Timestamp("2019-01-05T15:00:00", tz="UTC"),
+        "poligon": [[boylam0, enlem0], [boylam1, enlem0], [boylam1, enlem1], [boylam0, enlem1], [boylam0, enlem0]],
+    }
+
+
+def test_backtestte_a_yildiz_turbulans_sigmetini_gormez_ve_bagimsiz_kanit_kaydedilir(kayitli_ucus, monkeypatch):
+    from turbulans_radar.dogrulama.bagimsiz_kanit import BagimsizKanit
+
+    turb = _kare("TURB", 38.5, 39.5, 29.4, 30.2)
+    oraj = _kare("TS", 10.0, 11.0, 10.0, 11.0)
+    monkeypatch.setattr(rb, "gecerli_sigmetleri_getir", lambda *a, **k: [turb, oraj])
+    a_yildizin_gordugu = []
+    gercek_simulasyon = rb.rota_simulasyonu_olustur
+
+    def izleyen_simulasyon(*args, **kwargs):
+        a_yildizin_gordugu.append([s["tehlike"] for s in kwargs["sigmetler"]])
+        return gercek_simulasyon(*args, **kwargs)
+
+    monkeypatch.setattr(rb, "rota_simulasyonu_olustur", izleyen_simulasyon)
+
+    def sahte_kanit(baslangic, bitis, kutu, motor=None):
+        pirep = pd.DataFrame(
+            [(pd.Timestamp("2019-01-05T12:29:00", tz="UTC"), 39.0, 29.78, 28000.0, 1)],
+            columns=["zaman", "enlem", "boylam", "irtifa_ft", "sinif"],
+        )
+        return BagimsizKanit(kaynaklar=["test"], turb_sigmetleri=[turb], pirepler=pirep)
+
+    sonuc = rb.ucus_backtest_et(*kayitli_ucus, kanit_toplayici=sahte_kanit)
+    assert a_yildizin_gordugu == [["TS"]]
+    assert sonuc["kanit_kaynaklari"] == ["test"]
+    assert sonuc["gercek_turb_sigmet"] > 0
+    assert (sonuc["gercek_pirep_raporu"], sonuc["gercek_mog_pirep"]) == (1, 1)
+
+    ozet = rb.backtestleri_listele()["ozet"]
+    assert ozet["bagimsiz_kanitli_ucus_sayisi"] >= 1
+    assert ozet["turb_sigmet_karsilastirilabilir_ucus"] >= 1

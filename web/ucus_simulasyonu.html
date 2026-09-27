@@ -23,8 +23,18 @@
   düz elipsoid (WGS84). Bu yüzden Cesium.Ion.defaultAccessToken hiç set
   edilmiyor.
 -->
-<link href="https://cdn.jsdelivr.net/npm/cesium@1.145.0/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/cesium@1.145.0/Build/Cesium/Cesium.js"></script>
+<!--
+  Kütüphane ÖNCE bu sunucudan (web/vendor, bkz. turbulans-statik) yüklenir --
+  kokpitte düşük bant genişliğinde/çevrimdışı ~6 MB'lık CesiumJS bir CDN'den
+  beklenmez. Yerel kopya yoksa (geliştirme ortamı) aynı sürüm CDN'den gelir.
+  Cesium, Workers/Assets dosyalarını Cesium.js'in yüklendiği yerden bulur.
+-->
+<link href="vendor/cesium/Widgets/widgets.css" rel="stylesheet"
+      onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/cesium@1.145.0/Build/Cesium/Widgets/widgets.css'">
+<script src="vendor/cesium/Cesium.js"></script>
+<script>
+  window.Cesium || document.write('<script src="https://cdn.jsdelivr.net/npm/cesium@1.145.0/Build/Cesium/Cesium.js"><\/script>');
+</script>
 <style>
   :root { color-scheme: dark; }
   html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, sans-serif; }
@@ -61,6 +71,7 @@
   #lejant { bottom: 12px; right: 12px; width: 210px; }
   #lejant div { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
   #lejant .cizgi { width: 18px; height: 3px; display: inline-block; }
+  #lejant .hacim { width: 12px; height: 12px; display: inline-block; border: 1px solid; vertical-align: middle; }
   hr { border: none; border-top: 1px solid #444; margin: 8px 0; }
 </style>
 </head>
@@ -111,15 +122,19 @@
     <tr><td>CO2 (tahmini)</td><td id="s-normal-co2"></td><td id="s-optimize-co2"></td></tr>
     <tr><td>Riskli türbülans</td><td id="s-normal-turbulans"></td><td id="s-optimize-turbulans"></td></tr>
     <tr><td>İrtifa</td><td id="s-normal-irtifa"></td><td id="s-optimize-irtifa"></td></tr>
+    <tr><td>SIGMET / kısıtlı saha ihlali</td><td id="s-normal-kisit"></td><td id="s-optimize-kisit"></td></tr>
   </table>
   <hr>
   <div id="strateji-satiri" style="font-size:11px; color:#9fd6ff; margin-bottom:4px;"></div>
   <div id="tasarruf-satiri"></div>
+  <div id="ti1-guvenilirlik-notu" style="font-size:10px; color:#e67e22; margin-top:6px; border-top:1px solid #444; padding-top:6px;"></div>
 </div>
 
 <div id="lejant" class="panel">
   <div><span class="cizgi" style="background:#3388ff"></span> Normal rota (büyük daire)</div>
   <div><span class="cizgi" style="background:#2ecc71"></span> Optimize rota (önce güvenlik, sonra yakıt)</div>
+  <div><span class="hacim" style="background:rgba(231,76,60,0.3); border-color:#e74c3c"></span> Aktif SIGMET (sert kısıt)</div>
+  <div><span class="hacim" style="background:rgba(142,68,173,0.3); border-color:#8e44ad"></span> Kısıtlı/yasak hava sahası (sert kısıt)</div>
   <div style="font-size:11px; color:#999; margin-top:6px; border-top:1px solid #444; padding-top:6px;">
     Optimize rota ÖNCE riskli türbülanstan (gerçek Ellrod TI1 indeksi) kaçınır,
     SONRA en ucuz (yakıt/süre) yolu bulur -- yanal sapma (A* araması) ile
@@ -135,7 +150,7 @@
 const API_TABANI = "";  // aynı origin -- göreli yollar yeterli
 
 function anahtarAl() {
-  return document.getElementById("giris-anahtar").value || localStorage.getItem("tr_api_anahtari") || "";
+  return document.getElementById("giris-anahtar").value || sessionStorage.getItem("tr_api_anahtari") || "";
 }
 
 function durumGoster(mesaj, tur) {
@@ -179,14 +194,20 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
   // Viewer.js: sadece options.baseLayer, scene.imageryLayers.add() ile
   // eklenir). Bu proje Playwright ile gerçek bir tarayıcıda test edilirken
   // bulundu -- 'imageryProvider' kullanan eski örnekler artık çalışmıyor.
-  baseLayer: new Cesium.ImageryLayer(
-    new Cesium.UrlTemplateImageryProvider({
-      url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
-      credit: "Tiles © Esri",
-    })
+  // Altlık: Cesium paketiyle gelen NaturalEarthII dokusu -- sunucudan gelir,
+  // İNTERNETSİZ de görünür. Esri sokak haritası üstte ek katmandır;
+  // bağlantı yoksa karoları gelmez ama harita boş kalmaz.
+  baseLayer: Cesium.ImageryLayer.fromProviderAsync(
+    Cesium.TileMapServiceImageryProvider.fromUrl(Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII"))
   ),
   terrainProvider: new Cesium.EllipsoidTerrainProvider(),
 });
+viewer.imageryLayers.addImageryProvider(
+  new Cesium.UrlTemplateImageryProvider({
+    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+    credit: "Tiles © Esri",
+  })
+);
 viewer.scene.globe.enableLighting = true;
 
 let mevcutDataSource = null;
@@ -223,6 +244,12 @@ function sonucPanelDoldur(sonuc) {
   } else if (sonuc.ruzgar_verisi_kaynagi === "gfs_tahmin") {
     kaynakEl.textContent = "✓ Canlı NOAA GFS tahmin verisi";
     kaynakEl.className = "gercek";
+  } else if (sonuc.ruzgar_verisi_kaynagi === "canli_veri_hazirlaniyor") {
+    kaynakEl.textContent = "⏳ Canlı veri hazırlanıyor (rüzgarsız ön sonuç, otomatik yenilenecek)";
+    kaynakEl.className = "kapsam-disi";
+  } else if (sonuc.ruzgar_verisi_kaynagi === "canli_veri_alinamadi") {
+    kaynakEl.textContent = "⚠ Canlı veri alınamadı (rüzgarsız tahmin)";
+    kaynakEl.className = "kapsam-disi";
   } else {
     kaynakEl.textContent = "⚠ Kapsam dışı (rüzgarsız tahmin)";
     kaynakEl.className = "kapsam-disi";
@@ -241,6 +268,9 @@ function sonucPanelDoldur(sonuc) {
   document.getElementById("s-optimize-turbulans").textContent = `${sonuc.optimize_rota.riskli_nokta_sayisi} nokta`;
   document.getElementById("s-normal-irtifa").textContent = sonuc.normal_rota.irtifa_ft.toFixed(0) + " ft";
   document.getElementById("s-optimize-irtifa").textContent = sonuc.optimize_rota.irtifa_ft.toFixed(0) + " ft";
+  for (const [id, rota] of [["s-normal-kisit", sonuc.normal_rota], ["s-optimize-kisit", sonuc.optimize_rota]]) {
+    document.getElementById(id).textContent = `${rota.sigmet_ihlali_sayisi} / ${rota.kisitli_saha_ihlali_sayisi}`;
+  }
 
   const stratejiEtiketleri = {
     yanal: "Strateji: yanal sapma (A*)",
@@ -272,6 +302,13 @@ function sonucPanelDoldur(sonuc) {
   } else {
     tasarrufEl.innerHTML = `<span class="tasarruf-yok">Türbülans verisi/rüzgar değerlendirilemedi.</span>`;
   }
+
+  // Madde 6 (bkz. konuşma geçmişi): TI1'in tek başına doğrulanmadığı notu
+  // sunucudan (turbulans_indeksleri.TI1_GUVENILIRLIK_NOTU) geldiği gibi
+  // gösterilir -- metin değişirse arayüz otomatik güncellenir.
+  document.getElementById("ti1-guvenilirlik-notu").textContent = sonuc.ti1_guvenilirlik_notu
+    ? `⚠ ${sonuc.ti1_guvenilirlik_notu}`
+    : "";
 
   kabinBildirimiGoster(sonuc);
 }
@@ -333,6 +370,8 @@ async function sonucuSahneyeUygula(sonuc, kameraUcsunMu) {
   document.getElementById("yeniden-hesapla-buton").style.display = "block";
 }
 
+let yenidenDenemeSayisi = 0;
+
 async function simulasyonuCalistir() {
   const govde = {
     baslangic_enlem: Number(document.getElementById("baslangic-enlem").value),
@@ -346,7 +385,7 @@ async function simulasyonuCalistir() {
   const anahtar = anahtarAl();
   if (!anahtar) { durumGoster("API anahtarı gerekli.", "hata"); return; }
   if (!govde.ucak_modeli) { durumGoster("Uçak modeli listesi yüklenemedi -- API anahtarını kontrol et.", "hata"); return; }
-  localStorage.setItem("tr_api_anahtari", anahtar);
+  sessionStorage.setItem("tr_api_anahtari", anahtar);
 
   const buton = document.getElementById("simule-et-buton");
   buton.disabled = true;
@@ -358,6 +397,13 @@ async function simulasyonuCalistir() {
     sonUcakModeli = govde.ucak_modeli;
     await sonucuSahneyeUygula(sonuc, true);
     durumGoster(`Yüklendi (${sonuc.ucak_etiketi}).`, "bilgi");
+    // Canlı GFS henüz inmediyse sunucu rüzgarsız ön sonuç döner ve indirmeyi
+    // arka planda sürdürür; veri hazır olunca hesap kendiliğinden tekrarlanır.
+    if (sonuc.ruzgar_verisi_kaynagi === "canli_veri_hazirlaniyor" && (yenidenDenemeSayisi += 1) <= 12) {
+      setTimeout(simulasyonuCalistir, 10000);
+    } else if (sonuc.ruzgar_verisi_kaynagi !== "canli_veri_hazirlaniyor") {
+      yenidenDenemeSayisi = 0;
+    }
   } catch (e) {
     if (e.durumKodu === 401) durumGoster("API anahtarı geçersiz.", "hata");
     else if (e.durumKodu === 400 || e.durumKodu === 422) durumGoster("Geçersiz girdi: " + e.message, "hata");
@@ -408,7 +454,7 @@ async function ucusSirasindaYenidenHesapla() {
   }
 }
 
-document.getElementById("giris-anahtar").value = localStorage.getItem("tr_api_anahtari") || "";
+document.getElementById("giris-anahtar").value = sessionStorage.getItem("tr_api_anahtari") || "";
 document.getElementById("giris-anahtar").addEventListener("change", ucakProfilleriniYukle);
 document.getElementById("simule-et-buton").addEventListener("click", simulasyonuCalistir);
 document.getElementById("yeniden-hesapla-buton").addEventListener("click", ucusSirasindaYenidenHesapla);

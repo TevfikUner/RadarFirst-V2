@@ -11,6 +11,8 @@ rota_optimizasyonu.py için birim testleri:
     test_eslestirme.py'deki aynı desen).
 """
 
+import json
+
 import pandas as pd
 import pytest
 
@@ -69,6 +71,16 @@ def test_kapsam_disi_bolge_durustce_ruzgarsiz_sonuc_doner():
     assert sonuc["yakit_tasarrufu_yuzde"] == 0.0
     assert sonuc["optimize_rota"]["toplam_sure_dk"] == sonuc["normal_rota"]["toplam_sure_dk"]
     assert sonuc["normal_rota"]["mesafe_km"] > 8000  # İstanbul-New York büyük daire mesafesi ~8065 km
+
+
+def test_ti1_guvenilirlik_notu_her_yanitta_bulunur():
+    """Madde 6 (bkz. konuşma geçmişi): TI1 bağımsız olarak doğrulanmadığı için
+    bu not, kapsam içi/dışı fark etmeksizin HER rota yanıtında bulunmalı."""
+    from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
+
+    sonuc = rota_simulasyonu_olustur(41.0, 28.9, 40.7, -74.0, 34000, "2019-01-15T10:00:00", "A320")
+    assert sonuc["ti1_guvenilirlik_notu"] == TI1_GUVENILIRLIK_NOTU
+    assert "KANITLANMAMIŞTIR" in sonuc["ti1_guvenilirlik_notu"]
 
 
 @pytest.fixture(scope="module")
@@ -231,3 +243,161 @@ def test_hava_verisi_olmayan_bolgede_de_sigmetten_kacinilir():
     sigmet_varliklari = [v for v in simulasyonu_czml_e_cevir(sonuc) if "polygon" in v]
     assert [v["id"] for v in sigmet_varliklari] == ["sigmet-99"]
     assert sigmet_varliklari[0]["polygon"]["extrudedHeight"] == pytest.approx(45000 * 0.3048)
+
+
+# --- Kısıtlı hava sahası sert kısıtı (risk_katmanlari.KisitliSahaKatmani) ---
+
+
+def _ornek_sahalar():
+    from turbulans_radar.veri.kisitli_saha_saglayici import ORNEK_DOSYA, ORNEK_KAYNAK, geojson_kayitlarina_cevir
+
+    return geojson_kayitlarina_cevir(json.loads(ORNEK_DOSYA.read_text(encoding="utf-8")), ORNEK_KAYNAK)
+
+
+def _kare_saha(enlem0, enlem1, boylam0, boylam1, taban=None, tavan=None):
+    return {
+        "id": 7,
+        "ad": "Deneme sahası",
+        "tur": "YASAK",
+        "kaynak": "test",
+        "taban_ft": taban,
+        "tavan_ft": tavan,
+        "gecerlilik_baslangic": None,
+        "gecerlilik_bitis": None,
+        "poligon": [[boylam0, enlem0], [boylam1, enlem0], [boylam1, enlem1], [boylam0, enlem1], [boylam0, enlem0]],
+    }
+
+
+def _afrika_rotasi(kisitli_sahalar):
+    return rota_simulasyonu_olustur(
+        5.0, 10.0, 5.0, 25.0, 36000, "2019-01-15T00:00:00", "A320", sigmetler=[], kisitli_sahalar=kisitli_sahalar
+    )
+
+
+def test_malatya_musul_rotasi_suriyeden_kacinir_varis_ulkesi_muaf_tutulur():
+    sonuc = rota_simulasyonu_olustur(
+        38.435,
+        38.091,
+        36.306,
+        43.147,
+        34000,
+        "2019-06-15T08:00:00",
+        "A320",
+        sigmetler=[],
+        kisitli_sahalar=_ornek_sahalar(),
+    )
+    kontrol = sonuc["kisitli_saha_kontrolu"]
+    assert kontrol["durum"] == "uygulandi" and kontrol["ornek_veri_mi"] is True
+    assert kontrol["muaf_tutulanlar"] == ["Irak hava sahası (örnek çatışma bölgesi)"]
+    assert sonuc["normal_rota"]["kisitli_saha_ihlali_sayisi"] > 0
+    assert sonuc["optimize_rota"]["kisitli_saha_ihlali_sayisi"] == 0
+    assert sonuc["kisitli_sahadan_kacinildi_mi"] is True and sonuc["guvenli_rota_bulundu_mu"] is True
+    assert "ÖRNEK" in sonuc["aciklama"]
+    saha_varliklari = [v for v in simulasyonu_czml_e_cevir(sonuc) if v["id"].startswith("kisitli-saha-")]
+    assert saha_varliklari and all("availability" not in v for v in saha_varliklari)
+    assert any("koridoru hariç" in v["name"] for v in saha_varliklari)
+
+
+def test_varis_ulkesinde_planli_rota_koridoru_disina_sapilmaz():
+    """Varış noktasını içeren saha tamamen muaf değil: koridor dışı yine yasak."""
+    saha = _kare_saha(0.0, 10.0, 20.0, 30.0)
+    sonuc = rota_simulasyonu_olustur(
+        5.0, 10.0, 5.0, 25.0, 36000, "2019-01-15T00:00:00", "A320", sigmetler=[], kisitli_sahalar=[saha]
+    )
+    assert sonuc["kisitli_saha_kontrolu"]["muaf_tutulanlar"] == ["Deneme sahası"]
+    assert sonuc["normal_rota"]["kisitli_saha_ihlali_sayisi"] == 0
+
+    from turbulans_radar.rota.risk_katmanlari import KisitliSahaKatmani
+
+    kalan = [s for s in sonuc["kisitli_saha_kontrolu"]["sahalar"]]
+    katman = KisitliSahaKatmani(kalan)
+    zaman = [pd.Timestamp("2019-01-15T03:00:00", tz="UTC")]
+    assert katman.rota_ihlal_sayisi([5.3], [24.0], zaman, 11000.0) == 0
+    assert katman.rota_ihlal_sayisi([8.0], [24.0], zaman, 11000.0) == 1
+
+
+def test_koridoru_tamamen_kesen_kisitli_saha_varsa_rota_onerilmez():
+    sonuc = _afrika_rotasi([_kare_saha(-5.0, 15.0, 17.0, 18.0)])
+    assert sonuc["guvenli_rota_bulundu_mu"] is False
+    assert "ÖNERİ YOK" in sonuc["aciklama"] and "kısıtlı hava sahalarına" in sonuc["aciklama"]
+
+
+def test_irtifa_bandi_disindaki_kisitli_saha_rotayi_degistirmez():
+    sonuc = _afrika_rotasi([_kare_saha(4.3, 5.9, 17.0, 18.0, taban=0, tavan=20000)])
+    assert sonuc["normal_rota"]["kisitli_saha_ihlali_sayisi"] == 0
+    assert sonuc["optimize_rota"]["noktalar"] == sonuc["normal_rota"]["noktalar"]
+
+
+def test_kisitli_saha_veritabanina_erisilemezse_uyari_verilir(monkeypatch):
+    from turbulans_radar.rota import rota_optimizasyonu
+
+    def erisilemez(*args, **kwargs):
+        raise ConnectionError("veritabanı yok")
+
+    monkeypatch.setattr(rota_optimizasyonu, "gecerli_kisitli_sahalari_getir", erisilemez)
+    sonuc = _afrika_rotasi(None)
+    assert sonuc["kisitli_saha_kontrolu"]["durum"] == "erisilemedi"
+    assert "saha kontrolü YAPILAMADI" in sonuc["aciklama"]
+
+
+# --- Yanal ızgara: sınırlar adım sayısıyla değil mesafe ve açıyla ---
+
+
+@pytest.mark.parametrize(
+    "rota",
+    [(41.0, 28.9, 36.9, 30.7), (38.4, 27.1, 38.5, 43.4), (41.0, 28.9, 40.7, -74.0)],
+    ids=["istanbul_antalya_480km", "izmir_van_1400km", "istanbul_new_york_8000km"],
+)
+def test_izgaradaki_hicbir_bacak_sapma_acisi_sinirini_asmaz(rota):
+    from turbulans_radar.rota import rota_optimizasyonu as ro
+
+    enlemler, boylamlar = buyuk_daire_rotasi_olustur(*rota, config.ROTA_SIMULASYONU_NOKTA_SAYISI)
+    izgara = ro._yanal_izgara_olustur(enlemler, boylamlar)
+    konumlar = ro._yanal_izgara_dugum_konumlari(enlemler, boylamlar, izgara)
+    en_dik = 0.0
+    for dugum in konumlar:
+        i = dugum[0]
+        for komsu in ro._komsu_dugumler(dugum, izgara):
+            rota_yonu = ro._ilk_yon_derece(enlemler[i], boylamlar[i], enlemler[i + 1], boylamlar[i + 1])
+            bacak_yonu = ro._ilk_yon_derece(*konumlar[dugum], *konumlar[komsu])
+            en_dik = max(en_dik, abs((bacak_yonu - rota_yonu + 180.0) % 360.0 - 180.0))
+    assert config.ROTA_MAKS_SAPMA_ACISI_DERECE * 0.8 < en_dik <= config.ROTA_MAKS_SAPMA_ACISI_DERECE + 1.0
+
+
+def test_uzun_rotada_sapma_koridoru_mesafeyle_olceklenir_ve_sigmet_zincirinden_kacilir():
+    from turbulans_radar.rota import rota_optimizasyonu as ro
+
+    enlemler, boylamlar = buyuk_daire_rotasi_olustur(41.0, 28.9, 40.7, -74.0, config.ROTA_SIMULASYONU_NOKTA_SAYISI)
+    izgara = ro._yanal_izgara_olustur(enlemler, boylamlar)
+    # Eski sabit 20 km/adım ızgarada kalkıştan ~600 km sonra (i=3) en fazla 60 km sapılabiliyordu.
+    assert izgara.zarf(3) * izgara.aralik_km >= 300.0
+    sigmetler = [
+        _kare_sigmet(enlemler[i] - 1, enlemler[i] + 1, boylamlar[i] - 1, boylamlar[i] + 1, gun="2019-01-15")
+        for i in range(3, 38, 2)
+    ]
+    sonuc = rota_simulasyonu_olustur(
+        41.0, 28.9, 40.7, -74.0, 34000, "2019-01-15T00:00:00", "A320", sigmetler=sigmetler, kisitli_sahalar=[]
+    )
+    assert sonuc["normal_rota"]["sigmet_ihlali_sayisi"] > 0
+    assert sonuc["guvenli_rota_bulundu_mu"] is True
+    assert sonuc["optimize_rota"]["sigmet_ihlali_sayisi"] == 0
+    assert 0 < sonuc["optimize_rota"]["maks_yanal_sapma_km"] <= config.ROTA_MAKS_YANAL_SAPMA_KM
+
+
+def test_a_yildiz_nominal_zamandan_sonra_baslayan_sigmetten_de_kacinir():
+    """Rüzgarsız nominal zamanda henüz başlamamış ama gerçek (rüzgarlı) varışta
+    aktif olabilecek SIGMET: A* belirsizlik payıyla ondan da kaçınmalı."""
+    from turbulans_radar.rota import rota_optimizasyonu as ro
+    from turbulans_radar.rota.risk_katmanlari import SigmetKisitKatmani
+
+    enlemler, boylamlar = buyuk_daire_rotasi_olustur(5.0, 10.0, 5.0, 25.0, config.ROTA_SIMULASYONU_NOKTA_SAYISI)
+    kalkis = pd.Timestamp("2019-01-15T00:00:00", tz="UTC")
+    orta_varis = kalkis + pd.Timedelta(seconds=ro.buyuk_daire_mesafesi_km(5.0, 10.0, 5.0, 17.5) * 1000 / 230.0)
+    sigmet = {
+        **_kare_sigmet(4.3, 5.9, 17.0, 18.0, gun="2019-01-15"),
+        "gecerlilik_baslangic": orta_varis + pd.Timedelta(minutes=15),
+    }
+    yol = ro._a_yildiz_ile_rota_ara(
+        enlemler, boylamlar, 36000 * 0.3048, kalkis.isoformat(), 230.0, None, [SigmetKisitKatmani([sigmet])]
+    )
+    assert yol is not None and yol[2] > 0

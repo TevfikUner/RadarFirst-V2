@@ -31,3 +31,33 @@ def test_cli_kayit_hatasinda_haritayi_yine_uretir(sahte_akis):
 def test_kayit_zorunluysa_kayit_hatasi_yukselir(sahte_akis):
     with pytest.raises(VeritabaniKayitHatasi):
         ucus_analizi.calistir("TESTX", "2019-01-01", kayit_zorunlu=True)
+
+
+def test_harita_uret_false_haritayi_atlar_ve_cikti_klasoru_olusturmaz(sahte_akis, monkeypatch, tmp_path):
+    """Görev kuyruğundan (n8n) tetiklenen çalıştırmalar için: sunucuda
+    kimsenin açmayacağı bir HTML dosyası/klasörü hiç oluşturulmamalı."""
+    import os
+
+    cagrilar = []
+    monkeypatch.setattr(ucus_analizi, "zaman_kaydiricili_harita_olustur", lambda df, dosya_adi: cagrilar.append(df))
+    bos_cikti = tmp_path / "kullanilmayan_cikti_klasoru"
+    monkeypatch.setattr(ucus_analizi.config, "CIKTI_KLASORU", str(bos_cikti))
+
+    sonuc = ucus_analizi.calistir("TESTX", "2019-01-01", harita_uret=False)
+
+    assert sonuc is sahte_akis
+    assert cagrilar == []
+    assert not os.path.exists(bos_cikti)
+
+
+def test_harita_uret_varsayilani_true_haritayi_uretir(sahte_akis, monkeypatch):
+    """Varsayılan davranış (CLI: turbulans-analiz) korunmalı: harita_uret
+    hiç verilmezse harita yine üretilir."""
+    cagrilar = []
+    monkeypatch.setattr(
+        ucus_analizi, "zaman_kaydiricili_harita_olustur", lambda df, dosya_adi: cagrilar.append(dosya_adi)
+    )
+
+    assert ucus_analizi.calistir("TESTX", "2019-01-01") is sahte_akis
+
+    assert len(cagrilar) == 1 and cagrilar[0].endswith("turbulans_haritasi_TESTX_2019-01-01.html")

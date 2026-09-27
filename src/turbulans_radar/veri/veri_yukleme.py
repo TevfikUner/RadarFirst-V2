@@ -18,9 +18,12 @@ veri_yukleme.py
 """
 
 import glob
+import math
 import os
 import threading
+from collections import OrderedDict
 
+import numpy as np
 import pandas as pd
 import trino
 import xarray as xr
@@ -77,24 +80,106 @@ def hava_durumu_yukle(dosya_yolu=config.HAVA_DURUMU_DOSYASI):
         ) from e
 
 
-_veri_kupu_onbellegi = {}
-_veri_kupu_kilidi = threading.Lock()
+# NetCDF/HDF5 thread-safe değil: API'nin iş parçacıkları aynı .nc dosyasını
+# paralel okuduğunda 'access violation' ile çökebiliyordu. Tüm dosya erişimi
+# (açma, koordinat okuma, yükleme) bu kilitle tek sıraya alınır; bellekteki
+# küplere erişim ayrı kilitle korunur, önbellek isabetleri yükleme beklemez.
+hdf5_kilidi = threading.Lock()
+_onbellek_kilidi = threading.Lock()
+_onbellek: "OrderedDict[tuple, xr.Dataset]" = OrderedDict()
+_meta_onbellegi: dict = {}
+_ZAMAN_PAYI = pd.Timedelta(hours=3)
+
+
+def _onbellekten_al(anahtar, yukleyici):
+    """Bellek bütçeli (config.KUP_ONBELLEK_MAKS_MB) LRU önbellek: en uzun süre
+    kullanılmayan küp/pencere bütçe aşılınca atılır. Anahtar: (dosya_yolu,
+    pencere) -- pencere None ise tüm küp."""
+    with _onbellek_kilidi:
+        if anahtar in _onbellek:
+            _onbellek.move_to_end(anahtar)
+            return _onbellek[anahtar]
+    with hdf5_kilidi:
+        with _onbellek_kilidi:
+            if anahtar in _onbellek:
+                _onbellek.move_to_end(anahtar)
+                return _onbellek[anahtar]
+        kup = yukleyici()
+    with _onbellek_kilidi:
+        _onbellek[anahtar] = kup
+        butce = config.KUP_ONBELLEK_MAKS_MB * 1024 * 1024
+        while len(_onbellek) > 1 and sum(k.nbytes for k in _onbellek.values()) > butce:
+            _onbellek.popitem(last=False)
+    return kup
+
+
+def onbellek_durumu() -> dict:
+    with _onbellek_kilidi:
+        return {
+            "kup_sayisi": len(_onbellek),
+            "bayt": int(sum(k.nbytes for k in _onbellek.values())),
+            "butce_bayt": int(config.KUP_ONBELLEK_MAKS_MB * 1024 * 1024),
+        }
 
 
 def hava_durumu_onbellekli_yukle(dosya_yolu=config.HAVA_DURUMU_DOSYASI):
-    """Küpü bir kez BELLEĞE yükleyip dosyayı hemen kapatır: API'nin iş
-    parçacıkları aynı .nc dosyasını paralel açık tuttuğunda HDF5 (thread-safe
-    değil) 'access violation' ile çökebiliyordu."""
-    with _veri_kupu_kilidi:
-        if dosya_yolu not in _veri_kupu_onbellegi:
-            with hava_durumu_yukle(dosya_yolu) as veri_kupu:
-                _veri_kupu_onbellegi[dosya_yolu] = veri_kupu.load()
-        return _veri_kupu_onbellegi[dosya_yolu]
+    """Küpü TAMAMEN belleğe yükleyip dosyayı hemen kapatır (bkz. hdf5_kilidi)."""
+
+    def _yukle():
+        with hava_durumu_yukle(dosya_yolu) as veri_kupu:
+            return veri_kupu.load()
+
+    return _onbellekten_al((dosya_yolu, None), _yukle)
+
+
+def _utc_tz_siz(zaman) -> pd.Timestamp:
+    """Küplerin valid_time koordinatı saat dilimsiz UTC'dir."""
+    ts = pd.Timestamp(zaman)
+    return ts if ts.tzinfo is None else ts.tz_convert("UTC").tz_localize(None)
+
+
+def _pencere(enlem_araligi, boylam_araligi, zaman_araligi):
+    """İstenen bölge/zamanı 1° ve 6 saatlik sınırlara DIŞA doğru hizalar --
+    yakın istekler aynı pencereyi (önbellek isabetini) paylaşsın diye."""
+    return (
+        math.floor(enlem_araligi[0]),
+        math.ceil(enlem_araligi[1]),
+        math.floor(boylam_araligi[0]),
+        math.ceil(boylam_araligi[1]),
+        (_utc_tz_siz(zaman_araligi[0]) - _ZAMAN_PAYI).floor("6h"),
+        (_utc_tz_siz(zaman_araligi[1]) + _ZAMAN_PAYI).ceil("6h"),
+    )
+
+
+def _dilim(koordinat, alt, ust):
+    return slice(ust, alt) if koordinat.size > 1 and koordinat[0] > koordinat[-1] else slice(alt, ust)
+
+
+def hava_durumu_penceresi_yukle(dosya_yolu, enlem_araligi, boylam_araligi, zaman_araligi):
+    """Büyük bir küpün sadece istenen bölge/zaman penceresini belleğe okur
+    (tüm küp değil) -- GB boyutlu arşivlerde bellek, rotanın kapladığı alanla
+    sınırlı kalır. Tüm basınç seviyeleri korunur."""
+    pencere = _pencere(enlem_araligi, boylam_araligi, zaman_araligi)
+
+    def _yukle():
+        enlem_min, enlem_maks, boylam_min, boylam_maks, zaman_min, zaman_maks = pencere
+        with hava_durumu_yukle(dosya_yolu) as veri_kupu:
+            alt = veri_kupu.sel(
+                latitude=_dilim(veri_kupu["latitude"].values, enlem_min, enlem_maks),
+                longitude=_dilim(veri_kupu["longitude"].values, boylam_min, boylam_maks),
+                valid_time=slice(zaman_min, zaman_maks),
+            ).load()
+        alt.encoding["source"] = veri_kupu.encoding.get("source", dosya_yolu)
+        return alt
+
+    return _onbellekten_al((dosya_yolu, pencere), _yukle)
 
 
 def onbellekten_cikar(dosya_yolu):
-    with _veri_kupu_kilidi:
-        _veri_kupu_onbellegi.pop(dosya_yolu, None)
+    with _onbellek_kilidi:
+        for anahtar in [a for a in _onbellek if a[0] == dosya_yolu]:
+            del _onbellek[anahtar]
+    _meta_onbellegi.pop(dosya_yolu, None)
 
 
 def hava_durumu_dosyalari():
@@ -107,15 +192,85 @@ def hava_durumu_dosyalari():
     return [d for d in dosyalar if os.path.exists(d)]
 
 
-def kapsayan_veri_kupunu_bul(enlemler, boylamlar, zamanlar, basinc_hpa=None):
-    """hava_durumu_dosyalari() arasından verilen noktaların EN ÇOĞUNU
-    kapsayan küpü döndürür (bkz. eslestirme.kapsam_disi_maskesi). Hiçbiri tek
-    bir noktayı bile kapsamıyorsa None -- uydurma bir eşleşme yapılmaz."""
+def dosya_meta_verisi(dosya_yolu) -> dict:
+    """Küpün kapsamı (enlem/boylam/zaman aralığı) -- veri yüklenmeden, sadece
+    koordinatlar okunarak; dosya değişmedikçe süreç içinde önbellekte."""
+    durum = os.stat(dosya_yolu)
+    imza = (durum.st_mtime_ns, durum.st_size)
+    kayit = _meta_onbellegi.get(dosya_yolu)
+    if kayit is None or kayit["imza"] != imza:
+        with hdf5_kilidi, hava_durumu_yukle(dosya_yolu) as veri_kupu:
+            zamanlar = veri_kupu["valid_time"].values
+            kayit = {
+                "imza": imza,
+                "enlem": (float(veri_kupu["latitude"].min()), float(veri_kupu["latitude"].max())),
+                "boylam": (float(veri_kupu["longitude"].min()), float(veri_kupu["longitude"].max())),
+                "zaman": (pd.Timestamp(zamanlar.min()), pd.Timestamp(zamanlar.max())),
+            }
+        _meta_onbellegi[dosya_yolu] = kayit
+    return kayit
+
+
+def _meta_kesisiyor(meta, enlem_araligi, boylam_araligi, zaman_araligi):
+    zaman_min, zaman_maks = map(_utc_tz_siz, zaman_araligi)
+    return (
+        meta["enlem"][0] <= enlem_araligi[1]
+        and meta["enlem"][1] >= enlem_araligi[0]
+        and meta["boylam"][0] <= boylam_araligi[1]
+        and meta["boylam"][1] >= boylam_araligi[0]
+        and meta["zaman"][0] - _ZAMAN_PAYI <= zaman_maks
+        and meta["zaman"][1] + _ZAMAN_PAYI >= zaman_min
+    )
+
+
+def _aday_dosyalar(enlem_araligi, boylam_araligi, zaman_araligi):
+    """Noktaların bölge/zamanıyla kesişen yerel küpler. Önce hava_durumu_
+    kupleri KATALOĞU (dosya açılmadan); katalogda olmayan ya da veritabanı
+    erişilemezken dosyanın kendi koordinat meta verisi kullanılır."""
+    yerel = hava_durumu_dosyalari()
+    try:
+        from turbulans_radar.depo.kup_katalogu import kesisen_kup_yollari
+
+        kesisen, kayitli = kesisen_kup_yollari("era5", *enlem_araligi, *boylam_araligi, *zaman_araligi)
+    except Exception:
+        kesisen, kayitli = set(), set()
+    return [
+        d
+        for d in yerel
+        if d in kesisen
+        or (d not in kayitli and _meta_kesisiyor(dosya_meta_verisi(d), enlem_araligi, boylam_araligi, zaman_araligi))
+    ]
+
+
+def _kupu_yukle(dosya, enlem_araligi, boylam_araligi, zaman_araligi):
+    if os.path.getsize(dosya) <= config.KUP_TAM_YUKLEME_ESIGI_MB * 1024 * 1024:
+        return hava_durumu_onbellekli_yukle(dosya)
+    return hava_durumu_penceresi_yukle(dosya, enlem_araligi, boylam_araligi, zaman_araligi)
+
+
+def kapsayan_veri_kupunu_bul(enlemler, boylamlar, zamanlar, basinc_hpa=None, pay_derece=1.0):
+    """Yerel küpler arasından verilen noktaların EN ÇOĞUNU kapsayanı döndürür
+    (bkz. eslestirme.kapsam_disi_maskesi). Hiçbiri tek bir noktayı bile
+    kapsamıyorsa None -- uydurma bir eşleşme yapılmaz. Sadece bölge/zamanı
+    kesişen aday küpler yüklenir; config.KUP_TAM_YUKLEME_ESIGI_MB'den büyük
+    küplerden noktaların pay_derece genişletilmiş penceresi okunur (A*
+    ızgarası gibi noktaların çevresini de kullanacaklar için geniş pay verilir)."""
     from turbulans_radar.fizik.eslestirme import kapsam_disi_maskesi
 
+    enlem_dizisi = np.asarray(enlemler, dtype=float)
+    boylam_dizisi = np.asarray(boylamlar, dtype=float)
+    if enlem_dizisi.size == 0:
+        return None
+    zaman_dizisi = pd.DatetimeIndex(pd.to_datetime(list(zamanlar), utc=True))
+    enlem_araligi = (float(np.nanmin(enlem_dizisi)) - pay_derece, float(np.nanmax(enlem_dizisi)) + pay_derece)
+    boylam_araligi = (float(np.nanmin(boylam_dizisi)) - pay_derece, float(np.nanmax(boylam_dizisi)) + pay_derece)
+    zaman_araligi = (zaman_dizisi.min(), zaman_dizisi.max())
+
     en_iyi_kup, en_iyi_sayi = None, 0
-    for dosya in hava_durumu_dosyalari():
-        veri_kupu = hava_durumu_onbellekli_yukle(dosya)
+    for dosya in _aday_dosyalar(enlem_araligi, boylam_araligi, zaman_araligi):
+        veri_kupu = _kupu_yukle(dosya, enlem_araligi, boylam_araligi, zaman_araligi)
+        if any(veri_kupu.sizes[b] == 0 for b in ("latitude", "longitude", "valid_time") if b in veri_kupu.sizes):
+            continue
         kapsanan = int((~kapsam_disi_maskesi(veri_kupu, enlemler, boylamlar, zamanlar, basinc_hpa)).sum())
         if kapsanan > en_iyi_sayi:
             en_iyi_kup, en_iyi_sayi = veri_kupu, kapsanan

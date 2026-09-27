@@ -16,3 +16,5 @@ tests/
 .venv
 venv
 canli_veri/
+web/vendor/
+veri_dosyalari/

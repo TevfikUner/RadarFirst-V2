@@ -4,6 +4,212 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Şema sapması düzeltildi, API/kuyruk yollarında disk sınırsız büyümüyor
+
+- **`ucuslar.olusturulma_zamani` şema sapması:** ORM modeli bu sütunu
+  `NOT NULL` olarak tanımlıyordu, ilk migration (`64f50586f90c`) `NULL`'a
+  izin veriyordu (gerçek NULL hiç oluşmadı, `server_default=now()` sayesinde)
+  -- `create_all()` (testler) ile `alembic upgrade head` (üretim) farklı şema
+  üretiyordu. Yeni göç (`f83780f8a3bf`) ile giderildi; ORM/migration
+  karşılaştırması artık tam eşleşiyor.
+- **API/kuyruk yollarında sınırsız HTML üretimi:** `POST /analiz/ucus`,
+  `/analiz/rota` ve özellikle `/analiz/toplu` (n8n'in onlarca/yüzlerce
+  uçuşla tetikleyebileceği) her uçuş için `ciktilar/`'a bir Folium HTML
+  haritası yazıyordu -- sunucuda kimse açmıyor, sadece disk büyüyordu. Yeni
+  `harita_uret` parametresi (`ucus_analizi.py`, `toplu_analiz.py`) ile bu
+  görevler artık harita üretmiyor; sonuç zaten PostgreSQL'de ve `GET
+  /ucuslar/{ucus}/{tarih}` (+ csv/geojson) ile okunuyor. CLI kullanımı
+  (`turbulans-analiz`, `turbulans-toplu-analiz`) değişmedi.
+
+## TI1'in doğrulanmamış olduğu artık her yanıtta ve arayüzde görünüyor
+
+- **Bağımsız kanıt bölümünün bulgusu (PUE502: TI1 aktif TURB SIGMET'in işaret
+  ettiği türbülansı hiç yakalamadı) tek bir doküman satırında kalmıştı** --
+  pilotun/EFB istemcisinin gördüğü API yanıtlarında hiçbir uyarı yoktu. Yeni
+  `TI1_GUVENILIRLIK_NOTU` sabiti (`fizik/turbulans_indeksleri.py`) artık
+  `POST /simulasyon/rota` (`ti1_guvenilirlik_notu` alanı, her yanıtta) ve
+  `POST /turbulans/tahmin` (kapsam içindeyse) yanıtlarında ayrı bir alan
+  olarak taşınıyor; rota açıklamasına gömülmüyor ki her yanıtta baskın bir
+  uyarı gibi görünmesin.
+- İki web arayüzü de bu notu gösteriyor: `ucus_simulasyonu.html` sonuç
+  panelinde (sunucudan geldiği gibi, dinamik), `harita3d.html`nin TI1
+  lejantında (statik, sayfanın diğer dürüstlük notlarıyla aynı desende).
+
+## Koordinatsız SIGMET'ler artık FIR'a genişletilerek uygulanıyor
+
+- **Poligonu olmayan SIGMET'ler eskiden sessizce eleniyordu:** AWC bazı
+  SIGMET'leri ("ENTIRE FIR" ya da metin tarifli alanlar) koordinatsız
+  yayınlıyor; bu kayıtlar `poligon_yok` diye elenip A* tarafından hiç
+  görülmüyordu -- oysa gerçek bir tehlike bildirimiydi. Yeni
+  `veri/fir_sinirlari.py`, VATSIM vatspy-data-project'in FIR sınır verisiyle
+  (CC BY-SA 4.0, `turbulans-statik` ile sha256 doğrulamalı indirilir) bu
+  SIGMET'i FIR'ın TAMAMINA genişletir; FIR bilinmiyorsa eski davranış
+  (eleme) korunur. Doğrulandı: LTAA için koordinatsız bir SIGMET artık
+  112 köşeli FIR poligonuna dönüşüyor.
+- Bu genişletme `_akis_sagligini_denetle`'de "çözümlenemeyen" gibi sayılıyor
+  -- AWC koordinatları TOPTAN kaldırırsa (madde 1'in koruduğu senaryo) FIR
+  yedeği bunu maskeleyip akışı yanlışlıkla "sağlıklı" göstermiyor.
+- `/saglik?derin=true` artık `fir_sinirlari` verisinin var olup olmadığını
+  da raporluyor.
+
+## İkinci güvenlik/doğruluk turu
+
+- **Canlı rotada A* koridoru daralmıyor:** canlı GFS küpü rotanın sadece ±2°
+  çevresini indiriyordu; A* 400 km'ye (40°K'de ~4.7° boylam) kadar
+  sapabildiği için koridorun dışındaki düğümler "kapsam dışı" diye grafikten
+  atılıyordu (pratik koridor ~220 km). Küp artık A* payıyla iniyor
+  (İzmir-Van: 31.75-45.5°K, 20.25-50.25°D, 545 KB; eskiden ~250 KB).
+- **Webhook SSRF koruması:** doğrulama sadece yazıyla verilmiş link-local
+  IP'leri engelliyordu; `localhost`, 10.x/192.168.x ve iç ağa çözümlenen
+  alan adları geçiyordu. `webhook.py`: izin listesi yoksa sadece genel
+  adresler; işçi gönderim anında adın çözümlendiği TÜM IP'leri kontrol
+  ediyor, yönlendirme izlenmiyor. Yerel n8n için host
+  `WEBHOOK_IZIN_VERILEN_HOSTLAR`'a eklenmeli (davranış değişikliği).
+- **A* sert kısıtlarda zaman belirsizliği:** A* SIGMET/kısıtlı saha
+  geçerliliğini rüzgarsız nominal varışla kontrol ediyor, adayın son kontrolü
+  rüzgarlı zamanla yapılıyordu; A*'ın "güvenli" bulduğu rota son kontrolde
+  SIGMET'e girip gereksiz "öneri yok"a düşebiliyordu. Düğüm zamanı artık
+  geçen sürenin `ROTA_ZAMAN_BELIRSIZLIK_ORANI` (%30) + 5 dk'sı kadar belirsiz
+  sayılıyor (muhafazakâr; TI1 cezası etkilenmez).
+- **SIGMET hareketi:** AWC her SIGMET için hareket yönü/hızı veriyor, poligon
+  ise tüm geçerlilik boyunca sabit sayılıyordu (canlı akışta aktif 123
+  SIGMET'in 79'u hareketli). Artık hareket saklanıyor (göç `7730e2b167a7`;
+  uluslararası akışta yöneldiği yön, ABD akışında geldiği yön çevrilerek) ve
+  alan uçağın varış zamanındaki konumuyla uygulanıyor. Zaman belirsizliği ve
+  bilinmeyen hız (0-`SIGMET_BILINMEYEN_HIZ_KT` kt) aralığı süpürülüyor.
+- Poligon katmanı vektörleştirildi (zaman hesapları numpy, sınır kutusu ön
+  elemesi): 50 SIGMET'le A* 182 ms -> 68 ms (hareketliyle 68-77 ms).
+- **Yönetici/pilot anahtarı:** tek anahtar hem tarayıcıda (localStorage,
+  WebSocket URL'i) duruyor hem yasak saha silme, uçuş silme, model
+  aktifleştirmeye yetiyordu. `API_PILOT_ANAHTARI` (okuma, rota, tahmin,
+  uyarılar) eklendi; 13 yönetici ucu pilot anahtarına 403 dönüyor. WebSocket
+  60 sn'lik imzalı biletle açılıyor, sayfalar anahtarı `sessionStorage`'da tutuyor.
+- **EFB ana ucu yavaş ağda askıda kalmıyor:** `/simulasyon/rota` ve
+  `/turbulans/tahmin` katalogda olmayan canlı küpü istek içinde indiriyordu.
+  Artık en fazla `CANLI_VERI_BEKLEME_SANIYE` (8 sn) bekleniyor; indirme arka
+  planda sürüyor (aynı bölge için tek indirme), yanıt SIGMET/kısıtlı saha
+  uygulanmış rüzgarsız ön sonuç ve `canli_veri_hazirlaniyor`; sayfa kendiliğinden
+  yeniliyor. Canlı ölçüm (Madrid-Paris): ilk yanıt 8.1 sn, indirme toplam
+  ~38 sn, sonraki istek 0.2 sn GFS ile. İşçi/backtest indirmeyi bekliyor.
+- **Kısıtlı saha muafiyeti daraltıldı:** kalkış/varış noktasını içeren sahanın
+  TAMAMI muaftı (A* varış ülkesinde istediği yere sapabiliyordu). Artık sadece
+  planlı rotanın ±100 km koridoru serbest; Malatya-Musul yine 58 km sapmayla
+  çözülüyor. 3D sahne koridoru çıkarılmış geometriyi çiziyor.
+- **Gerçek kısıtlı saha kaynağı:** openAIP Core API v2 içe aktarıcısı
+  (`veri/openaip_saglayici.py`; alanlar resmi OpenAPI şemasından). Anahtar
+  gerekiyor (`OPENAIP_API_ANAHTARI`), veri CC BY-NC 4.0.
+
+## Sağlık ucunda izleme, kütüphaneler ve altlık harita yerelden
+
+- **`/saglik?derin=true`** artık sadece PostgreSQL'e değil, EFB'nin güvendiği
+  her bağımlılığa bakıyor: SIGMET tazeliği (son BAŞARILI çekim), canlı GFS,
+  görev kuyruğu birikmesi, kısıtlı sahalar, küp önbelleği, yerel
+  kütüphaneler. Operasyonel sorun -> `bozulmus`; yapılandırma eksikleri ->
+  `uyarilar`. Ham hata metinleri sadece anahtarlı `GET /api/v1/sistem/durum`'da.
+- **"Kapsam dışı" yerine "alınamadı":** canlı GFS indirilemediğinde rota yanıtı
+  `canli_veri_alinamadi` döndürüyor; her indirmenin sonucu kaydediliyor.
+- **Kütüphaneler yerelden:** `turbulans-statik` CesiumJS ve MapLibre'yi npm'den
+  koda sabitlenmiş sha512 değeriyle doğrulayıp `web/vendor/`'a indiriyor
+  (kesintide kaldığı yerden devam ediyor); Docker imajı bunu derlenirken yapıyor.
+  Sayfalar önce yereli, yoksa CDN'i yüklüyor. Ölçüm: CesiumJS CDN'den ~55 KB/s
+  bağlantıda 106 sn sürüyordu.
+- **Çevrimdışı altlık harita:** Cesium'da paketle gelen NaturalEarthII, MapLibre'de
+  yerel ülke sınırları; Esri karoları üstte ek katman.
+
+## İşçi/kuyruk mimarisi ve `/veri/canli/hazirla` için 202
+
+- **Uzun işler API sürecinden çıktı:** arka plan görevleri API sürecinin
+  içinde (BackgroundTasks) çalışıyordu: kuyruk/işçi yoktu, eşzamanlılık sınırı
+  yoktu, API yeniden başlayınca görev kayboluyordu. Artık `analiz_gorevleri`
+  tablosu bir kuyruk (göç `d95d5ec32901`): API ekler ve 202 döner; işçiler
+  (`isci/gorev_iscisi.py`, gömülü ya da `turbulans-isci`) `FOR UPDATE SKIP
+  LOCKED` ile alır, `GOREV_ISCI_SAYISI` ile sınırlı çalışır, kalp atışı
+  gönderir. Ölen işçinin görevi yeniden kuyruğa girer.
+- `/veri/canli/hazirla` artık senkron değil: 202 + `gorev_id`, küp özeti
+  görevin `ozet` alanında (yavaş ağda istek zaman aşımına düşmez).
+- Canlı WebSocket uyarıları PostgreSQL `NOTIFY` ile taşınıyor; işçi ayrı
+  süreçte de olsa uyarılar istemcilere ulaşıyor.
+- docker-compose: ayrı `worker` servisi (`--scale worker=N`), API'ye sağlık
+  kontrolü. Testler kuyruğa bıraktıkları görevleri temizliyor.
+
+## Küp seçimi katalogdan, belleğe tam yükleme yerine pencere
+
+- **Seçim:** `kapsayan_veri_kupunu_bul` her yerel küpü belleğe yükleyip
+  kapsama bakıyordu (16 küp, 92 MB, ilk istekte). Adaylar artık
+  `hava_durumu_kupleri` kataloğundan (`kesisen_kup_yollari`) ya da dosyanın
+  koordinat meta verisinden bulunuyor; kesişmeyen küp hiç yüklenmiyor.
+- **Bellek:** `KUP_TAM_YUKLEME_ESIGI_MB`'den büyük küplerden sadece rota
+  penceresi okunuyor (İzmir-Van: 69 MB yerine 1.2 MB, TI1 birebir aynı).
+  Önbellek `KUP_ONBELLEK_MAKS_MB` bütçeli LRU; eskiden sınırsız büyüyordu.
+- GFS küpünün yazılması ve katalog kaydı da HDF5 kilidine alındı (eşzamanlı
+  NetCDF okuma/yazma çökmesine karşı).
+
+## Backtest'e bağımsız doğrulama kaynağı
+
+- **Döngüsellik kırıldı:** A* TI1'i düşürecek şekilde rota seçiyor, backtest
+  de başarıyı TI1 ile ölçüyordu. Her rota artık A*'ın ve TI1'in görmediği
+  kanıta göre de ölçülüyor (`dogrulama/bagimsiz_kanit.py`): sistemin kendi
+  SIGMET arşivindeki TURB/MTW SIGMET'leri (küresel), IEM SIGMET arşivi (ABD),
+  IEM PIREP'leri (rota tüpünde orta ve üstü raporlar; tanım ML etiketleriyle
+  %100 örtüşüyor). Kapsam dışı uçuşta değerler `None` kalıyor.
+- Backtest'te A* TURB/MTW SIGMET'lerini görmüyor (oraj/kül/TC ve kısıtlı
+  sahalar sert kısıt olarak kalıyor). Yeni sütunlar (göç `6f630f49163d`) ve
+  filo özetinde azalan/artan maruziyet oranları.
+- Canlı doğrulamada bulunan hata: kanıt penceresinin A* için ileri
+  uzatılmış sonu "şimdi"yi geçince yeni biten uçuşlar arşiv kapsamı dışında
+  sayılıyordu; kapsam artık arşivin uçuştan önce başlamasına bakıyor.
+- Gerçek bir uçuşta (PUE502) ilk bağımsız sonuç: TURB SIGMET maruziyeti
+  gerçek 30 / büyük daire 28 / A* 33, TI1 hiç risk görmedi -- TI1'in bu
+  olayı kaçırdığı ortaya çıktı (bkz. SISTEM_KARTI).
+
+## Yanal sapma sınırları: adım sayısı yerine mesafe ve açı
+
+- Sabit "20 km/adım" ızgara kısa rotada gerçek dışı keskin sapmalar (İstanbul-
+  Antalya'da tek bacakta 59°), uzun rotada gereksiz dar koridor (İstanbul-New
+  York'ta kalkıştan 600 km sonra en fazla 60 km; SIGMET zincirinde yanlış
+  "öneri yok") üretiyordu. Yeni `_YanalIzgara`: bacak açısı en fazla
+  `ROTA_MAKS_SAPMA_ACISI_DERECE` (30°), toplam sapma en fazla
+  `ROTA_MAKS_YANAL_SAPMA_KM` (400 km), ızgara aralığı en fazla
+  `ROTA_YANAL_IZGARA_KM` (20 km); uzun rotada bir adımda birden çok seviye.
+- Ölçüm: İstanbul-Antalya en dik bacak 59° -> 30°; İstanbul-New York'ta aynı
+  18 SIGMET'li senaryo artık 140 km sapmayla güvenli (A* 70 ms); İzmir-Van
+  değişmedi (A* 38-58 ms).
+
+## Kısıtlı / yasak hava sahası katmanı
+
+- **A* artık çatışma bölgesine/yasak sahaya sapma önermiyor:** ±400 km'lik
+  yanal ızgara, hava durumundan kaçarken planlı rotanın kullanmadığı bir
+  ülkeye ya da yasak sahaya rota çizebiliyordu. `KisitliSahaKatmani`
+  (SIGMET ile ortak `PoligonKisitKatmani` tabanı: poligon + irtifa bandı +
+  geçerlilik; boş sınır = süresiz/sınırsız) sert kısıt olarak uygulanıyor.
+  Kalkış/varış noktasını içeren saha muaf tutulup raporlanıyor.
+- Yeni `kisitli_hava_sahalari` tablosu (göç `e5b39618c49e`), GeoJSON içe aktarma
+  (`turbulans-kisitli-saha`, `GET/POST/DELETE /api/v1/kisitli-sahalar`).
+- Paketle gelen ÖRNEK veri: Natural Earth 1:50m'den Suriye ve Irak (resmi
+  FIR/CZIB sınırı değil; yanıt bunu belirtiyor). Malatya → Musul'da büyük daire
+  Suriye'yi 13 nokta/bacakta kesiyor; A* 60 km sapmayla kaçınıyor.
+- 3D simülasyonda kısıtlı sahalar mor hacim; sonuç tablosunda SIGMET/kısıtlı
+  saha ihlal sayıları.
+
+## SIGMET akışında sessiz kayıp koruması
+
+- **Akış çözümlenemezse aktif SIGMET'ler artık kapatılmıyor:** "akışta yok
+  → sonlandır" kuralı, AWC şemasındaki bir değişiklikte (örn. `coords` alanının
+  adı değişirse) tüm aktif SIGMET'leri hata vermeden sonlandırıyordu (kanıtlandı:
+  `kaydedilen: 0, sonlandirilan: 1, kaynak_hatalari: {}`). Boş/liste olmayan
+  yanıt ya da SIGMET'lerin %25'inden fazlasının çözümlenememesi artık kaynak
+  hatası; mevcut kayıtlar korunuyor.
+- **Canlı akışta sessizce atılan biçim:** `geom: "AREAS"` (tek SIGMET'te birden
+  fazla poligon; denetim anında 109 uluslararası SIGMET'ten 2'si, biri aktif bir
+  oraj SIGMET'i) hiç kaydedilmiyordu. Artık alan başına bir kayıt.
+- **Kaynak başına sağlık kaydı:** yeni `veri_kaynagi_durumlari` tablosu (göç
+  `2aa66ec79c21`). Bayatlık, en son kaydedilen satırdan değil en eski son
+  BAŞARILI çekimden ölçülüyor; ABD akışının taze kayıtları uluslararası akışın
+  arızasını artık örtmüyor. Rota açıklaması hata veren kaynağı adıyla belirtiyor.
+- Bozuk tek bir kayıt (sözlük olmayan, ISO zamanlı) artık tüm güncellemeyi
+  düşürmüyor; okunamayan irtifa daha geniş bir yasak banda, okunamayan tehlike
+  `BILINMIYOR`'a çevriliyor ve bu SIGMET'lerden her zaman kaçınılıyor.
+
 ## İkinci tarama: canlı GFS yeniden kullanımı, katalog, n8n dokümantasyonu
 
 Tüm fazlar canlı bir API sunucusu üzerinden uçtan uca yeniden doğrulandı

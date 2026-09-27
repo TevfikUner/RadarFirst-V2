@@ -13,6 +13,9 @@ dynamic = ["dependencies", "optional-dependencies"]
 turbulans-analiz = "turbulans_radar.analiz.ucus_analizi:ana"
 turbulans-toplu-analiz = "turbulans_radar.analiz.toplu_analiz:ana"
 turbulans-sigmet = "turbulans_radar.veri.sigmet_saglayici:ana"
+turbulans-kisitli-saha = "turbulans_radar.veri.kisitli_saha_saglayici:ana"
+turbulans-isci = "turbulans_radar.isci.gorev_iscisi:ana"
+turbulans-statik = "turbulans_radar.cli.statik_indir:ana"
 turbulans-backtest = "turbulans_radar.dogrulama.rota_backtest:ana"
 turbulans-mcp = "turbulans_radar.cli.mcp_postgres_sunucusu:ana"
 turbulans-openapi = "turbulans_radar.cli.openapi_disa_aktar:ana"
@@ -23,6 +26,9 @@ optional-dependencies = { dev = { file = ["requirements-dev.txt"] } }
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+turbulans_radar = ["veri/*.geojson"]
 
 [tool.ruff]
 line-length = 120

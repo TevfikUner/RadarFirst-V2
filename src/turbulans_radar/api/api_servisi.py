@@ -15,10 +15,11 @@ bozulmaz. İnteraktif Swagger dokümantasyonu FastAPI'nin ürettiği /docs
 adresinde otomatik olarak hazır.
 
 Asenkron: okuma uç noktaları (GET) veritabani.py'nin asyncpg tabanlı async
-fonksiyonlarını kullanır (event loop'u bloklamaz). Analiz tetikleme uç
-noktaları (POST /analiz/*), main.py/toplu_analiz.py'deki AYNI (senkron,
-bloklayan) mantığı `asyncio.to_thread` ile ayrı bir thread'de çalıştırır --
-event loop'u bloklamadan, main.py'yi yeniden yazmaya gerek kalmadan.
+fonksiyonlarını kullanır (event loop'u bloklamaz). Uzun işler (POST
+/analiz/*, /backtest/toplu, /veri/canli/hazirla) API sürecinde ÇALIŞMAZ:
+analiz_gorevleri kuyruğuna eklenip hemen 202 + gorev_id döner; işçiler
+(isci/gorev_iscisi.py -- gömülü ya da ayrı süreç) eşzamanlılık sınırıyla
+çalıştırır, API/işçi yeniden başlasa da görev kaybolmaz.
 
 Otomasyon (n8n): /analiz/* uç noktaları isteğe bağlı bir
 'bildirim_webhook_url' alanı kabul eder -- analiz bitince sonucu oraya POST
@@ -27,7 +28,8 @@ periyodik olarak yoklamasına (polling) gerek bırakmaz.
 
 Canlı uyarılar: /ws/uyarilar WebSocket'i, bir analiz sırasında Ellrod TI1
 "orta-şiddetli" eşiğini aşan nokta bulunduğunda bağlı istemcilere anlık
-bildirim yayınlar (örn. ileride bir mobil/masaüstü istemci bunu dinleyebilir).
+bildirim yayınlar. İşçi başka bir süreçte olabileceği için uyarı PostgreSQL
+NOTIFY ile gelir (bkz. _uyari_dinleyicisi).
 
 BİLİNÇLİ OLARAK EKLENMEDİ:
   - veri_indirme.py'nin GERÇEK ERA5 indirmesini tetikleyen bir uç nokta --
@@ -43,15 +45,15 @@ BİLİNÇLİ OLARAK EKLENMEDİ:
 """
 
 import asyncio
-import ipaddress
+import hashlib
+import hmac
+import inspect
 import json
 import os
 import secrets
 import time
 from contextlib import asynccontextmanager
-from datetime import UTC, date, datetime, timedelta
-from functools import partial
-from urllib.parse import urlsplit
+from datetime import UTC, date, datetime
 
 try:
     from dotenv import load_dotenv
@@ -60,11 +62,10 @@ try:
 except ImportError:
     pass
 
-import httpx
+import asyncpg
 import pandas as pd
 from fastapi import (
     APIRouter,
-    BackgroundTasks,
     Depends,
     FastAPI,
     Header,
@@ -84,8 +85,6 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from turbulans_radar import config, loglama
-from turbulans_radar.analiz.toplu_analiz import toplu_analiz_calistir
-from turbulans_radar.analiz.ucus_analizi import calistir, rota_df_ile_calistir
 from turbulans_radar.api.semalar import (
     BacktestListesiYaniti,
     BacktestSonucuYaniti,
@@ -94,6 +93,8 @@ from turbulans_radar.api.semalar import (
     GorevBaslatildiYaniti,
     GorevDurumYaniti,
     HavaDurumuKupuYaniti,
+    KisitliSahaIceAktarmaYaniti,
+    KisitliSahaYaniti,
     ModelBilgisiYaniti,
     ModelVersiyonuOzetiYaniti,
     RotaSimulasyonuIstegi,
@@ -102,33 +103,34 @@ from turbulans_radar.api.semalar import (
     SigmetDogrulamaYaniti,
     SigmetOzetiYaniti,
     SigmetYenilemeYaniti,
+    SistemDurumuYaniti,
     TopluSilmeYaniti,
     TurbulansTahminIstegi,
     TurbulansTahminYaniti,
     UcakProfiliYaniti,
     UcusDetayYaniti,
     UcuslarListesiYaniti,
+    WsBiletiYaniti,
 )
-from turbulans_radar.depo.gorev_deposu import (
-    eski_gorevleri_temizle,
-    gorev_getir,
-    gorev_guncelle,
-    gorev_olustur,
-    yarida_kalan_gorevleri_isaretle,
-)
-from turbulans_radar.depo.kup_katalogu import katalogu_listele, kup_meta_verisi, yerel_kupleri_katalogla
+from turbulans_radar.cli.statik_indir import yerel_kutuphane_durumu
+from turbulans_radar.depo.gorev_deposu import eski_gorevleri_temizle, gorev_getir, gorev_olustur, kuyruk_durumu
+from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir
+from turbulans_radar.depo.kup_katalogu import katalogu_listele, yerel_kupleri_katalogla
 from turbulans_radar.depo.veritabani import (
     VeritabaniAyarlariEksikHatasi,
     async_motor_al,
+    asyncpg_baglanti_parametreleri,
     ucus_detayini_getir_async,
     ucus_olcumlerini_dataframe_olarak_getir,
     ucus_sil_async,
     ucuslari_listele_async,
     ucuslari_toplu_sil_async,
 )
-from turbulans_radar.dogrulama.rota_backtest import backtestleri_listele, toplu_backtest, ucus_backtest_et
+from turbulans_radar.dogrulama.rota_backtest import backtestleri_listele, ucus_backtest_et
 from turbulans_radar.dogrulama.sigmet_dogrulama import ucus_sigmet_ile_karsilastir
+from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
+from turbulans_radar.isci.gorev_iscisi import BILDIRIM_KANALI, GorevIscisi
 from turbulans_radar.ml.turbulans_ml_modeli import (
     model_bilgisini_yukle,
     model_versiyonlarini_listele,
@@ -137,40 +139,81 @@ from turbulans_radar.ml.turbulans_ml_modeli import (
     versiyona_geri_don,
 )
 from turbulans_radar.rota.rota_optimizasyonu import (
+    CANLI_VERI_HAZIRLANIYOR,
     UCAK_PROFILLERI,
     rota_simulasyonu_olustur,
     simulasyonu_czml_e_cevir,
     veri_kupune_eris,
 )
-from turbulans_radar.veri.sigmet_saglayici import gecerli_sigmetleri_getir, sigmetleri_guncelle
-from turbulans_radar.veri.veri_saglayicilari import Kutu, canli_kup_hazirla
-from turbulans_radar.veri.veri_yukleme import hava_durumu_dosyalari, veri_kupu_adi
+from turbulans_radar.veri.fir_sinirlari import fir_verisi_var_mi
+from turbulans_radar.veri.kisitli_saha_saglayici import (
+    ORNEK_KAYNAK,
+    gecerli_kisitli_sahalari_getir,
+    geojson_ice_aktar,
+    kisitli_sahayi_sil,
+    ornek_veriyi_yukle,
+)
+from turbulans_radar.veri.sigmet_saglayici import (
+    gecerli_sigmetleri_getir,
+    kacinilacak_tehlikeler,
+    kaynak_saglik_durumlari,
+    sigmetleri_guncelle,
+    son_guncelleme_zamani,
+)
+from turbulans_radar.veri.veri_saglayicilari import canli_durum_anahtari
+from turbulans_radar.veri.veri_yukleme import hava_durumu_dosyalari, onbellek_durumu
+from turbulans_radar.webhook import webhook_url_dogrula
 
 loglama.ayarla()
 _logger = loglama.logger_al(__name__)
-
-tek_ucus_analiz_et = partial(calistir, kayit_zorunlu=True)
-rota_analiz_et = partial(rota_df_ile_calistir, kayit_zorunlu=True)
 
 
 @asynccontextmanager
 async def _yasam_dongusu(uygulama):
     try:
-        sayi = await yarida_kalan_gorevleri_isaretle()
-        if sayi:
-            _logger.warning("Önceki süreçten yarıda kalmış %d analiz görevi 'yarida_kaldi' olarak işaretlendi.", sayi)
-    except Exception as hata:
-        _logger.warning("Açılışta görev tablosuna erişilemedi: %s", dostane_hata_mesaji(hata))
-    try:
         await asyncio.to_thread(yerel_kupleri_katalogla)
     except Exception as hata:
         _logger.warning("Yerel hava küpleri kataloğa kaydedilemedi: %s", dostane_hata_mesaji(hata))
+    if config.KISITLI_SAHA_ORNEK_VERI_YUKLE:
+        try:
+            if sayi := await asyncio.to_thread(ornek_veriyi_yukle):
+                _logger.warning("%d ÖRNEK kısıtlı hava sahası yüklendi (resmi veri değil).", sayi)
+        except Exception as hata:
+            _logger.warning("Örnek kısıtlı sahalar yüklenemedi: %s", dostane_hata_mesaji(hata))
     zamanlayici = None
     if config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA > 0:
         zamanlayici = asyncio.create_task(_sigmet_zamanlayicisi(config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA * 60))
+    dinleyici = asyncio.create_task(_uyari_dinleyicisi())
+    isci = GorevIscisi().baslat() if config.GOREV_GOMULU_ISCI else None
     yield
-    if zamanlayici is not None:
-        zamanlayici.cancel()
+    for gorev in (zamanlayici, dinleyici):
+        if gorev is not None:
+            gorev.cancel()
+    if isci is not None:
+        await asyncio.to_thread(isci.durdur, 5.0)
+
+
+async def _uyari_iletildi(baglanti, pid, kanal, yuk):
+    await baglanti_yoneticisi.yayinla(json.loads(yuk))
+
+
+async def _uyari_dinleyicisi(yeniden_deneme_saniye=30.0):
+    """İşçilerin (gömülü ya da ayrı süreç) NOTIFY ile yayınladığı canlı
+    uyarıları WebSocket istemcilerine iletir; bağlantı koparsa yeniden bağlanır."""
+    while True:
+        baglanti = None
+        try:
+            baglanti = await asyncpg.connect(**asyncpg_baglanti_parametreleri())
+            await baglanti.add_listener(BILDIRIM_KANALI, _uyari_iletildi)
+            while not baglanti.is_closed():
+                await asyncio.sleep(5)
+        except asyncio.CancelledError:
+            if baglanti is not None:
+                await baglanti.close()
+            raise
+        except Exception as hata:
+            _logger.warning("Canlı uyarı dinleyicisi bağlanamadı: %s", dostane_hata_mesaji(hata))
+        await asyncio.sleep(yeniden_deneme_saniye)
 
 
 async def _sigmet_zamanlayicisi(aralik_saniye):
@@ -179,6 +222,8 @@ async def _sigmet_zamanlayicisi(aralik_saniye):
     while True:
         try:
             ozet = await asyncio.to_thread(sigmetleri_guncelle)
+            if ozet["kaynak_hatalari"]:
+                _logger.error("SIGMET kaynak hataları (mevcut kayıtlar korundu): %s", ozet["kaynak_hatalari"])
             _logger.info("SIGMET'ler yenilendi: %s", ozet)
         except Exception as hata:
             _logger.warning("Periyodik SIGMET yenilemesi başarısız: %s", dostane_hata_mesaji(hata))
@@ -214,25 +259,71 @@ app.mount("/harita", StaticFiles(directory="web", html=True), name="harita")
 
 
 # ---------------------------------------------------------------------------
-# Güvenlik: statik API anahtarı ('.env' -> API_ANAHTARI)
+# Güvenlik: iki rollü statik API anahtarı ('.env')
+#   API_ANAHTARI       -> yönetici: her şey (n8n, operasyon).
+#   API_PILOT_ANAHTARI -> pilot/EFB istemcisi (isteğe bağlı): okuma, rota
+#                         simülasyonu, tahmin, canlı uyarılar. Silme, kısıtlı
+#                         saha değişikliği, model aktifleştirme ve görev
+#                         tetikleme 403 döner -- kokpitteki bir tabletten
+#                         sızan anahtar güvenlik verisini değiştiremesin.
 # ---------------------------------------------------------------------------
 
 
-def api_anahtarini_dogrula(x_api_key: str | None = Header(default=None, alias="X-API-Key")):
-    beklenen = os.environ.get("API_ANAHTARI")
-    if not beklenen:
+def _anahtar_eslesiyor(verilen: str | None, beklenen: str | None) -> bool:
+    # secrets.compare_digest: '==' kısa devre yaptığı için yanıt süresinden
+    # anahtarın ilk kaç karakterinin tutturulduğu sızabilir (timing attack).
+    return bool(verilen and beklenen) and secrets.compare_digest(verilen, beklenen)
+
+
+def api_anahtarini_dogrula(x_api_key: str | None = Header(default=None, alias="X-API-Key")) -> str:
+    """Anahtarın rolünü döner: 'yonetici' ya da 'pilot'."""
+    yonetici = os.environ.get("API_ANAHTARI")
+    if not yonetici:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Sunucuda API_ANAHTARI tanımlı değil -- '.env' dosyasına ekle.",
         )
-    # secrets.compare_digest: '==' karakter karakter kısa devre yaptığı için
-    # yanıt süresinden doğru anahtarın ilk kaç karakterinin tutturulduğunu
-    # sızdırabilir (timing attack); sabit zamanlı karşılaştırma bunu önler.
-    if not x_api_key or not secrets.compare_digest(x_api_key, beklenen):
+    if _anahtar_eslesiyor(x_api_key, yonetici):
+        return "yonetici"
+    if _anahtar_eslesiyor(x_api_key, os.environ.get("API_PILOT_ANAHTARI")):
+        return "pilot"
+    raise HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Geçersiz veya eksik API anahtarı ('X-API-Key' başlığı gerekli).",
+    )
+
+
+def yonetici_gerekli(rol: str = Depends(api_anahtarini_dogrula)):
+    if rol != "yonetici":
         raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Geçersiz veya eksik API anahtarı ('X-API-Key' başlığı gerekli).",
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bu işlem yönetici anahtarı gerektirir; pilot anahtarı sadece okuma ve rota hesabı yapabilir.",
         )
+
+
+_YONETICI = [Depends(yonetici_gerekli)]
+_BILET_SURESI_SANIYE = 60
+
+
+def _bilet_imzasi(govde: str) -> str:
+    return hmac.new(os.environ["API_ANAHTARI"].encode(), govde.encode(), hashlib.sha256).hexdigest()
+
+
+def ws_bileti_uret(rol: str, simdi: float | None = None) -> str:
+    """WebSocket için kısa ömürlü, sunucu anahtarıyla imzalı bilet: anahtarın
+    kendisi URL'ye (proxy/erişim loglarına) yazılmasın diye."""
+    govde = f"{int((simdi if simdi is not None else time.time()) + _BILET_SURESI_SANIYE)}.{rol}"
+    return f"{govde}.{_bilet_imzasi(govde)}"
+
+
+def ws_bileti_gecerli_mi(bilet: str | None) -> bool:
+    if not bilet or not os.environ.get("API_ANAHTARI"):
+        return False
+    parcalar = bilet.split(".")
+    if len(parcalar) != 3 or not parcalar[0].isdigit():
+        return False
+    bitis, rol, imza = parcalar
+    return secrets.compare_digest(imza, _bilet_imzasi(f"{bitis}.{rol}")) and int(bitis) >= time.time()
 
 
 # ---------------------------------------------------------------------------
@@ -340,9 +431,15 @@ baglanti_yoneticisi = _BaglantiYoneticisi()
 
 
 @app.websocket("/ws/uyarilar")
-async def uyarilar_websocket(websocket: WebSocket, api_key: str | None = None):
-    beklenen = os.environ.get("API_ANAHTARI")
-    if not beklenen or not api_key or not secrets.compare_digest(api_key, beklenen):
+async def uyarilar_websocket(websocket: WebSocket, bilet: str | None = None, api_key: str | None = None):
+    """Kimlik: POST /api/v1/ws-bileti'den alınan 60 sn'lik bilet. Eski
+    istemciler için ?api_key= hâlâ kabul edilir ama önerilmez (anahtar URL'de
+    loglanır)."""
+    yonetici = os.environ.get("API_ANAHTARI")
+    anahtar_gecerli = _anahtar_eslesiyor(api_key, yonetici) or _anahtar_eslesiyor(
+        api_key, os.environ.get("API_PILOT_ANAHTARI")
+    )
+    if not yonetici or not (ws_bileti_gecerli_mi(bilet) or anahtar_gecerli):
         await websocket.close(code=4401)
         return
     await baglanti_yoneticisi.baglan(websocket)
@@ -353,41 +450,14 @@ async def uyarilar_websocket(websocket: WebSocket, api_key: str | None = None):
         baglanti_yoneticisi.ayril(websocket)
 
 
-async def _yuksek_riskli_noktalari_yayinla(eslesmis_df, ucus_numarasi, tarih):
-    if eslesmis_df is None or eslesmis_df.empty or "ti1_indeksi" not in eslesmis_df.columns:
-        return
-    riskli = eslesmis_df[eslesmis_df["ti1_indeksi"] >= config.TI1_ESIK_ORTA_SIDDETLI]
-    if riskli.empty:
-        return
-    await baglanti_yoneticisi.yayinla(
-        {
-            "tip": "turbulans_uyarisi",
-            "ucus_numarasi": ucus_numarasi,
-            "tarih": tarih,
-            "orta_siddetli_nokta_sayisi": int(len(riskli)),
-            "maks_ti1": float(riskli["ti1_indeksi"].max()),
-        }
-    )
-
-
-async def _webhooku_bildir(webhook_url, govde):
-    if not webhook_url:
-        return
-    try:
-        async with httpx.AsyncClient(timeout=10) as istemci:
-            await istemci.post(webhook_url, json=govde)
-    except Exception as hata:
-        _logger.warning("Webhook bildirimi gönderilemedi (%s): %s", webhook_url, dostane_hata_mesaji(hata))
-
-
 # ---------------------------------------------------------------------------
 # /api/v1 -- API anahtarı gerektiren tüm veri/analiz uç noktaları
 # ---------------------------------------------------------------------------
 
 v1 = APIRouter(prefix="/api/v1", dependencies=[Depends(api_anahtarini_dogrula)])
 
-# Görev durumu PostgreSQL'de (bkz. gorev_deposu.py, models.AnalizGorevi) --
-# API yeniden başlasa da /analiz/durum/{gorev_id} çalışmaya devam eder.
+# Uzun işler PostgreSQL kuyruğunda (bkz. gorev_deposu.py, isci/gorev_iscisi.py)
+# -- API yeniden başlasa da /analiz/durum/{gorev_id} çalışmaya devam eder.
 
 
 # OpenSky callsign'ları en fazla 8 karakter, harf/rakamdan oluşur (bkz.
@@ -406,24 +476,8 @@ def _tarihi_dogrula(deger: str) -> str:
 
 
 def _webhook_url_dogrula(deger: str | None) -> str | None:
-    if deger is None:
-        return None
-    parcalar = urlsplit(deger)
-    if parcalar.scheme not in ("http", "https") or not parcalar.hostname:
-        raise ValueError("bildirim_webhook_url 'http(s)://' ile başlayan geçerli bir URL olmalı.")
-    host = parcalar.hostname.lower()
-    izinli_hostlar = [
-        h.strip().lower() for h in os.environ.get("WEBHOOK_IZIN_VERILEN_HOSTLAR", "").split(",") if h.strip()
-    ]
-    if izinli_hostlar and host not in izinli_hostlar:
-        raise ValueError("bildirim_webhook_url'in host'u WEBHOOK_IZIN_VERILEN_HOSTLAR listesinde değil.")
-    try:
-        ip = ipaddress.ip_address(host)
-    except ValueError:
-        return deger
-    if ip.is_link_local or ip.is_multicast or ip.is_unspecified or ip.is_reserved:
-        raise ValueError("bildirim_webhook_url link-local/multicast/ayrılmış bir adrese işaret edemez.")
-    return deger
+    """Bkz. webhook.py: biçim + izin listesi + iç ağ adresi kontrolü (SSRF)."""
+    return webhook_url_dogrula(deger)
 
 
 class UcusAnalizIstegi(BaseModel):
@@ -475,6 +529,12 @@ class TopluAnalizIstegi(BaseModel):
         return _webhook_url_dogrula(deger)
 
 
+@v1.post("/ws-bileti", response_model=WsBiletiYaniti, tags=["Sistem"])
+async def ws_bileti(rol: str = Depends(api_anahtarini_dogrula)):
+    """/ws/uyarilar?bilet=... için 60 sn geçerli bilet (yönetici ya da pilot)."""
+    return {"bilet": ws_bileti_uret(rol), "gecerlilik_saniye": _BILET_SURESI_SANIYE}
+
+
 @v1.get("/esikler", response_model=EsiklerYaniti, tags=["Eşikler"])
 async def esikleri_getir():
     """web/harita3d.html gibi istemcilerin, renklendirme eşiklerini
@@ -515,6 +575,7 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi):
         istek.irtifa_ft,
         istek.zaman,
         istek.ucak_modeli,
+        canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
     )
     sonuc["czml"] = simulasyonu_czml_e_cevir(sonuc)
     return sonuc
@@ -541,7 +602,19 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi):
                 f"+{config.CANLI_TAHMIN_UFKU_SAAT} sa) bu noktayı kapsıyor."
             ),
         }
-        veri_kupu = veri_kupune_eris(istek.enlem, istek.boylam, istek.zaman, irtifa_m)
+        veri_durumu = {}
+        veri_kupu = veri_kupune_eris(
+            istek.enlem,
+            istek.boylam,
+            istek.zaman,
+            irtifa_m,
+            durum=veri_durumu,
+            canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
+        )
+        if veri_kupu is None and veri_durumu.get("canli_hazirlaniyor"):
+            return {"kapsam_icinde_mi": False, "aciklama": CANLI_VERI_HAZIRLANIYOR}
+        if veri_kupu is None and veri_durumu.get("canli_hata"):
+            return {"kapsam_icinde_mi": False, "aciklama": veri_durumu["canli_hata"]}
         if veri_kupu is None:
             return kapsam_disi_yaniti
 
@@ -560,6 +633,7 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi):
             "kapsam_icinde_mi": True,
             "ti1_indeksi": float(ti1),
             "ti1_riskli_mi": bool(ti1 >= config.TI1_ESIK_ORTA_SIDDETLI),
+            "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
             "ml_riski_var_mi": (ml_olasilik >= 0.5) if ml_olasilik is not None else None,
             "ml_olasilik": ml_olasilik,
             "aciklama": (
@@ -596,6 +670,7 @@ async def turbulans_model_versiyonlari():
 
 @v1.post(
     "/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir",
+    dependencies=_YONETICI,
     response_model=ModelBilgisiYaniti,
     tags=["Türbülans Tahmini"],
 )
@@ -627,7 +702,7 @@ async def ucuslar_listesi(
     )
 
 
-@v1.delete("/ucuslar", response_model=TopluSilmeYaniti, tags=["Uçuşlar"])
+@v1.delete("/ucuslar", dependencies=_YONETICI, response_model=TopluSilmeYaniti, tags=["Uçuşlar"])
 async def ucuslari_toplu_sil(
     ucus_numarasi_arama: str | None = Query(default=None, max_length=8, description="Uçuş numarasında kısmi arama"),
     baslangic_tarih: date | None = Query(default=None),
@@ -667,7 +742,9 @@ async def ucus_detayi(
     return detay
 
 
-@v1.delete("/ucuslar/{ucus_numarasi}/{tarih}", status_code=status.HTTP_204_NO_CONTENT, tags=["Uçuşlar"])
+@v1.delete(
+    "/ucuslar/{ucus_numarasi}/{tarih}", dependencies=_YONETICI, status_code=status.HTTP_204_NO_CONTENT, tags=["Uçuşlar"]
+)
 async def ucus_sil(
     ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
     tarih: date = Path(...),
@@ -753,61 +830,40 @@ async def ucus_sigmet_dogrulamasi(
     return await asyncio.to_thread(ucus_sigmet_ile_karsilastir, df)
 
 
-async def _gorev_olustur(tur, ucus_numarasi=None, tarih=None):
+async def _gorev_olustur(tur, ucus_numarasi=None, tarih=None, parametreler=None, webhook_url=None):
     await eski_gorevleri_temizle()
-    return await gorev_olustur(tur, ucus_numarasi=ucus_numarasi, tarih=tarih)
-
-
-async def _gorevi_bitir_ve_bildir(gorev_id, webhook_url, **alanlar):
-    await gorev_guncelle(gorev_id, **alanlar)
-    await _webhooku_bildir(webhook_url, {"gorev_id": gorev_id, **(await gorev_getir(gorev_id))})
-
-
-async def _tek_ucus_arkaplan_gorevi(gorev_id, ucus_numarasi, tarih, webhook_url):
-    await _analiz_arkaplan_gorevi(
-        gorev_id, lambda: tek_ucus_analiz_et(ucus_numarasi, tarih), ucus_numarasi, tarih, webhook_url
+    return await gorev_olustur(
+        tur, ucus_numarasi=ucus_numarasi, tarih=tarih, parametreler=parametreler, bildirim_webhook_url=webhook_url
     )
 
 
-async def _analiz_arkaplan_gorevi(gorev_id, analiz_fonksiyonu, ucus_numarasi, tarih, webhook_url):
-    try:
-        sonuc = await asyncio.to_thread(analiz_fonksiyonu)
-        alanlar = {"durum": "tamamlandi" if sonuc is not None else "basarisiz"}
-        await _yuksek_riskli_noktalari_yayinla(sonuc, ucus_numarasi, tarih)
-    except Exception as hata:
-        alanlar = {"durum": "hata", "aciklama": dostane_hata_mesaji(hata)}
-    await _gorevi_bitir_ve_bildir(gorev_id, webhook_url, **alanlar)
+def _kuyruga_alindi(gorev_id):
+    return {"gorev_id": gorev_id, "durum": "kuyrukta"}
 
 
-@v1.post("/analiz/ucus", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])
-async def ucus_analizi_baslat(istek: UcusAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
+@v1.post(
+    "/analiz/ucus",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=GorevBaslatildiYaniti,
+    tags=["Analiz"],
+)
+async def ucus_analizi_baslat(istek: UcusAnalizIstegi):
     _hiz_sinirini_kontrol_et("tek_ucus")
-    gorev_id = await _gorev_olustur("ucus", ucus_numarasi=istek.ucus_numarasi, tarih=istek.tarih)
-    arkaplan_gorevleri.add_task(
-        _tek_ucus_arkaplan_gorevi, gorev_id, istek.ucus_numarasi, istek.tarih, istek.bildirim_webhook_url
+    gorev_id = await _gorev_olustur(
+        "ucus", ucus_numarasi=istek.ucus_numarasi, tarih=istek.tarih, webhook_url=istek.bildirim_webhook_url
     )
-    return {"gorev_id": gorev_id, "durum": "baslatildi"}
+    return _kuyruga_alindi(gorev_id)
 
 
-async def _toplu_arkaplan_gorevi(gorev_id, ucus_listesi_df, webhook_url):
-    dongu = asyncio.get_running_loop()
-
-    def _ucus_tamamlandi(ucus_numarasi, tarih, eslesmis_df):
-        asyncio.run_coroutine_threadsafe(_yuksek_riskli_noktalari_yayinla(eslesmis_df, ucus_numarasi, tarih), dongu)
-
-    try:
-        ozet_df = await asyncio.to_thread(
-            toplu_analiz_calistir, ucus_listesi_df, kayit_zorunlu=True, ucus_tamamlandi=_ucus_tamamlandi
-        )
-        ozet = ozet_df.astype(object).where(ozet_df.notna(), None).to_dict(orient="records")
-        alanlar = {"durum": "tamamlandi", "ozet": ozet}
-    except Exception as hata:
-        alanlar = {"durum": "hata", "aciklama": dostane_hata_mesaji(hata)}
-    await _gorevi_bitir_ve_bildir(gorev_id, webhook_url, **alanlar)
-
-
-@v1.post("/analiz/rota", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])
-async def rota_analizi_baslat(istek: RotaAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
+@v1.post(
+    "/analiz/rota",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=GorevBaslatildiYaniti,
+    tags=["Analiz"],
+)
+async def rota_analizi_baslat(istek: RotaAnalizIstegi):
     """
     OpenSky'a BAĞLANMADAN, dışarıdan alınmış bir ADS-B izini (başka bir
     izleme servisi, uçuş kayıt cihazı vb.) analiz eder: aynı eşleştirme,
@@ -817,45 +873,49 @@ async def rota_analizi_baslat(istek: RotaAnalizIstegi, arkaplan_gorevleri: Backg
     GET /ucuslar/{ucus_numarasi}/{tarih} ile okunur.
     """
     _hiz_sinirini_kontrol_et("rota")
-    rota_df = pd.DataFrame([n.model_dump() for n in istek.noktalar]).rename(columns={"irtifa_m": "geo_irtifa_m"})
-    rota_df["zaman"] = pd.to_datetime(rota_df["zaman"], utc=True)
-    rota_df["geo_irtifa_m"] = rota_df["geo_irtifa_m"].astype(float)
-    rota_df = rota_df.sort_values("zaman").reset_index(drop=True)
-    rota_df["ucus_numarasi"] = istek.ucus_numarasi
-    tarih = rota_df["zaman"].iloc[0].date().isoformat()
-
-    gorev_id = await _gorev_olustur("rota", ucus_numarasi=istek.ucus_numarasi, tarih=tarih)
-    arkaplan_gorevleri.add_task(
-        _analiz_arkaplan_gorevi,
-        gorev_id,
-        lambda: rota_analiz_et(rota_df, istek.ucus_numarasi, tarih),
-        istek.ucus_numarasi,
-        tarih,
-        istek.bildirim_webhook_url,
+    tarih = min(n.zaman for n in istek.noktalar).date().isoformat()
+    gorev_id = await _gorev_olustur(
+        "rota",
+        ucus_numarasi=istek.ucus_numarasi,
+        tarih=tarih,
+        parametreler={"noktalar": [n.model_dump(mode="json") for n in istek.noktalar]},
+        webhook_url=istek.bildirim_webhook_url,
     )
-    return {"gorev_id": gorev_id, "durum": "baslatildi"}
+    return _kuyruga_alindi(gorev_id)
 
 
-@v1.post("/analiz/toplu", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Analiz"])
-async def toplu_analiz_baslat(istek: TopluAnalizIstegi, arkaplan_gorevleri: BackgroundTasks):
+@v1.post(
+    "/analiz/toplu",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=GorevBaslatildiYaniti,
+    tags=["Analiz"],
+)
+async def toplu_analiz_baslat(istek: TopluAnalizIstegi):
     _hiz_sinirini_kontrol_et("toplu")
     if not istek.ucuslar:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="'ucuslar' listesi boş olamaz.")
-    ucus_listesi_df = pd.DataFrame([u.model_dump(exclude={"bildirim_webhook_url"}) for u in istek.ucuslar])
-    gorev_id = await _gorev_olustur("toplu")
-    arkaplan_gorevleri.add_task(_toplu_arkaplan_gorevi, gorev_id, ucus_listesi_df, istek.bildirim_webhook_url)
-    return {"gorev_id": gorev_id, "durum": "baslatildi"}
+    gorev_id = await _gorev_olustur(
+        "toplu",
+        parametreler={"ucuslar": [u.model_dump(exclude={"bildirim_webhook_url"}) for u in istek.ucuslar]},
+        webhook_url=istek.bildirim_webhook_url,
+    )
+    return _kuyruga_alindi(gorev_id)
 
 
 @v1.get("/analiz/durum/{gorev_id}", response_model=GorevDurumYaniti, tags=["Analiz"])
 async def analiz_durumu(gorev_id: str):
+    """Kuyruktaki uzun işlerin (analiz, toplu analiz, backtest, canlı veri)
+    durumu: kuyrukta -> calisiyor -> tamamlandi | basarisiz | hata |
+    yarida_kaldi. Sonucu olan işlerde (toplu, backtest, canlı veri) sonuç
+    'ozet' alanındadır."""
     gorev = await gorev_getir(gorev_id)
     if gorev is None:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Bilinmeyen gorev_id.")
     return gorev
 
 
-@v1.post("/sigmet/guncelle", response_model=SigmetYenilemeYaniti, tags=["SIGMET"])
+@v1.post("/sigmet/guncelle", dependencies=_YONETICI, response_model=SigmetYenilemeYaniti, tags=["SIGMET"])
 async def sigmetleri_yenile():
     """AWC'den (aviationweather.gov: ABD `airsigmet` + uluslararası `isigmet`)
     canlı SIGMET'leri çekip veritabanını günceller; akıştan düşen (iptal
@@ -885,8 +945,69 @@ async def aktif_sigmetleri_listele(
         enlem_maks,
         boylam_min,
         boylam_maks,
-        tehlike or config.SIGMET_KACINILACAK_TEHLIKELER,
+        tehlike or kacinilacak_tehlikeler(),
     )
+
+
+@v1.get("/kisitli-sahalar", response_model=list[KisitliSahaYaniti], tags=["Kısıtlı Hava Sahaları"])
+async def kisitli_sahalari_listele(
+    enlem_min: float = Query(default=-90, ge=-90, le=90),
+    enlem_maks: float = Query(default=90, ge=-90, le=90),
+    boylam_min: float = Query(default=-180, ge=-180, le=180),
+    boylam_maks: float = Query(default=180, ge=-180, le=180),
+):
+    """ŞU AN geçerli (süresizler dahil) kısıtlı/yasak hava sahaları -- A*'ın
+    SIGMET gibi sert kısıt olarak kaçındığı alanlar."""
+    simdi = datetime.now(UTC)
+    return await asyncio.to_thread(
+        gecerli_kisitli_sahalari_getir, simdi, simdi, enlem_min, enlem_maks, boylam_min, boylam_maks
+    )
+
+
+@v1.post(
+    "/kisitli-sahalar",
+    dependencies=_YONETICI,
+    response_model=KisitliSahaIceAktarmaYaniti,
+    tags=["Kısıtlı Hava Sahaları"],
+)
+async def kisitli_sahalari_ice_aktar(
+    geojson: dict,
+    kaynak: str = Query(min_length=1, max_length=32, pattern=r"^[a-z0-9_\-]+$"),
+    eskileri_kaldir: bool = Query(default=False, description="Bu kaynağın yeni veride olmayan kayıtlarını sil"),
+):
+    """GeoJSON FeatureCollection içe aktarır (Polygon/MultiPolygon; properties:
+    kimlik, ad, tur, taban_ft, tavan_ft, baslangic, bitis, aciklama). Örn. n8n
+    bir NOTAM akışından geçici kısıtları `kaynak=notam` ile iter. Aynı
+    kaynak:kimlik ikinci kez gelirse güncellenir."""
+    _hiz_sinirini_kontrol_et("kisitli_saha")
+    return await asyncio.to_thread(geojson_ice_aktar, geojson, kaynak, eskileri_kaldir)
+
+
+@v1.post(
+    "/kisitli-sahalar/openaip",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=GorevBaslatildiYaniti,
+    tags=["Kısıtlı Hava Sahaları"],
+)
+async def openaip_sahalarini_yenile(ulke: list[str] | None = Query(default=None, description="ISO ülke kodu(ları)")):
+    """Gerçek kısıtlı/yasak sahaları openAIP'ten çekip 'openaip' kaynağını tam
+    yeniler (OPENAIP_API_ANAHTARI gerekir; AIRAC döngüsünde n8n tetikleyebilir).
+    Kuyruğa girer; sonuç GET /analiz/durum/{gorev_id}."""
+    _hiz_sinirini_kontrol_et("kisitli_saha")
+    return _kuyruga_alindi(await _gorev_olustur("openaip", parametreler={"ulkeler": ulke}))
+
+
+@v1.delete(
+    "/kisitli-sahalar/{dis_kimlik}",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_204_NO_CONTENT,
+    tags=["Kısıtlı Hava Sahaları"],
+)
+async def kisitli_saha_sil(dis_kimlik: str = Path(max_length=128)):
+    _hiz_sinirini_kontrol_et("kisitli_saha")
+    if not await asyncio.to_thread(kisitli_sahayi_sil, dis_kimlik):
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kısıtlı saha bulunamadı.")
 
 
 _CANLI_VERI_MAKS_KUTU_DERECE = (40.0, 60.0)
@@ -899,10 +1020,18 @@ async def hava_durumu_kupleri(limit: int = Query(default=50, ge=1, le=500)):
     return [{**k, "dosya_adi": os.path.basename(k["dosya_yolu"])} for k in kupler]
 
 
-@v1.post("/veri/canli/hazirla", response_model=HavaDurumuKupuYaniti, tags=["Veri Sağlayıcı"])
+@v1.post(
+    "/veri/canli/hazirla",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=GorevBaslatildiYaniti,
+    tags=["Veri Sağlayıcı"],
+)
 async def canli_veri_hazirla(istek: CanliVeriIstegi):
-    """Verilen bölge/zaman için canlı NOAA GFS küpünü hazırlar (katalogda taze
-    bir küp varsa onu kullanır, yoksa indirir) ve özetini döner."""
+    """Verilen bölge/zaman için canlı NOAA GFS küpünü arka planda hazırlar
+    (katalogda taze bir küp varsa onu kullanır, yoksa indirir). Yavaş ağda
+    indirme dakikalar sürebildiği için istek beklemez: 202 + gorev_id döner,
+    küp özeti GET /analiz/durum/{gorev_id} yanıtının 'ozet' alanındadır."""
     _hiz_sinirini_kontrol_et("canli_veri")
     if istek.enlem_min >= istek.enlem_maks or istek.boylam_min >= istek.boylam_maks:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Kutu sınırları geçersiz (min < maks olmalı).")
@@ -912,26 +1041,29 @@ async def canli_veri_hazirla(istek: CanliVeriIstegi):
             status.HTTP_400_BAD_REQUEST,
             f"Kutu en fazla {_CANLI_VERI_MAKS_KUTU_DERECE[0]:.0f}° x {_CANLI_VERI_MAKS_KUTU_DERECE[1]:.0f}° olabilir.",
         )
-    baslangic = istek.baslangic or datetime.now(UTC)
-    kutu = Kutu(istek.enlem_min, istek.enlem_maks, istek.boylam_min, istek.boylam_maks)
     try:
-        kup = await asyncio.to_thread(
-            canli_kup_hazirla, kutu, baslangic, baslangic + timedelta(hours=istek.saat_sayisi)
-        )
-    except Exception as hata:
-        _hatayi_sunucu_tarafinda_logla(hata, "canlı GFS indirme")
-        raise HTTPException(
-            status.HTTP_502_BAD_GATEWAY, "Canlı hava verisi sağlayıcısından geçerli veri alınamadı."
-        ) from hata
-    return {
-        "kaynak": kup.attrs.get("kaynak", "era5"),
-        "model_calisma_zamani": kup.attrs.get("model_calisma_zamani"),
-        "dosya_adi": veri_kupu_adi(kup),
-        **kup_meta_verisi(kup),
-    }
+        webhook = _webhook_url_dogrula(istek.bildirim_webhook_url)
+    except ValueError as hata:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(hata)) from hata
+    baslangic = istek.baslangic or datetime.now(UTC)
+    gorev_id = await _gorev_olustur(
+        "canli_veri",
+        parametreler={
+            "kutu": [istek.enlem_min, istek.enlem_maks, istek.boylam_min, istek.boylam_maks],
+            "baslangic": baslangic.isoformat(),
+            "saat_sayisi": istek.saat_sayisi,
+        },
+        webhook_url=webhook,
+    )
+    return _kuyruga_alindi(gorev_id)
 
 
-@v1.post("/backtest/ucuslar/{ucus_numarasi}/{tarih}", response_model=BacktestSonucuYaniti, tags=["Backtest"])
+@v1.post(
+    "/backtest/ucuslar/{ucus_numarasi}/{tarih}",
+    dependencies=_YONETICI,
+    response_model=BacktestSonucuYaniti,
+    tags=["Backtest"],
+)
 async def ucus_backtesti(
     ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
     tarih: date = Path(...),
@@ -942,20 +1074,14 @@ async def ucus_backtesti(
     return await asyncio.to_thread(ucus_backtest_et, ucus_numarasi, tarih.isoformat())
 
 
-async def _toplu_backtest_gorevi(gorev_id, limit, webhook_url):
-    try:
-        ozet = await asyncio.to_thread(toplu_backtest, limit)
-        alanlar = {"durum": "tamamlandi", "ozet": ozet}
-    except Exception as hata:
-        alanlar = {"durum": "hata", "aciklama": dostane_hata_mesaji(hata)}
-    await _gorevi_bitir_ve_bildir(gorev_id, webhook_url, **alanlar)
-
-
 @v1.post(
-    "/backtest/toplu", status_code=status.HTTP_202_ACCEPTED, response_model=GorevBaslatildiYaniti, tags=["Backtest"]
+    "/backtest/toplu",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=GorevBaslatildiYaniti,
+    tags=["Backtest"],
 )
 async def toplu_backtest_baslat(
-    arkaplan_gorevleri: BackgroundTasks,
     limit: int = Query(default=20, ge=1, le=200),
     bildirim_webhook_url: str | None = Query(default=None),
 ):
@@ -966,9 +1092,8 @@ async def toplu_backtest_baslat(
         webhook = _webhook_url_dogrula(bildirim_webhook_url)
     except ValueError as hata:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(hata)) from hata
-    gorev_id = await _gorev_olustur("backtest")
-    arkaplan_gorevleri.add_task(_toplu_backtest_gorevi, gorev_id, limit, webhook)
-    return {"gorev_id": gorev_id, "durum": "baslatildi"}
+    gorev_id = await _gorev_olustur("backtest", parametreler={"limit": limit}, webhook_url=webhook)
+    return _kuyruga_alindi(gorev_id)
 
 
 @v1.get("/backtest", response_model=BacktestListesiYaniti, tags=["Backtest"])
@@ -981,23 +1106,134 @@ async def backtest_sonuclari():
 app.include_router(v1)
 
 
-@app.get("/saglik", response_model=SaglikYaniti, tags=["Sistem"])
-async def saglik_kontrolu(
-    derin: bool = Query(default=False, description="True ise PostgreSQL'e gerçekten bağlanmayı dener"),
-):
-    """Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği).
-    Varsayılan (sığ) davranış DEĞİŞMEDİ -- sadece süreç ayakta mı diye bakar,
-    her yük dengeleyici probunda PostgreSQL'e gitmeyi zorlamaz.
-    `?derin=true` ile gerçek bir PostgreSQL bağlantısı denenir (deploy
-    sonrası 'DB'ye GERÇEKTEN erişiyor muyum' diye elle/monitoring'den
-    kontrol için)."""
-    if not derin:
-        return {"durum": "ayakta"}
+# ---------------------------------------------------------------------------
+# Sağlık / izleme
+# ---------------------------------------------------------------------------
+
+_SAGLIKSIZ_DURUMLAR = {"bayat", "hata", "birikiyor"}
+_UYARI_DURUMLARI = {"cdn_yedegi", "ornek_veri", "veri_yok"}
+_KUYRUK_BIRIKME_ESIGI_SANIYE = 120
+_AYRINTI_ALANLARI = ("son_hata", "kaynaklar")
+
+
+def _sigmet_kontrolu():
+    durumlar = kaynak_saglik_durumlari()
+    son = son_guncelleme_zamani()
+    yas_dakika = (datetime.now(UTC) - son).total_seconds() / 60 if son else None
+    hatali = [d for d in durumlar if d.get("ardisik_hata_sayisi")]
+    if hatali:
+        durum = "hata"
+    elif yas_dakika is None or yas_dakika > config.SIGMET_BAYATLIK_DAKIKA:
+        durum = "bayat"
+    else:
+        durum = "tamam"
+    return {
+        "durum": durum,
+        "son_basarili_guncelleme": son,
+        "yas_dakika": round(yas_dakika, 1) if yas_dakika is not None else None,
+        "otomatik_guncelleme_dakika": config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA,
+        "kaynaklar": {
+            d["kaynak"]: {k: d.get(k) for k in ("son_basari_zamani", "ardisik_hata_sayisi", "son_hata")}
+            for d in durumlar
+        },
+    }
+
+
+def _canli_gfs_kontrolu():
+    if not config.CANLI_HAVA_VERISI_ETKIN:
+        return {"durum": "kapali"}
+    kayitlar = kaynak_durumlarini_getir([canli_durum_anahtari("gfs")])
+    if not kayitlar:
+        return {"durum": "kullanilmadi"}
+    kayit = kayitlar[0]
+    return {
+        "durum": "hata" if kayit["ardisik_hata_sayisi"] else "tamam",
+        "son_basarili_indirme": kayit["son_basari_zamani"],
+        "son_deneme": kayit["son_deneme_zamani"],
+        "ardisik_hata_sayisi": kayit["ardisik_hata_sayisi"],
+        "son_hata": kayit["son_hata"],
+    }
+
+
+def _kisitli_saha_kontrolu():
+    simdi = datetime.now(UTC)
+    sahalar = gecerli_kisitli_sahalari_getir(simdi, simdi)
+    ornek = sum(s["kaynak"] == ORNEK_KAYNAK for s in sahalar)
+    durum = "veri_yok" if not sahalar else ("ornek_veri" if ornek == len(sahalar) else "tamam")
+    return {"durum": durum, "aktif_saha_sayisi": len(sahalar), "ornek_saha_sayisi": ornek}
+
+
+async def _gorev_kuyrugu_kontrolu():
+    kuyruk = await kuyruk_durumu()
+    birikiyor = kuyruk["kuyrukta"] > 0 and (kuyruk["en_eski_bekleme_saniye"] or 0) > _KUYRUK_BIRIKME_ESIGI_SANIYE
+    return {"durum": "birikiyor" if birikiyor else "tamam", **kuyruk, "gomulu_isci": config.GOREV_GOMULU_ISCI}
+
+
+async def _kontrol_et(kontrol):
     try:
-        motor = async_motor_al()
-        async with motor.connect() as baglanti:
+        return await kontrol() if inspect.iscoroutinefunction(kontrol) else await asyncio.to_thread(kontrol)
+    except Exception as hata:
+        _logger.warning("Sağlık kontrolü başarısız (%s): %s", kontrol.__name__, dostane_hata_mesaji(hata))
+        return {"durum": "hata", "son_hata": dostane_hata_mesaji(hata)}
+
+
+async def _saglik_raporu(ayrintili: bool) -> dict:
+    """EFB'nin güvendiği her dış bağımlılığın durumu. Operasyonel sorunlar
+    (bayat SIGMET, veri kaynağı hatası, biriken kuyruk) genel durumu 'bozulmus'
+    yapar; yapılandırma eksikleri (CDN'e düşen kütüphaneler, sadece örnek
+    kısıtlı saha) 'uyarilar'da listelenir. Ham hata metinleri sadece ayrıntılı
+    (API anahtarlı) raporda yer alır."""
+    kontroller = {
+        "sigmet": await _kontrol_et(_sigmet_kontrolu),
+        "canli_gfs": await _kontrol_et(_canli_gfs_kontrolu),
+        "gorev_kuyrugu": await _kontrol_et(_gorev_kuyrugu_kontrolu),
+        "kisitli_sahalar": await _kontrol_et(_kisitli_saha_kontrolu),
+        "kup_onbellegi": {"durum": "tamam", **onbellek_durumu()},
+        "statik_dosyalar": yerel_kutuphane_durumu(),
+        "fir_sinirlari": {"durum": "tamam" if await asyncio.to_thread(fir_verisi_var_mi) else "veri_yok"},
+    }
+    if not ayrintili:
+        kontroller = {ad: {k: v for k, v in k_.items() if k not in _AYRINTI_ALANLARI} for ad, k_ in kontroller.items()}
+    return {
+        "durum": "bozulmus" if any(k["durum"] in _SAGLIKSIZ_DURUMLAR for k in kontroller.values()) else "ayakta",
+        "veritabani": "erisilebilir",
+        "kontroller": kontroller,
+        "uyarilar": [f"{ad}: {k['durum']}" for ad, k in kontroller.items() if k["durum"] in _UYARI_DURUMLARI],
+    }
+
+
+async def _veritabani_erisilebilir_mi() -> bool:
+    try:
+        async with async_motor_al().connect() as baglanti:
             await baglanti.execute(text("SELECT 1"))
-        return {"durum": "ayakta", "veritabani": "erisilebilir"}
+        return True
     except Exception as hata:
         _logger.warning("Derin sağlık kontrolünde PostgreSQL'e erişilemedi: %s", dostane_hata_mesaji(hata))
+        return False
+
+
+@v1.get("/sistem/durum", dependencies=_YONETICI, response_model=SistemDurumuYaniti, tags=["Sistem"])
+async def sistem_durumu():
+    """/saglik?derin=true ile aynı rapor, ek olarak kaynak başına son hata
+    metinleriyle (API anahtarı gerektirir -- dış servis hata ayrıntıları
+    herkese açık uçta gösterilmez)."""
+    if not await _veritabani_erisilebilir_mi():
+        raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Veritabanına şu anda ulaşılamıyor.")
+    return await _saglik_raporu(ayrintili=True)
+
+
+@app.get("/saglik", response_model=SaglikYaniti, tags=["Sistem"])
+async def saglik_kontrolu(
+    derin: bool = Query(default=False, description="True ise veritabanı ve tüm dış bağımlılıklar kontrol edilir"),
+):
+    """Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği).
+    Varsayılan (sığ) davranış sadece süreç ayakta mı diye bakar, her yük
+    dengeleyici probunda PostgreSQL'e gitmez. `?derin=true`: PostgreSQL
+    (erişilemezse 503) + SIGMET tazeliği, canlı GFS, görev kuyruğu,
+    kısıtlı sahalar, küp önbelleği ve yerel kütüphaneler; operasyonel bir
+    sorun varsa durum 'bozulmus' olur (HTTP 200, monitoring gövdeye bakar)."""
+    if not derin:
+        return {"durum": "ayakta"}
+    if not await _veritabani_erisilebilir_mi():
         return JSONResponse(status_code=503, content={"durum": "ayakta", "veritabani": "erisilemiyor"})
+    return await _saglik_raporu(ayrintili=False)

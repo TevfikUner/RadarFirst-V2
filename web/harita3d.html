@@ -21,8 +21,13 @@
   istemeye başlamasıyla yaşanan sorunu tekrarlamamak için, YİNE anahtarsız
   Esri World Street Map kullanıyor.
 -->
-<link href="https://cdn.jsdelivr.net/npm/maplibre-gl@5.8.0/dist/maplibre-gl.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.8.0/dist/maplibre-gl.js"></script>
+<!-- Kütüphane önce bu sunucudan (web/vendor, bkz. turbulans-statik), yoksa CDN'den. -->
+<link href="vendor/maplibre-gl/maplibre-gl.css" rel="stylesheet"
+      onerror="this.onerror=null;this.href='https://cdn.jsdelivr.net/npm/maplibre-gl@5.8.0/dist/maplibre-gl.css'">
+<script src="vendor/maplibre-gl/maplibre-gl.js"></script>
+<script>
+  window.maplibregl || document.write('<script src="https://cdn.jsdelivr.net/npm/maplibre-gl@5.8.0/dist/maplibre-gl.js"><\/script>');
+</script>
 <style>
   :root { color-scheme: dark; }
   html, body { margin: 0; padding: 0; height: 100%; font-family: system-ui, sans-serif; }
@@ -118,6 +123,11 @@
       Sadece ABD hava sahası için gerçek veri (bkz. sigmet_dogrulama.py)
     </div>
   </div>
+  <div style="font-size:10px; color:#e67e22; margin-top:6px; border-top:1px solid #444; padding-top:6px;">
+    ⚠ TI1 tek başına bağımsız doğrulanmamıştır (167 PIREP'te ROC-AUC 0.44; bir
+    uçuşta [PUE502] aktif SIGMET'in işaret ettiği türbülansı hiç yakalamadı) --
+    bkz. fizik/turbulans_indeksleri.py.
+  </div>
 </div>
 
 <div id="zaman-kontrolu" class="panel" style="display:none;">
@@ -131,7 +141,7 @@
 const API_TABANI = "";  // aynı origin -- göreli yollar yeterli
 
 function anahtarAl() {
-  return document.getElementById("giris-anahtar").value || localStorage.getItem("tr_api_anahtari") || "";
+  return document.getElementById("giris-anahtar").value || sessionStorage.getItem("tr_api_anahtari") || "";
 }
 
 function durumGoster(mesaj, tur) {
@@ -177,7 +187,11 @@ function haritayiHazirla() {
     container: "harita",
     style: {
       version: 8,
+      // Altlık: sunucudan gelen sade ülke sınırları (Natural Earth, kamu
+      // malı) -- İNTERNETSİZ de görünür; Esri karoları üstte, bağlantı
+      // yoksa gelmezler ama harita boş kalmaz.
       sources: {
+        "ulke-sinirlari": { type: "geojson", data: new URL("veri/ulke_sinirlari.geojson", location.href).href },
         "esri-yol": {
           type: "raster",
           tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"],
@@ -185,7 +199,11 @@ function haritayiHazirla() {
           attribution: "Tiles &copy; Esri",
         },
       },
-      layers: [{ id: "esri-yol", type: "raster", source: "esri-yol" }],
+      layers: [
+        { id: "arka-plan", type: "background", paint: { "background-color": "#16222e" } },
+        { id: "ulke-sinirlari", type: "line", source: "ulke-sinirlari", paint: { "line-color": "#7f95a8", "line-width": 0.8 } },
+        { id: "esri-yol", type: "raster", source: "esri-yol" },
+      ],
     },
     center: [30, 40],
     zoom: 4,
@@ -294,7 +312,7 @@ async function ucusuYukle() {
     durumGoster("Uçuş numarası, tarih ve API anahtarı gerekli.", "hata");
     return;
   }
-  localStorage.setItem("tr_api_anahtari", anahtar);
+  sessionStorage.setItem("tr_api_anahtari", anahtar);
 
   durumGoster("Yükleniyor...", "bilgi");
   try {
@@ -417,11 +435,20 @@ function metinSpan(metin, stil) {
   return el;
 }
 
-function canliUyarilariDinle() {
+async function canliUyarilariDinle() {
   const anahtar = anahtarAl();
   if (!anahtar) return;
+  // Anahtar URL'ye yazılmaz (loglanır): önce 60 sn'lik bilet alınır.
+  let bilet;
+  try {
+    const yanit = await fetch(API_TABANI + "/api/v1/ws-bileti", { method: "POST", headers: { "X-API-Key": anahtar } });
+    if (!yanit.ok) return;
+    bilet = (await yanit.json()).bilet;
+  } catch (e) {
+    return;
+  }
   const protokol = location.protocol === "https:" ? "wss:" : "ws:";
-  const ws = new WebSocket(`${protokol}//${location.host}/ws/uyarilar?api_key=${encodeURIComponent(anahtar)}`);
+  const ws = new WebSocket(`${protokol}//${location.host}/ws/uyarilar?bilet=${encodeURIComponent(bilet)}`);
   ws.onmessage = (olay) => {
     const veri = JSON.parse(olay.data);
     if (veri.tip !== "turbulans_uyarisi") return;
@@ -433,7 +460,7 @@ function canliUyarilariDinle() {
   ws.onerror = () => console.warn("Canlı uyarı WebSocket bağlantısı kurulamadı.");
 }
 
-document.getElementById("giris-anahtar").value = localStorage.getItem("tr_api_anahtari") || "";
+document.getElementById("giris-anahtar").value = sessionStorage.getItem("tr_api_anahtari") || "";
 document.getElementById("yukle-buton").addEventListener("click", () => { ucusuYukle(); canliUyarilariDinle(); });
 document.getElementById("sil-buton").addEventListener("click", ucusuSil);
 document.getElementById("ucuslar-arama-buton").addEventListener("click", kayitliUcuslariListele);

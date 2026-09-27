@@ -3,7 +3,12 @@ from datetime import UTC, datetime, timedelta
 import pandas as pd
 import pytest
 
-from turbulans_radar.rota.risk_katmanlari import RiskDegerlendirmesi, SigmetKisitKatmani, degerlendirmeleri_birlestir
+from turbulans_radar.rota.risk_katmanlari import (
+    KisitliSahaKatmani,
+    RiskDegerlendirmesi,
+    SigmetKisitKatmani,
+    degerlendirmeleri_birlestir,
+)
 
 SIMDI = pd.Timestamp(datetime.now(UTC))
 
@@ -83,3 +88,54 @@ def test_kendini_kesen_sigmet_poligonu_onarilarak_uygulanir():
     konumlar = {"sol_lob": (39.0, 30.4), "sag_lob": (39.0, 31.6), "disarida": (37.0, 31.0)}
     sonuc = katman.degerlendir(konumlar, dict.fromkeys(konumlar, SIMDI), [], 34000 * 0.3048)
     assert sonuc.yasak_dugumler == {"sol_lob", "sag_lob"}
+
+
+def test_tehlikesi_bilinmeyen_sigmetten_muhafazakar_olarak_kacinilir():
+    sonuc = _degerlendir(SigmetKisitKatmani([_kare_sigmet(tehlike="BILINMIYOR")]))
+    assert sonuc.yasak_dugumler == {"ic"}
+
+
+def test_suresiz_kisitli_saha_her_zaman_ve_her_irtifada_uygulanir():
+    saha = {**_kare_sigmet(taban=None, tavan=None), "gecerlilik_baslangic": None, "gecerlilik_bitis": None}
+    sonuc = _degerlendir(KisitliSahaKatmani([saha]), irtifa_ft=41000, zaman=SIMDI + timedelta(days=3650))
+    assert sonuc.yasak_dugumler == {"ic"}
+    assert sonuc.yasak_kenarlar == {("dis_bati", "dis_dogu")}
+
+
+def test_gecici_kisitli_saha_sadece_penceresinde_uygulanir():
+    saha = {**_kare_sigmet(), "gecerlilik_baslangic": SIMDI + timedelta(hours=1), "gecerlilik_bitis": None}
+    assert not _degerlendir(KisitliSahaKatmani([saha])).yasak_dugumler
+    assert _degerlendir(KisitliSahaKatmani([saha]), zaman=SIMDI + timedelta(hours=2)).yasak_dugumler == {"ic"}
+
+
+def test_zaman_belirsizligi_icinde_baslayan_sigmet_muhafazakar_olarak_uygulanir():
+    sigmet = _kare_sigmet(baslangic=SIMDI + timedelta(minutes=20), bitis=SIMDI + timedelta(hours=3))
+    konumlar = {"ic": (39.0, 31.0)}
+    katman = SigmetKisitKatmani([sigmet])
+    zamanlar = {"ic": SIMDI}
+    assert not katman.degerlendir(konumlar, zamanlar, [], 34000 * 0.3048).yasak_dugumler
+    sonuc = katman.degerlendir(konumlar, zamanlar, [], 34000 * 0.3048, zaman_belirsizligi={"ic": timedelta(minutes=30)})
+    assert sonuc.yasak_dugumler == {"ic"}
+
+
+def _hareketli(yon, hiz):
+    return {**_kare_sigmet(), "hareket_yonu_derece": yon, "hareket_hizi_kt": hiz}
+
+
+def test_hareketli_sigmet_varis_zamanindaki_konumuyla_uygulanir():
+    # 2 saat önce yayınlanmış, doğuya 60 kt: alan ~2.57° doğuya kaymış (32.6-34.6°D).
+    sonuc = _degerlendir(SigmetKisitKatmani([_hareketli(90.0, 60.0)]))
+    assert sonuc.yasak_dugumler == {"dis_dogu"}
+    assert sonuc.yasak_kenarlar == {("dis_bati", "dis_dogu")}
+
+
+def test_hizi_bilinmeyen_sigmet_olasi_tum_konumlari_supurur():
+    sonuc = _degerlendir(SigmetKisitKatmani([_hareketli(90.0, None)]))
+    assert sonuc.yasak_dugumler == {"ic", "dis_dogu"}
+
+
+def test_rota_ihlali_hareketli_sigmetin_konumuna_gore_sayilir():
+    katman = SigmetKisitKatmani([_hareketli(90.0, 60.0)])
+    zamanlar = [SIMDI] * 2
+    assert katman.rota_ihlal_sayisi([39.0, 39.0], [30.5, 31.5], zamanlar, 10000.0) == 0
+    assert katman.rota_ihlal_sayisi([39.0, 39.0], [33.0, 34.0], zamanlar, 10000.0) == 3

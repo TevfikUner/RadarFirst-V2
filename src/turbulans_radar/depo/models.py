@@ -10,13 +10,19 @@ tablo var, ORM sadece onların Python tarafındaki tanımı.
 
     Ucus           -> 'ucuslar' tablosu     (her uçuş/tarih çifti için bir satır)
     EdrOlcumu      -> 'edr_olcumleri'       (rota üzerindeki her nokta için bir satır)
-    AnalizGorevi   -> 'analiz_gorevleri'    (API'nin arka plan analiz görevleri -- süreç
-                                             yeniden başlasa da kaybolmaz)
+    AnalizGorevi   -> 'analiz_gorevleri'    (uzun işlerin KUYRUĞU: API ekler, işçiler
+                                             FOR UPDATE SKIP LOCKED ile alır; kalp atışı
+                                             kesilen görev yeniden kuyruğa girer)
     Sigmet         -> 'sigmetler'           (AWC'den çekilen canlı SIGMET'ler; A*'ın sert kısıtı)
     HavaDurumuKupu -> 'hava_durumu_kupleri' (ERA5/GFS/ECMWF küplerinin KATALOĞU -- ızgara
                                              verisinin kendisi diskte NetCDF olarak kalır)
     RotaBacktesti  -> 'rota_backtestleri'   (gerçek uçuş izi vs büyük daire vs A* rotası
                                              karşılaştırması, uçuş başına en son sonuç)
+    VeriKaynagiDurumu -> 'veri_kaynagi_durumlari' (her dış veri kaynağının son deneme/son
+                                             BAŞARILI çekim zamanı ve son hatası -- bayatlık
+                                             ve sağlık kontrolü buradan okunur)
+    KisitliHavaSahasi -> 'kisitli_hava_sahalari' (çatışma bölgesi, P/R/D sahaları, NOTAM'lı
+                                             geçici kısıtlar; A*'ın SIGMET gibi sert kısıtı)
 """
 
 from sqlalchemy import (
@@ -93,6 +99,13 @@ class AnalizGorevi(Base):
     tarih: Mapped[str | None] = mapped_column(String(10), nullable=True)
     aciklama: Mapped[str | None] = mapped_column(Text, nullable=True)
     ozet: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    parametreler: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    bildirim_webhook_url: Mapped[str | None] = mapped_column(Text, nullable=True)
+    deneme_sayisi: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    isci: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    baslama_zamani: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    kalp_atisi: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    bitis_zamani: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
     olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
     guncellenme_zamani: Mapped[object] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
@@ -124,6 +137,10 @@ class Sigmet(Base):
     boylam_min: Mapped[float] = mapped_column(Float, nullable=False)
     boylam_maks: Mapped[float] = mapped_column(Float, nullable=False)
     ham_metin: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Hareketin YÖNELDİĞİ yön (0=kuzey, 90=doğu) ve hızı; yön boşsa durağan,
+    # yön dolu hız boşsa hız bilinmiyor (bkz. risk_katmanlari: muhafazakâr süpürme).
+    hareket_yonu_derece: Mapped[float | None] = mapped_column(Float, nullable=True)
+    hareket_hizi_kt: Mapped[float | None] = mapped_column(Float, nullable=True)
     alinma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -173,4 +190,52 @@ class RotaBacktesti(Base):
     optimize_sure_dk: Mapped[float] = mapped_column(Float, nullable=False)
     optimize_riskli_oran: Mapped[float | None] = mapped_column(Float, nullable=True)
     optimize_sigmet_ihlali: Mapped[int] = mapped_column(Integer, nullable=False)
+    kanit_kaynaklari: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    gercek_turb_sigmet: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gercek_pirep_raporu: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gercek_mog_pirep: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    buyuk_daire_turb_sigmet: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    buyuk_daire_pirep_raporu: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    buyuk_daire_mog_pirep: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    optimize_turb_sigmet: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    optimize_pirep_raporu: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    optimize_mog_pirep: Mapped[int | None] = mapped_column(Integer, nullable=True)
     olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class VeriKaynagiDurumu(Base):
+    __tablename__ = "veri_kaynagi_durumlari"
+
+    kaynak: Mapped[str] = mapped_column(String(32), primary_key=True)
+    son_deneme_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    son_basari_zamani: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    ardisik_hata_sayisi: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    son_hata: Mapped[str | None] = mapped_column(Text, nullable=True)
+    son_ozet: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+
+class KisitliHavaSahasi(Base):
+    __tablename__ = "kisitli_hava_sahalari"
+    __table_args__ = (
+        UniqueConstraint("dis_kimlik", name="uq_kisitli_hava_sahalari_dis_kimlik"),
+        Index("ix_kisitli_hava_sahalari_kutu", "enlem_min", "enlem_maks", "boylam_min", "boylam_maks"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    dis_kimlik: Mapped[str] = mapped_column(String(128), nullable=False)
+    kaynak: Mapped[str] = mapped_column(String(32), nullable=False)
+    ad: Mapped[str] = mapped_column(String, nullable=False)
+    tur: Mapped[str] = mapped_column(String(16), nullable=False)
+    taban_ft: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    tavan_ft: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    gecerlilik_baslangic: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    gecerlilik_bitis: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    poligon: Mapped[list] = mapped_column(JSONB, nullable=False)
+    enlem_min: Mapped[float] = mapped_column(Float, nullable=False)
+    enlem_maks: Mapped[float] = mapped_column(Float, nullable=False)
+    boylam_min: Mapped[float] = mapped_column(Float, nullable=False)
+    boylam_maks: Mapped[float] = mapped_column(Float, nullable=False)
+    aciklama: Mapped[str | None] = mapped_column(Text, nullable=True)
+    guncellenme_zamani: Mapped[object] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )

@@ -23,7 +23,9 @@ import hashlib
 import math
 import os
 import tempfile
-from concurrent.futures import ThreadPoolExecutor
+import threading
+from concurrent.futures import Future, ThreadPoolExecutor
+from concurrent.futures import TimeoutError as GelecekZamanAsimi
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from typing import Protocol
@@ -35,9 +37,10 @@ import xarray as xr
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from turbulans_radar import config
+from turbulans_radar.depo.kaynak_durumu import kaynak_durumunu_kaydet
 from turbulans_radar.depo.kup_katalogu import eski_canli_kupleri_temizle, kapsayan_hazir_kup_yolu, kup_kaydet
 from turbulans_radar.loglama import logger_al
-from turbulans_radar.veri.veri_yukleme import hava_durumu_onbellekli_yukle, kapsayan_veri_kupunu_bul
+from turbulans_radar.veri.veri_yukleme import hava_durumu_onbellekli_yukle, hdf5_kilidi, kapsayan_veri_kupunu_bul
 
 _logger = logger_al(__name__)
 
@@ -159,12 +162,14 @@ class GfsThreddsSaglayici:
                     )
                 )
             parcalar = []
-            for yol in yollar:
-                with xr.open_dataset(yol) as ham:
-                    parcalar.append(gfs_kupunu_normalize_et(ham).load())
+            with hdf5_kilidi:
+                for yol in yollar:
+                    with xr.open_dataset(yol) as ham:
+                        parcalar.append(gfs_kupunu_normalize_et(ham).load())
         kup = xr.concat(parcalar, dim=config.BASINC_BOYUTU).sortby(config.BASINC_BOYUTU, ascending=False)
         kup.attrs = parcalar[0].attrs
-        kup.to_netcdf(hedef_yol)
+        with hdf5_kilidi:
+            kup.to_netcdf(hedef_yol)
         return kup.attrs.get("model_calisma_zamani")
 
 
@@ -183,18 +188,38 @@ def canli_zaman_mi(zaman) -> bool:
     )
 
 
+CANLI_VERI_ALINAMADI = "Canlı hava verisi sağlayıcısından (NOAA GFS) veri alınamadı."
+
+
+def canli_durum_anahtari(kaynak: str) -> str:
+    return f"hava:{kaynak}"
+
+
+def _indirme_durumunu_kaydet(kaynak, basarili, hata=None, ozet=None):
+    """Son başarılı/başarısız indirme veri_kaynagi_durumlari'na yazılır
+    (/saglik?derin=true bunu raporlar); veritabanı yoksa veri yolu bozulmaz."""
+    try:
+        kaynak_durumunu_kaydet(canli_durum_anahtari(kaynak), basarili, hata, ozet)
+    except Exception as db_hatasi:
+        _logger.warning("Canlı veri kaynağı durumu kaydedilemedi: %s", db_hatasi)
+
+
+def _canli_istegi_hizala(kutu: Kutu, baslangic, bitis, saglayici):
+    """Kutuyu sağlayıcının ızgarasına, pencereyi zaman adımına DIŞA doğru
+    hizalar. GFS 3 saatlik adımlarla gelir; saate yuvarlanmış bir pencere
+    (örn. 10:00) küpün ilk adımından (12:00) önce başlayacağı için katalogdaki
+    küp hiç "kapsayan" sayılmaz ve her istekte yeniden indirilirdi."""
+    kutu = kutu.genislet(_KUTU_PAYI_DERECE).izgaraya_hizala(getattr(saglayici, "izgara_derece", None))
+    adim = getattr(saglayici, "zaman_adimi", "1h")
+    return kutu, (_utc(baslangic) - _ZAMAN_PAYI).floor(adim), (_utc(bitis) + _ZAMAN_PAYI).ceil(adim)
+
+
 def canli_kup_hazirla(kutu: Kutu, baslangic, bitis, saglayici: VeriSaglayici | None = None) -> xr.Dataset:
     """Kutuyu/zamanı kapsayan taze bir canlı küp: katalogda varsa onu, yoksa
     sağlayıcıdan indirip kataloğa kaydeder. Katalog (PostgreSQL) erişilemezse
     küp yine indirilip kullanılır, sadece kaydedilmez."""
     saglayici = saglayici or GfsThreddsSaglayici()
-    kutu = kutu.genislet(_KUTU_PAYI_DERECE).izgaraya_hizala(getattr(saglayici, "izgara_derece", None))
-    # Pencere sağlayıcının zaman adımına hizalanır: GFS 3 saatlik adımlarla gelir;
-    # saate yuvarlanmış bir pencere (örn. 10:00) küpün ilk adımından (12:00)
-    # önce başlayacağı için katalogdaki küp hiç "kapsayan" sayılmaz ve her
-    # istekte yeniden indirilirdi.
-    adim = getattr(saglayici, "zaman_adimi", "1h")
-    baslangic, bitis = (_utc(baslangic) - _ZAMAN_PAYI).floor(adim), (_utc(bitis) + _ZAMAN_PAYI).ceil(adim)
+    kutu, baslangic, bitis = _canli_istegi_hizala(kutu, baslangic, bitis, saglayici)
     try:
         yol = kapsayan_hazir_kup_yolu(
             saglayici.kaynak,
@@ -216,14 +241,40 @@ def canli_kup_hazirla(kutu: Kutu, baslangic, bitis, saglayici: VeriSaglayici | N
     hedef = os.path.join(
         config.CANLI_VERI_KLASORU, f"{saglayici.kaynak}_{datetime.now(UTC):%Y%m%dT%H%M%S}_{anahtar}.nc"
     )
-    calisma_zamani = saglayici.kup_indir(kutu, baslangic, bitis, hedef)
-    kup = hava_durumu_onbellekli_yukle(hedef)
+    try:
+        calisma_zamani = saglayici.kup_indir(kutu, baslangic, bitis, hedef)
+        kup = hava_durumu_onbellekli_yukle(hedef)
+    except Exception as hata:
+        _indirme_durumunu_kaydet(saglayici.kaynak, False, f"{type(hata).__name__}: {hata}")
+        raise
+    _indirme_durumunu_kaydet(
+        saglayici.kaynak, True, ozet={"dosya": os.path.basename(hedef), "model_calisma_zamani": calisma_zamani}
+    )
     try:
         kup_kaydet(saglayici.kaynak, hedef, kup, calisma_zamani)
         eski_canli_kupleri_temizle(saglayici.kaynak)
     except Exception as hata:
         _logger.warning("Küp kataloğa kaydedilemedi (%s): %s", hedef, hata)
     return kup
+
+
+_arka_plan_havuzu = ThreadPoolExecutor(max_workers=2, thread_name_prefix="canli-veri")
+_suren_indirmeler: dict[tuple, Future] = {}
+_suren_kilidi = threading.Lock()
+
+
+def canli_kupu_arka_planda_hazirla(kutu: Kutu, baslangic, bitis, saglayici: VeriSaglayici) -> Future:
+    """canli_kup_hazirla'yı arka planda başlatır; aynı (hizalanmış) istek için
+    süren bir indirme varsa onu döner -- art arda gelen istekler ikinci kez
+    indirme başlatmaz."""
+    anahtar = (saglayici.kaynak, *_canli_istegi_hizala(kutu, baslangic, bitis, saglayici))
+    with _suren_kilidi:
+        gelecek = _suren_indirmeler.get(anahtar)
+        if gelecek is None:
+            gelecek = _arka_plan_havuzu.submit(canli_kup_hazirla, kutu, baslangic, bitis, saglayici)
+            _suren_indirmeler[anahtar] = gelecek
+            gelecek.add_done_callback(lambda _: _suren_indirmeler.pop(anahtar, None))
+        return gelecek
 
 
 def _canli_seviyeler_kapsar_mi(basinc_hpa) -> bool:
@@ -241,12 +292,26 @@ def _canli_seviyeler_kapsar_mi(basinc_hpa) -> bool:
         )
 
 
-def veri_kupunu_sec(enlemler, boylamlar, zamanlar, basinc_hpa=None, saglayici: VeriSaglayici | None = None):
+def veri_kupunu_sec(
+    enlemler,
+    boylamlar,
+    zamanlar,
+    basinc_hpa=None,
+    saglayici: VeriSaglayici | None = None,
+    pay_derece=1.0,
+    durum: dict | None = None,
+    canli_bekleme_saniye: float | None = None,
+):
     """Noktalar için hava küpü: önce yerel arşiv küpleri (ERA5, bkz.
-    veri_yukleme.kapsayan_veri_kupunu_bul); hiçbiri kapsamıyorsa ve tüm zamanlar
-    canlı penceredeyse canlı sağlayıcı (GFS). Hiçbiri yoksa None -- uydurma veri
-    üretilmez."""
-    kup = kapsayan_veri_kupunu_bul(enlemler, boylamlar, zamanlar, basinc_hpa)
+    veri_yukleme.kapsayan_veri_kupunu_bul -- büyük küplerden noktaların
+    pay_derece çevresi okunur); hiçbiri kapsamıyorsa ve tüm zamanlar canlı
+    penceredeyse canlı sağlayıcı (GFS). Hiçbiri yoksa None -- uydurma veri
+    üretilmez. durum sözlüğü verilirse canlı sağlayıcı denenip başarısız
+    olduğunda durum['canli_hata'] doldurulur ("kapsamıyor" ile "alınamadı"
+    ayrılsın diye). canli_bekleme_saniye verilirse (etkileşimli uçlar) canlı
+    küp en fazla o kadar beklenir; süre dolarsa indirme arka planda sürer,
+    None döner ve durum['canli_hazirlaniyor'] = True olur."""
+    kup = kapsayan_veri_kupunu_bul(enlemler, boylamlar, zamanlar, basinc_hpa, pay_derece=pay_derece)
     if kup is not None or not config.CANLI_HAVA_VERISI_ETKIN:
         return kup
     if basinc_hpa is not None and not _canli_seviyeler_kapsar_mi(basinc_hpa):
@@ -255,11 +320,27 @@ def veri_kupunu_sec(enlemler, boylamlar, zamanlar, basinc_hpa=None, saglayici: V
     if len(zaman_dizisi) == 0 or not (canli_zaman_mi(zaman_dizisi.min()) and canli_zaman_mi(zaman_dizisi.max())):
         return None
     enlemler, boylamlar = np.asarray(enlemler, dtype=float), np.asarray(boylamlar, dtype=float)
-    kutu = Kutu(enlemler.min(), enlemler.max(), boylamlar.min(), boylamlar.max())
+    # Canlı küp de noktaların pay_derece çevresini kapsamalı: rota için bu A*
+    # koridorudur (±ROTA_MAKS_YANAL_SAPMA_KM). Eskiden sadece ±2° indiriliyor,
+    # koridorun dışında kalan ızgara düğümleri "kapsam dışı" diye atılıyordu.
+    # (pay_derece'nin 1°'si eşleştirme toleransıdır; canli_kup_hazirla 2° ekler.)
+    kutu = Kutu(enlemler.min(), enlemler.max(), boylamlar.min(), boylamlar.max()).genislet(max(0.0, pay_derece - 1.0))
     try:
-        return canli_kup_hazirla(kutu, zaman_dizisi.min(), zaman_dizisi.max(), saglayici)
+        if canli_bekleme_saniye is None:
+            return canli_kup_hazirla(kutu, zaman_dizisi.min(), zaman_dizisi.max(), saglayici)
+        gelecek = canli_kupu_arka_planda_hazirla(
+            kutu, zaman_dizisi.min(), zaman_dizisi.max(), saglayici or GfsThreddsSaglayici()
+        )
+        try:
+            return gelecek.result(timeout=canli_bekleme_saniye)
+        except GelecekZamanAsimi:
+            if durum is not None:
+                durum["canli_hazirlaniyor"] = True
+            return None
     except Exception as hata:
         _logger.warning("Canlı hava verisi alınamadı: %s", hata)
+        if durum is not None:
+            durum["canli_hata"] = CANLI_VERI_ALINAMADI
         return None
 
 

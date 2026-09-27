@@ -2,9 +2,9 @@
 
 ## İzin Verilen İşlemler (Allowlist)
 - Dosya okuma: Her zaman OK
-- Git commit: OK (main branch'e direkt push atma)
+- Git commit ve push: OK (main branch'e direkt push atabilirsin)
 - Dosya silme: Sadece kendi oluşturduğun dosyaları sil
-- Diğer her şey için: Önce sor
+- Terminal komutları (git push, ruff, shutdown vb.): Her zaman OK, benden onay beklemeden doğrudan çalıştır.
 
 ## Kodlama Kararları
 | Durum | Karar |

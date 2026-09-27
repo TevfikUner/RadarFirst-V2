@@ -83,6 +83,7 @@ turbulans_radar/
   veri/       veri_yukleme.py                  -> NetCDF yükleme/önbellek, yerel küp seçimi, OpenSky/Trino sorguları
               veri_saglayicilari.py            -> Veri Sağlayıcı katmanı: canlı NOAA GFS (THREDDS) + ERA5 seçimi
               sigmet_saglayici.py              -> canlı AWC SIGMET'leri (ABD + uluslararası, Ankara FIR dahil)
+              kisitli_saha_saglayici.py        -> kısıtlı/yasak hava sahaları (GeoJSON içe aktarma, örnek veri)
               veri_indirme.py                  -> ERA5 indirme altyapısı (güvenlik sınırlı, varsayılan kuru deneme)
               kimlik_dogrulama.py              -> .env'den OpenSky kimlik bilgisi
   fizik/      turbulans_indeksleri.py          -> Ellrod TI1, Richardson, EDR proxy
@@ -90,7 +91,7 @@ turbulans_radar/
               birim_donusumleri.py             -> irtifa <-> basınç (ISA)
               kalibrasyon.py                   -> EDR ölçekleme katsayısı kalibrasyonu (bootstrap GA)
   rota/       rota_optimizasyonu.py            -> büyük daire vs A* rotası (yanal + irtifa), CZML üretimi
-              risk_katmanlari.py               -> A*'ın modüler risk katmanları (TI1 cezası, SIGMET sert kısıtı)
+              risk_katmanlari.py               -> A*'ın modüler risk katmanları (TI1 cezası, SIGMET/kısıtlı saha sert kısıtı)
   dogrulama/  rota_backtest.py                 -> A* rotası vs gerçek uçuş izi (otomatik backtest)
               sigmet_dogrulama.py              -> TI1'in tarihsel AWC SIGMET'leriyle karşılaştırması (ABD)
   ml/         turbulans_ml_modeli.py           -> PIREP + ERA5 ile eğitilmiş risk sınıflandırıcısı, versiyonlama
@@ -117,6 +118,14 @@ alembic upgrade head          # veritabanı şemasını kur/güncelle
 
 Sadece çalıştırmak (geliştirme araçları olmadan) için `pip install -e .` yeterlidir.
 
+Web arayüzlerinin kütüphanelerini (CesiumJS, MapLibre) yerelden sunmak için
+bir kez `turbulans-statik` çalıştır (yaklaşık 30 MB, `web/vendor/`'a; git'e
+girmez). Çalıştırılmazsa sayfalar aynı sürümü CDN'den yükler. Aynı komut,
+koordinatsız SIGMET'ler için FIR sınır verisini de `veri_dosyalari/`'na
+indirir (bkz. "Koordinatsız SIGMET'ler" bölümü); çalıştırılmazsa bu SIGMET'ler
+eski (eleme) davranışıyla işlenir. Docker imajı ikisini de derlenirken
+kendisi yapar.
+
 `.env`'e girilmesi gerekenler (bkz. `.env.example`): `OPENSKY_USERNAME`/
 `OPENSKY_PASSWORD` (OpenSky hesabı, tarihsel veri erişimi onaylanmış
 olmalı -- https://opensky-network.org/my-opensky/request-data),
@@ -133,8 +142,9 @@ manuel indirilmiş) proje köküne koyman gerekir -- büyük olduğu için
 docker compose up --build
 ```
 
-Bu, PostgreSQL'i ve API'yi (önce `alembic upgrade head` çalıştırıp) tek
-komutla ayağa kaldırır. `.env` dosyanın hazır olması gerekir;
+Bu, PostgreSQL'i, API'yi (önce `alembic upgrade head` çalıştırıp) ve uzun
+işleri çalıştıran ayrı **worker** servisini tek komutla ayağa kaldırır
+(ölçeklemek için: `docker compose up --scale worker=3`). `.env` dosyanın hazır olması gerekir;
 `POSTGRES_HOST` konteynerler arası iletişim için otomatik olarak compose
 servis adına (`db`) çevrilir. API `http://localhost:8000`'de, Swagger
 `http://localhost:8000/docs`'ta olur. Konteyner **otonom** çalışır: canlı
@@ -179,6 +189,14 @@ Her uçuş kendi kaydını PostgreSQL'e yazar ve kendi haritasını üretir; ayr
 hepsinin özetini `ciktilar/toplu_analiz_ozeti.csv`'de toplar. Bir uçuşta
 hata olursa diğerlerinin analizi durmaz; OpenSky'yi yormamak için uçuşlar
 arasına kısa bir bekleme konur.
+
+`POST /api/v1/analiz/toplu` ile n8n'in tetiklediği (onlarca/yüzlerce uçuşluk
+olabilen) toplu işlerde harita üretimi otomatik olarak kapatılır
+(`harita_uret=False`, bkz. `isci/gorev_iscisi.py`) -- sunucuda kimsenin
+açmayacağı bir HTML dosyasıyla `ciktilar/`'ı sınırsız büyütmek yerine sonuç
+zaten PostgreSQL'e yazılır ve `GET /ucuslar/{ucus}/{tarih}` (+ csv/geojson)
+ile okunur. CLI'dan (`turbulans-toplu-analiz`) çalıştırıldığında harita
+üretimi varsayılan olarak açık kalır.
 
 ### Veri kalitesini kontrol etmek
 
@@ -229,7 +247,10 @@ görüntü (snapshot) kolaylığı sağlar.
 | POST | `/api/v1/simulasyon/rota` | Büyük daire vs rüzgar-optimize rota + CZML döner; aktif SIGMET'ler sert kısıt olarak uygulanır (bkz. aşağıdaki bölüm) |
 | POST | `/api/v1/sigmet/guncelle` | AWC'den canlı SIGMET'leri çekip veritabanını günceller (n8n/cron periyodik tetikler) |
 | GET | `/api/v1/sigmet` | Şu an geçerli SIGMET'ler (kutu/tehlike filtresiyle) -- önyüzlerin yasak bölgeleri çizmesi için |
-| POST | `/api/v1/veri/canli/hazirla` | Bir bölge/zaman için canlı GFS küpünü önceden indirir (katalogda tazesi varsa onu kullanır) |
+| GET | `/api/v1/kisitli-sahalar` | Şu an geçerli kısıtlı/yasak hava sahaları (kutu filtresiyle) |
+| POST | `/api/v1/kisitli-sahalar?kaynak=...` | GeoJSON FeatureCollection içe aktarır (örn. n8n: NOTAM -> geçici kısıt); `eskileri_kaldir=true` kaynağı tamamen yeniler |
+| DELETE | `/api/v1/kisitli-sahalar/{dis_kimlik}` | Bir kısıtlı sahayı siler |
+| POST | `/api/v1/veri/canli/hazirla` | Bir bölge/zaman için canlı GFS küpünü arka planda hazırlar (katalogda tazesi varsa onu kullanır), 202 + `gorev_id` döner |
 | GET | `/api/v1/veri/kupler` | Hava durumu küpü kataloğu (kaynak, model çalıştırması, kapsam, seviyeler) |
 | POST | `/api/v1/backtest/ucuslar/{ucus_numarasi}/{tarih}` | Bir uçuşun gerçek izini büyük daire ve A* rotasıyla karşılaştırıp kaydeder |
 | POST | `/api/v1/backtest/toplu` | Backtest'i olmayan uçuşları arka planda karşılaştırır (n8n gece tetiklemesi), `gorev_id` döner |
@@ -239,6 +260,8 @@ görüntü (snapshot) kolaylığı sağlar.
 | GET | `/api/v1/turbulans/model-versiyonlari` | Şimdiye kadar eğitilmiş TÜM model versiyonlarını (en yeni önce) listeler |
 | POST | `/api/v1/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir` | Geçmiş bir model versiyonunu YENİDEN EĞİTİM GEREKMEDEN aktif model yapar (rollback); bilinmeyen `versiyon_id` 404 döner |
 | WS | `/ws/uyarilar?api_key=...` | TI1 "orta-şiddetli" eşiği aşılınca canlı uyarı yayınlar |
+| GET | `/saglik?derin=true` | (anahtarsız) Veritabanı + SIGMET tazeliği, canlı GFS, görev kuyruğu, kısıtlı sahalar, küp önbelleği, yerel kütüphaneler; operasyonel sorunda `durum: bozulmus` |
+| GET | `/api/v1/sistem/durum` | Aynı rapor + kaynak başına son hata metinleri (anahtarlı) |
 | GET | `/harita/harita3d.html` | 3D/canlı harita önyüzü (statik, tarayıcıda açılır) |
 | GET | `/harita/ucus_simulasyonu.html` | 3D uçuş simülasyonu önyüzü (statik, tarayıcıda açılır) |
 
@@ -259,6 +282,16 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
   başlığı gerektirir (`.env` -> `API_ANAHTARI`), sabit zamanlı
   (`secrets.compare_digest`) karşılaştırılır. Anahtar yanlış/eksikse 401,
   sunucuda hiç tanımlı değilse 503.
+- **Roller:** `API_ANAHTARI` yöneticidir (n8n, operasyon). İsteğe bağlı
+  `API_PILOT_ANAHTARI` EFB/pilot istemcisi içindir: okuma, rota simülasyonu,
+  tahmin ve canlı uyarılar; uçuş silme, kısıtlı saha değişikliği, model
+  aktifleştirme, görev tetikleme ve `/sistem/durum` için 403. Kokpitteki
+  cihaza sadece pilot anahtarı konur. Web sayfaları anahtarı sadece oturum
+  boyunca (`sessionStorage`) tutar.
+- **WebSocket bileti:** `/ws/uyarilar` anahtarı URL'de (erişim loglarında)
+  taşımamak için `POST /api/v1/ws-bileti`'den alınan 60 sn'lik, sunucu
+  anahtarıyla imzalı bilet (`?bilet=`) kullanır; `?api_key=` eski istemciler
+  için hâlâ kabul edilir ama önerilmez.
 - **Girdi doğrulama:** `tarih` gerçek bir tarih olarak, `ucus_numarasi`
   harf/rakam + en fazla 8 karakter olarak doğrulanır (422 döner).
 - **Hata gizliliği:** 500/503 yanıtları ham exception mesajını (SQL,
@@ -271,26 +304,40 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
   toplu silme) da AYNI desenle (kendi ayrı penceresiyle) korunur --
   yanlışlıkla/kötüye kullanımla art arda çok sayıda silme isteğine karşı.
 - **Asenkron:** okuma uç noktaları `asyncpg` tabanlı, event loop'u
-  bloklamaz. Analiz tetikleme, `main.py`/`toplu_analiz.py`'deki aynı
-  (bloklayan) mantığı `asyncio.to_thread` ile ayrı bir thread'de çalıştırır.
+  bloklamaz. Uzun işler API sürecinde çalışmaz (bkz. aşağıdaki görev kuyruğu).
 - **CORS:** varsayılan kapalı; `.env`'deki `CORS_IZIN_VERILEN_KAYNAKLAR`
   (virgülle ayrılmış origin listesi) ile açılır.
-- **Görev durumu** PostgreSQL'deki `analiz_gorevleri` tablosunda tutulur
-  (bkz. `gorev_deposu.py`): API yeniden başlasa da `/analiz/durum/{gorev_id}`
-  çalışır. Açılışta önceki süreçten `calisiyor` kalmış görevler
-  `yarida_kaldi` olarak işaretlenir (iş parçacıkları artık yok); bitmiş
-  görevler 7 gün sonra otomatik silinir.
+- **Görev kuyruğu ve işçiler:** uzun işler (`/analiz/ucus`, `/analiz/rota`,
+  `/analiz/toplu`, `/backtest/toplu`, `/veri/canli/hazirla`) PostgreSQL'deki
+  `analiz_gorevleri` tablosuna **kuyruk** olarak eklenir ve istek hemen
+  `202 {"gorev_id", "durum": "kuyrukta"}` döner; ayrı bir mesaj kuyruğu
+  altyapısı gerekmez (`gorev_deposu.py`). İşçiler (`isci/gorev_iscisi.py`)
+  sıradaki görevi `FOR UPDATE SKIP LOCKED` ile alır -- birden çok işçi süreci
+  aynı görevi iki kez almaz. Eşzamanlılık `GOREV_ISCI_SAYISI` ile sınırlıdır
+  (ağır bir toplu iş API'yi yavaşlatmaz). Çalışan görevin işçisi kalp atışı
+  gönderir; işçi çökerse ya da yeniden başlarsa görev `GOREV_BAYAT_SANIYE`
+  sonra yeniden kuyruğa girer (`GOREV_MAKS_DENEME`'ye kadar), sonra
+  `yarida_kaldi` olur. Durumlar: `kuyrukta -> calisiyor -> tamamlandi |
+  basarisiz | hata | yarida_kaldi`. Varsayılan olarak API kendi içinde
+  gömülü bir işçi başlatır (`GOREV_GOMULU_ISCI`); ayrı süreç için
+  `turbulans-isci` (Docker'da `worker` servisi), belirli işlere ayrılmış işçi
+  için `GOREV_ISCI_TURLERI`. Bitmiş görevler 7 gün sonra otomatik silinir.
 - **Webhook bildirimi:** `bildirim_webhook_url` verilirse, analiz bitince
   sonuç oraya POST edilir -- n8n'in Webhook node'u bunu dinleyip
   `/api/v1/analiz/durum/{gorev_id}`'yi periyodik yoklamaya gerek bırakmaz.
-  URL doğrulanır (sadece `http(s)`, link-local/ayrılmış IP'ler -- örn. bulut
-  metadata adresi -- reddedilir); `.env`'deki `WEBHOOK_IZIN_VERILEN_HOSTLAR`
-  doluysa sadece o host'lara gönderilir (SSRF koruması).
+  **SSRF koruması (`webhook.py`):** varsayılan olarak sadece genel (public)
+  adreslere gönderilir; hem istek anında (yazılan adres) hem gönderim anında
+  (adın ÇÖZÜMLENDİĞİ IP) kontrol edilir, yönlendirme izlenmez. Aynı
+  makinedeki/iç ağdaki n8n için host'u `.env`'deki
+  `WEBHOOK_IZIN_VERILEN_HOSTLAR`'a ekle (örn. `localhost,n8n`); liste doluysa
+  sadece listedeki host'lara gönderilir.
 - **Kayıt garantisi:** API'den tetiklenen analizde sonuç PostgreSQL'e
   yazılamazsa görev `tamamlandi` değil `hata` olur (CLI ise haritayı yine
   üretir, sadece uyarır).
 - **WebSocket:** `API_ANAHTARI` sunucuda tanımlı değilse `/ws/uyarilar` de
-  bağlantıyı reddeder (REST ile aynı "kapalı başla" davranışı).
+  bağlantıyı reddeder (REST ile aynı "kapalı başla" davranışı). İşçi başka
+  bir süreçte çalışabildiği için canlı uyarılar PostgreSQL `NOTIFY` ile
+  (`turbulans_uyarilari` kanalı) API'ye gelir ve oradan istemcilere iletilir.
 
 **Bilinçli olarak eklenmedi:** `veri_indirme.py`'nin gerçek ERA5 indirmesini
 tetikleyen bir uç nokta (rate-limit/ban riski), JWT/OAuth2 kullanıcı girişi
@@ -346,6 +393,7 @@ grafı için yasak düğüm/kenarlar (SERT kısıt) ve saniye cinsinden cezalar
 |---|---|---|
 | `Ti1CezaKatmani` | yumuşak (ceza) | ERA5'ten hesaplanan Ellrod TI1 >= `TI1_ESIK_ORTA_SIDDETLI` |
 | `SigmetKisitKatmani` | **sert (yasak)** | Canlı AWC SIGMET'leri (`sigmetler` tablosu) |
+| `KisitliSahaKatmani` | **sert (yasak)** | Çatışma bölgeleri, P/R/D sahaları, NOTAM'lı geçici kısıtlar (`kisitli_hava_sahalari` tablosu) |
 
 SIGMET kısıtı **dört boyutludur**: yatay poligon + irtifa bandı (`taban_ft`/
 `tavan_ft`, boş taban = yerden) + uçağın o noktaya VARIŞ zamanında
@@ -371,6 +419,77 @@ edilen) SIGMET'lerin geçerliliği sona erdirilir, süresi dolanlar
 /api/v1/sigmet/guncelle` (n8n Schedule Trigger, örn. 10-15 dk),
 `turbulans-sigmet` (cron) ya da `SIGMET_OTOMATIK_GUNCELLEME_DAKIKA`
 > 0 ile API'nin kendi zamanlayıcısı.
+
+**Sessiz kayıp koruması:** "akışta yok → sonlandır" kuralı, akış
+çözümlenemediğinde tüm aktif SIGMET'leri hata vermeden kapatabilirdi (örn.
+AWC `coords` alanını yeniden adlandırsa). Bu yüzden her akış önce denetlenir:
+boş ya da liste olmayan yanıt veya SIGMET kayıtlarının
+`SIGMET_MAKS_COZUMLENEMEYEN_ORAN`'dan (varsayılan %25) fazlasının
+çözümlenememesi **kaynak hatası** sayılır. Bu durumda mevcut kayıtlar
+sonlandırılmaz, `kaynak_hatalari` alanı doldurulur ve kaynak "başarılı
+güncelleme" almaz. Her kaynağın son deneme/son başarılı çekimi
+`veri_kaynagi_durumlari` tablosunda tutulur; `bayat_mi` artık en eski son
+BAŞARILI çekime bakar ve açıklama hata veren kaynağı adıyla belirtir. Aynı
+denetimde canlı akışta sessizce atılan bir biçim de bulundu: `geom: "AREAS"`
+(tek SIGMET'te birden fazla poligon) artık alan başına bir kayıt olarak
+saklanıyor. Okunamayan irtifa değeri daha geniş bir yasak banda, okunamayan
+tehlike türü `BILINMIYOR`'a çevrilir ve bu tür SIGMET'lerden her zaman
+kaçınılır.
+
+**Koordinatsız SIGMET'ler (FIR yedeği):** AWC bazı SIGMET'leri ("ENTIRE FIR"
+ya da metinle tarif edilmiş, koordinat listesi boş gelen alanlar) hiç poligon
+vermeden yayınlıyor -- bunlar eskiden sessizce elenip A* tarafından hiç
+görülmüyordu. `veri/fir_sinirlari.py`, VATSIM'in FIR sınır verisiyle
+(`turbulans-statik` indirir; bkz. Kurulum) bu SIGMET'i FIR'ın TAMAMINA
+genişletir -- kısmi bir alanı FIR'a büyütmek, hiç uygulamamaktan daha
+muhafazakârdır. FIR bilinmiyorsa (sınır verisi yoksa ya da kod eşleşmiyorsa)
+eski davranış (eleme) korunur. Bu genişletmeler `_akis_sagligini_denetle`
+tarafından da "çözümlenemeyen" gibi sayılır -- AWC koordinatları TOPTAN
+kaldırırsa (madde 1'in koruduğu senaryo) FIR yedeği bunu maskeleyip akışı
+"sağlıklı" göstermez.
+
+## Kısıtlı / yasak hava sahaları
+
+A*'ın yanal ızgarası büyük daireden 400 km'ye kadar sapabildiği için, hava
+durumundan kaçarken planlı rotanın hiç kullanmadığı bir çatışma bölgesine ya
+da yasak sahaya rota önerebiliyordu. `KisitliSahaKatmani` bu alanları SIGMET
+ile aynı dört boyutlu mantıkla (poligon + irtifa bandı + geçerlilik penceresi)
+**sert kısıt** olarak uygular; boş geçerlilik sınırı süresiz, boş taban/tavan
+yer/sınırsız demektir. Öncelik sırası: (1) SIGMET'e ve kısıtlı sahaya
+girmemek, (2) TI1 riskinden kaçınmak, (3) en ucuz yakıt/süre.
+
+- **Uç nokta koridoru:** kalkış ya da varış noktasını İÇEREN sahada (örn.
+  varış ülkesi) uçuşun planlı rotasına yetkili olduğu varsayılır: sadece
+  büyük dairenin ±`KISITLI_SAHA_UC_KORIDORU_KM` (100) km çevresi serbest, sahanın
+  geri kalanına sapma önerilmez. Bu sahalar `muaf_tutulanlar`'da raporlanır.
+- **Gerçek veri (openAIP):** `OPENAIP_API_ANAHTARI` (openaip.net'ten ücretsiz)
+  tanımlıysa `turbulans-kisitli-saha openaip --ulke TR` ya da
+  `POST /api/v1/kisitli-sahalar/openaip` (yönetici, kuyruğa girer) ülkenin
+  AIP'ten derlenmiş Restricted/Prohibited sahalarını çeker (`OPENAIP_SAHA_TURLERI`
+  ile Danger/TRA/TSA eklenebilir) ve `openaip` kaynağını tam yeniler; boş yanıt
+  mevcut veriyi silmez. Alanlar resmi OpenAPI şemasından doğrulandı; FL/metre
+  limitleri feet'e çevrilir, zemine göre (AGL) üst limitlere arazi payı eklenir,
+  NOTAM'la etkinleşen sahalar sürekli etkin sayılır. **Lisans:** openAIP verisi
+  CC BY-NC 4.0 (ticari olmayan kullanım, atıf). Herkese açık dışa aktarım
+  dosyaları artık anahtarsız indirilemiyor. AIRAC döngüsünde (28 gün) n8n ile
+  yenilenebilir.
+- **Veri:** GeoJSON FeatureCollection (Polygon/MultiPolygon; `kimlik`, `ad`,
+  `tur` = `CATISMA`/`YASAK`/`KISITLI`/`TEHLIKELI`/`GECICI`, `taban_ft`,
+  `tavan_ft`, `baslangic`, `bitis`, `aciklama`). İçe aktarma:
+  `turbulans-kisitli-saha ice-aktar sahalar.geojson --kaynak aip` ya da
+  `POST /api/v1/kisitli-sahalar?kaynak=notam` (n8n bir NOTAM akışından geçici
+  kısıtları bu uçla iter). İç halkalar (delikler) muhafazakâr olarak yok sayılır.
+- **Örnek veri:** paketle gelen `ornek_kisitli_sahalar.geojson`, Natural Earth
+  1:50m (kamu malı) ülke sınırlarından **Suriye ve Irak'ı** "çatışma bölgesi"
+  olarak içerir. `KISITLI_SAHA_ORNEK_VERI_YUKLE=true` (varsayılan) iken API
+  açılışında, tabloda bu kaynaktan kayıt yoksa yüklenir. **Resmi FIR/CZIB sınırı
+  değildir**; yanıt açıklaması örnek veri kullanıldığını belirtir. Gerçek
+  kullanımda kapatılıp güncel AIP ENR 5.1, EASA CZIB ve NOTAM verisi aktarılmalıdır.
+- **Örnek:** Malatya → Musul (FL340): büyük daire Suriye'nin kuzeydoğu ucunu
+  13 nokta/bacakta kesiyor; A* 60 km yanal sapmayla Suriye'ye girmeyen rotayı
+  buluyor, Irak varış ülkesi olduğu için muaf. Koridoru tamamen kesen bir saha
+  varsa sistem "ÖNERİ YOK" der.
+- 3D simülasyonda kısıtlı sahalar mor yarı saydam hacimler olarak çizilir.
 
 ## Canlı hava verisi: Veri Sağlayıcı katmanı (NOAA GFS)
 
@@ -402,6 +521,23 @@ normalize eder, böylece eşleştirme, risk katmanları ve A* kaynağı bilmez.
 - Yeni bir sağlayıcı (örn. ECMWF Open Data -- GRIB2, Docker/Linux'ta)
   `VeriSaglayici` arayüzünü uygulayarak eklenir.
 
+### Küp seçimi ve bellek (GB boyutlu arşive hazırlık)
+
+- **Seçim katalogdan:** noktaları kapsayan yerel küp, dosyalar açılmadan
+  `hava_durumu_kupleri` kataloğundan (bölge/zaman kesişimi) bulunur; sadece
+  aday küpler yüklenir. Katalogda henüz olmayan dosya ya da veritabanına
+  erişilemediğinde dosyanın yalnızca koordinatları okunur (önbellekli).
+  Eskiden ilk seçimde TÜM yerel küpler belleğe yükleniyordu (16 küp, 92 MB).
+- **Pencereli okuma:** `KUP_TAM_YUKLEME_ESIGI_MB`'den (256) büyük küplerden
+  sadece noktaların çevresi okunur (rota için A* koridoru kadar pay, eşleştirme
+  için 1°; 1° ve 6 saatlik sınırlara hizalı). İzmir-Van rotası için pencere
+  1.2 MB (tüm Türkiye küpü 69 MB); TI1 sonuçları tam küple birebir aynı
+  (testle doğrulanıyor).
+- **Bütçeli önbellek:** yüklenen tüm küp/pencereler `KUP_ONBELLEK_MAKS_MB`
+  (2048) bütçeli bir LRU önbellekte; bütçe aşılınca en uzun süre kullanılmayan
+  atılır (eskiden hiçbir küp atılmıyordu). NetCDF/HDF5 erişimi (okuma, GFS
+  yazma) tek kilitle sıraya alınır; önbellek isabetleri yüklemeyi beklemez.
+
 ## Otomatik doğrulama: gerçek uçuşlarla backtest
 
 `rota_backtest.py`, analiz edilmiş her uçuşun gerçek izini (OpenSky, gerçek
@@ -425,6 +561,46 @@ ilk sonuçlar -- riskli oran: TI1 >= eşik nokta oranı:
 | THY72C | FL320 | 258 km | 0.68 / 0.17 / 0.00 | tırmanma (+5 dk) |
 | THY322 | FL300 | 260 km | 0.15 / 0.24 / 0.00 | tırmanma (+2 dk) |
 | THY606 | FL380 | 101 km | 0.00 / 0.00 / 0.00 | yok (risk yok) |
+
+### Bağımsız kanıt: TI1'i TI1 ile ölçmemek
+
+Yukarıdaki "riskli oran" döngüseldir: A* rotası TI1'i düşürecek şekilde
+seçiliyor, başarı da yine TI1 ile ölçülüyor. Bu yüzden her backtest ayrıca
+A*'ın ve TI1 hesabının hiç görmediği gerçek dünya kanıtıyla ölçülür
+(`dogrulama/bagimsiz_kanit.py`); kaynak bir uçuşu kapsamıyorsa değer `None`
+kalır, "sıfır" sayılmaz:
+
+| Kaynak | İçerik | Kapsam |
+|---|---|---|
+| `sigmet_arsivi` | Sistemin kendi SIGMET arşivi (`sigmetler`), TURB/MTW | Küresel (Türkiye dahil), arşivin başladığı andan itibaren, `SIGMET_SAKLAMA_GUN` geriye |
+| `iem_sigmet` | IEM'in AWC SIGMET arşivi (2005-) | ABD sorumluluk sahası |
+| `iem_pirep` | IEM PIREP/AIREP arşivi; rota tüpünde (50 km, ±2000 ft, ±1 sa) türbülans raporları ve orta ve üstü (MOG) olanlar | Pratikte Kuzey Amerika + Kuzey Pasifik |
+
+Bağımsızlık için A* backtest'te TURB/MTW SIGMET'lerini **görmez** (oraj,
+volkanik kül, tropikal siklon SIGMET'leri ve kısıtlı sahalar sert kısıt
+olarak kalır). MOG tanımı ML etiketleriyle aynıdır (1254 etiketli PIREP'te
+ikili sınıflama %100 örtüşüyor). Sonuçlar `*_turb_sigmet`, `*_pirep_raporu`,
+`*_mog_pirep` ve `kanit_kaynaklari` sütunlarında; filo özeti azalan/artan
+maruziyetli uçuş oranlarını verir.
+
+- 2019 Türkiye uçuşları için hiçbir kaynak kapsama sağlamıyor (IEM'in
+  "Türkiye" kutusundaki PIREP'leri yanlış konumlanmış ABD raporları) --
+  kanıt alanları dürüstçe boş.
+- **Canlı örnek (26 Eylül 2026):** OpenSky'dan alınan gerçek bir uçuş
+  (PUE502, FL350, Brezilya, 1744 km'lik seyir) canlı GFS ile analiz edilip
+  backtest edildi; sistemin kendi arşivindeki aktif TURB SIGMET'lerine
+  maruziyet (nokta + bacak): gerçek iz 30, büyük daire 28, A* 33. GFS tabanlı
+  TI1 aynı bölgede hiç riskli nokta görmedi (üç rotada da 0.00). Yani bu
+  uçuşta TI1 katmanı, tahmincilerin FL340-410 için yayınladığı türbülansı
+  yakalayamadı -- döngüsel ölçümün gizleyeceği bir kör nokta. Canlı sistemde
+  bu SIGMET'lerden sert kısıt olarak yine kaçınılır; backtest yalnızca TI1'in
+  bağımsız becerisini ölçer.
+- Bu bulgu tek bir uçuşla sınırlı kalmayıp **her rota yanıtına** taşınır:
+  `POST /simulasyon/rota` ve `POST /turbulans/tahmin` yanıtlarında ayrı bir
+  `ti1_guvenilirlik_notu` alanı (`fizik/turbulans_indeksleri.
+  TI1_GUVENILIRLIK_NOTU`) her zaman bulunur ve iki web arayüzünde de
+  gösterilir -- TI1'in tek başına doğrulanmadığı bir dipnot olarak değil,
+  arayüzün elinin altında bir uyarı olarak.
 
 Karşılaştırılan bölümler kısa: THY322'nin OpenSky izinde Doğu Anadolu'da
 65 dk'lık bir veri boşluğu var; THY606 (İstanbul-Kahire) ve THY72C
@@ -464,8 +640,8 @@ irtifa, tarih-saat ve uçak modelini girip "Simüle Et"e basınca:
     varsayılmaz, sonuç panelinde bazen "ekstra yakıt: güvenlik için sapmanın
     bedeli" olarak dürüstçe gösterilir.
 - **A\* araması (bkz. `_a_yildiz_ile_rota_ara`):** Büyük daire etrafında,
-  her ara noktada 20 km aralıklarla ±400 km'ye kadar yanal seviyelerden
-  oluşan bir IZGARA kurulur; ızgaranın her düğümünün TI1'i projenin ana
+  rotaya dik yönde kaydırılmış aday konumlardan oluşan bir IZGARA kurulur
+  (bkz. `_YanalIzgara`); ızgaranın her düğümünün TI1'i projenin ana
   analiz koduyla (`eslestirme.py`) tek bir vektörel çağrıda hesaplanır. Her
   kenarın maliyeti gerçek ERA5 rüzgarına göre uçuş süresi + (riskli
   türbülans içeriyorsa) büyük bir ceza olarak tanımlanır; A*, kalan mesafe
@@ -477,6 +653,17 @@ irtifa, tarih-saat ve uçak modelini girip "Simüle Et"e basınca:
   bir rota) gerçek veriyle tespit edildi -- ızgara inceltilip (20 km/adım)
   başlangıca/bitişe yakın erişilebilir sapma bir "zarf" ile kademelendirilerek
   düzeltildi.
+- **Sapma sınırları mesafe ve açıyla tanımlı:** sabit "20 km/adım" kısa
+  rotada gerçek dışı keskin sapmalara (480 km'lik İstanbul-Antalya'da 12
+  km'lik bacakta 59°), uzun rotada gereksiz dar koridora (8000 km'lik
+  İstanbul-New York'ta kalkıştan 600 km sonra en fazla 60 km -- SIGMET'lerden
+  kaçılabilecekken "öneri yok") yol açıyordu. Artık her bacağın büyük daire
+  yönüne göre açısı en fazla `ROTA_MAKS_SAPMA_ACISI_DERECE` (30°), toplam
+  sapma en fazla `ROTA_MAKS_YANAL_SAPMA_KM` (400 km); ızgara aralığı en fazla
+  `ROTA_YANAL_IZGARA_KM` (20 km), kısa rotada açı sınırına göre daralır.
+  Ölçümler (İzmir-Van, ERA5 TI1 + 50 SIGMET): A* 58 ms, tam rota kararı
+  0.29 sn; İstanbul-New York (1481 düğüm, 18 büyük SIGMET): A* 70 ms, en dik
+  bacak 16.7°, 140 km sapmayla güvenli rota.
 - **Çok faktörlü karşılaştırma -- irtifa değişimi (tırmanma/alçalma):**
   Riskli türbülanstan kaçınmanın YANAL sapma dışında ikinci bir GERÇEK
   stratejisi daha var: aynı yatay rotada kalıp bir üst/alt basınç seviyesine
@@ -660,6 +847,33 @@ geçen herhangi bir uçuş/tarih için gerçek anlamda doğrulama sağlar (bkz.
 modülün kendi docstring'indeki örnek: Anchorage FIR, 2019-01-15, gerçek bir
 "OCNL SEV TURB" SIGMET'i ile doğrulandı).
 
+## İzleme ve çevrimdışı kullanım
+
+- **`GET /saglik?derin=true`** (anahtarsız, monitoring için): PostgreSQL
+  erişilemezse 503. Erişilebilirse HTTP 200 ve bağımlılık başına durum:
+  `sigmet` (son BAŞARILI çekimin yaşı `SIGMET_BAYATLIK_DAKIKA`'yı aşarsa
+  `bayat`, bir AWC kaynağı hata veriyorsa `hata`), `canli_gfs` (son indirme
+  başarılı mı), `gorev_kuyrugu` (en eski bekleyen görev 2 dakikadan eskiyse
+  `birikiyor` -- işçi yok ya da yetişemiyor), `kisitli_sahalar`,
+  `kup_onbellegi`, `statik_dosyalar`. Operasyonel bir sorun genel durumu
+  `bozulmus` yapar; yapılandırma eksikleri (`cdn_yedegi`, `ornek_veri`,
+  `veri_yok`) `uyarilar`'da listelenir. Dış servislerin ham hata metinleri
+  anahtarsız uçta gösterilmez; `GET /api/v1/sistem/durum` (anahtarlı) aynı
+  raporu hata ayrıntılarıyla verir.
+- **Canlı veri alınamadığında** rota yanıtı artık "kapsam dışı" değil
+  `ruzgar_verisi_kaynagi: canli_veri_alinamadi` ve açıklamada UYARI döner;
+  her GFS indirmesinin sonucu `veri_kaynagi_durumlari`'na yazılır.
+- **Kütüphaneler yerelden:** `web/harita3d.html` ve `web/ucus_simulasyonu.html`
+  MapLibre/CesiumJS'i önce API'nin kendisinden (`web/vendor/`, bkz.
+  `turbulans-statik`) yükler, yoksa CDN'e düşer. Paketler npm'den koda
+  sabitlenmiş sha512 bütünlük değeriyle doğrulanarak indirilir (değiştirilmiş
+  paket kurulmaz); kesintili bağlantıda indirme kaldığı yerden devam eder.
+- **Çevrimdışı altlık harita:** Cesium sahnesinin altlığı paketle gelen
+  NaturalEarthII dokusu, MapLibre haritasınınki sunucudan gelen sade ülke
+  sınırları (`web/veri/ulke_sinirlari.geojson`, Natural Earth, kamu malı).
+  Esri sokak haritası üstte ek katmandır: bağlantı yoksa karoları gelmez ama
+  harita boş kalmaz.
+
 ## n8n ile periyodik otomasyon
 
 Otomasyon tarafı projenin Python iç yapısını bilmez; her iş, n8n'de bir
@@ -670,12 +884,15 @@ değişkeni olarak tut, iş akışına düz metin yazma):
 | İş | Sıklık | HTTP Request | Not |
 |---|---|---|---|
 | Canlı SIGMET yenileme | 10-15 dk | `POST /api/v1/sigmet/guncelle` | A*'ın sert kısıtı bu tabloyu kullanır; son çekim 30 dk'dan eskiyse canlı rota yanıtları `bayat_mi` uyarısı taşır. Alternatif: `SIGMET_OTOMATIK_GUNCELLEME_DAKIKA` ile API'nin kendi zamanlayıcısı (Docker'da varsayılan 15 dk) -- ikisini aynı anda açmaya gerek yok. |
-| Canlı GFS önceden ısıtma (isteğe bağlı) | 6 saatte bir, döngülerden ~4 sa sonra | `POST /api/v1/veri/canli/hazirla` (gövde: bölge kutusu, `saat_sayisi`) | Sık kullanılan bölgenin ilk rota isteği indirme süresini beklemez. |
+| Canlı GFS önceden ısıtma (isteğe bağlı) | 6 saatte bir, döngülerden ~4 sa sonra | `POST /api/v1/veri/canli/hazirla` (gövde: bölge kutusu, `saat_sayisi`) | Kuyruğa girer (202); küp özeti görevin `ozet` alanında. Sık kullanılan bölgenin ilk rota isteği indirme süresini beklemez. |
 | Toplu uçuş analizi | ihtiyaca göre | `POST /api/v1/analiz/toplu` | `bildirim_webhook_url` ile bitince n8n Webhook node'una bildirim ya da `GET /api/v1/analiz/durum/{gorev_id}` yoklaması. |
 | Toplu backtest (isteğe bağlı) | günlük | `POST /api/v1/backtest/toplu?limit=50` | Yeni analiz edilen uçuşları A* rotasıyla karşılaştırır; özet `GET /api/v1/backtest`. |
 
-API sadece `.env`'den beslenen, `uvicorn`/Docker ile başlatılan bağımsız bir
-HTTP servisidir.
+Uzun işlerde n8n asla beklemez: istek 202 + `gorev_id` döner. Sonuç için
+ya `bildirim_webhook_url` (n8n Webhook node'u) verilir ya da `GET
+/api/v1/analiz/durum/{gorev_id}` durum `kuyrukta`/`calisiyor` olduğu sürece
+yoklanır. API sadece `.env`'den beslenen, `uvicorn`/Docker ile başlatılan
+bağımsız bir HTTP servisidir.
 
 ## Claude Code'dan veritabanına MCP ile bağlanmak
 
