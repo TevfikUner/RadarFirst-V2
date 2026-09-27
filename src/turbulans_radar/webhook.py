@@ -11,6 +11,18 @@ iç ağdaki bir n8n için host WEBHOOK_IZIN_VERILEN_HOSTLAR'a açıkça eklenir;
 liste doluysa sadece listedeki host'lara gönderilir (iç adres olsalar da).
 Yönlendirmeler izlenmez (httpx varsayılanı), böylece genel bir adres iç
 adrese yönlendirerek korumayı aşamaz.
+
+BİLİNEN SINIRLAMA (DNS rebinding): webhook_hedefi_guvenli_mi'nin DNS
+çözümlemesi ile httpx'in asıl isteği yaptığı çözümleme İKİ AYRI andır;
+kısa TTL'li kötü niyetli bir DNS sunucusu, kontrol anında genel bir IP,
+bağlantı anında iç bir IP döndürebilir. Bunu tam kapatmak IP'yi önceden
+çözüp bağlantıyı o IP'ye SABİTLEMEYİ (özel bir httpx transport'uyla,
+TLS SNI/sertifika doğrulamasını yine orijinal host adına göre yaparak)
+gerektirir. Bilinçli olarak eklenmedi: webhook'u tetikleyen tüm uçlar artık
+YÖNETİCİ anahtarı gerektiriyor (bkz. api_servisi._YONETICI) -- bunu istismar
+edebilecek bir saldırgan zaten yönetici erişimine sahiptir, bu path'in
+marjinal riski düşüktür. Tehdit modeli değişirse (örn. çok kiracılı/herkese
+açık bir dağıtım) bu sınırlama yeniden değerlendirilmelidir.
 """
 
 import ipaddress
