@@ -68,6 +68,21 @@ def test_anahtar_yoksa_ya_da_hic_saha_gelmezse_mevcut_veri_korunur(monkeypatch):
         oa.openaip_ice_aktar(["TR"], api_anahtari="x", getirici=lambda u, s, a: {"items": []})
 
 
+@pytest.fixture(autouse=True)
+def _openaip_durumunu_geride_birakma():
+    """openaip_ice_aktar her denemeyi veri_kaynagi_durumlari'na yazar; testin
+    bıraktığı sahte hata/başarı geliştirme veritabanında gerçek zamanlayıcıyı
+    (bir sonraki yenileme zamanı son denemeye göre) yanıltmasın."""
+    yield
+    try:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(
+                text("DELETE FROM veri_kaynagi_durumlari WHERE kaynak = :k"), {"k": oa.OPENAIP_DURUM_ANAHTARI}
+            )
+    except Exception:
+        pass
+
+
 @pytest.fixture
 def test_veritabani():
     try:
@@ -104,3 +119,24 @@ def test_sayfalanan_yanit_ice_aktarilir_ve_kaynak_tam_yenilenir(test_veritabani)
 
     sonuc = oa.openaip_ice_aktar(["TR"], api_anahtari="gizli", getirici=lambda u, s, a: sayfalar[2])
     assert (sonuc["kaydedilen"], sonuc["kaldirilan"]) == (1, 1)
+
+
+def test_ice_aktarma_sonucu_kaynak_durumuna_yazilir(test_veritabani):
+    from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir
+
+    with test_veritabani.begin() as baglanti:
+        baglanti.execute(text("DELETE FROM veri_kaynagi_durumlari WHERE kaynak = :k"), {"k": oa.OPENAIP_DURUM_ANAHTARI})
+    try:
+        oa.openaip_ice_aktar(["TR"], api_anahtari="x", getirici=lambda u, s, a: {"items": [_saha("r1", 1, None, None)]})
+        (durum,) = kaynak_durumlarini_getir([oa.OPENAIP_DURUM_ANAHTARI])
+        assert durum["son_basari_zamani"] is not None and durum["ardisik_hata_sayisi"] == 0
+
+        with pytest.raises(ValueError):
+            oa.openaip_ice_aktar(["TR"], api_anahtari="x", getirici=lambda u, s, a: {"items": []})
+        (durum,) = kaynak_durumlarini_getir([oa.OPENAIP_DURUM_ANAHTARI])
+        assert durum["ardisik_hata_sayisi"] == 1 and "hiç saha gelmedi" in durum["son_hata"]
+    finally:
+        with test_veritabani.begin() as baglanti:
+            baglanti.execute(
+                text("DELETE FROM veri_kaynagi_durumlari WHERE kaynak = :k"), {"k": oa.OPENAIP_DURUM_ANAHTARI}
+            )

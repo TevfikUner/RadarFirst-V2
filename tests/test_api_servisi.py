@@ -1267,3 +1267,45 @@ async def test_kuyrugu_dolan_istemci_dusurulur(monkeypatch):
             break
         await asyncio.sleep(0.02)
     assert yavas.kapanis_kodu == 1013 and yonetici.baglantilar == []
+
+
+# --- openAIP otomatik yenileme ---
+
+
+def _openaip_durumunu_sil():
+    with vt.motor_al().begin() as baglanti:
+        baglanti.execute(text("DELETE FROM veri_kaynagi_durumlari WHERE kaynak = 'kisitli:openaip'"))
+
+
+async def test_openaip_zamanlayicisi_tek_gorev_kuyruga_alir(monkeypatch):
+    with vt.motor_al().connect() as baglanti:
+        if baglanti.execute(
+            text("SELECT 1 FROM analiz_gorevleri WHERE tur = 'openaip' AND durum IN ('kuyrukta', 'calisiyor')")
+        ).first():
+            pytest.skip("Geliştirme veritabanında bekleyen gerçek bir openAIP görevi var.")
+    monkeypatch.setattr(api_servisi, "_openaip_yenilemesi_gerekli_mi", lambda aralik: True)
+    gorev_id = await api_servisi._openaip_zamanlayici_adimi(3600)
+    assert gorev_id is not None
+    assert await api_servisi._openaip_zamanlayici_adimi(3600) is None  # ikinci kopya çoğaltmaz
+
+
+def test_openaip_yenileme_zamani_son_denemeye_gore(monkeypatch):
+    from turbulans_radar.depo.kaynak_durumu import kaynak_durumunu_kaydet
+
+    _openaip_durumunu_sil()
+    try:
+        assert api_servisi._openaip_yenilemesi_gerekli_mi(3600) is True
+        kaynak_durumunu_kaydet("kisitli:openaip", False, "deneme hatası")
+        assert api_servisi._openaip_yenilemesi_gerekli_mi(3600) is False  # hata da bir deneme sayılır
+        assert api_servisi._openaip_yenilemesi_gerekli_mi(0) is True
+    finally:
+        _openaip_durumunu_sil()
+
+
+def test_otomatik_yenileme_acikken_basari_yoksa_kisitli_saha_bayat(monkeypatch):
+    _openaip_durumunu_sil()
+    monkeypatch.setattr(config, "OPENAIP_OTOMATIK_GUNCELLEME_SAAT", 24.0)
+    kontrol = api_servisi._kisitli_saha_kontrolu()
+    assert kontrol["durum"] == "bayat" and kontrol["openaip_son_basari"] is None
+    monkeypatch.setattr(config, "OPENAIP_OTOMATIK_GUNCELLEME_SAAT", 0.0)
+    assert "openaip_son_basari" not in api_servisi._kisitli_saha_kontrolu()

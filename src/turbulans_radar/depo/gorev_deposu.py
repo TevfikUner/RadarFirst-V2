@@ -82,6 +82,17 @@ async def gorev_getir(gorev_id: str) -> dict | None:
         return _disari_ver(gorev) if gorev is not None else None
 
 
+async def aktif_gorev_var_mi(tur: str) -> bool:
+    """Bu türde kuyrukta ya da çalışan bir görev var mı (zamanlayıcıların aynı
+    işi -- örn. birden fazla API kopyasından -- çoğaltmaması için)."""
+    async with async_oturum_al() as oturum:
+        return (
+            await oturum.execute(
+                select(AnalizGorevi.id).where(AnalizGorevi.tur == tur, AnalizGorevi.durum.in_(AKTIF_DURUMLAR)).limit(1)
+            )
+        ).first() is not None
+
+
 async def eski_gorevleri_temizle(saklama_suresi: timedelta = GOREV_SAKLAMA_SURESI) -> int:
     """Saklama süresinden eski BİTMİŞ görevleri siler (kuyruktaki/çalışanlara dokunmaz)."""
     sinir = datetime.now(UTC) - saklama_suresi

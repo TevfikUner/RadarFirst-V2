@@ -30,12 +30,15 @@ import httpx
 from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from turbulans_radar import config
+from turbulans_radar.depo.kaynak_durumu import kaynak_durumunu_kaydet
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.veri.kisitli_saha_saglayici import geojson_ice_aktar
 
 _logger = logger_al(__name__)
 
 OPENAIP_KAYNAK = "openaip"
+# veri_kaynagi_durumlari anahtarı (bkz. api_servisi._kisitli_saha_kontrolu, _openaip_zamanlayicisi).
+OPENAIP_DURUM_ANAHTARI = "kisitli:openaip"
 _API = "https://api.core.openaip.net/api/airspaces"
 _TUR = {
     1: ("KISITLI", "Restricted"),
@@ -129,7 +132,26 @@ def openaip_sahalarini_getir(ulke: str, api_anahtari: str, getirici=_sayfa_getir
 def openaip_ice_aktar(ulkeler=None, api_anahtari=None, turler=None, getirici=_sayfa_getir, motor=None) -> dict:
     """Ülkelerin sahalarını çekip 'openaip' kaynağı olarak TAM yeniler (bir
     önceki çekimde olup artık yayınlanmayan saha kaldırılır). Hiç saha
-    gelmezse hata -- boş bir yanıt mevcut veriyi silmesin."""
+    gelmezse hata -- boş bir yanıt mevcut veriyi silmesin. Sonuç (başarı ya da
+    hata) veri_kaynagi_durumlari'na yazılır: sağlık kontrolü bayatlığı, API
+    zamanlayıcısı bir sonraki yenileme zamanını buradan görür."""
+    try:
+        sonuc = _openaip_ice_aktar(ulkeler, api_anahtari, turler, getirici, motor)
+    except Exception as hata:
+        _durumu_kaydet(False, f"{type(hata).__name__}: {hata}", motor=motor)
+        raise
+    _durumu_kaydet(True, ozet=sonuc, motor=motor)
+    return sonuc
+
+
+def _durumu_kaydet(basarili, hata=None, ozet=None, motor=None):
+    try:
+        kaynak_durumunu_kaydet(OPENAIP_DURUM_ANAHTARI, basarili, hata, ozet, motor=motor)
+    except Exception as db_hatasi:
+        _logger.warning("openAIP kaynak durumu kaydedilemedi: %s", db_hatasi)
+
+
+def _openaip_ice_aktar(ulkeler, api_anahtari, turler, getirici, motor) -> dict:
     api_anahtari = api_anahtari or os.environ.get("OPENAIP_API_ANAHTARI")
     if not api_anahtari:
         raise ValueError("OPENAIP_API_ANAHTARI tanımlı değil (openaip.net profil sayfasından ücretsiz alınır).")

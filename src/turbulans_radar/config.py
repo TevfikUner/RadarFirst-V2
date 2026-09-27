@@ -235,6 +235,10 @@ KISITLI_SAHA_UC_KORIDORU_KM = _ortam_sayi("KISITLI_SAHA_UC_KORIDORU_KM", 100.0)
 # Türler (openAIP kodları): 1 Restricted, 2 Danger, 3 Prohibited, 8 TRA, 9 TSA.
 OPENAIP_ULKELER = tuple(u.strip() for u in _ortam_str("OPENAIP_ULKELER", "TR").split(",") if u.strip())
 OPENAIP_SAHA_TURLERI = tuple(int(t) for t in _ortam_str("OPENAIP_SAHA_TURLERI", "1,3").split(",") if t.strip())
+# >0 ise API, openAIP kısıtlı sahalarını bu aralıkla (saat) işçi kuyruğu
+# üzerinden yeniler (OPENAIP_API_ANAHTARI gerekir; AIRAC döngüsü 28 gün, NOTAM
+# kaynaklı değişiklikler için günlük önerilir). 0 = kapalı (n8n/cron tetikler).
+OPENAIP_OTOMATIK_GUNCELLEME_SAAT = _ortam_sayi("OPENAIP_OTOMATIK_GUNCELLEME_SAAT", 0.0)
 # GND referanslı üst limite eklenen arazi payı (arazi yüksekliği bilinmiyor; muhafazakâr).
 OPENAIP_AGL_UST_PAYI_FT = _ortam_sayi("OPENAIP_AGL_UST_PAYI_FT", 15000.0)
 

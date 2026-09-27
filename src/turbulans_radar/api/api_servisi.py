@@ -54,7 +54,7 @@ import secrets
 import time
 import weakref
 from contextlib import asynccontextmanager
-from datetime import UTC, date, datetime
+from datetime import UTC, date, datetime, timedelta
 from urllib.parse import parse_qsl, urlencode
 
 try:
@@ -117,7 +117,13 @@ from turbulans_radar.api.semalar import (
 )
 from turbulans_radar.cli.statik_indir import yerel_kutuphane_durumu
 from turbulans_radar.depo.denetim import denetim_kaydet, denetim_kayitlarini_listele
-from turbulans_radar.depo.gorev_deposu import eski_gorevleri_temizle, gorev_getir, gorev_olustur, kuyruk_durumu
+from turbulans_radar.depo.gorev_deposu import (
+    aktif_gorev_var_mi,
+    eski_gorevleri_temizle,
+    gorev_getir,
+    gorev_olustur,
+    kuyruk_durumu,
+)
 from turbulans_radar.depo.hiz_siniri import istegi_say
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir
 from turbulans_radar.depo.kup_katalogu import katalogu_listele, yerel_kupleri_katalogla
@@ -158,6 +164,7 @@ from turbulans_radar.veri.kisitli_saha_saglayici import (
     kisitli_sahayi_sil,
     ornek_veriyi_yukle,
 )
+from turbulans_radar.veri.openaip_saglayici import OPENAIP_DURUM_ANAHTARI
 from turbulans_radar.veri.sigmet_saglayici import (
     gecerli_sigmetleri_getir,
     kacinilacak_tehlikeler,
@@ -190,9 +197,17 @@ async def _yasam_dongusu(uygulama):
     if config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA > 0:
         zamanlayici = asyncio.create_task(_sigmet_zamanlayicisi(config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA * 60))
     dinleyici = asyncio.create_task(_uyari_dinleyicisi())
+    openaip_zamanlayici = None
+    if config.OPENAIP_OTOMATIK_GUNCELLEME_SAAT > 0:
+        if os.environ.get("OPENAIP_API_ANAHTARI"):
+            openaip_zamanlayici = asyncio.create_task(
+                _openaip_zamanlayicisi(config.OPENAIP_OTOMATIK_GUNCELLEME_SAAT * 3600)
+            )
+        else:
+            _logger.warning("OPENAIP_OTOMATIK_GUNCELLEME_SAAT açık ama OPENAIP_API_ANAHTARI yok; yenileme kapalı.")
     isci = GorevIscisi().baslat() if config.GOREV_GOMULU_ISCI else None
     yield
-    for gorev in (zamanlayici, dinleyici):
+    for gorev in (zamanlayici, dinleyici, openaip_zamanlayici):
         if gorev is not None:
             gorev.cancel()
     if isci is not None:
@@ -220,6 +235,37 @@ async def _uyari_dinleyicisi(yeniden_deneme_saniye=30.0):
         except Exception as hata:
             _logger.warning("Canlı uyarı dinleyicisi bağlanamadı: %s", dostane_hata_mesaji(hata))
         await asyncio.sleep(yeniden_deneme_saniye)
+
+
+def _openaip_yenilemesi_gerekli_mi(aralik_saniye) -> bool:
+    """Son DENEME (başarı değil) aralıktan eskiyse: başarısız bir çekim de bir
+    sonraki aralığa kadar tekrar denenmez (openAIP'i hata döngüsünde yormaz)."""
+    kayitlar = kaynak_durumlarini_getir([OPENAIP_DURUM_ANAHTARI])
+    if not kayitlar:
+        return True
+    return (datetime.now(UTC) - kayitlar[0]["son_deneme_zamani"]).total_seconds() >= aralik_saniye
+
+
+async def _openaip_zamanlayici_adimi(aralik_saniye) -> str | None:
+    """Gerekiyorsa openAIP yenilemesini işçi kuyruğuna ekler (API'de değil
+    işçide çalışır, API yeniden başlasa da kaybolmaz). Zaten bekleyen/çalışan
+    bir openAIP görevi varsa eklemez -- birden fazla API kopyası çoğaltmasın."""
+    if not await asyncio.to_thread(_openaip_yenilemesi_gerekli_mi, aralik_saniye):
+        return None
+    if await aktif_gorev_var_mi("openaip"):
+        return None
+    gorev_id = await gorev_olustur("openaip", parametreler={"ulkeler": None})
+    _logger.info("openAIP otomatik yenilemesi kuyruğa alındı (%s).", gorev_id)
+    return gorev_id
+
+
+async def _openaip_zamanlayicisi(aralik_saniye, kontrol_saniye=600.0):
+    while True:
+        try:
+            await _openaip_zamanlayici_adimi(aralik_saniye)
+        except Exception as hata:
+            _logger.warning("openAIP zamanlayıcısı çalışamadı: %s", dostane_hata_mesaji(hata))
+        await asyncio.sleep(min(kontrol_saniye, aralik_saniye))
 
 
 async def _sigmet_zamanlayicisi(aralik_saniye):
@@ -1350,7 +1396,19 @@ def _kisitli_saha_kontrolu():
     sahalar = gecerli_kisitli_sahalari_getir(simdi, simdi)
     ornek = sum(s["kaynak"] == ORNEK_KAYNAK for s in sahalar)
     durum = "veri_yok" if not sahalar else ("ornek_veri" if ornek == len(sahalar) else "tamam")
-    return {"durum": durum, "aktif_saha_sayisi": len(sahalar), "ornek_saha_sayisi": ornek}
+    sonuc = {"aktif_saha_sayisi": len(sahalar), "ornek_saha_sayisi": ornek}
+    if config.OPENAIP_OTOMATIK_GUNCELLEME_SAAT > 0:
+        # Otomatik yenileme açıkken iki aralık boyunca başarı yoksa kısıtlı
+        # saha verisi bayat sayılır (yeni ilan edilen yasak saha A*'a girmez).
+        kayitlar = kaynak_durumlarini_getir([OPENAIP_DURUM_ANAHTARI])
+        son_basari = kayitlar[0]["son_basari_zamani"] if kayitlar else None
+        sonuc["openaip_son_basari"] = son_basari
+        if kayitlar and kayitlar[0]["son_hata"]:
+            sonuc["son_hata"] = kayitlar[0]["son_hata"]
+        esik = timedelta(hours=2 * config.OPENAIP_OTOMATIK_GUNCELLEME_SAAT)
+        if son_basari is None or simdi - son_basari > esik:
+            durum = "bayat"
+    return {"durum": durum, **sonuc}
 
 
 async def _gorev_kuyrugu_kontrolu():

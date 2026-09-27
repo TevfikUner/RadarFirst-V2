@@ -499,8 +499,15 @@ girmemek, (2) TI1 riskinden kaçınmak, (3) en ucuz yakıt/süre.
   limitleri feet'e çevrilir, zemine göre (AGL) üst limitlere arazi payı eklenir,
   NOTAM'la etkinleşen sahalar sürekli etkin sayılır. **Lisans:** openAIP verisi
   CC BY-NC 4.0 (ticari olmayan kullanım, atıf). Herkese açık dışa aktarım
-  dosyaları artık anahtarsız indirilemiyor. AIRAC döngüsünde (28 gün) n8n ile
-  yenilenebilir.
+  dosyaları artık anahtarsız indirilemiyor.
+- **Otomatik yenileme:** `OPENAIP_OTOMATIK_GUNCELLEME_SAAT` > 0 ise API bu
+  aralıkla yenilemeyi işçi kuyruğuna ekler (son denemeye göre; bekleyen bir
+  openAIP görevi varsa eklemez, birden fazla API kopyası çoğaltmaz). Her
+  deneme `veri_kaynagi_durumlari`'na yazılır; iki aralık boyunca başarı yoksa
+  `/saglik?derin=true` kısıtlı sahaları `bayat` raporlar. Alternatif: n8n.
+- **Üretim profili:** `.env.uretim.example` -- örnek veri kapalı
+  (`KISITLI_SAHA_ORNEK_VERI_YUKLE=false`), openAIP günlük, SIGMET 10 dk,
+  işçi ayrı serviste, kişi başına anahtarlar.
 - **Veri:** GeoJSON FeatureCollection (Polygon/MultiPolygon; `kimlik`, `ad`,
   `tur` = `CATISMA`/`YASAK`/`KISITLI`/`TEHLIKELI`/`GECICI`, `taban_ft`,
   `tavan_ft`, `baslangic`, `bitis`, `aciklama`). İçe aktarma:
