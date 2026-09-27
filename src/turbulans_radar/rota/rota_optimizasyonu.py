@@ -179,12 +179,25 @@ def veri_kupune_eris(
     )
 
 
+_KM_PER_DERECE_ENLEM = 111.2
+
+
+def _km_boylam_derecesine_cevir(km, enlemler):
+    """km cinsinden bir yatay mesafeyi dereceye çevirir; 1° boylam =
+    111.2*cos(enlem) km olduğu için (enlem arttıkça küçülür) enlemler
+    dizisindeki EN KÖTÜ (en yüksek mutlak enlem, 75°'ye kadar kelepçeli)
+    değer kullanılır -- rotanın herhangi bir noktasında en az `km` kadar
+    kapsama garanti edilir (düz bir derece değeri kullanmak yüksek enlemde
+    gerçek km'yi olduğundan dar gösterirdi, bkz. konuşma geçmişi)."""
+    enlem = min(float(np.max(np.abs(enlemler))), 75.0)
+    return km / (_KM_PER_DERECE_ENLEM * math.cos(math.radians(enlem)))
+
+
 def _a_yildiz_pay_derecesi(enlemler):
     """A* ızgarası büyük daireden ROTA_MAKS_YANAL_SAPMA_KM kadar sapabilir;
     büyük küplerden okunan pencere bu koridoru da kapsasın (boylamda enleme
     göre genişletilmiş, +1° eşleştirme toleransı)."""
-    enlem = min(float(np.max(np.abs(enlemler))), 75.0)
-    return config.ROTA_MAKS_YANAL_SAPMA_KM / (111.0 * math.cos(math.radians(enlem))) + 1.0
+    return _km_boylam_derecesine_cevir(config.ROTA_MAKS_YANAL_SAPMA_KM, enlemler) + 1.0
 
 
 def _tahmini_varis_zamanlari(enlemler, boylamlar, zaman_iso, tas_ms):
@@ -762,8 +775,14 @@ def _kisitli_saha_katmanini_hazirla(kisitli_sahalar, enlemler_gc, boylamlar_gc, 
         for enlem, boylam in ((enlemler_gc[0], boylamlar_gc[0]), (enlemler_gc[-1], boylamlar_gc[-1]))
         for saha in tum.noktayi_iceren_kayitlar(enlem, boylam)
     }
+    # Düz bir derece tamponu yüksek enlemde gerçek km'yi olduğundan dar
+    # gösterirdi (60°K'de "100 km" tamponu doğu-batı yönünde gerçekte sadece
+    # ~50 km'ye karşılık gelir, cos(enlem) küçüldüğü için) -- bu yüzden
+    # _km_boylam_derecesine_cevir ile rotanın en yüksek enlemine göre
+    # (muhafazakâr) ölçeklenir.
     koridor = shapely.buffer(
-        shapely.linestrings(np.column_stack([boylamlar_gc, enlemler_gc])), config.KISITLI_SAHA_UC_KORIDORU_KM / 111.2
+        shapely.linestrings(np.column_stack([boylamlar_gc, enlemler_gc])),
+        _km_boylam_derecesine_cevir(config.KISITLI_SAHA_UC_KORIDORU_KM, enlemler_gc),
     )
     uygulanacak = []
     for saha in tum.kayitlar:

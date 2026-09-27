@@ -401,3 +401,45 @@ def test_a_yildiz_nominal_zamandan_sonra_baslayan_sigmetten_de_kacinir():
         enlemler, boylamlar, 36000 * 0.3048, kalkis.isoformat(), 230.0, None, [SigmetKisitKatmani([sigmet])]
     )
     assert yol is not None and yol[2] > 0
+
+
+def test_km_boylam_derecesine_cevir_yuksek_enlemde_daralmiyor():
+    """Düz bir derece tamponu (km / 111.2) yüksek enlemde gerçek km'yi
+    olduğundan dar gösterirdi (60°K'de "100 km" tamponu doğu-batı yönünde
+    gerçekte sadece ~50 km'ye karşılık gelirdi, cos(enlem) küçüldüğü için)."""
+    from turbulans_radar.rota.rota_optimizasyonu import (
+        _KM_PER_DERECE_ENLEM,
+        _km_boylam_derecesine_cevir,
+        buyuk_daire_mesafesi_km,
+    )
+
+    for enlem in (0.0, 38.0, 60.0, -60.0, 74.0):
+        derece = _km_boylam_derecesine_cevir(100.0, [enlem])
+        gercek_km = buyuk_daire_mesafesi_km(enlem, 0.0, enlem, derece)
+        assert gercek_km == pytest.approx(100.0, rel=0.02)
+
+    # 75°'nin ötesinde kasıtlı olarak 75°'de kelepçelenir (kutba yakın patlamayı
+    # önlemek için); bu yüzden 80°'de gerçek km hedefin altında kalır.
+    assert _km_boylam_derecesine_cevir(100.0, [80.0]) == _km_boylam_derecesine_cevir(100.0, [75.0])
+
+    # Kelepçelenmemiş düz yöntemle (eski davranış) karşılaştır: 60°K'de belirgin fark olmalı.
+    duz_derece = 100.0 / _KM_PER_DERECE_ENLEM
+    duz_gercek_km = buyuk_daire_mesafesi_km(60.0, 0.0, 60.0, duz_derece)
+    assert duz_gercek_km < 60.0
+
+
+def test_kisitli_saha_koridoru_yuksek_enlemde_hedeflenen_genisligi_korur():
+    """Malatya-Musul testinin (38°K) aksine, yüksek enlemde bir rotada
+    koridor genişliği düzeltilmeden ölçülürse hedeflenen km'nin çok altında
+    kalırdı (bkz. test_km_boylam_derecesine_cevir_yuksek_enlemde_daralmiyor)."""
+    saha = _kare_saha(55.0, 65.0, -10.0, 30.0)  # kalkış noktasını içeren büyük bir saha
+    sonuc = rota_simulasyonu_olustur(
+        60.0, 10.0, 60.0, 20.0, 34000, "2019-01-15T00:00:00", "A320", sigmetler=[], kisitli_sahalar=[saha]
+    )
+    kontrol = sonuc["kisitli_saha_kontrolu"]
+    assert kontrol["muaf_tutulanlar"] == ["Deneme sahası"]
+    # Kalan (kısıt uygulanan) geometri var olmalı ve tüm sahayı değil, sadece
+    # koridorun DIŞINDAKİ kısmı kapsamalı (aksi halde koridor sıfıra yakın
+    # daralmış demektir).
+    (kalan_saha,) = kontrol["sahalar"]
+    assert "koridoru hariç" in kalan_saha["ad"]
