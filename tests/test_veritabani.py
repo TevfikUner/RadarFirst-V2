@@ -89,6 +89,13 @@ def test_listeleme_ucus_numarasi_aramasi_filtreler(motor):
     assert eslesmeyen == []
 
 
+@pytest.mark.parametrize("joker", ["%", "_", "PYTEST%"])
+def test_arama_like_jokerlerini_harfiyen_arar(motor, joker):
+    vt.ucus_ve_olcumleri_kaydet(_ornek_df(), _TEST_UCUS_NUMARASI, _TEST_TARIH, motor)
+    eslesen = vt.ucuslari_listele(motor, ucus_numarasi_arama=joker)
+    assert all(joker in u["ucus_numarasi"] for u in eslesen)
+
+
 def test_listeleme_tarih_araligi_filtreler(motor):
     vt.ucus_ve_olcumleri_kaydet(_ornek_df(), _TEST_UCUS_NUMARASI, _TEST_TARIH, motor)
 

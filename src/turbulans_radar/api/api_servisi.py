@@ -272,7 +272,9 @@ app.mount("/harita", StaticFiles(directory="web", html=True), name="harita")
 def _anahtar_eslesiyor(verilen: str | None, beklenen: str | None) -> bool:
     # secrets.compare_digest: '==' kısa devre yaptığı için yanıt süresinden
     # anahtarın ilk kaç karakterinin tutturulduğu sızabilir (timing attack).
-    return bool(verilen and beklenen) and secrets.compare_digest(verilen, beklenen)
+    # bytes: str ile compare_digest ASCII dışı karakterde TypeError atar
+    # (başlık latin-1 çözülür, örn. 'é') -- 401 yerine 500 dönerdi.
+    return bool(verilen and beklenen) and secrets.compare_digest(verilen.encode(), beklenen.encode())
 
 
 def api_anahtarini_dogrula(x_api_key: str | None = Header(default=None, alias="X-API-Key")) -> str:
@@ -320,10 +322,12 @@ def ws_bileti_gecerli_mi(bilet: str | None) -> bool:
     if not bilet or not os.environ.get("API_ANAHTARI"):
         return False
     parcalar = bilet.split(".")
-    if len(parcalar) != 3 or not parcalar[0].isdigit():
+    # isascii: '²'.isdigit() True ama int('²') ValueError atar.
+    if len(parcalar) != 3 or not (parcalar[0].isascii() and parcalar[0].isdigit()):
         return False
     bitis, rol, imza = parcalar
-    return secrets.compare_digest(imza, _bilet_imzasi(f"{bitis}.{rol}")) and int(bitis) >= time.time()
+    beklenen = _bilet_imzasi(f"{bitis}.{rol}")
+    return secrets.compare_digest(imza.encode(), beklenen.encode()) and int(bitis) >= time.time()
 
 
 # ---------------------------------------------------------------------------
@@ -447,6 +451,8 @@ async def uyarilar_websocket(websocket: WebSocket, bilet: str | None = None, api
         while True:
             await websocket.receive_text()
     except WebSocketDisconnect:
+        pass
+    finally:
         baglanti_yoneticisi.ayril(websocket)
 
 
@@ -520,7 +526,7 @@ class RotaAnalizIstegi(BaseModel):
 
 
 class TopluAnalizIstegi(BaseModel):
-    ucuslar: list[UcusAnalizIstegi]
+    ucuslar: list[UcusAnalizIstegi] = Field(max_length=500)
     bildirim_webhook_url: str | None = None
 
     @field_validator("bildirim_webhook_url")

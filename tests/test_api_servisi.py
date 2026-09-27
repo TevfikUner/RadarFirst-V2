@@ -95,6 +95,21 @@ async def test_v1_yanlis_anahtar_401(istemci):
     assert yanit.status_code == 401
 
 
+async def test_v1_ascii_disi_anahtar_500_degil_401(istemci, api_anahtari):
+    yanit = await istemci.get("/api/v1/esikler", headers={"X-API-Key": "anahtar-é".encode("latin-1")})
+    assert yanit.status_code == 401
+
+
+@pytest.mark.parametrize("bilet", ["²³.pilot.abc", "9999999999.pilot.é", "1.2", ""])
+def test_bozuk_ws_bileti_hata_atmadan_reddedilir(api_anahtari, bilet):
+    assert api_servisi.ws_bileti_gecerli_mi(bilet) is False
+
+
+def test_ws_bileti_gecerli_ve_suresi_dolunca_gecersiz(api_anahtari):
+    assert api_servisi.ws_bileti_gecerli_mi(api_servisi.ws_bileti_uret("pilot"))
+    assert not api_servisi.ws_bileti_gecerli_mi(api_servisi.ws_bileti_uret("pilot", simdi=0))
+
+
 async def test_v1_dogru_anahtar_200(istemci, api_anahtari):
     yanit = await istemci.get("/api/v1/ucuslar", headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 200

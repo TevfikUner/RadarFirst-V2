@@ -268,7 +268,11 @@ def _ucuslar_filtre_kosullari(ucus_numarasi_arama=None, baslangic_tarih=None, bi
     (SELECT) ve ucuslari_toplu_sil_async (DELETE)."""
     kosullar = []
     if ucus_numarasi_arama:
-        kosullar.append(Ucus.ucus_numarasi.ilike(f"%{ucus_numarasi_arama}%"))
+        # '%' ve '_' LIKE joker karakteridir: kaçışsız "%" araması HER uçuşu
+        # eşleştirir ve ucuslari_toplu_sil_async'in "en az bir filtre" korumasını
+        # (tüm tabloyu silmeyi önleyen) boşa çıkarırdı.
+        kacisli = ucus_numarasi_arama.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+        kosullar.append(Ucus.ucus_numarasi.ilike(f"%{kacisli}%", escape="\\"))
     if baslangic_tarih:
         kosullar.append(Ucus.tarih >= _tarihe_cevir(baslangic_tarih))
     if bitis_tarih:
