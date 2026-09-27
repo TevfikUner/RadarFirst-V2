@@ -26,6 +26,7 @@ tahminidir. Kaydedilen nihai model TÜM veriyle eğitilir.
 """
 
 import glob
+import os
 
 import numpy as np
 import pandas as pd
@@ -209,7 +210,12 @@ def en_iyi_modeli_sec_ve_kaydet(sonuclar, egitim_orneklem_sayisi, test_orneklem_
 
         model = make_pipeline(olcekleyici, model)
 
-    joblib.dump(model, MODEL_DOSYA_YOLU)
+    # Çalışan API dosya değişince modeli yeniden yükler (bkz.
+    # turbulans_ml_modeli._modeli_yukle): yarım yazılmış dosyayı okumasın diye
+    # önce geçici dosyaya yazılıp tek adımda yerine konur.
+    gecici_model = f"{MODEL_DOSYA_YOLU}.{os.getpid()}.gecici"
+    joblib.dump(model, gecici_model)
+    os.replace(gecici_model, MODEL_DOSYA_YOLU)
     print(f"Model kaydedildi: {MODEL_DOSYA_YOLU}")
 
     # api_servisi.py'nin GET /api/v1/turbulans/model-bilgisi uç noktasının

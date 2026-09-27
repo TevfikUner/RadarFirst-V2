@@ -79,7 +79,7 @@ def test_egitilmis_model_yoksa_durustce_none_doner(veri_kupu, tmp_path, monkeypa
 
     monkeypatch.setattr(tm, "MODEL_DOSYA_YOLU", str(tmp_path / "olmayan_model.joblib"))
     monkeypatch.setitem(tm._ONBELLEK_MODEL, "model", None)
-    monkeypatch.setitem(tm._ONBELLEK_MODEL, "denendi", False)
+    monkeypatch.setitem(tm._ONBELLEK_MODEL, "imza", None)
 
     nokta_df = pd.DataFrame(
         {
@@ -91,6 +91,25 @@ def test_egitilmis_model_yoksa_durustce_none_doner(veri_kupu, tmp_path, monkeypa
     )
     sonuc = tm.turbulans_riski_tahmin_et(nokta_df, veri_kupu)
     assert sonuc is None
+
+
+def test_model_sonradan_egitilirse_yeniden_baslatmadan_yuklenir(tmp_path, monkeypatch):
+    """Süreç açıkken model yokken sorgulanıp sonra eğitilirse, 'model yok'
+    sonucu önbellekte takılı kalmamalı; model değişirse yenisi yüklenmeli."""
+    import joblib
+
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
+
+    yol = tmp_path / "model.joblib"
+    monkeypatch.setattr(tm, "MODEL_DOSYA_YOLU", str(yol))
+    monkeypatch.setitem(tm._ONBELLEK_MODEL, "model", None)
+    monkeypatch.setitem(tm._ONBELLEK_MODEL, "imza", None)
+
+    assert tm._modeli_yukle() is None
+    joblib.dump({"surum": 1}, yol)
+    assert tm._modeli_yukle() == {"surum": 1}
+    joblib.dump({"surum": 2, "ek": "boyut farkı"}, yol)
+    assert tm._modeli_yukle() == {"surum": 2, "ek": "boyut farkı"}
 
 
 def test_model_bilgisi_dosyasi_yoksa_durustce_none_doner(tmp_path, monkeypatch):

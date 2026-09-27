@@ -18,6 +18,7 @@ bu sadece görsel bir ön yüz, hesaplama mantığı aynı.
 import contextlib
 import io
 import os
+import re
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -82,8 +83,15 @@ with st.form("analiz_formu"):
     gonder = st.form_submit_button("Analiz Et", type="primary")
 
 if gonder:
-    if not ucus_numarasi.strip() or not tarih.strip():
+    ucus_numarasi, tarih = ucus_numarasi.strip(), tarih.strip()
+    if not ucus_numarasi or not tarih:
         st.warning("Lütfen hem uçuş numarası hem de tarih gir.")
+    elif not re.fullmatch(r"[A-Za-z0-9]{1,8}", ucus_numarasi):
+        # Uçuş no ve tarih aşağıda harita dosya adına da giriyor (ciktilar/...):
+        # API'deki desenle aynı doğrulama '../' gibi yol parçalarını da dışlar.
+        st.warning("Uçuş numarası en fazla 8 harf/rakam olmalı (örn. THY1234).")
+    elif not re.fullmatch(r"\d{4}-\d{2}-\d{2}", tarih):
+        st.warning("Tarih YYYY-MM-DD biçiminde olmalı.")
     else:
         gunluk = io.StringIO()
         eslesmis_df = None
@@ -94,7 +102,7 @@ if gonder:
         ):
             try:
                 with contextlib.redirect_stdout(gunluk):
-                    eslesmis_df = calistir(ucus_numarasi.strip(), tarih.strip())
+                    eslesmis_df = calistir(ucus_numarasi, tarih)
             except Exception as e:
                 hata = e
 
@@ -118,7 +126,7 @@ if gonder:
                     sutun3.metric("Dinamik kararsız nokta", kararsiz_sayisi)
 
             harita_dosyasi = os.path.join(
-                config.CIKTI_KLASORU, f"turbulans_haritasi_{ucus_numarasi.strip()}_{tarih.strip()}.html"
+                config.CIKTI_KLASORU, f"turbulans_haritasi_{ucus_numarasi}_{tarih}.html"
             )
             try:
                 with open(harita_dosyasi, encoding="utf-8") as f:

@@ -115,19 +115,38 @@ def ozellikleri_temizle(ozellik_df: pd.DataFrame, etiketler: pd.Series | None = 
     return temiz_ozellikler, etiketler.loc[temiz_maske].reset_index(drop=True)
 
 
-_ONBELLEK_MODEL = {"model": None, "denendi": False}
+_ONBELLEK_MODEL = {"model": None, "imza": None}
 
 
 def _modeli_yukle():
-    if not _ONBELLEK_MODEL["denendi"]:
-        _ONBELLEK_MODEL["denendi"] = True
-        try:
-            import joblib
+    """Dosyanın (mtime, boyut) imzası değiştiyse yeniden yükler: API açıkken
+    ml_egitimi.py yeni model yazarsa ya da model hiç yokken eğitilirse süreç
+    yeniden başlatılmadan yeni modeli kullanır (eskiden ilk denemenin sonucu
+    -- 'model yok' dahil -- süreç boyunca önbellekte kalıyordu)."""
+    import os
 
-            _ONBELLEK_MODEL["model"] = joblib.load(MODEL_DOSYA_YOLU)
-        except FileNotFoundError:
-            _ONBELLEK_MODEL["model"] = None
+    try:
+        bilgi = os.stat(MODEL_DOSYA_YOLU)
+    except FileNotFoundError:
+        _ONBELLEK_MODEL.update(model=None, imza=None)
+        return None
+    imza = (bilgi.st_mtime_ns, bilgi.st_size)
+    if imza != _ONBELLEK_MODEL["imza"]:
+        import joblib
+
+        _ONBELLEK_MODEL.update(model=joblib.load(MODEL_DOSYA_YOLU), imza=imza)
     return _ONBELLEK_MODEL["model"]
+
+
+def _atomik_kopyala(kaynak, hedef):
+    """Okuyan bir süreç yarım yazılmış dosyayı görmesin diye önce geçici
+    dosyaya kopyalayıp os.replace ile tek adımda yerine koyar."""
+    import os
+    import shutil
+
+    gecici = f"{hedef}.{os.getpid()}.gecici"
+    shutil.copyfile(kaynak, gecici)
+    os.replace(gecici, hedef)
 
 
 def turbulans_riski_tahmin_et(nokta_df: pd.DataFrame, veri_kupu):
@@ -215,16 +234,18 @@ def versiyona_geri_don(versiyon_id):
     versiyon_id için ValueError fırlatır -- uydurma bir geri dönüş yapılmaz.
     """
     import json
-    import shutil
+    import os
 
     versiyon = next((v for v in _versiyonlari_oku() if v["versiyon_id"] == versiyon_id), None)
     if versiyon is None:
         raise ValueError(f"Bilinmeyen versiyon_id: '{versiyon_id}'.")
 
-    shutil.copyfile(versiyon["dosya_yolu"], MODEL_DOSYA_YOLU)
+    _atomik_kopyala(versiyon["dosya_yolu"], MODEL_DOSYA_YOLU)
     aktif_bilgi = {k: v for k, v in versiyon.items() if k not in ("versiyon_id", "dosya_yolu")}
-    with open(MODEL_BILGI_DOSYA_YOLU, "w", encoding="utf-8") as dosya:
+    gecici = f"{MODEL_BILGI_DOSYA_YOLU}.{os.getpid()}.gecici"
+    with open(gecici, "w", encoding="utf-8") as dosya:
         json.dump(aktif_bilgi, dosya, ensure_ascii=False, indent=2)
+    os.replace(gecici, MODEL_BILGI_DOSYA_YOLU)
 
-    _ONBELLEK_MODEL["denendi"] = False  # bir sonraki tahmin çağrısı yeni aktif modeli yüklesin
+    _ONBELLEK_MODEL["imza"] = None  # aynı mtime çözünürlüğünde kopyalansa bile yeniden yüklensin
     return aktif_bilgi
