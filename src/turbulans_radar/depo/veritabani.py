@@ -29,10 +29,13 @@ kendi docstring'i).
 """
 
 import os
+import threading
 from datetime import date
+from urllib.parse import quote_plus
 
 import pandas as pd
 from sqlalchemy import create_engine, delete, func, insert, select
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session
 
@@ -81,8 +84,11 @@ def _baglanti_parcalarini_al():
 
 
 def baglanti_dizesini_olustur():
+    # quote_plus: şifre/kullanıcı ':' '@' '/' gibi URL'de özel anlamı olan bir
+    # karakter içerirse (örn. "p@ss") kaçışsız haliyle URL yanlış ayrıştırılır
+    # (host/şifre karışır) -- bkz. sqlalchemy.engine.url.make_url davranışı.
     host, port, kullanici, sifre, veritabani = _baglanti_parcalarini_al()
-    return f"postgresql+psycopg2://{kullanici}:{sifre}@{host}:{port}/{veritabani}"
+    return f"postgresql+psycopg2://{quote_plus(kullanici)}:{quote_plus(sifre)}@{host}:{port}/{veritabani}"
 
 
 def asyncpg_baglanti_parametreleri() -> dict:
@@ -93,19 +99,28 @@ def asyncpg_baglanti_parametreleri() -> dict:
 
 def async_baglanti_dizesini_olustur():
     host, port, kullanici, sifre, veritabani = _baglanti_parcalarini_al()
-    return f"postgresql+asyncpg://{kullanici}:{sifre}@{host}:{port}/{veritabani}"
+    return f"postgresql+asyncpg://{quote_plus(kullanici)}:{quote_plus(sifre)}@{host}:{port}/{veritabani}"
 
 
 _motor = None
 _async_motor = None
 _AsyncOturum = None
+# gorev_iscisi.py birden fazla iş parçacığı başlatır; hepsi ilk işinde aynı
+# anda motor_al() çağırırsa kilitsiz "if None: oluştur" yarışında her biri
+# ayrı bir engine (ve bağlantı havuzu) kurup birini sessizce çöpe atabilir
+# (kapatılmadan) -- kilit bunu önler.
+_motor_kilidi = threading.Lock()
+_async_motor_kilidi = threading.Lock()
+_async_oturum_kilidi = threading.Lock()
 
 
 def motor_al():
     """Tekil (singleton) senkron SQLAlchemy engine döndürür (main.py/toplu_analiz.py için)."""
     global _motor
     if _motor is None:
-        _motor = create_engine(baglanti_dizesini_olustur(), pool_pre_ping=True)
+        with _motor_kilidi:
+            if _motor is None:
+                _motor = create_engine(baglanti_dizesini_olustur(), pool_pre_ping=True)
     return _motor
 
 
@@ -113,14 +128,19 @@ def async_motor_al():
     """Tekil (singleton) asenkron SQLAlchemy engine döndürür (api_servisi.py için)."""
     global _async_motor
     if _async_motor is None:
-        _async_motor = create_async_engine(async_baglanti_dizesini_olustur(), pool_pre_ping=True)
+        with _async_motor_kilidi:
+            if _async_motor is None:
+                _async_motor = create_async_engine(async_baglanti_dizesini_olustur(), pool_pre_ping=True)
     return _async_motor
 
 
 def async_oturum_al():
     global _AsyncOturum
     if _AsyncOturum is None:
-        _AsyncOturum = async_sessionmaker(async_motor_al(), expire_on_commit=False)
+        motor = async_motor_al()  # kilidin İÇİNDE değil: async_motor_al() kendi kilidini kullanır
+        with _async_oturum_kilidi:
+            if _AsyncOturum is None:
+                _AsyncOturum = async_sessionmaker(motor, expire_on_commit=False)
     return _AsyncOturum()
 
 
@@ -192,10 +212,18 @@ def _olcum_kayitlarini_hazirla(eslesmis_df, ucus_id):
 def ucus_ve_olcumleri_kaydet(eslesmis_df, ucus_numarasi, tarih_str, motor=None):
     """
     eslesmis_df: eslestirme.rotayi_hava_durumuyla_eslestir() çıktısı.
-    Aynı (ucus_numarasi, tarih) zaten kayıtlıysa önce silinir, sonra yeniden
-    yazılır (CASCADE sayesinde edr_olcumleri de otomatik temizlenir).
+    Aynı (ucus_numarasi, tarih) zaten kayıtlıysa üzerine yazılır (edr_olcumleri
+    de yeniden yazılır).
 
-    Dönüş: eklenen 'ucuslar' satırının id'si.
+    ESKİDEN DELETE+INSERT (iki ayrı ifade) yapılıyordu: aynı uçuş eşzamanlı
+    iki kez analiz edilirse (örn. bir yeniden deneme kuyruktaki başka bir
+    işiyle çakışırsa) her iki işlem de satırı SİLİNMİŞ/YOK bulup INSERT
+    deneyebilir, biri UniqueConstraint'e çarpıp hata verirdi. Tek bir
+    INSERT ... ON CONFLICT DO UPDATE (diğer tablolarda -- HavaDurumuKupu,
+    KisitliHavaSahasi, RotaBacktesti -- kullanılan desenle aynı) bunu DB
+    seviyesinde satır kilidiyle atomikleştirir: iki işlem çakışırsa biri
+    diğerini bekler, ikisi de başarıyla "son yazan kazanır" şeklinde biter.
+    Dönüş: eklenen/güncellenen 'ucuslar' satırının id'si.
     """
     motor = motor or motor_al()
 
@@ -203,23 +231,28 @@ def ucus_ve_olcumleri_kaydet(eslesmis_df, ucus_numarasi, tarih_str, motor=None):
         return eslesmis_df[sutun].iloc[0] if sutun in eslesmis_df.columns and not eslesmis_df.empty else None
 
     tarih = _tarihe_cevir(tarih_str)
+    guncellenebilir_alanlar = ("icao24", "kalkis_havaalani", "varis_havaalani")
     with Session(motor) as oturum:
-        oturum.execute(delete(Ucus).where(Ucus.ucus_numarasi == ucus_numarasi, Ucus.tarih == tarih))
-        ucus = Ucus(
+        ifade = pg_insert(Ucus).values(
             ucus_numarasi=ucus_numarasi,
             tarih=tarih,
-            icao24=bos_ise_al("icao24"),
-            kalkis_havaalani=bos_ise_al("kalkis_havaalani"),
-            varis_havaalani=bos_ise_al("varis_havaalani"),
+            **{alan: bos_ise_al(alan) for alan in guncellenebilir_alanlar},
         )
-        oturum.add(ucus)
-        oturum.flush()  # ucus.id'yi almak için
+        ucus_id = oturum.execute(
+            ifade.on_conflict_do_update(
+                index_elements=[Ucus.ucus_numarasi, Ucus.tarih],
+                set_={alan: ifade.excluded[alan] for alan in guncellenebilir_alanlar},
+            ).returning(Ucus.id)
+        ).scalar_one()
+        # CASCADE sadece Ucus SATIRI silinince tetiklenir; burada Ucus
+        # güncellendiği (silinmediği) için eski ölçümler ayrıca temizlenir.
+        oturum.execute(delete(EdrOlcumu).where(EdrOlcumu.ucus_id == ucus_id))
 
         if not eslesmis_df.empty:
-            oturum.execute(insert(EdrOlcumu), _olcum_kayitlarini_hazirla(eslesmis_df, ucus.id))
+            oturum.execute(insert(EdrOlcumu), _olcum_kayitlarini_hazirla(eslesmis_df, ucus_id))
 
         oturum.commit()
-        return ucus.id
+        return ucus_id
 
 
 # Tek istekte döndürülebilecek en fazla satır sayısı -- çağıran taraf daha
