@@ -1291,6 +1291,38 @@ async def saglik_kontrolu(
     sorun varsa durum 'bozulmus' olur (HTTP 200, monitoring gövdeye bakar)."""
     if not derin:
         return {"durum": "ayakta"}
-    if not await _veritabani_erisilebilir_mi():
-        return JSONResponse(status_code=503, content={"durum": "ayakta", "veritabani": "erisilemiyor"})
-    return await _saglik_raporu(ayrintili=False)
+    kod, govde = await _derin_saglik_onbellekli()
+    return JSONResponse(status_code=kod, content=govde) if kod != 200 else govde
+
+
+_saglik_onbellegi: dict = {"zaman": None, "sonuc": None}
+_saglik_kilitleri: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Lock]" = weakref.WeakKeyDictionary()
+
+
+async def _derin_saglik_onbellekli():
+    """Anahtarsız /saglik?derin=true her çağrıda veritabanına gidip tüm aktif
+    kısıtlı sahaları çekiyordu (dışarıdan ucuz bir yük büyütme yüzeyi). Sonuç
+    SAGLIK_ONBELLEK_SANIYE boyunca yeniden kullanılır; aynı anda gelen istekler
+    tek bir hesaplamayı bekler (kilit). /sistem/durum (yönetici) önbelleksizdir."""
+    sure = config.SAGLIK_ONBELLEK_SANIYE
+
+    def taze_mi():
+        zaman = _saglik_onbellegi["zaman"]
+        return zaman is not None and time.monotonic() - zaman < sure
+
+    if taze_mi():
+        return _saglik_onbellegi["sonuc"]
+    dongu = asyncio.get_running_loop()
+    kilit = _saglik_kilitleri.get(dongu)
+    if kilit is None:
+        kilit = _saglik_kilitleri[dongu] = asyncio.Lock()
+    async with kilit:
+        if taze_mi():
+            return _saglik_onbellegi["sonuc"]
+        if await _veritabani_erisilebilir_mi():
+            sonuc = (200, await _saglik_raporu(ayrintili=False))
+        else:
+            sonuc = (503, {"durum": "ayakta", "veritabani": "erisilemiyor"})
+        if sure > 0:
+            _saglik_onbellegi.update(zaman=time.monotonic(), sonuc=sonuc)
+        return sonuc

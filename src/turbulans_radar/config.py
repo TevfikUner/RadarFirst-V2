@@ -247,6 +247,10 @@ TAHMIN_DAKIKADA_MAKS = _ortam_sayi("TAHMIN_DAKIKADA_MAKS", 60, int)
 AGIR_HESAP_MAKS_ESZAMANLI = _ortam_sayi("AGIR_HESAP_MAKS_ESZAMANLI", 4, int)
 AGIR_HESAP_BEKLEME_SANIYE = _ortam_sayi("AGIR_HESAP_BEKLEME_SANIYE", 15.0)
 
+# Anahtarsız /saglik?derin=true yanıtı bu kadar saniye önbellekte tutulur
+# (0 = kapalı); yönetici /api/v1/sistem/durum her zaman taze hesaplanır.
+SAGLIK_ONBELLEK_SANIYE = _ortam_sayi("SAGLIK_ONBELLEK_SANIYE", 15.0)
+
 # turbulans_ml_modeli.py -- aktif model, bilgi JSON'u ve model_versiyonlari/
 # bu klasörde tutulur. Docker'da kalıcı bir volume'a işaret eder (bkz.
 # docker-compose.yml); aksi halde geri dönüş (rollback) konteyner yeniden

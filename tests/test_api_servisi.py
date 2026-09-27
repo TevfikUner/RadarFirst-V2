@@ -69,6 +69,13 @@ def _hiz_sinirini_sifirla():
     _hiz_sayaclarini_sil()
 
 
+@pytest.fixture(autouse=True)
+def _saglik_onbellegini_temizle():
+    api_servisi._saglik_onbellegi.update(zaman=None, sonuc=None)
+    yield
+    api_servisi._saglik_onbellegi.update(zaman=None, sonuc=None)
+
+
 @pytest.fixture
 def api_anahtari():
     anahtar = os.environ.get("API_ANAHTARI")
@@ -1134,3 +1141,26 @@ async def test_agir_hesap_tavani_doluysa_503(monkeypatch):
     assert hata.value.status_code == 503 and hata.value.headers["Retry-After"] == "5"
     async with api_servisi._agir_hesap_yuvasi():
         pass
+
+
+async def test_derin_saglik_onbellekten_doner_ve_suresi_dolunca_yenilenir(istemci, monkeypatch):
+    cagri = {"sayi": 0}
+
+    async def sayan_rapor(ayrintili):
+        cagri["sayi"] += 1
+        return {"durum": "ayakta", "veritabani": "erisilebilir", "kontroller": {}, "uyarilar": []}
+
+    monkeypatch.setattr(api_servisi, "_saglik_raporu", sayan_rapor)
+    monkeypatch.setattr(config, "SAGLIK_ONBELLEK_SANIYE", 60.0)
+    yanitlar = await asyncio.gather(*(istemci.get("/saglik?derin=true") for _ in range(5)))
+    assert all(y.status_code == 200 for y in yanitlar) and cagri["sayi"] == 1
+
+    api_servisi._saglik_onbellegi["zaman"] -= 61
+    await istemci.get("/saglik?derin=true")
+    assert cagri["sayi"] == 2
+
+    monkeypatch.setattr(config, "SAGLIK_ONBELLEK_SANIYE", 0.0)
+    api_servisi._saglik_onbellegi.update(zaman=None, sonuc=None)
+    await istemci.get("/saglik?derin=true")
+    await istemci.get("/saglik?derin=true")
+    assert cagri["sayi"] == 4
