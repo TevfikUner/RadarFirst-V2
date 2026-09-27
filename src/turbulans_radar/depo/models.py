@@ -214,6 +214,18 @@ class VeriKaynagiDurumu(Base):
     son_ozet: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
 
+class HizSiniriSayaci(Base):
+    """API hız sınırı: (anahtar, pencere) başına istek sayısı. Bellekte değil
+    burada tutulur ki birden fazla API süreci/kopyası AYNI sınırı paylaşsın
+    (bkz. depo/hiz_siniri.py)."""
+
+    __tablename__ = "hiz_siniri_sayaclari"
+
+    anahtar: Mapped[str] = mapped_column(String(200), primary_key=True)
+    pencere_baslangic: Mapped[object] = mapped_column(DateTime(timezone=True), primary_key=True)
+    sayi: Mapped[int] = mapped_column(Integer, nullable=False)
+
+
 class KisitliHavaSahasi(Base):
     __tablename__ = "kisitli_hava_sahalari"
     __table_args__ = (

@@ -238,6 +238,15 @@ OPENAIP_SAHA_TURLERI = tuple(int(t) for t in _ortam_str("OPENAIP_SAHA_TURLERI", 
 # GND referanslı üst limite eklenen arazi payı (arazi yüksekliği bilinmiyor; muhafazakâr).
 OPENAIP_AGL_UST_PAYI_FT = _ortam_sayi("OPENAIP_AGL_UST_PAYI_FT", 15000.0)
 
+# api_servisi.py -- pilot anahtarının da çağırabildiği CPU ağır uçlar: istemci
+# (rol + IP) başına dakikalık istek sınırı ve süreç başına aynı anda en fazla
+# kaç A*/tahmin hesabı çalışacağı. Tavan doluysa istek en fazla
+# AGIR_HESAP_BEKLEME_SANIYE bekler, sonra 503 + Retry-After döner.
+ROTA_HESABI_DAKIKADA_MAKS = _ortam_sayi("ROTA_HESABI_DAKIKADA_MAKS", 20, int)
+TAHMIN_DAKIKADA_MAKS = _ortam_sayi("TAHMIN_DAKIKADA_MAKS", 60, int)
+AGIR_HESAP_MAKS_ESZAMANLI = _ortam_sayi("AGIR_HESAP_MAKS_ESZAMANLI", 4, int)
+AGIR_HESAP_BEKLEME_SANIYE = _ortam_sayi("AGIR_HESAP_BEKLEME_SANIYE", 15.0)
+
 # turbulans_ml_modeli.py -- aktif model, bilgi JSON'u ve model_versiyonlari/
 # bu klasörde tutulur. Docker'da kalıcı bir volume'a işaret eder (bkz.
 # docker-compose.yml); aksi halde geri dönüş (rollback) konteyner yeniden

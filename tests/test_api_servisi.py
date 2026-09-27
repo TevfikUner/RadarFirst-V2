@@ -57,11 +57,16 @@ async def _gorev_bitene_kadar_bekle(istemci, api_anahtari, gorev_id, deneme=200)
     return durum
 
 
+def _hiz_sayaclarini_sil():
+    with vt.motor_al().begin() as baglanti:
+        baglanti.execute(text("DELETE FROM hiz_siniri_sayaclari"))
+
+
 @pytest.fixture(autouse=True)
 def _hiz_sinirini_sifirla():
-    api_servisi._analiz_istek_zamanlari.clear()
+    _hiz_sayaclarini_sil()
     yield
-    api_servisi._analiz_istek_zamanlari.clear()
+    _hiz_sayaclarini_sil()
 
 
 @pytest.fixture
@@ -1080,3 +1085,52 @@ def test_ws_bileti_ile_baglanilir_bozuk_ya_da_suresi_gecmis_bilet_reddedilir(api
         with pytest.raises(Exception):
             with istemci.websocket_connect(f"/ws/uyarilar?bilet={gecersiz}"):
                 pass
+
+
+async def test_hiz_siniri_sayaci_veritabaninda_paylasilir():
+    """Sayaç süreç belleğinde değil PostgreSQL'de: başka bir API süreci aynı
+    anahtarı artırsa da (burada doğrudan istegi_say ile) sınır ortak işler."""
+    from turbulans_radar.depo.hiz_siniri import istegi_say
+
+    assert [await istegi_say("paylasim_testi", 60) for _ in range(3)] == [1, 2, 3]
+    with pytest.raises(api_servisi.HTTPException) as hata:
+        await api_servisi._hiz_sinirini_kontrol_et("paylasim_testi", maks=3)
+    assert hata.value.status_code == 429 and hata.value.headers["Retry-After"] == "60"
+
+
+async def test_pilot_rota_hesabi_istemci_basina_sinirlanir(istemci, api_anahtari, monkeypatch):
+    monkeypatch.setattr(config, "ROTA_HESABI_DAKIKADA_MAKS", 0)
+    govde = {
+        "baslangic_enlem": 41.0,
+        "baslangic_boylam": 28.9,
+        "bitis_enlem": 39.9,
+        "bitis_boylam": 32.8,
+        "irtifa_ft": 34000,
+        "zaman": "2019-01-15T10:00:00",
+        "ucak_modeli": "A320",
+    }
+    yanit = await istemci.post("/api/v1/simulasyon/rota", json=govde, headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 429 and "Retry-After" in yanit.headers
+
+
+async def test_hiz_siniri_sayacina_ulasilamazsa_istek_engellenmez(monkeypatch):
+    from sqlalchemy.exc import OperationalError
+
+    async def ulasilamaz(*_):
+        raise OperationalError("SELECT", {}, Exception("baglanti yok"))
+
+    monkeypatch.setattr(api_servisi, "istegi_say", ulasilamaz)
+    await api_servisi._hiz_sinirini_kontrol_et("herhangi", maks=0)
+
+
+async def test_agir_hesap_tavani_doluysa_503(monkeypatch):
+    monkeypatch.setattr(config, "AGIR_HESAP_MAKS_ESZAMANLI", 1)
+    monkeypatch.setattr(config, "AGIR_HESAP_BEKLEME_SANIYE", 0.05)
+    monkeypatch.setattr(api_servisi, "_agir_hesap_semaforlari", api_servisi.weakref.WeakKeyDictionary())
+    async with api_servisi._agir_hesap_yuvasi():
+        with pytest.raises(api_servisi.HTTPException) as hata:
+            async with api_servisi._agir_hesap_yuvasi():
+                pass
+    assert hata.value.status_code == 503 and hata.value.headers["Retry-After"] == "5"
+    async with api_servisi._agir_hesap_yuvasi():
+        pass

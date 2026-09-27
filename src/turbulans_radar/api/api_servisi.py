@@ -52,6 +52,7 @@ import json
 import os
 import secrets
 import time
+import weakref
 from contextlib import asynccontextmanager
 from datetime import UTC, date, datetime
 
@@ -114,6 +115,7 @@ from turbulans_radar.api.semalar import (
 )
 from turbulans_radar.cli.statik_indir import yerel_kutuphane_durumu
 from turbulans_radar.depo.gorev_deposu import eski_gorevleri_temizle, gorev_getir, gorev_olustur, kuyruk_durumu
+from turbulans_radar.depo.hiz_siniri import istegi_say
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir
 from turbulans_radar.depo.kup_katalogu import katalogu_listele, yerel_kupleri_katalogla
 from turbulans_radar.depo.veritabani import (
@@ -337,22 +339,62 @@ def ws_bileti_gecerli_mi(bilet: str | None) -> bool:
 
 _ANALIZ_PENCERE_SANIYE = 60
 _ANALIZ_PENCERE_BASINA_MAKS_ISTEK = 5
-_analiz_istek_zamanlari: dict[str, list[float]] = {}
 
 
-def _hiz_sinirini_kontrol_et(anahtar: str):
-    simdi = time.monotonic()
-    gecmis = [t for t in _analiz_istek_zamanlari.get(anahtar, []) if simdi - t < _ANALIZ_PENCERE_SANIYE]
-    if len(gecmis) >= _ANALIZ_PENCERE_BASINA_MAKS_ISTEK:
+async def _hiz_sinirini_kontrol_et(
+    anahtar: str, maks: int = _ANALIZ_PENCERE_BASINA_MAKS_ISTEK, pencere_saniye: int = _ANALIZ_PENCERE_SANIYE
+):
+    """Sayaç PostgreSQL'de (bkz. depo/hiz_siniri.py): tüm API süreçleri aynı
+    sınırı paylaşır. Veritabanına ulaşılamazsa sınır ATLANIR (fail-open):
+    rota hesabı gibi uçlar veritabanı olmadan da çalışabildiği için sayaç
+    arızası pilotun rota almasını engellememeli."""
+    try:
+        sayi = await istegi_say(anahtar, pencere_saniye)
+    except (SQLAlchemyError, OSError, VeritabaniAyarlariEksikHatasi) as hata:
+        _logger.warning("Hız sınırı sayacına ulaşılamadı, sınır atlandı (%s): %s", anahtar, dostane_hata_mesaji(hata))
+        return
+    if sayi > maks:
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-            detail=(
-                f"Çok fazla analiz isteği ({_ANALIZ_PENCERE_BASINA_MAKS_ISTEK}/"
-                f"{_ANALIZ_PENCERE_SANIYE}s). OpenSky'yi yormamak için lütfen bekle."
-            ),
+            detail=f"Çok fazla istek ({maks}/{pencere_saniye}s). Lütfen biraz bekleyip tekrar dene.",
+            headers={"Retry-After": str(pencere_saniye)},
         )
-    gecmis.append(simdi)
-    _analiz_istek_zamanlari[anahtar] = gecmis
+
+
+def _istemci_kimligi(request: Request, rol: str) -> str:
+    """Pilot uçlarında sınır rol + istemci IP'si başınadır: aynı pilot anahtarını
+    paylaşan tabletlerden biri diğerlerinin kotasını tüketemesin. Ters vekil
+    arkasında gerçek IP için uvicorn --proxy-headers/--forwarded-allow-ips."""
+    return f"{rol}:{request.client.host if request.client else '?'}"
+
+
+_agir_hesap_semaforlari: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore]" = (
+    weakref.WeakKeyDictionary()
+)
+
+
+@asynccontextmanager
+async def _agir_hesap_yuvasi():
+    """A*/tahmin gibi CPU ağır hesaplar için süreç başına eşzamanlılık tavanı
+    (config.AGIR_HESAP_MAKS_ESZAMANLI). Tavan doluysa istek süresiz kuyrukta
+    beklemez: AGIR_HESAP_BEKLEME_SANIYE sonra 503 + Retry-After döner.
+    Semafor olay döngüsü başına tutulur (asyncio nesneleri döngüye bağlanır)."""
+    dongu = asyncio.get_running_loop()
+    semafor = _agir_hesap_semaforlari.get(dongu)
+    if semafor is None:
+        semafor = _agir_hesap_semaforlari[dongu] = asyncio.Semaphore(config.AGIR_HESAP_MAKS_ESZAMANLI)
+    try:
+        await asyncio.wait_for(semafor.acquire(), timeout=config.AGIR_HESAP_BEKLEME_SANIYE)
+    except TimeoutError:
+        raise HTTPException(
+            status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+            detail="Sunucu şu an çok sayıda rota/tahmin hesaplıyor. Birkaç saniye sonra tekrar dene.",
+            headers={"Retry-After": "5"},
+        ) from None
+    try:
+        yield
+    finally:
+        semafor.release()
 
 
 # ---------------------------------------------------------------------------
@@ -563,32 +605,36 @@ async def ucak_profillerini_getir():
 
 
 @v1.post("/simulasyon/rota", response_model=RotaSimulasyonuYaniti, tags=["Simülasyon"])
-async def rota_simulasyonu(istek: RotaSimulasyonuIstegi):
+async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: str = Depends(api_anahtarini_dogrula)):
     """
     Verilen başlangıç/bitiş/irtifa/tarih/uçak için iki rota üretir: büyük
     daire ("normal") ve ERA5 rüzgarına göre yanal kaydırılmış en hızlı aday
     ("optimize") -- bkz. rota_optimizasyonu.py (kapsam dışı bölge/tarih için
-    dürüst geri düşüş davranışı dahil). Dış bir servise istek atmadığı için
-    (sadece yerel NetCDF dosyasını okur) ayrı bir hız sınırlaması yok; event
-    loop'u bloklamaması için hesaplama ayrı bir thread'de çalıştırılır.
+    dürüst geri düşüş davranışı dahil). A* CPU ağır olduğu ve pilot anahtarı
+    da çağırabildiği için istemci başına hız sınırı (ROTA_HESABI_DAKIKADA_MAKS)
+    ve süreç başına eşzamanlılık tavanı uygulanır; hesap ayrı thread'dedir.
     """
-    sonuc = await asyncio.to_thread(
-        rota_simulasyonu_olustur,
-        istek.baslangic_enlem,
-        istek.baslangic_boylam,
-        istek.bitis_enlem,
-        istek.bitis_boylam,
-        istek.irtifa_ft,
-        istek.zaman,
-        istek.ucak_modeli,
-        canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
+    await _hiz_sinirini_kontrol_et(
+        f"rota_hesabi:{_istemci_kimligi(request, rol)}", maks=config.ROTA_HESABI_DAKIKADA_MAKS, pencere_saniye=60
     )
+    async with _agir_hesap_yuvasi():
+        sonuc = await asyncio.to_thread(
+            rota_simulasyonu_olustur,
+            istek.baslangic_enlem,
+            istek.baslangic_boylam,
+            istek.bitis_enlem,
+            istek.bitis_boylam,
+            istek.irtifa_ft,
+            istek.zaman,
+            istek.ucak_modeli,
+            canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
+        )
     sonuc["czml"] = simulasyonu_czml_e_cevir(sonuc)
     return sonuc
 
 
 @v1.post("/turbulans/tahmin", response_model=TurbulansTahminYaniti, tags=["Türbülans Tahmini"])
-async def turbulans_tahmini(istek: TurbulansTahminIstegi):
+async def turbulans_tahmini(istek: TurbulansTahminIstegi, request: Request, rol: str = Depends(api_anahtarini_dogrula)):
     """
     Tek bir nokta için HEM fizik tabanlı (Ellrod TI1) HEM gerçek IEM PIREP +
     ERA5 verisiyle eğitilmiş ML sınıflandırıcısının (bkz. turbulans_ml_
@@ -649,7 +695,11 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi):
             ),
         }
 
-    return await asyncio.to_thread(_hesapla)
+    await _hiz_sinirini_kontrol_et(
+        f"tahmin:{_istemci_kimligi(request, rol)}", maks=config.TAHMIN_DAKIKADA_MAKS, pencere_saniye=60
+    )
+    async with _agir_hesap_yuvasi():
+        return await asyncio.to_thread(_hesapla)
 
 
 @v1.get("/turbulans/model-bilgisi", response_model=ModelBilgisiYaniti, tags=["Türbülans Tahmini"])
@@ -685,7 +735,7 @@ async def turbulans_model_versiyonunu_aktiflestir(versiyon_id: str):
     yapar (rollback) -- örn. yeni bir eğitim çalıştırması beklenenden kötü
     çıkarsa bir önceki versiyona dönmek için. Bilinmeyen bir versiyon_id
     404 döner."""
-    _hiz_sinirini_kontrol_et("model_aktiflestir")
+    await _hiz_sinirini_kontrol_et("model_aktiflestir")
     try:
         aktif_bilgi = await asyncio.to_thread(versiyona_geri_don, versiyon_id)
     except ValueError as hata:
@@ -718,7 +768,7 @@ async def ucuslari_toplu_sil(
     bir filtre ZORUNLUDUR -- filtresiz bir çağrı, tüm veritabanını
     YANLIŞLIKLA boşaltabileceği için kasıtlı olarak 400 ile reddedilir
     (tek tek silme için bkz. DELETE /ucuslar/{ucus_numarasi}/{tarih})."""
-    _hiz_sinirini_kontrol_et("silme")
+    await _hiz_sinirini_kontrol_et("silme")
     if not any([ucus_numarasi_arama, baslangic_tarih, bitis_tarih]):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -759,7 +809,7 @@ async def ucus_sil(
     uçuş/tarih tekrar analiz edilmek istenirse zaten otomatik üzerine
     yazılır (bkz. ucus_ve_olcumleri_kaydet) -- bu uç nokta, bir daha analiz
     edilmeyecek kaydı veritabanından tamamen kaldırmak içindir."""
-    _hiz_sinirini_kontrol_et("silme")
+    await _hiz_sinirini_kontrol_et("silme")
     silindi_mi = await ucus_sil_async(ucus_numarasi, tarih.isoformat())
     if not silindi_mi:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Uçuş bulunamadı.")
@@ -855,7 +905,7 @@ def _kuyruga_alindi(gorev_id):
     tags=["Analiz"],
 )
 async def ucus_analizi_baslat(istek: UcusAnalizIstegi):
-    _hiz_sinirini_kontrol_et("tek_ucus")
+    await _hiz_sinirini_kontrol_et("tek_ucus")
     gorev_id = await _gorev_olustur(
         "ucus", ucus_numarasi=istek.ucus_numarasi, tarih=istek.tarih, webhook_url=istek.bildirim_webhook_url
     )
@@ -878,7 +928,7 @@ async def rota_analizi_baslat(istek: RotaAnalizIstegi):
     çalışır. Tarih, ilk noktanın UTC gününden türetilir; sonuç
     GET /ucuslar/{ucus_numarasi}/{tarih} ile okunur.
     """
-    _hiz_sinirini_kontrol_et("rota")
+    await _hiz_sinirini_kontrol_et("rota")
     tarih = min(n.zaman for n in istek.noktalar).date().isoformat()
     gorev_id = await _gorev_olustur(
         "rota",
@@ -898,7 +948,7 @@ async def rota_analizi_baslat(istek: RotaAnalizIstegi):
     tags=["Analiz"],
 )
 async def toplu_analiz_baslat(istek: TopluAnalizIstegi):
-    _hiz_sinirini_kontrol_et("toplu")
+    await _hiz_sinirini_kontrol_et("toplu")
     if not istek.ucuslar:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="'ucuslar' listesi boş olamaz.")
     gorev_id = await _gorev_olustur(
@@ -928,7 +978,7 @@ async def sigmetleri_yenile():
     edilen) SIGMET'lerin geçerliliği sona erdirilir. n8n/cron'un periyodik
     (örn. 10-15 dk) tetiklemesi için -- ya da SIGMET_OTOMATIK_GUNCELLEME_DAKIKA
     ile API'nin kendi zamanlayıcısı kullanılır."""
-    _hiz_sinirini_kontrol_et("sigmet")
+    await _hiz_sinirini_kontrol_et("sigmet")
     return await asyncio.to_thread(sigmetleri_guncelle)
 
 
@@ -985,7 +1035,7 @@ async def kisitli_sahalari_ice_aktar(
     kimlik, ad, tur, taban_ft, tavan_ft, baslangic, bitis, aciklama). Örn. n8n
     bir NOTAM akışından geçici kısıtları `kaynak=notam` ile iter. Aynı
     kaynak:kimlik ikinci kez gelirse güncellenir."""
-    _hiz_sinirini_kontrol_et("kisitli_saha")
+    await _hiz_sinirini_kontrol_et("kisitli_saha")
     return await asyncio.to_thread(geojson_ice_aktar, geojson, kaynak, eskileri_kaldir)
 
 
@@ -1000,7 +1050,7 @@ async def openaip_sahalarini_yenile(ulke: list[str] | None = Query(default=None,
     """Gerçek kısıtlı/yasak sahaları openAIP'ten çekip 'openaip' kaynağını tam
     yeniler (OPENAIP_API_ANAHTARI gerekir; AIRAC döngüsünde n8n tetikleyebilir).
     Kuyruğa girer; sonuç GET /analiz/durum/{gorev_id}."""
-    _hiz_sinirini_kontrol_et("kisitli_saha")
+    await _hiz_sinirini_kontrol_et("kisitli_saha")
     return _kuyruga_alindi(await _gorev_olustur("openaip", parametreler={"ulkeler": ulke}))
 
 
@@ -1011,7 +1061,7 @@ async def openaip_sahalarini_yenile(ulke: list[str] | None = Query(default=None,
     tags=["Kısıtlı Hava Sahaları"],
 )
 async def kisitli_saha_sil(dis_kimlik: str = Path(max_length=128)):
-    _hiz_sinirini_kontrol_et("kisitli_saha")
+    await _hiz_sinirini_kontrol_et("kisitli_saha")
     if not await asyncio.to_thread(kisitli_sahayi_sil, dis_kimlik):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kısıtlı saha bulunamadı.")
 
@@ -1038,7 +1088,7 @@ async def canli_veri_hazirla(istek: CanliVeriIstegi):
     (katalogda taze bir küp varsa onu kullanır, yoksa indirir). Yavaş ağda
     indirme dakikalar sürebildiği için istek beklemez: 202 + gorev_id döner,
     küp özeti GET /analiz/durum/{gorev_id} yanıtının 'ozet' alanındadır."""
-    _hiz_sinirini_kontrol_et("canli_veri")
+    await _hiz_sinirini_kontrol_et("canli_veri")
     if istek.enlem_min >= istek.enlem_maks or istek.boylam_min >= istek.boylam_maks:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Kutu sınırları geçersiz (min < maks olmalı).")
     enlem_genisligi, boylam_genisligi = istek.enlem_maks - istek.enlem_min, istek.boylam_maks - istek.boylam_min
@@ -1077,7 +1127,8 @@ async def ucus_backtesti(
     """Analiz edilmiş bir uçuşun gerçek izini, aynı giriş/çıkış noktaları için
     büyük daire ve A* rotasıyla AYNI ölçütle karşılaştırır (bkz. rota_backtest.py)
     ve sonucu kaydeder. Hava küpü seyir bölümünü kapsamıyorsa 400."""
-    return await asyncio.to_thread(ucus_backtest_et, ucus_numarasi, tarih.isoformat())
+    async with _agir_hesap_yuvasi():
+        return await asyncio.to_thread(ucus_backtest_et, ucus_numarasi, tarih.isoformat())
 
 
 @v1.post(
@@ -1093,7 +1144,7 @@ async def toplu_backtest_baslat(
 ):
     """Henüz backtest'i olmayan uçuşları arka planda karşılaştırır (örn. n8n'in
     gece tetiklemesi); sonuç /analiz/durum/{gorev_id} ve webhook ile alınır."""
-    _hiz_sinirini_kontrol_et("backtest")
+    await _hiz_sinirini_kontrol_et("backtest")
     try:
         webhook = _webhook_url_dogrula(bildirim_webhook_url)
     except ValueError as hata:
