@@ -73,6 +73,16 @@ def test_gecersiz_geojson_nedeniyle_reddedilir(girdi, mesaj):
         ks.geojson_kayitlarina_cevir(girdi, "test_saha")
 
 
+def test_tek_featurein_cok_parcali_multipolygonu_maks_ozelligi_atlatamaz():
+    """maks_ozellik sadece 'features' sayısını değil, MultiPolygon parçalarının
+    ürettiği TOPLAM kayıt sayısını da sınırlamalı (aksi halde tek bir feature
+    binlerce ufak parçaya bölünerek sınır atlatılabilir)."""
+    ucgen = [[0.0, 0.0], [0.001, 0.0], [0.0, 0.001], [0.0, 0.0]]
+    coklu = {"type": "MultiPolygon", "coordinates": [[ucgen]] * 5}
+    with pytest.raises(ValueError, match="en fazla 3 saha"):
+        ks.geojson_kayitlarina_cevir(_koleksiyon(_ozellik(coklu)), "test_saha", maks_ozellik=3)
+
+
 def test_paketle_gelen_ornek_veri_gecerli_ve_isaretli():
     kayitlar = ks.geojson_kayitlarina_cevir(json.loads(ks.ORNEK_DOSYA.read_text(encoding="utf-8")), ks.ORNEK_KAYNAK)
     assert [k["dis_kimlik"] for k in kayitlar] == ["ornek:ornek-irak", "ornek:ornek-suriye"]

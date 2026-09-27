@@ -143,6 +143,13 @@ def geojson_kayitlarina_cevir(geojson: dict, kaynak: str, maks_ozellik: int | No
                 "boylam_maks": max(boylamlar),
                 "aciklama": ozellikler_.get("aciklama"),
             }
+            # MultiPolygon her PARÇASI ayrı bir kayıt üretir (yukarı bkz.);
+            # maks_ozellik sadece 'features' sayısını sınırlar, tek bir
+            # feature'ı binlerce ufak parçalı bir MultiPolygon yaparak bu
+            # sınır atlatılıp devasa bellek/INSERT'e yol açılabilir -- bu
+            # yüzden toplam üretilen kayıt sayısı da aynı tavanla sınırlanır.
+            if maks_ozellik is not None and len(kayitlar) > maks_ozellik:
+                raise ValueError(f"Tek seferde en fazla {maks_ozellik} saha (parça dahil) içe aktarılabilir.")
     return list(kayitlar.values())
 
 
