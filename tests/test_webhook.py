@@ -63,7 +63,84 @@ def test_isci_guvensiz_hedefe_gondermez(monkeypatch):
     from turbulans_radar.isci import gorev_iscisi as gi
 
     gonderilen = []
-    monkeypatch.setattr(gi.httpx, "post", lambda *a, **k: gonderilen.append(a))
+    monkeypatch.setattr(wh.httpx, "post", lambda *a, **k: gonderilen.append(a))
+    monkeypatch.setattr(wh.httpx, "Client", lambda **k: pytest.fail("güvensiz hedefe istemci açıldı"))
     monkeypatch.setattr(wh.socket, "getaddrinfo", _cozumle("127.0.0.1"))
     gi.webhooku_bildir("https://n8n.ornek.com/webhook/x", {"gorev_id": "g"})
     assert gonderilen == []
+
+
+class _SahteIstemci:
+    istekler: list = []
+
+    def __init__(self, **ayarlar):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+    def post(self, url, json, headers, extensions):
+        _SahteIstemci.istekler.append((url, headers, extensions))
+
+
+@pytest.mark.parametrize(
+    "url, adres, beklenen_url, host, sni",
+    [
+        (
+            "https://n8n.ornek.com/webhook/x?a=1",
+            "93.184.216.34",
+            "https://93.184.216.34/webhook/x?a=1",
+            "n8n.ornek.com",
+            "n8n.ornek.com",
+        ),
+        (
+            "http://n8n.ornek.com:5678/hook",
+            "93.184.216.34",
+            "http://93.184.216.34:5678/hook",
+            "n8n.ornek.com:5678",
+            None,
+        ),
+        (
+            "https://n8n.ornek.com/h",
+            "2606:2800:220:1::1",
+            "https://[2606:2800:220:1::1]/h",
+            "n8n.ornek.com",
+            "n8n.ornek.com",
+        ),
+    ],
+)
+def test_gonderim_dogrulanan_ipye_sabitlenir_ve_ikinci_dns_sorgusu_yapilmaz(
+    monkeypatch, url, adres, beklenen_url, host, sni
+):
+    """DNS rebinding: kontrol ile bağlantı arasında ikinci bir çözümleme
+    olmamalı; istek doğrulanan IP'ye gider, Host/SNI orijinal adla."""
+    cozumleme_sayisi = []
+
+    def cozumle(h, port, proto=0):
+        cozumleme_sayisi.append(h)
+        aile = socket.AF_INET6 if ":" in adres else socket.AF_INET
+        return [(aile, socket.SOCK_STREAM, 6, "", (adres, port))]
+
+    _SahteIstemci.istekler = []
+    monkeypatch.setattr(wh.socket, "getaddrinfo", cozumle)
+    monkeypatch.setattr(wh.httpx, "Client", _SahteIstemci)
+    assert wh.webhook_gonder(url, {"x": 1}) is True
+    assert cozumleme_sayisi == ["n8n.ornek.com"]
+    ((giden_url, basliklar, uzantilar),) = _SahteIstemci.istekler
+    assert giden_url == beklenen_url and basliklar == {"Host": host}
+    assert uzantilar.get("sni_hostname") == sni
+
+
+def test_herhangi_bir_adres_ic_agdaysa_hic_gonderilmez(monkeypatch):
+    def karisik(h, port, proto=0):
+        return [
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", port)),
+            (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.5", port)),
+        ]
+
+    monkeypatch.setattr(wh.socket, "getaddrinfo", karisik)
+    monkeypatch.setattr(wh.httpx, "Client", lambda **k: pytest.fail("iç ağ içeren hedefe istemci açıldı"))
+    assert wh.webhook_gonder("https://n8n.ornek.com/h", {}) is False

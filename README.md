@@ -352,7 +352,10 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
   `/api/v1/analiz/durum/{gorev_id}`'yi periyodik yoklamaya gerek bırakmaz.
   **SSRF koruması (`webhook.py`):** varsayılan olarak sadece genel (public)
   adreslere gönderilir; hem istek anında (yazılan adres) hem gönderim anında
-  (adın ÇÖZÜMLENDİĞİ IP) kontrol edilir, yönlendirme izlenmez. Aynı
+  (adın ÇÖZÜMLENDİĞİ IP) kontrol edilir, yönlendirme izlenmez. **DNS
+  rebinding'e karşı** istek doğrulanan IP'ye sabitlenir (ikinci bir DNS
+  sorgusu yapılmaz); Host başlığı ve TLS sertifika doğrulaması orijinal alan
+  adıyla yapılır. Aynı
   makinedeki/iç ağdaki n8n için host'u `.env`'deki
   `WEBHOOK_IZIN_VERILEN_HOSTLAR`'a ekle (örn. `localhost,n8n`); liste doluysa
   sadece listedeki host'lara gönderilir.
