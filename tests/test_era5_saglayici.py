@@ -1,4 +1,5 @@
 import os
+from contextlib import contextmanager
 
 import numpy as np
 import pandas as pd
@@ -11,6 +12,19 @@ from turbulans_radar.veri.veri_indirme import IstekSinirAsimiHatasi
 from turbulans_radar.veri.veri_saglayicilari import Kutu
 
 _SEVIYELER = (300.0, 250.0, 200.0)
+
+
+@pytest.fixture(autouse=True)
+def kilit_kayitlari(monkeypatch):
+    kayitlar = []
+
+    @contextmanager
+    def _sahte_kilit(ad, *a, **k):
+        kayitlar.append(ad)
+        yield True
+
+    monkeypatch.setattr(es, "dagitik_kilit", _sahte_kilit)
+    return kayitlar
 
 
 def _arco_benzeri(zamanlar, enlemler=None, boylamlar=None, bos=False):
@@ -152,7 +166,7 @@ def test_cds_saglayici_parcalari_birlestirip_ortak_semada_yazar(tmp_path):
     assert not [d for d in os.listdir(tmp_path) if d != "dilim.nc"]
 
 
-def test_arco_saatlik_onbellegi_ikinci_istekte_yeniden_indirmez(tmp_path):
+def test_arco_saatlik_onbellegi_ikinci_istekte_yeniden_indirmez(tmp_path, kilit_kayitlari):
     sahte = _arco_benzeri(pd.date_range("2019-01-15T17:00", "2019-01-15T23:00", freq="h"))
     acilis = []
     saglayici = es.ArcoEra5Saglayici(
@@ -168,6 +182,7 @@ def test_arco_saatlik_onbellegi_ikinci_istekte_yeniden_indirmez(tmp_path):
 
     assert len(indirilen) == 2
     assert len(acilis) == 1
+    assert kilit_kayitlari == ["era5_arco:arco_20190115T19_200-250-300.nc", "era5_arco:arco_20190115T20_200-250-300.nc"]
     assert sorted(os.listdir(tmp_path / "onbellek")) == [
         "arco_20190115T19_200-250-300.nc",
         "arco_20190115T20_200-250-300.nc",
@@ -335,3 +350,34 @@ def test_atomik_yazma_hata_olursa_gecici_dosya_birakmaz(tmp_path, monkeypatch):
             es.era5_kupunu_normalize_et(_arco_benzeri(pd.DatetimeIndex(["2019-01-15T20:00"]))), str(tmp_path / "a.nc")
         )
     assert os.listdir(tmp_path) == []
+
+
+def test_arco_onbellek_siniri_yeni_yazilmis_dosyaya_dokunmaz(tmp_path):
+    eski, yeni = tmp_path / "arco_eski.nc", tmp_path / "arco_yeni.nc"
+    for yol in (eski, yeni):
+        yol.write_bytes(b"x" * 100)
+    os.utime(eski, (1, 1))
+    assert es.arco_onbellegini_sinirla(str(tmp_path), 0) == 1
+    assert os.listdir(tmp_path) == ["arco_yeni.nc"]
+
+
+def test_baska_islemin_hazirladigi_dilim_kilitten_sonra_yeniden_indirilmez(monkeypatch, katalogsuz):
+    @contextmanager
+    def _baska_islem_bitirdi(ad, *a, **k):
+        hedef = os.path.join(config.ERA5_UCUS_KLASORU, ad.split(":", 1)[1])
+        es._atomik_yaz(
+            es.era5_kupunu_normalize_et(_arco_benzeri(pd.date_range("2019-01-15T19:00", periods=3, freq="h"))), hedef
+        )
+        yield True
+
+    monkeypatch.setattr(es, "dagitik_kilit", _baska_islem_bitirdi)
+    saglayici = _KaydedenSaglayici()
+    kup = es.ucus_hava_dilimi_hazirla([40.0], [30.0], ["2019-01-15T20:00Z"], saglayici)
+    assert not saglayici.cagrilar
+    assert kup.sizes["valid_time"] == 3
+    assert katalogsuz and katalogsuz[0][0] == "era5"
+
+
+def test_ucus_dilimi_indirmesi_dagitik_kilitle_korunur(katalogsuz, kilit_kayitlari):
+    es.ucus_hava_dilimi_hazirla([40.0], [30.0], ["2019-01-15T20:00Z"], _KaydedenSaglayici())
+    assert len(kilit_kayitlari) == 1 and kilit_kayitlari[0].startswith("era5_dilim:era5_20190115T19_")

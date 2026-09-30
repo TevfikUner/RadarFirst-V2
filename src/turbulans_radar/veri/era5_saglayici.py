@@ -9,6 +9,7 @@ import hashlib
 import os
 import tempfile
 import threading
+import time
 import uuid
 
 import numpy as np
@@ -16,6 +17,7 @@ import pandas as pd
 import xarray as xr
 
 from turbulans_radar import config
+from turbulans_radar.depo.dagitik_kilit import dagitik_kilit
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumunu_kaydet
 from turbulans_radar.depo.kup_katalogu import kapsayan_hazir_kup_yolu, kup_kaydet
 from turbulans_radar.loglama import logger_al
@@ -104,8 +106,9 @@ def _yol_kilidi(yol: str) -> threading.Lock:
         return _yol_kilitleri.setdefault(os.path.abspath(yol), threading.Lock())
 
 
-def arco_onbellegini_sinirla(klasor: str, maks_bayt: int, korunacaklar=()) -> int:
+def arco_onbellegini_sinirla(klasor: str, maks_bayt: int, korunacaklar=(), min_yas_saniye: float = 3600.0) -> int:
     korunacaklar = {os.path.abspath(y) for y in korunacaklar}
+    simdi = time.time()
     dosyalar = []
     for ad in os.listdir(klasor) if os.path.isdir(klasor) else ():
         yol = os.path.join(klasor, ad)
@@ -114,10 +117,10 @@ def arco_onbellegini_sinirla(klasor: str, maks_bayt: int, korunacaklar=()) -> in
             dosyalar.append((durum.st_mtime, durum.st_size, yol))
     toplam = sum(boyut for _, boyut, _ in dosyalar)
     silinen = 0
-    for _, boyut, yol in sorted(dosyalar):
+    for mtime, boyut, yol in sorted(dosyalar):
         if toplam <= maks_bayt:
             break
-        if os.path.abspath(yol) in korunacaklar:
+        if os.path.abspath(yol) in korunacaklar or simdi - mtime < min_yas_saniye:
             continue
         try:
             os.remove(yol)
@@ -262,9 +265,11 @@ class ArcoEra5Saglayici:
         for saat, yol in zip(saatler, yollar):
             with _yol_kilidi(yol):
                 if not os.path.exists(yol):
-                    _logger.info("ARCO-ERA5 saati indiriliyor: %s", yol)
-                    self._saati_indir(saat, yol)
-                    arco_onbellegini_sinirla(self.onbellek_klasoru, self.maks_onbellek_bayt, yollar)
+                    with dagitik_kilit(f"era5_arco:{os.path.basename(yol)}"):
+                        if not os.path.exists(yol):
+                            _logger.info("ARCO-ERA5 saati indiriliyor: %s", yol)
+                            self._saati_indir(saat, yol)
+                            arco_onbellegini_sinirla(self.onbellek_klasoru, self.maks_onbellek_bayt, yollar)
                 with hdf5_kilidi, xr.open_dataset(yol) as kup:
                     parcalar.append(_kutuyu_kes(kup, kutu).load())
         kup = xr.concat(parcalar, dim="valid_time")
@@ -352,7 +357,11 @@ def ucus_hava_dilimi_hazirla(enlemler, boylamlar, zamanlar, saglayici=None) -> x
     saglayici = saglayici or YedekliEra5Saglayici()
     anahtar = hashlib.sha1(repr((kutu, baslangic.isoformat(), bitis.isoformat())).encode()).hexdigest()[:10]
     hedef = os.path.join(config.ERA5_UCUS_KLASORU, f"era5_{baslangic:%Y%m%dT%H}_{anahtar}.nc")
-    saglayici.kup_indir(kutu, baslangic, bitis, hedef)
+    with _yol_kilidi(hedef), dagitik_kilit(f"era5_dilim:{os.path.basename(hedef)}"):
+        if os.path.exists(hedef):
+            _logger.info("ERA5 dilimi başka bir işçi tarafından hazırlanmış: %s", hedef)
+        else:
+            saglayici.kup_indir(kutu, baslangic, bitis, hedef)
     kup = hava_durumu_onbellekli_yukle(hedef)
     try:
         kup_kaydet(KAYNAK, hedef, kup)
