@@ -3333,6 +3333,36 @@
         ],
         "title": "RotaAnalizIstegi"
       },
+      "RotaBulgusuYaniti": {
+        "properties": {
+          "kod": {
+            "type": "string",
+            "title": "Kod"
+          },
+          "seviye": {
+            "type": "string",
+            "enum": [
+              "bilgi",
+              "uyari",
+              "kritik"
+            ],
+            "title": "Seviye"
+          },
+          "parametreler": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Parametreler",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "kod",
+          "seviye"
+        ],
+        "title": "RotaBulgusuYaniti",
+        "description": "'aciklama' metnindeki her cümlenin makine-okunur karşılığı; istemci\n(EFB) metni ayrıştırmadan kendi dilinde gösterebilir. seviye: bilgi |\nuyari | kritik. kod örnekleri: veri_gfs_tahmin, veri_era5, ti1_risk_yok,\nti1_risk_var, ruzgar_hesaba_katilamadi, sigmet_erisilemedi,\nsigmet_uygulandi, sigmet_bayat, kisitli_saha_erisilemedi,\nkisitli_saha_uygulandi, kisitli_saha_uc_koridoru, kisitli_saha_ornek_veri,\nguvenli_rota_yok, sapma_gereksiz, kacinma_sert_kisit, kacinma_tam_guvenli,\nti1_riski_kismen_kaldi."
+      },
       "RotaNoktasiGirdisi": {
         "properties": {
           "zaman": {
@@ -3466,6 +3496,14 @@
           "aciklama": {
             "type": "string",
             "title": "Aciklama"
+          },
+          "bulgular": {
+            "items": {
+              "$ref": "#/components/schemas/RotaBulgusuYaniti"
+            },
+            "type": "array",
+            "title": "Bulgular",
+            "default": []
           },
           "ucak_modeli": {
             "type": "string",

@@ -930,6 +930,18 @@ def rota_simulasyonu_olustur(
     # ayrıca hesaplanan ek yakıttan hesaplanır (bkz. _irtifa_degisimi_maliyeti).
     optimize_yakit_kg = _aday_toplam_yakit_kg(en_iyi)
     optimize_saniye = en_iyi["saniye"] + en_iyi["ekstra_saniye"]
+    bulgular = _bulgulari_olustur(
+        ruzgarli_mi,
+        veri_kupu,
+        kup_adi,
+        normal,
+        en_iyi,
+        irtifa_m,
+        sigmet_kontrolu,
+        guvenli_rota_bulundu_mu,
+        kisitli_saha_kontrolu,
+        veri_durumu.get("canli_hata") or (CANLI_VERI_HAZIRLANIYOR if veri_durumu.get("canli_hazirlaniyor") else None),
+    )
 
     return {
         "ruzgar_verisi_kaynagi": (
@@ -943,19 +955,8 @@ def rota_simulasyonu_olustur(
                 else "era5_kapsam_disi"
             )
         ),
-        "aciklama": _aciklama_olustur(
-            ruzgarli_mi,
-            veri_kupu,
-            kup_adi,
-            normal,
-            en_iyi,
-            irtifa_m,
-            sigmet_kontrolu,
-            guvenli_rota_bulundu_mu,
-            kisitli_saha_kontrolu,
-            veri_durumu.get("canli_hata")
-            or (CANLI_VERI_HAZIRLANIYOR if veri_durumu.get("canli_hazirlaniyor") else None),
-        ),
+        "aciklama": " ".join(b["metin"] for b in bulgular),
+        "bulgular": [{k: b[k] for k in ("kod", "seviye", "parametreler")} for b in bulgular],
         "ucak_modeli": ucak_modeli_kodu,
         "ucak_etiketi": profil["etiket"],
         "turbulanstan_kacinildi_mi": en_iyi["riskli_sayisi"] < normal["riskli_sayisi"],
@@ -998,7 +999,14 @@ def _rota_ozeti(aday, yakit_kg, toplam_saniye):
     }
 
 
-def _aciklama_olustur(
+def _bulgu(kod, seviye, metin, **parametreler):
+    """Yanıttaki makine-okunur bulgu (kod + seviye + parametreler) ve onun
+    Türkçe cümlesi TEK yerde üretilir: 'aciklama' metni bulgulardan türetilir,
+    ikisi birbirinden kopamaz. Seviye: bilgi | uyari | kritik."""
+    return {"kod": kod, "seviye": seviye, "parametreler": parametreler, "metin": metin}
+
+
+def _bulgulari_olustur(
     ruzgarli_mi,
     veri_kupu,
     kup_adi,
@@ -1010,111 +1018,213 @@ def _aciklama_olustur(
     kisitli_saha_kontrolu=None,
     canli_hata=None,
 ):
-    cumleler = []
+    bulgular = []
     if ruzgarli_mi and veri_kupu_kaynagi(veri_kupu) == "gfs":
         calisma = veri_kupu.attrs.get("model_calisma_zamani", "bilinmiyor")
-        cumleler.append(f"Canlı NOAA GFS tahmin verisiyle hesaplandı (model çalıştırması {calisma} UTC).")
+        bulgular.append(
+            _bulgu(
+                "veri_gfs_tahmin",
+                "bilgi",
+                f"Canlı NOAA GFS tahmin verisiyle hesaplandı (model çalıştırması {calisma} UTC).",
+                model_calisma_zamani=str(calisma),
+            )
+        )
     elif ruzgarli_mi:
-        cumleler.append(f"Gerçek ERA5 verisiyle hesaplandı ('{kup_adi}').")
+        bulgular.append(_bulgu("veri_era5", "bilgi", f"Gerçek ERA5 verisiyle hesaplandı ('{kup_adi}').", kup=kup_adi))
     if ruzgarli_mi:
         if normal["riskli_sayisi"] == 0:
-            cumleler.append(
-                f"Normal rota üzerinde riskli türbülans (TI1 >= {config.TI1_ESIK_ORTA_SIDDETLI:.1e} s^-2) TESPİT EDİLMEDİ."
+            bulgular.append(
+                _bulgu(
+                    "ti1_risk_yok",
+                    "bilgi",
+                    f"Normal rota üzerinde riskli türbülans (TI1 >= {config.TI1_ESIK_ORTA_SIDDETLI:.1e} s^-2) "
+                    "TESPİT EDİLMEDİ.",
+                    esik=config.TI1_ESIK_ORTA_SIDDETLI,
+                )
             )
         else:
-            cumleler.append(f"Normal rota üzerinde {normal['riskli_sayisi']} noktada riskli türbülans tespit edildi.")
+            bulgular.append(
+                _bulgu(
+                    "ti1_risk_var",
+                    "uyari",
+                    f"Normal rota üzerinde {normal['riskli_sayisi']} noktada riskli türbülans tespit edildi.",
+                    riskli_nokta_sayisi=normal["riskli_sayisi"],
+                    esik=config.TI1_ESIK_ORTA_SIDDETLI,
+                )
+            )
     elif canli_hata:
-        cumleler.append(
-            f"UYARI: {canli_hata} Rüzgar ve türbülans (TI1) hesaba katılamadı, rotalar sadece uçağın hava hızıyla "
-            "(TAS) zamanlandı (bkz. GET /saglik?derin=true); SIGMET ve kısıtlı saha kısıtları yine uygulandı."
+        bulgular.append(
+            _bulgu(
+                "ruzgar_hesaba_katilamadi",
+                "uyari",
+                f"UYARI: {canli_hata} Rüzgar ve türbülans (TI1) hesaba katılamadı, rotalar sadece uçağın hava "
+                "hızıyla (TAS) zamanlandı (bkz. GET /saglik?derin=true); SIGMET ve kısıtlı saha kısıtları yine "
+                "uygulandı.",
+                neden="canli_veri",
+            )
         )
     else:
-        cumleler.append(
-            "Seçilen bölge/tarih/irtifa için ne projenin ERA5 veri küpleri (ana küp: "
-            f"'{config.HAVA_DURUMU_DOSYASI}', ek küpler: '{config.EK_HAVA_DURUMU_KLASORU}/') ne de canlı GFS "
-            f"verisi (şimdi -{config.CANLI_GECMIS_SAAT} sa / +{config.CANLI_TAHMIN_UFKU_SAAT} sa aralığı için) "
-            "rotanın TAMAMINI kapsıyor -- rüzgar ve türbülans (TI1) hesaba katılamadı, rotalar sadece uçağın hava "
-            "hızıyla (TAS) zamanlandı; gerçek bir yakıt tasarrufu/türbülans kaçınması iddia edilmiyor."
+        bulgular.append(
+            _bulgu(
+                "ruzgar_hesaba_katilamadi",
+                "uyari",
+                "Seçilen bölge/tarih/irtifa için ne projenin ERA5 veri küpleri (ana küp: "
+                f"'{config.HAVA_DURUMU_DOSYASI}', ek küpler: '{config.EK_HAVA_DURUMU_KLASORU}/') ne de canlı GFS "
+                f"verisi (şimdi -{config.CANLI_GECMIS_SAAT} sa / +{config.CANLI_TAHMIN_UFKU_SAAT} sa aralığı için) "
+                "rotanın TAMAMINI kapsıyor -- rüzgar ve türbülans (TI1) hesaba katılamadı, rotalar sadece uçağın "
+                "hava hızıyla (TAS) zamanlandı; gerçek bir yakıt tasarrufu/türbülans kaçınması iddia edilmiyor.",
+                neden="kapsam_disi",
+            )
         )
 
     durum = sigmet_kontrolu["durum"]
     if durum == "erisilemedi":
-        cumleler.append("UYARI: SIGMET veritabanına erişilemedi -- aktif SIGMET kontrolü YAPILAMADI.")
+        bulgular.append(
+            _bulgu(
+                "sigmet_erisilemedi",
+                "kritik",
+                "UYARI: SIGMET veritabanına erişilemedi -- aktif SIGMET kontrolü YAPILAMADI.",
+            )
+        )
     elif durum == "uygulandi":
         ihlal = normal["sigmet_ihlali"]
-        cumleler.append(
-            f"{sigmet_kontrolu['aktif_sigmet_sayisi']} aktif SIGMET sert kısıt olarak uygulandı; normal rota "
-            + (f"{ihlal} nokta/bacakta bunlara giriyor." if ihlal else "bunlara girmiyor.")
+        bulgular.append(
+            _bulgu(
+                "sigmet_uygulandi",
+                "bilgi",
+                f"{sigmet_kontrolu['aktif_sigmet_sayisi']} aktif SIGMET sert kısıt olarak uygulandı; normal rota "
+                + (f"{ihlal} nokta/bacakta bunlara giriyor." if ihlal else "bunlara girmiyor."),
+                aktif_sigmet_sayisi=sigmet_kontrolu["aktif_sigmet_sayisi"],
+                normal_rota_ihlali=ihlal,
+            )
         )
     if sigmet_kontrolu.get("bayat_mi"):
         sorunlu = sigmet_kontrolu.get("sorunlu_kaynaklar") or []
-        cumleler.append(
-            f"UYARI: son başarılı SIGMET güncellemesi {config.SIGMET_BAYATLIK_DAKIKA} dakikadan eski ya da hiç "
-            "yapılmamış (bkz. POST /api/v1/sigmet/guncelle)"
-            + (f"; hata veren kaynak: {', '.join(sorunlu)}" if sorunlu else "")
-            + " -- aktif uyarılar eksik olabilir."
+        bulgular.append(
+            _bulgu(
+                "sigmet_bayat",
+                "kritik",
+                f"UYARI: son başarılı SIGMET güncellemesi {config.SIGMET_BAYATLIK_DAKIKA} dakikadan eski ya da hiç "
+                "yapılmamış (bkz. POST /api/v1/sigmet/guncelle)"
+                + (f"; hata veren kaynak: {', '.join(sorunlu)}" if sorunlu else "")
+                + " -- aktif uyarılar eksik olabilir.",
+                bayatlik_esigi_dakika=config.SIGMET_BAYATLIK_DAKIKA,
+                sorunlu_kaynaklar=list(sorunlu),
+            )
         )
 
-    cumleler += _kisitli_saha_cumleleri(kisitli_saha_kontrolu or {}, normal)
+    bulgular += _kisitli_saha_bulgulari(kisitli_saha_kontrolu or {}, normal)
 
     if not guvenli_rota_bulundu_mu:
-        cumleler.append(
-            "ÖNERİ YOK: aktif SIGMET'lere ve kısıtlı hava sahalarına girmeyen geçerli bir rota bulunamadı "
-            "(başlangıç/bitiş SIGMET içinde olabilir ya da alan arama ızgarasından geniş) -- gösterilen rota "
-            "normal rotadır ve ÖNERİLMEZ."
+        bulgular.append(
+            _bulgu(
+                "guvenli_rota_yok",
+                "kritik",
+                "ÖNERİ YOK: aktif SIGMET'lere ve kısıtlı hava sahalarına girmeyen geçerli bir rota bulunamadı "
+                "(başlangıç/bitiş SIGMET içinde olabilir ya da alan arama ızgarasından geniş) -- gösterilen rota "
+                "normal rotadır ve ÖNERİLMEZ.",
+            )
         )
     elif en_iyi["strateji"] == "yok":
-        cumleler.append(
-            "Kaçınılacak bir risk olmadığı için optimize rota normal rotayla birebir aynıdır "
-            "(uydurma bir sapma gösterilmiyor)."
+        bulgular.append(
+            _bulgu(
+                "sapma_gereksiz",
+                "bilgi",
+                "Kaçınılacak bir risk olmadığı için optimize rota normal rotayla birebir aynıdır "
+                "(uydurma bir sapma gösterilmiyor).",
+            )
         )
     else:
+        strateji = en_iyi["strateji"]
+        irtifa_farki_ft = (en_iyi["irtifa_m"] - irtifa_m) / 0.3048
         strateji_aciklamasi = {
             "yanal": f"A* araması ile yanal sapma (en fazla {en_iyi['yanal_sapma_km']:.0f} km)",
-            "irtifa_yukari": f"irtifayı {(en_iyi['irtifa_m'] - irtifa_m) / 0.3048:.0f} ft artırarak (tırmanma)",
-            "irtifa_asagi": f"irtifayı {(irtifa_m - en_iyi['irtifa_m']) / 0.3048:.0f} ft azaltarak (alçalma)",
-        }[en_iyi["strateji"]]
+            "irtifa_yukari": f"irtifayı {irtifa_farki_ft:.0f} ft artırarak (tırmanma)",
+            "irtifa_asagi": f"irtifayı {-irtifa_farki_ft:.0f} ft azaltarak (alçalma)",
+        }[strateji]
+        kacinma = {"strateji": strateji, "yanal_sapma_km": en_iyi["yanal_sapma_km"], "irtifa_farki_ft": irtifa_farki_ft}
         if not ruzgarli_mi:
-            cumleler.append(
-                f"Aktif SIGMET'lere ve kısıtlı sahalara girmeyen en kısa rota olarak {strateji_aciklamasi} bulundu."
+            bulgular.append(
+                _bulgu(
+                    "kacinma_sert_kisit",
+                    "bilgi",
+                    f"Aktif SIGMET'lere ve kısıtlı sahalara girmeyen en kısa rota olarak {strateji_aciklamasi} "
+                    "bulundu.",
+                    **kacinma,
+                )
             )
         elif en_iyi["riskli_sayisi"] == 0:
-            cumleler.append(
-                "ÇOK FAKTÖRLÜ karşılaştırmada (yanal A* araması vs bir üst/alt basınç seviyesine geçiş, her biri "
-                f"gerçek yakıt/süre maliyetiyle) en ucuz TAM güvenli seçenek olarak {strateji_aciklamasi} bulundu."
+            bulgular.append(
+                _bulgu(
+                    "kacinma_tam_guvenli",
+                    "bilgi",
+                    "ÇOK FAKTÖRLÜ karşılaştırmada (yanal A* araması vs bir üst/alt basınç seviyesine geçiş, her "
+                    "biri gerçek yakıt/süre maliyetiyle) en ucuz TAM güvenli seçenek olarak "
+                    f"{strateji_aciklamasi} bulundu.",
+                    **kacinma,
+                )
             )
         else:
-            cumleler.append(
-                "Denenen adaylar TI1 riskini TAMAMEN ortadan kaldıramadı (türbülans alanı geniş olabilir) -- "
-                f"sert kısıtlara uyan seçenekler arasından {strateji_aciklamasi} seçildi "
-                f"({en_iyi['riskli_sayisi']} riskli nokta, normal rotadaki {normal['riskli_sayisi']}'e karşı)."
+            bulgular.append(
+                _bulgu(
+                    "ti1_riski_kismen_kaldi",
+                    "uyari",
+                    "Denenen adaylar TI1 riskini TAMAMEN ortadan kaldıramadı (türbülans alanı geniş olabilir) -- "
+                    f"sert kısıtlara uyan seçenekler arasından {strateji_aciklamasi} seçildi "
+                    f"({en_iyi['riskli_sayisi']} riskli nokta, normal rotadaki {normal['riskli_sayisi']}'e karşı).",
+                    riskli_nokta_sayisi=en_iyi["riskli_sayisi"],
+                    normal_riskli_nokta_sayisi=normal["riskli_sayisi"],
+                    **kacinma,
+                )
             )
-    return " ".join(cumleler)
+    return bulgular
 
 
-def _kisitli_saha_cumleleri(kontrol, normal):
-    cumleler = []
+def _kisitli_saha_bulgulari(kontrol, normal):
+    bulgular = []
     if kontrol.get("durum") == "erisilemedi":
-        cumleler.append("UYARI: kısıtlı hava sahası veritabanına erişilemedi -- saha kontrolü YAPILAMADI.")
+        bulgular.append(
+            _bulgu(
+                "kisitli_saha_erisilemedi",
+                "kritik",
+                "UYARI: kısıtlı hava sahası veritabanına erişilemedi -- saha kontrolü YAPILAMADI.",
+            )
+        )
     elif kontrol.get("durum") == "uygulandi":
         ihlal = normal["kisitli_saha_ihlali"]
-        cumleler.append(
-            f"{kontrol['uygulanan_saha_sayisi']} kısıtlı hava sahası sert kısıt olarak uygulandı; normal rota "
-            + (f"{ihlal} nokta/bacakta bunlara giriyor." if ihlal else "bunlara girmiyor.")
+        bulgular.append(
+            _bulgu(
+                "kisitli_saha_uygulandi",
+                "bilgi",
+                f"{kontrol['uygulanan_saha_sayisi']} kısıtlı hava sahası sert kısıt olarak uygulandı; normal rota "
+                + (f"{ihlal} nokta/bacakta bunlara giriyor." if ihlal else "bunlara girmiyor."),
+                uygulanan_saha_sayisi=kontrol["uygulanan_saha_sayisi"],
+                normal_rota_ihlali=ihlal,
+            )
         )
     if kontrol.get("muaf_tutulanlar"):
-        cumleler.append(
-            "Kalkış/varış noktasını içeren saha(lar)da sadece planlı rotanın "
-            f"±{config.KISITLI_SAHA_UC_KORIDORU_KM:.0f} km koridoru serbest bırakıldı: "
-            + ", ".join(kontrol["muaf_tutulanlar"])
-            + "."
+        bulgular.append(
+            _bulgu(
+                "kisitli_saha_uc_koridoru",
+                "bilgi",
+                "Kalkış/varış noktasını içeren saha(lar)da sadece planlı rotanın "
+                f"±{config.KISITLI_SAHA_UC_KORIDORU_KM:.0f} km koridoru serbest bırakıldı: "
+                + ", ".join(kontrol["muaf_tutulanlar"])
+                + ".",
+                koridor_km=config.KISITLI_SAHA_UC_KORIDORU_KM,
+                sahalar=list(kontrol["muaf_tutulanlar"]),
+            )
         )
     if kontrol.get("ornek_veri_mi"):
-        cumleler.append(
-            "NOT: kısıtlı sahaların bir kısmı paketle gelen ÖRNEK veridir (ülke sınırından türetilmiş) -- resmi "
-            "AIP/CZIB/NOTAM verisi değildir."
+        bulgular.append(
+            _bulgu(
+                "kisitli_saha_ornek_veri",
+                "uyari",
+                "NOT: kısıtlı sahaların bir kısmı paketle gelen ÖRNEK veridir (ülke sınırından türetilmiş) -- resmi "
+                "AIP/CZIB/NOTAM verisi değildir.",
+            )
         )
-    return cumleler
+    return bulgular
 
 
 # ---------------------------------------------------------------------------

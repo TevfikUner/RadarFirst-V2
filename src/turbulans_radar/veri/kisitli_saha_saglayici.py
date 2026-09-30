@@ -31,7 +31,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
-from turbulans_radar.depo.models import KisitliHavaSahasi
+from turbulans_radar.depo.models import KisitliHavaSahasi, kutuyla_kesisir
 from turbulans_radar.depo.veritabani import motor_al
 
 SAHA_TURLERI = ("CATISMA", "YASAK", "KISITLI", "TEHLIKELI", "GECICI")
@@ -232,10 +232,7 @@ def gecerli_kisitli_sahalari_getir(
     kosullar = [
         (KisitliHavaSahasi.gecerlilik_baslangic.is_(None)) | (KisitliHavaSahasi.gecerlilik_baslangic <= bitis),
         (KisitliHavaSahasi.gecerlilik_bitis.is_(None)) | (KisitliHavaSahasi.gecerlilik_bitis >= baslangic),
-        KisitliHavaSahasi.enlem_min <= enlem_maks,
-        KisitliHavaSahasi.enlem_maks >= enlem_min,
-        KisitliHavaSahasi.boylam_min <= boylam_maks,
-        KisitliHavaSahasi.boylam_maks >= boylam_min,
+        kutuyla_kesisir(KisitliHavaSahasi, enlem_min, enlem_maks, boylam_min, boylam_maks),
     ]
     with Session(motor) as oturum:
         satirlar = oturum.execute(select(KisitliHavaSahasi).where(*kosullar).order_by(KisitliHavaSahasi.dis_kimlik))

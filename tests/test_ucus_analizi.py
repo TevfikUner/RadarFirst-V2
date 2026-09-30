@@ -61,3 +61,22 @@ def test_harita_uret_varsayilani_true_haritayi_uretir(sahte_akis, monkeypatch):
     assert ucus_analizi.calistir("TESTX", "2019-01-01") is sahte_akis
 
     assert len(cagrilar) == 1 and cagrilar[0].endswith("turbulans_haritasi_TESTX_2019-01-01.html")
+
+
+def test_eski_haritalar_silinir_yeni_harita_ve_diger_dosyalar_kalir(tmp_path):
+    import os
+
+    simdi = 1_000_000_000.0
+    eski = tmp_path / "turbulans_haritasi_ESKI_2019-01-01.html"
+    yeni = tmp_path / "turbulans_haritasi_YENI_2019-01-02.html"
+    ozet = tmp_path / "toplu_analiz_ozeti.csv"
+    for dosya in (eski, yeni, ozet):
+        dosya.write_text("x", encoding="utf-8")
+    os.utime(eski, (simdi - 31 * 86400,) * 2)
+    os.utime(yeni, (simdi - 1 * 86400,) * 2)
+    os.utime(ozet, (simdi - 365 * 86400,) * 2)
+
+    assert ucus_analizi.eski_haritalari_temizle(tmp_path, gun=30, simdi=simdi) == 1
+    assert not eski.exists() and yeni.exists() and ozet.exists()
+    assert ucus_analizi.eski_haritalari_temizle(tmp_path, gun=0, simdi=simdi + 10**9) == 0
+    assert yeni.exists()

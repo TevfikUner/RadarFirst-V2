@@ -27,12 +27,12 @@ NOTAM ile etkinleşen sahalar NOTAM verisi olmadığından sürekli etkin sayıl
 import os
 
 import httpx
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from turbulans_radar import config
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumunu_kaydet
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.veri.kisitli_saha_saglayici import geojson_ice_aktar
+from turbulans_radar.yeniden_deneme import gecici_hatada_yeniden_dene
 
 _logger = logger_al(__name__)
 
@@ -51,12 +51,7 @@ _FL, _METRE, _FEET = 6, 0, 1
 _GND = 0
 _MAKS_FT = 70_000
 
-_yeniden_dene = retry(
-    retry=retry_if_exception_type((httpx.TransportError, httpx.TimeoutException)),
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=2, min=2, max=20),
-    reraise=True,
-)
+_yeniden_dene = gecici_hatada_yeniden_dene()
 
 
 def limit_ft(limit: dict | None, ust: bool) -> int | None:

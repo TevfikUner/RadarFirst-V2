@@ -12,6 +12,7 @@ doğrulayıp serileştirir (fonksiyonların kendisini değiştirmeye gerek yok).
 """
 
 from datetime import date, datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
@@ -240,9 +241,25 @@ class SigmetYenilemeYaniti(BaseModel):
     kaynaklar: dict[str, dict] = {}
 
 
+class RotaBulgusuYaniti(BaseModel):
+    """'aciklama' metnindeki her cümlenin makine-okunur karşılığı; istemci
+    (EFB) metni ayrıştırmadan kendi dilinde gösterebilir. seviye: bilgi |
+    uyari | kritik. kod örnekleri: veri_gfs_tahmin, veri_era5, ti1_risk_yok,
+    ti1_risk_var, ruzgar_hesaba_katilamadi, sigmet_erisilemedi,
+    sigmet_uygulandi, sigmet_bayat, kisitli_saha_erisilemedi,
+    kisitli_saha_uygulandi, kisitli_saha_uc_koridoru, kisitli_saha_ornek_veri,
+    guvenli_rota_yok, sapma_gereksiz, kacinma_sert_kisit, kacinma_tam_guvenli,
+    ti1_riski_kismen_kaldi."""
+
+    kod: str
+    seviye: Literal["bilgi", "uyari", "kritik"]
+    parametreler: dict = {}
+
+
 class RotaSimulasyonuYaniti(BaseModel):
     ruzgar_verisi_kaynagi: str
     aciklama: str
+    bulgular: list[RotaBulgusuYaniti] = []
     ucak_modeli: str
     ucak_etiketi: str
     turbulanstan_kacinildi_mi: bool

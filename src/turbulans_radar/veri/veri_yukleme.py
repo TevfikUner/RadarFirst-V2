@@ -27,7 +27,6 @@ import numpy as np
 import pandas as pd
 import trino
 import xarray as xr
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 from trino.auth import OAuth2Authentication
 from trino.exceptions import (
     Http502Error,
@@ -40,6 +39,7 @@ from trino.exceptions import (
 
 from turbulans_radar import config
 from turbulans_radar.veri.kimlik_dogrulama import kimlik_bilgilerini_al
+from turbulans_radar.yeniden_deneme import gecici_hatada_yeniden_dene
 
 # OpenSky'yi rate-limit/ban riskine sokmamak için SADECE geçici (transient)
 # ağ/sunucu hatalarında (bağlantı kopması, 502/503/504, dahili Trino hatası)
@@ -57,12 +57,7 @@ _GECICI_HATALAR = (
     TimeoutError,
 )
 
-_yeniden_dene = retry(
-    retry=retry_if_exception_type(_GECICI_HATALAR),
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=2, min=2, max=30),
-    reraise=True,
-)
+_yeniden_dene = gecici_hatada_yeniden_dene(_GECICI_HATALAR, azami_bekleme_saniye=30)
 
 
 # ---------------------------------------------------------------------------

@@ -27,6 +27,7 @@ ROTA_HESABI_SURESI = Histogram(
     "Rota simülasyonu (A* + risk katmanları) hesap süresi",
     buckets=(0.1, 0.25, 0.5, 1, 2, 5, 10, 20, 60),
 )
+ROTA_ONBELLEGI = Counter("turbulans_rota_onbellegi", "Rota simülasyonu önbellek sonuçları", ["sonuc"])
 HIZ_SINIRI_REDDI = Counter("turbulans_hiz_siniri_reddi", "429 ile reddedilen istekler", ["islem"])
 AGIR_HESAP_REDDI = Counter("turbulans_agir_hesap_reddi", "Eşzamanlılık tavanı dolu olduğu için 503 alan istekler")
 GOREV_KUYRUGU = Gauge("turbulans_gorev_kuyrugu", "Görev kuyruğundaki aktif görevler", ["durum"])
@@ -35,5 +36,8 @@ KUYRUK_EN_ESKI_BEKLEME = Gauge(
 )
 SIGMET_YASI = Gauge(
     "turbulans_sigmet_yas_saniye", "Tüm SIGMET kaynaklarının en eski son başarılı çekiminden beri geçen süre (NaN: hiç)"
+)
+CANLI_INDIRME = Gauge(
+    "turbulans_canli_indirme", "Arka plan canlı GFS küp indirmeleri (calisiyor | bekliyor)", ["durum"]
 )
 WS_BAGLANTILARI = Gauge("turbulans_ws_baglanti_sayisi", "Bağlı canlı uyarı (WebSocket) istemcileri")

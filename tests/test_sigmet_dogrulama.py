@@ -83,6 +83,32 @@ def test_poligon_ve_zaman_icindeki_nokta_ortusur(monkeypatch):
     assert sonuc["ortusme_orani"] == pytest.approx(0.5)
 
 
+def test_ust_uste_sigmetlerde_nokta_bir_kez_sayilir_gecersiz_poligon_yok_sayilir(monkeypatch):
+    from turbulans_radar import config
+
+    kare = [(60.0, -155.0), (60.0, -154.0), (61.0, -154.0), (61.0, -155.0)]
+    kelebek = [(60.0, -155.0), (61.0, -154.0), (60.0, -154.0), (61.0, -155.0)]  # kendini kesen, geçersiz
+    sahte = [
+        _sahte_sigmet("A", kare, "2019-01-15T09:00Z", "2019-01-15T13:00Z"),
+        _sahte_sigmet("B", kare, "2019-01-15T09:00Z", "2019-01-15T13:00Z"),
+        _sahte_sigmet("GECERSIZ", kelebek, "2019-01-15T09:00Z", "2019-01-15T13:00Z"),
+    ]
+    monkeypatch.setattr(sd, "sigmetleri_getir", lambda *a, **kw: sahte)
+
+    df = pd.DataFrame(
+        {
+            "zaman": pd.to_datetime(["2019-01-15T10:00:00Z"] * 3),
+            "enlem": [60.5, 60.2, 45.0],
+            "boylam": [-154.5, -154.8, -100.0],
+            "ti1_indeksi": [config.TI1_ESIK_ORTA_SIDDETLI + 1e-8] * 3,
+        },
+        index=[7, 3, 11],
+    )
+    sonuc = sd.ucus_sigmet_ile_karsilastir(df)
+    assert sonuc["sigmetle_ortusen_nokta_sayisi"] == 2
+    assert sonuc["ortusme_orani"] == pytest.approx(2 / 3)
+
+
 def test_konvektif_sigmet_turbulans_sayilmaz(monkeypatch):
     from turbulans_radar import config
 

@@ -37,6 +37,7 @@ from sqlalchemy import (
     String,
     Text,
     UniqueConstraint,
+    cast,
     func,
 )
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB
@@ -117,7 +118,6 @@ class Sigmet(Base):
     __table_args__ = (
         UniqueConstraint("dis_kimlik", name="uq_sigmetler_dis_kimlik"),
         Index("ix_sigmetler_gecerlilik", "gecerlilik_baslangic", "gecerlilik_bitis"),
-        Index("ix_sigmetler_kutu", "enlem_min", "enlem_maks", "boylam_min", "boylam_maks"),
     )
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
@@ -247,10 +247,7 @@ class DenetimKaydi(Base):
 
 class KisitliHavaSahasi(Base):
     __tablename__ = "kisitli_hava_sahalari"
-    __table_args__ = (
-        UniqueConstraint("dis_kimlik", name="uq_kisitli_hava_sahalari_dis_kimlik"),
-        Index("ix_kisitli_hava_sahalari_kutu", "enlem_min", "enlem_maks", "boylam_min", "boylam_maks"),
-    )
+    __table_args__ = (UniqueConstraint("dis_kimlik", name="uq_kisitli_hava_sahalari_dis_kimlik"),)
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     dis_kimlik: Mapped[str] = mapped_column(String(128), nullable=False)
@@ -270,3 +267,25 @@ class KisitliHavaSahasi(Base):
     guncellenme_zamani: Mapped[object] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+def kutu_ifadesi(model):
+    """Satırın sınır kutusu, Postgres'in yerleşik `box` tipinde (PostGIS
+    gerekmez). GiST indeksi bu ifadenin üzerine kurulur; sorgu da AYNI ifadeyi
+    kullanmalı ki planlayıcı indeksi eşleştirsin (bkz. kutuyla_kesisir)."""
+    return func.box(func.point(model.boylam_min, model.enlem_min), func.point(model.boylam_maks, model.enlem_maks))
+
+
+def kutuyla_kesisir(model, enlem_min, enlem_maks, boylam_min, boylam_maks):
+    """Satır kutusu verilen kutuyla kesişiyor mu (kenar teması dahil). 4 sütunlu
+    B-tree sadece ilk sütunda aralık daraltabiliyordu; GiST iki boyutu birden
+    budar -- her A* hesabında çağrılan SIGMET/kısıtlı saha okumasının yolu."""
+    sorgu_kutusu = func.box(
+        func.point(cast(boylam_min, Float), cast(enlem_min, Float)),
+        func.point(cast(boylam_maks, Float), cast(enlem_maks, Float)),
+    )
+    return kutu_ifadesi(model).op("&&")(sorgu_kutusu)
+
+
+Index("ix_sigmetler_kutu_gist", kutu_ifadesi(Sigmet), postgresql_using="gist")
+Index("ix_kisitli_hava_sahalari_kutu_gist", kutu_ifadesi(KisitliHavaSahasi), postgresql_using="gist")

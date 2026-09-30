@@ -34,9 +34,9 @@ import re
 from datetime import timedelta
 
 import httpx
+import numpy as np
 import pandas as pd
-from shapely.geometry import Point, Polygon
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
+import shapely
 
 from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
 
@@ -45,6 +45,7 @@ konsolu_utf8_yap()
 from turbulans_radar import config
 from turbulans_radar.depo.veritabani import VeritabaniAyarlariEksikHatasi, ucus_olcumlerini_dataframe_olarak_getir
 from turbulans_radar.loglama import logger_al
+from turbulans_radar.yeniden_deneme import gecici_hatada_yeniden_dene
 
 _logger = logger_al(__name__)
 
@@ -55,15 +56,7 @@ _IEM_SIGMET_URL = "https://mesonet.agron.iastate.edu/cgi-bin/request/gis/sigmets
 # + dakika(2) -- standart havacılık meteorolojisi kısaltması.
 _KOSE_DESENI = re.compile(r"([NS])(\d{2})(\d{2})\s+([EW])(\d{3})(\d{2})")
 
-# IEM'i art arda isteklerle yormamak için SADECE geçici ağ hatalarında,
-# az sayıda (3) ve üstel artan aralarla yeniden deniyoruz -- projedeki
-# diğer dış servis çağrılarıyla (bkz. veri_yukleme.py) aynı prensip.
-_yeniden_dene = retry(
-    retry=retry_if_exception_type((httpx.TransportError, httpx.TimeoutException)),
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=2, min=2, max=20),
-    reraise=True,
-)
+_yeniden_dene = gecici_hatada_yeniden_dene()
 
 
 def _metinden_poligon_cikar(metin: str):
@@ -117,14 +110,31 @@ def sigmetleri_getir(baslangic: pd.Timestamp, bitis: pd.Timestamp, timeout: floa
     return sigmetler
 
 
-def _nokta_sigmet_icinde_mi(enlem, boylam, zaman, sigmet):
-    if not (sigmet["baslangic"] <= zaman <= sigmet["bitis"]):
-        return False
+def _sigmet_poligonu(sigmet):
+    """SIGMET başına TEK kez kurulur ve çoklu nokta testine hazırlanır (eskiden
+    her nokta x SIGMET çifti için yeniden kuruluyordu). Kurulamayan ya da
+    geçersiz poligon None -- o SIGMET hiçbir noktayla örtüşmez."""
     try:
-        poligon = Polygon([(lon, lat) for lat, lon in sigmet["poligon"]])
-        return poligon.is_valid and poligon.contains(Point(boylam, enlem))
+        poligon = shapely.Polygon([(lon, lat) for lat, lon in sigmet["poligon"]])
     except Exception:
-        return False
+        return None
+    if not poligon.is_valid:
+        return None
+    shapely.prepare(poligon)
+    return poligon
+
+
+def _sigmetle_ortusen_maske(enlemler, boylamlar, zamanlar: pd.Series, sigmetler) -> np.ndarray:
+    ortusen = np.zeros(len(enlemler), dtype=bool)
+    for sigmet in sigmetler:
+        adaylar = ((zamanlar >= sigmet["baslangic"]) & (zamanlar <= sigmet["bitis"])).to_numpy() & ~ortusen
+        if not adaylar.any():
+            continue
+        poligon = _sigmet_poligonu(sigmet)
+        if poligon is None:
+            continue
+        ortusen[adaylar] = shapely.contains_xy(poligon, boylamlar[adaylar], enlemler[adaylar])
+    return ortusen
 
 
 def ucus_sigmet_ile_karsilastir(eslesmis_df: pd.DataFrame, tampon: timedelta = timedelta(hours=1)) -> dict:
@@ -154,10 +164,14 @@ def ucus_sigmet_ile_karsilastir(eslesmis_df: pd.DataFrame, tampon: timedelta = t
     tum_sigmetler = sigmetleri_getir(baslangic, bitis)
     turbulans_sigmetleri = [s for s in tum_sigmetler if s["turbulansla_ilgili"]]
 
-    ortusen_sayisi = 0
-    for zaman, satir in zip(zaman_serisi, riskli.itertuples(index=False)):
-        if any(_nokta_sigmet_icinde_mi(satir.enlem, satir.boylam, zaman, s) for s in turbulans_sigmetleri):
-            ortusen_sayisi += 1
+    ortusen_sayisi = int(
+        _sigmetle_ortusen_maske(
+            riskli["enlem"].to_numpy(dtype=float),
+            riskli["boylam"].to_numpy(dtype=float),
+            zaman_serisi,
+            turbulans_sigmetleri,
+        ).sum()
+    )
 
     return {
         "toplam_turbulans_sigmeti": len(turbulans_sigmetleri),

@@ -26,12 +26,12 @@ from dataclasses import dataclass, field
 import httpx
 import numpy as np
 import pandas as pd
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from turbulans_radar.dogrulama.sigmet_dogrulama import sigmetleri_getir as iem_sigmetlerini_getir
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.rota.risk_katmanlari import SigmetKisitKatmani
 from turbulans_radar.veri.sigmet_saglayici import arsiv_baslangici, gecerli_sigmetleri_getir
+from turbulans_radar.yeniden_deneme import gecici_hatada_yeniden_dene
 
 _logger = logger_al(__name__)
 
@@ -45,12 +45,7 @@ TUP_ZAMAN_FARKI = pd.Timedelta(hours=1)
 _SIK_ORNEKLEME_KM = 20.0
 _DUNYA_YARICAPI_KM = 6371.0
 
-_yeniden_dene = retry(
-    retry=retry_if_exception_type((httpx.TransportError, httpx.TimeoutException)),
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=2, min=2, max=20),
-    reraise=True,
-)
+_yeniden_dene = gecici_hatada_yeniden_dene()
 
 
 def pirep_siddet_sinifi(metin) -> int | None:

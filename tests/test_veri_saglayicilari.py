@@ -237,6 +237,19 @@ def yavas_saglayici(sahte_canli_ortam, monkeypatch):
         time.sleep(0.05)
 
 
+def test_canli_indirme_durumu_calisan_ve_bekleyeni_ayirir(monkeypatch):
+    from concurrent.futures import Future
+
+    calisan, bekleyen, biten = Future(), Future(), Future()
+    calisan.set_running_or_notify_cancel()
+    biten.set_running_or_notify_cancel()
+    biten.set_result(None)
+    monkeypatch.setattr(vs, "_suren_indirmeler", {("a",): calisan, ("b",): bekleyen, ("c",): biten})
+    durum = vs.canli_indirme_durumu()
+    assert durum["calisiyor"] == 1 and durum["bekliyor"] == 1
+    assert durum["isci_sayisi"] == config.CANLI_INDIRME_ISCI_SAYISI
+
+
 def test_yavas_canli_indirme_beklenmez_arka_planda_bir_kez_tamamlanir(yavas_saglayici):
     import time
 

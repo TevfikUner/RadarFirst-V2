@@ -21,6 +21,8 @@ pipeline çökmek yerine açıklayıcı bir mesajla nazikçe durur.
 
 import argparse
 import os
+import time
+from pathlib import Path
 
 from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
 
@@ -97,6 +99,30 @@ def _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str):
     print("=" * 60 + "\n")
 
 
+_HARITA_DESENI = "turbulans_haritasi_*.html"
+
+
+def eski_haritalari_temizle(klasor=None, gun=None, simdi=None) -> int:
+    """CIKTI_KLASORU'ndaki `gun`'den eski harita HTML'lerini siler; sadece bu
+    modülün ürettiği desene dokunur (kullanıcının CSV'leri vb. kalır). Dönüş:
+    silinen dosya sayısı."""
+    klasor = klasor or config.CIKTI_KLASORU
+    gun = config.CIKTI_SAKLAMA_GUN if gun is None else gun
+    if gun <= 0:
+        return 0
+    esik = (time.time() if simdi is None else simdi) - gun * 86400
+    silinen = 0
+    for yol in Path(klasor).glob(_HARITA_DESENI):
+        try:
+            if yol.stat().st_mtime < esik:
+                yol.unlink()
+                silinen += 1
+        except OSError:
+            # Başka bir süreç silmiş ya da (Windows'ta) dosya açık: bir sonraki çalıştırmada denenir.
+            continue
+    return silinen
+
+
 def _veri_kupunu_sec(rota_df):
     """Rotayı en iyi kapsayan hava küpü: yerel ERA5 arşivi, yoksa (son 48 saat
     içindeki uçuşlar için) canlı GFS (bkz. veri_saglayicilari.veri_kupunu_sec);
@@ -154,6 +180,7 @@ def rota_df_ile_calistir(
         # birbirinin üzerine yazmasın diye. ciktilar/ altına yazılır --
         # proje kökü artık her çalıştırmada yeni bir HTML'le dolmuyor.
         cikti_dosyasi = os.path.join(config.CIKTI_KLASORU, f"turbulans_haritasi_{ucus_numarasi}_{tarih_str}.html")
+        eski_haritalari_temizle()
 
     print("2. Rotayı kapsayan hava durumu veri küpü seçiliyor...")
     try:

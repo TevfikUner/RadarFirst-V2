@@ -225,6 +225,21 @@ def test_baslangic_sigmet_icindeyse_rota_onerilmez():
     assert sonuc["guvenli_rota_bulundu_mu"] is False
     assert sonuc["optimize_rota"]["noktalar"] == sonuc["normal_rota"]["noktalar"]
     assert "ÖNERİ YOK" in sonuc["aciklama"]
+    bulgular = {b["kod"]: b for b in sonuc["bulgular"]}
+    assert bulgular["guvenli_rota_yok"]["seviye"] == "kritik"
+    assert bulgular["sigmet_uygulandi"]["parametreler"]["normal_rota_ihlali"] > 0
+
+
+def test_bulgular_aciklama_ile_ayni_siradadir_ve_metin_tasimaz():
+    sigmet = _kare_sigmet(4.3, 5.9, 17.0, 18.0, gun="2019-01-15")
+    sonuc = rota_simulasyonu_olustur(5.0, 10.0, 5.0, 25.0, 36000, "2019-01-15T00:00:00", "A320", sigmetler=[sigmet])
+    kodlar = [b["kod"] for b in sonuc["bulgular"]]
+    assert kodlar[0] == "ruzgar_hesaba_katilamadi"
+    assert sonuc["bulgular"][0]["parametreler"] == {"neden": "kapsam_disi"}
+    assert "sigmet_uygulandi" in kodlar
+    assert kodlar[-1] == "kacinma_sert_kisit"
+    assert all(set(b) == {"kod", "seviye", "parametreler"} for b in sonuc["bulgular"])
+    assert all(b["seviye"] in ("bilgi", "uyari", "kritik") for b in sonuc["bulgular"])
 
 
 def test_ucusun_irtifa_bandi_disindaki_sigmet_rotayi_degistirmez():

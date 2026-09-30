@@ -35,6 +35,7 @@ AYNI eşik felsefesiyle, gerçek pilot gözlemine dayalı.
 from __future__ import annotations
 
 import os
+import threading
 
 import numpy as np
 import pandas as pd
@@ -127,6 +128,9 @@ def ozellikleri_temizle(ozellik_df: pd.DataFrame, etiketler: pd.Series | None = 
 
 
 _ONBELLEK_MODEL = {"model": None, "imza": None}
+# Yeni model yayınlandığı anda gelen eşzamanlı tahmin istekleri (asyncio.to_thread
+# iş parçacıkları) aynı dosyayı ayrı ayrı joblib.load etmesin.
+_model_yukleme_kilidi = threading.Lock()
 
 
 def _modeli_yukle():
@@ -139,14 +143,18 @@ def _modeli_yukle():
     try:
         bilgi = os.stat(MODEL_DOSYA_YOLU)
     except FileNotFoundError:
-        _ONBELLEK_MODEL.update(model=None, imza=None)
+        with _model_yukleme_kilidi:
+            _ONBELLEK_MODEL.update(model=None, imza=None)
         return None
     imza = (bilgi.st_mtime_ns, bilgi.st_size)
-    if imza != _ONBELLEK_MODEL["imza"]:
-        import joblib
+    if imza == _ONBELLEK_MODEL["imza"]:
+        return _ONBELLEK_MODEL["model"]
+    with _model_yukleme_kilidi:
+        if imza != _ONBELLEK_MODEL["imza"]:
+            import joblib
 
-        _ONBELLEK_MODEL.update(model=joblib.load(MODEL_DOSYA_YOLU), imza=imza)
-    return _ONBELLEK_MODEL["model"]
+            _ONBELLEK_MODEL.update(model=joblib.load(MODEL_DOSYA_YOLU), imza=imza)
+        return _ONBELLEK_MODEL["model"]
 
 
 def _atomik_kopyala(kaynak, hedef):

@@ -40,6 +40,22 @@ def _ortam_bool(isim, varsayilan):
     return deger.strip().lower() in ("1", "true", "evet", "yes")
 
 
+# depo/veritabani.py -- bağlantı havuzu boyutu. SQLAlchemy'nin varsayılanı
+# (pool_size=5, max_overflow=10) her iki motor (senkron + asenkron) için de
+# API konteynerindeki gerçek eşzamanlılığı hesaba katmaz: aynı anda
+# AGIR_HESAP_MAKS_ESZAMANLI ağır A*/tahmin hesabı (her biri SIGMET/kısıtlı
+# saha/küp katalogu için senkron motoru asyncio.to_thread içinde kullanır),
+# GOREV_ISCI_SAYISI gömülü işçi iş parçacığı ve sıradan liste/detay istekleri
+# AYNI havuzu paylaşır. pool_timeout, havuz dolduğunda isteğin sonsuza kadar
+# asılı kalması yerine açık bir hatayla (ve 503/Retry-After'a çevrilebilir
+# şekilde) başarısız olmasını sağlar.
+VERITABANI_HAVUZ_BOYUTU = _ortam_sayi("VERITABANI_HAVUZ_BOYUTU", 10, int)
+VERITABANI_HAVUZ_TASMA = _ortam_sayi("VERITABANI_HAVUZ_TASMA", 20, int)
+VERITABANI_HAVUZ_ZAMAN_ASIMI_SANIYE = _ortam_sayi("VERITABANI_HAVUZ_ZAMAN_ASIMI_SANIYE", 10.0)
+ASYNC_VERITABANI_HAVUZ_BOYUTU = _ortam_sayi("ASYNC_VERITABANI_HAVUZ_BOYUTU", 10, int)
+ASYNC_VERITABANI_HAVUZ_TASMA = _ortam_sayi("ASYNC_VERITABANI_HAVUZ_TASMA", 20, int)
+ASYNC_VERITABANI_HAVUZ_ZAMAN_ASIMI_SANIYE = _ortam_sayi("ASYNC_VERITABANI_HAVUZ_ZAMAN_ASIMI_SANIYE", 10.0)
+
 HAVA_DURUMU_DOSYASI = _ortam_str("HAVA_DURUMU_DOSYASI", "ocak_2019_turbulans.nc")
 
 # Ana küpe EK olarak taranan ERA5 küpleri klasörü (bkz.
@@ -121,6 +137,10 @@ TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE = _ortam_sayi("TOPLU_ANALIZ_ISTEKLER_
 # bir alt klasörde toplanıyor (main.py/toplu_analiz.py bu klasörü yoksa
 # otomatik oluşturur).
 CIKTI_KLASORU = _ortam_str("CIKTI_KLASORU", "ciktilar")
+# Yeni harita üretilirken CIKTI_KLASORU'ndaki bundan (gün) eski
+# turbulans_haritasi_*.html dosyaları silinir (0 = kapalı). Ham veri
+# PostgreSQL'de durduğu için harita her zaman yeniden üretilebilir.
+CIKTI_SAKLAMA_GUN = _ortam_sayi("CIKTI_SAKLAMA_GUN", 30, int)
 
 # harita.py'nin ürettiği zaman kaydırıcılı animasyon (TimestampedGeoJson),
 # nokta sayısı arttıkça ağırlaşan bir HTML üretir -- 50.000 noktalık bir
@@ -221,6 +241,10 @@ CANLI_KUP_SAKLAMA_SAAT = _ortam_sayi("CANLI_KUP_SAKLAMA_SAAT", 48, int)
 # için en fazla bu kadar bekler; indirme arka planda sürer, yanıt rüzgarsız
 # ön sonuçla "canli_veri_hazirlaniyor" döner (yavaş ağda istek askıda kalmaz).
 CANLI_VERI_BEKLEME_SANIYE = _ortam_sayi("CANLI_VERI_BEKLEME_SANIYE", 8.0)
+# Süreç başına aynı anda en fazla kaç farklı bölge için canlı küp indirilir;
+# fazlası kuyrukta bekler (metrik: turbulans_canli_indirme{durum="bekliyor"}).
+# UCAR THREDDS paylaşımlı bir kamu sunucusu olduğu için bilerek düşük tutulur.
+CANLI_INDIRME_ISCI_SAYISI = _ortam_sayi("CANLI_INDIRME_ISCI_SAYISI", 2, int)
 
 # kisitli_saha_saglayici.py -- True iken API açılışında, tabloda 'ornek'
 # kaynaklı kayıt yoksa paketle gelen ÖRNEK kısıtlı sahalar (Natural Earth
@@ -250,6 +274,20 @@ ROTA_HESABI_DAKIKADA_MAKS = _ortam_sayi("ROTA_HESABI_DAKIKADA_MAKS", 20, int)
 TAHMIN_DAKIKADA_MAKS = _ortam_sayi("TAHMIN_DAKIKADA_MAKS", 60, int)
 AGIR_HESAP_MAKS_ESZAMANLI = _ortam_sayi("AGIR_HESAP_MAKS_ESZAMANLI", 4, int)
 AGIR_HESAP_BEKLEME_SANIYE = _ortam_sayi("AGIR_HESAP_BEKLEME_SANIYE", 15.0)
+# api/rota_onbellegi.py -- aynı rota isteğinin sonucu bu kadar saniye yeniden
+# kullanılır (0 = kapalı). SIGMET/kısıtlı saha API'de değişince anında
+# boşaltılır; worker'daki değişiklikler en geç bu süre sonra yansır.
+ROTA_ONBELLEK_SANIYE = _ortam_sayi("ROTA_ONBELLEK_SANIYE", 60.0)
+ROTA_ONBELLEK_MAKS_KAYIT = _ortam_sayi("ROTA_ONBELLEK_MAKS_KAYIT", 256, int)
+
+# api_servisi.py -- her isteğin gövdesi (Content-Length ya da chunked ise
+# akış sırasında sayılarak) bu boyutu (MB) aşarsa 413 ile erken reddedilir.
+# Starlette/FastAPI, boyut kontrolünden ÖNCE gövdeyi tamamen belleğe okur --
+# bu sınır olmadan (örn. yönetici anahtarı sızmışsa) POST /kisitli-sahalar
+# gibi ham `dict` gövdesi alan uçlar keyfi büyüklükte bir bellek sıçramasına
+# açık kalırdı; MAKS_OZELLIK/MAKS_KOSE gibi alan bazlı sınırlar da zaten
+# gövde TAMAMEN ayrıştırıldıktan SONRA devreye giriyor.
+MAKS_ISTEK_GOVDESI_MB = _ortam_sayi("MAKS_ISTEK_GOVDESI_MB", 20.0)
 
 # api_servisi.py /ws/uyarilar -- istemci başına bekleyen en fazla mesaj ve tek
 # mesajın gönderim zaman aşımı; aşan (yavaş/donmuş) istemci düşürülür, diğer

@@ -124,6 +124,33 @@ def test_ice_aktarilan_saha_zaman_ve_kutuya_gore_getirilir(test_veritabani):
     assert not _test_sahalari(enlem_min=10, enlem_maks=20)
 
 
+def test_kutu_aramasi_kenar_temasini_kapsar(test_veritabani):
+    ks.geojson_ice_aktar(_koleksiyon(_ozellik()), "test_saha")
+    assert _test_sahalari(enlem_min=40, enlem_maks=45, boylam_min=32, boylam_maks=35)
+    assert not _test_sahalari(enlem_min=40.01, enlem_maks=45, boylam_min=30, boylam_maks=32)
+
+
+@pytest.mark.parametrize(
+    "tablo, model_adi, indeks",
+    [
+        ("kisitli_hava_sahalari", "KisitliHavaSahasi", "ix_kisitli_hava_sahalari_kutu_gist"),
+        ("sigmetler", "Sigmet", "ix_sigmetler_kutu_gist"),
+    ],
+)
+def test_kutu_sorgusu_gist_indeksini_kullanir(test_veritabani, tablo, model_adi, indeks):
+    from sqlalchemy import select
+
+    from turbulans_radar.depo import models
+
+    model = getattr(models, model_adi)
+    sorgu = select(model.id).where(models.kutuyla_kesisir(model, 38.0, 40.0, 30.0, 32.0))
+    derlenmis = sorgu.compile(test_veritabani)
+    with test_veritabani.connect() as baglanti:
+        baglanti.execute(text("SET LOCAL enable_seqscan = off"))
+        plan = baglanti.exec_driver_sql(f"EXPLAIN {derlenmis}", derlenmis.params).scalars().all()
+    assert any(indeks in satir for satir in plan), plan
+
+
 def test_yeniden_ice_aktarma_gunceller_ve_eskileri_kaldirabilir(test_veritabani):
     ks.geojson_ice_aktar(_koleksiyon(_ozellik(), _ozellik(kimlik="p2")), "test_saha")
     ozet = ks.geojson_ice_aktar(_koleksiyon(_ozellik(ad="Yeni ad")), "test_saha", eskileri_kaldir=True)

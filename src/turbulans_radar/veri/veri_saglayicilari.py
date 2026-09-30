@@ -34,13 +34,13 @@ import httpx
 import numpy as np
 import pandas as pd
 import xarray as xr
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from turbulans_radar import config
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumunu_kaydet
 from turbulans_radar.depo.kup_katalogu import eski_canli_kupleri_temizle, kapsayan_hazir_kup_yolu, kup_kaydet
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.veri.veri_yukleme import hava_durumu_onbellekli_yukle, hdf5_kilidi, kapsayan_veri_kupunu_bul
+from turbulans_radar.yeniden_deneme import gecici_hatada_yeniden_dene
 
 _logger = logger_al(__name__)
 
@@ -113,12 +113,7 @@ def gfs_kupunu_normalize_et(ham: xr.Dataset) -> xr.Dataset:
     return kup
 
 
-_yeniden_dene = retry(
-    retry=retry_if_exception_type((httpx.TransportError, httpx.TimeoutException)),
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=2, min=2, max=20),
-    reraise=True,
-)
+_yeniden_dene = gecici_hatada_yeniden_dene()
 
 
 class GfsThreddsSaglayici:
@@ -258,9 +253,20 @@ def canli_kup_hazirla(kutu: Kutu, baslangic, bitis, saglayici: VeriSaglayici | N
     return kup
 
 
-_arka_plan_havuzu = ThreadPoolExecutor(max_workers=2, thread_name_prefix="canli-veri")
+_arka_plan_havuzu = ThreadPoolExecutor(max_workers=config.CANLI_INDIRME_ISCI_SAYISI, thread_name_prefix="canli-veri")
 _suren_indirmeler: dict[tuple, Future] = {}
 _suren_kilidi = threading.Lock()
+
+
+def canli_indirme_durumu() -> dict:
+    """Arka plan canlı küp indirmeleri: çalışan ve işçi bekleyen (kuyruktaki)
+    sayısı. 'bekliyor' kalıcı olarak > 0 ise CANLI_INDIRME_ISCI_SAYISI yetmiyor
+    -- etkileşimli rota istekleri o sürede rüzgarsız ön sonuç alır."""
+    with _suren_kilidi:
+        gelecekler = list(_suren_indirmeler.values())
+    calisiyor = sum(g.running() for g in gelecekler)
+    bekliyor = sum(not g.running() and not g.done() for g in gelecekler)
+    return {"calisiyor": calisiyor, "bekliyor": bekliyor, "isci_sayisi": config.CANLI_INDIRME_ISCI_SAYISI}
 
 
 def canli_kupu_arka_planda_hazirla(kutu: Kutu, baslangic, bitis, saglayici: VeriSaglayici) -> Future:

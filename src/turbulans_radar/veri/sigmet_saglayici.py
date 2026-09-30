@@ -39,26 +39,21 @@ import shapely
 from sqlalchemy import delete, func, select, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from turbulans_radar import config
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir, kaynak_durumunu_kaydet
-from turbulans_radar.depo.models import Sigmet
+from turbulans_radar.depo.models import Sigmet, kutuyla_kesisir
 from turbulans_radar.depo.veritabani import motor_al
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.veri.fir_sinirlari import fir_geometrisi
+from turbulans_radar.yeniden_deneme import gecici_hatada_yeniden_dene
 
 _logger = logger_al(__name__)
 
 _AWC_TABAN_URL = "https://aviationweather.gov/api/data"
 _KAYNAKLAR = ("airsigmet", "isigmet")
 
-_yeniden_dene = retry(
-    retry=retry_if_exception_type((httpx.TransportError, httpx.TimeoutException)),
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=2, min=2, max=20),
-    reraise=True,
-)
+_yeniden_dene = gecici_hatada_yeniden_dene()
 
 
 @_yeniden_dene
@@ -401,10 +396,7 @@ def gecerli_sigmetleri_getir(
     kosullar = [
         Sigmet.gecerlilik_baslangic <= bitis,
         Sigmet.gecerlilik_bitis >= baslangic,
-        Sigmet.enlem_min <= enlem_maks,
-        Sigmet.enlem_maks >= enlem_min,
-        Sigmet.boylam_min <= boylam_maks,
-        Sigmet.boylam_maks >= boylam_min,
+        kutuyla_kesisir(Sigmet, enlem_min, enlem_maks, boylam_min, boylam_maks),
     ]
     if tehlikeler:
         kosullar.append(Sigmet.tehlike.in_([t.upper() for t in tehlikeler]))

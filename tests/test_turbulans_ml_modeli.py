@@ -112,6 +112,40 @@ def test_model_sonradan_egitilirse_yeniden_baslatmadan_yuklenir(tmp_path, monkey
     assert tm._modeli_yukle() == {"surum": 2, "ek": "boyut farkı"}
 
 
+def test_yeni_model_eszamanli_isteklerde_bir_kez_yuklenir(tmp_path, monkeypatch):
+    import threading
+    import time
+
+    import joblib
+
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
+
+    yol = tmp_path / "model.joblib"
+    joblib.dump({"surum": 1}, yol)
+    monkeypatch.setattr(tm, "MODEL_DOSYA_YOLU", str(yol))
+    monkeypatch.setitem(tm._ONBELLEK_MODEL, "model", None)
+    monkeypatch.setitem(tm._ONBELLEK_MODEL, "imza", None)
+
+    gercek_yukle = joblib.load
+    yukleme_sayisi = []
+
+    def yavas_yukle(dosya):
+        yukleme_sayisi.append(dosya)
+        time.sleep(0.05)
+        return gercek_yukle(dosya)
+
+    monkeypatch.setattr(joblib, "load", yavas_yukle)
+    sonuclar = []
+    is_parcaciklari = [threading.Thread(target=lambda: sonuclar.append(tm._modeli_yukle())) for _ in range(8)]
+    for t in is_parcaciklari:
+        t.start()
+    for t in is_parcaciklari:
+        t.join()
+
+    assert len(yukleme_sayisi) == 1
+    assert sonuclar == [{"surum": 1}] * 8
+
+
 def test_model_bilgisi_dosyasi_yoksa_durustce_none_doner(tmp_path, monkeypatch):
     from turbulans_radar.ml import turbulans_ml_modeli as tm
 

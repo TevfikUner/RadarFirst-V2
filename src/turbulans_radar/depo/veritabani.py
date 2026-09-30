@@ -39,6 +39,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.orm import Session
 
+from turbulans_radar import config
 from turbulans_radar.depo.models import EdrOlcumu, Ucus
 
 try:
@@ -120,7 +121,13 @@ def motor_al():
     if _motor is None:
         with _motor_kilidi:
             if _motor is None:
-                _motor = create_engine(baglanti_dizesini_olustur(), pool_pre_ping=True)
+                _motor = create_engine(
+                    baglanti_dizesini_olustur(),
+                    pool_pre_ping=True,
+                    pool_size=config.VERITABANI_HAVUZ_BOYUTU,
+                    max_overflow=config.VERITABANI_HAVUZ_TASMA,
+                    pool_timeout=config.VERITABANI_HAVUZ_ZAMAN_ASIMI_SANIYE,
+                )
     return _motor
 
 
@@ -130,7 +137,13 @@ def async_motor_al():
     if _async_motor is None:
         with _async_motor_kilidi:
             if _async_motor is None:
-                _async_motor = create_async_engine(async_baglanti_dizesini_olustur(), pool_pre_ping=True)
+                _async_motor = create_async_engine(
+                    async_baglanti_dizesini_olustur(),
+                    pool_pre_ping=True,
+                    pool_size=config.ASYNC_VERITABANI_HAVUZ_BOYUTU,
+                    max_overflow=config.ASYNC_VERITABANI_HAVUZ_TASMA,
+                    pool_timeout=config.ASYNC_VERITABANI_HAVUZ_ZAMAN_ASIMI_SANIYE,
+                )
     return _async_motor
 
 

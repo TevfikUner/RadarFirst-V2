@@ -89,6 +89,7 @@ from sqlalchemy.exc import SQLAlchemyError
 
 from turbulans_radar import config, loglama
 from turbulans_radar.api import metrikler
+from turbulans_radar.api.rota_onbellegi import RotaOnbellegi
 from turbulans_radar.api.semalar import (
     BacktestListesiYaniti,
     BacktestSonucuYaniti,
@@ -174,7 +175,7 @@ from turbulans_radar.veri.sigmet_saglayici import (
     sigmetleri_guncelle,
     son_guncelleme_zamani,
 )
-from turbulans_radar.veri.veri_saglayicilari import canli_durum_anahtari
+from turbulans_radar.veri.veri_saglayicilari import canli_durum_anahtari, canli_indirme_durumu
 from turbulans_radar.veri.veri_yukleme import hava_durumu_dosyalari, onbellek_durumu
 from turbulans_radar.webhook import webhook_url_dogrula
 
@@ -276,6 +277,7 @@ async def _sigmet_zamanlayicisi(aralik_saniye):
     while True:
         try:
             ozet = await asyncio.to_thread(sigmetleri_guncelle)
+            _rota_onbellegi.temizle()
             if ozet["kaynak_hatalari"]:
                 _logger.error("SIGMET kaynak hataları (mevcut kayıtlar korundu): %s", ozet["kaynak_hatalari"])
             _logger.info("SIGMET'ler yenilendi: %s", ozet)
@@ -290,6 +292,69 @@ app = FastAPI(
     version="1.0.0",
     lifespan=_yasam_dongusu,
 )
+
+
+class _GovdeCokBuyukHatasi(Exception):
+    pass
+
+
+class _GovdeBoyutSiniriMiddleware:
+    """Starlette, bir isteğin gövdesini (dict/JSON body parametreleri için)
+    ayrıştırmadan/alan bazlı sınırlara (örn. kisitli_saha_saglayici.MAKS_
+    OZELLIK) ulaşmadan ÖNCE tamamen belleğe okur -- bu ASGI katmanı olmadan
+    Content-Length'i büyük (ya da hiç) beyan edilmemiş bir istek, doğrulama
+    hiç çalışmadan bellek sıçramasına yol açabilir. Content-Length varsa
+    erken (gövde hiç okunmadan) 413 döner; yoksa (chunked/yanlış beyan)
+    gövdeyi akış sırasında sayıp sınırı aynı şekilde zorlar."""
+
+    def __init__(self, app, maks_bayt: int):
+        self.app = app
+        self.maks_bayt = maks_bayt
+
+    async def __call__(self, scope, receive, send):
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+
+        for isim, deger in scope.get("headers") or []:
+            if isim == b"content-length":
+                try:
+                    if int(deger) > self.maks_bayt:
+                        await self._413_dondur(send)
+                        return
+                except ValueError:
+                    pass
+                break
+
+        toplam_bayt = 0
+
+        async def _sinirli_receive():
+            nonlocal toplam_bayt
+            mesaj = await receive()
+            if mesaj["type"] == "http.request":
+                toplam_bayt += len(mesaj.get("body") or b"")
+                if toplam_bayt > self.maks_bayt:
+                    raise _GovdeCokBuyukHatasi()
+            return mesaj
+
+        try:
+            await self.app(scope, _sinirli_receive, send)
+        except _GovdeCokBuyukHatasi:
+            await self._413_dondur(send)
+
+    @staticmethod
+    async def _413_dondur(send):
+        await send(
+            {
+                "type": "http.response.start",
+                "status": status.HTTP_413_REQUEST_ENTITY_TOO_LARGE,
+                "headers": [(b"content-type", b"application/json")],
+            }
+        )
+        await send({"type": "http.response.body", "body": b'{"detail":"Istek govdesi cok buyuk."}'})
+
+
+app.add_middleware(_GovdeBoyutSiniriMiddleware, maks_bayt=int(config.MAKS_ISTEK_GOVDESI_MB * 1024 * 1024))
 
 # CORS: bir web/mobil istemcinin tarayıcıdan doğrudan bu API'ye istek
 # atabilmesi için gereklidir (aksi halde tarayıcı Cross-Origin isteği
@@ -466,6 +531,9 @@ def _istemci_kimligi(request: Request, rol: str) -> str:
     paylaşan tabletlerden biri diğerlerinin kotasını tüketemesin. Ters vekil
     arkasında gerçek IP için uvicorn --proxy-headers/--forwarded-allow-ips."""
     return f"{rol}:{request.client.host if request.client else '?'}"
+
+
+_rota_onbellegi = RotaOnbellegi(config.ROTA_ONBELLEK_SANIYE, config.ROTA_ONBELLEK_MAKS_KAYIT)
 
 
 _agir_hesap_semaforlari: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore]" = (
@@ -819,6 +887,13 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
     await _hiz_sinirini_kontrol_et(
         f"rota_hesabi:{_istemci_kimligi(request, rol)}", maks=config.ROTA_HESABI_DAKIKADA_MAKS, pencere_saniye=60
     )
+    onbellek_anahtari = istek.model_dump_json()
+    onceki = _rota_onbellegi.al(onbellek_anahtari)
+    if onceki is not None:
+        metrikler.ROTA_ONBELLEGI.labels("isabet").inc()
+        return onceki
+    metrikler.ROTA_ONBELLEGI.labels("iska").inc()
+    nesil = _rota_onbellegi.nesil
     async with _agir_hesap_yuvasi():
         hesap_baslangici = time.monotonic()
         sonuc = await asyncio.to_thread(
@@ -834,6 +909,7 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
         )
         metrikler.ROTA_HESABI_SURESI.observe(time.monotonic() - hesap_baslangici)
     sonuc["czml"] = simulasyonu_czml_e_cevir(sonuc)
+    _rota_onbellegi.koy(onbellek_anahtari, sonuc, nesil)
     return sonuc
 
 
@@ -934,12 +1010,14 @@ async def turbulans_model_versiyonlari():
     response_model=ModelBilgisiYaniti,
     tags=["Türbülans Tahmini"],
 )
-async def turbulans_model_versiyonunu_aktiflestir(versiyon_id: str):
+async def turbulans_model_versiyonunu_aktiflestir(
+    versiyon_id: str, request: Request, rol: str = Depends(api_anahtarini_dogrula)
+):
     """Geçmiş bir model versiyonunu, YENİDEN EĞİTİM GEREKMEDEN aktif model
     yapar (rollback) -- örn. yeni bir eğitim çalıştırması beklenenden kötü
     çıkarsa bir önceki versiyona dönmek için. Bilinmeyen bir versiyon_id
     404 döner."""
-    await _hiz_sinirini_kontrol_et("model_aktiflestir")
+    await _hiz_sinirini_kontrol_et(f"model_aktiflestir:{_istemci_kimligi(request, rol)}")
     try:
         aktif_bilgi = await asyncio.to_thread(versiyona_geri_don, versiyon_id)
     except ValueError as hata:
@@ -964,15 +1042,17 @@ async def ucuslar_listesi(
 
 @v1.delete("/ucuslar", dependencies=_YONETICI, response_model=TopluSilmeYaniti, tags=["Uçuşlar"])
 async def ucuslari_toplu_sil(
+    request: Request,
     ucus_numarasi_arama: str | None = Query(default=None, max_length=8, description="Uçuş numarasında kısmi arama"),
     baslangic_tarih: date | None = Query(default=None),
     bitis_tarih: date | None = Query(default=None),
+    rol: str = Depends(api_anahtarini_dogrula),
 ):
     """Filtreye uyan TÜM uçuşları (CASCADE ile ölçümleriyle) siler. En az
     bir filtre ZORUNLUDUR -- filtresiz bir çağrı, tüm veritabanını
     YANLIŞLIKLA boşaltabileceği için kasıtlı olarak 400 ile reddedilir
     (tek tek silme için bkz. DELETE /ucuslar/{ucus_numarasi}/{tarih})."""
-    await _hiz_sinirini_kontrol_et("silme")
+    await _hiz_sinirini_kontrol_et(f"silme:{_istemci_kimligi(request, rol)}")
     if not any([ucus_numarasi_arama, baslangic_tarih, bitis_tarih]):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -1006,14 +1086,16 @@ async def ucus_detayi(
     "/ucuslar/{ucus_numarasi}/{tarih}", dependencies=_YONETICI, status_code=status.HTTP_204_NO_CONTENT, tags=["Uçuşlar"]
 )
 async def ucus_sil(
+    request: Request,
     ucus_numarasi: str = Path(pattern=_UCUS_NUMARASI_DESENI),
     tarih: date = Path(...),
+    rol: str = Depends(api_anahtarini_dogrula),
 ):
     """Kayıtlı bir uçuşu (CASCADE ile edr_olcumleri dahil) siler. Aynı
     uçuş/tarih tekrar analiz edilmek istenirse zaten otomatik üzerine
     yazılır (bkz. ucus_ve_olcumleri_kaydet) -- bu uç nokta, bir daha analiz
     edilmeyecek kaydı veritabanından tamamen kaldırmak içindir."""
-    await _hiz_sinirini_kontrol_et("silme")
+    await _hiz_sinirini_kontrol_et(f"silme:{_istemci_kimligi(request, rol)}")
     silindi_mi = await ucus_sil_async(ucus_numarasi, tarih.isoformat())
     if not silindi_mi:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Uçuş bulunamadı.")
@@ -1108,8 +1190,8 @@ def _kuyruga_alindi(gorev_id):
     response_model=GorevBaslatildiYaniti,
     tags=["Analiz"],
 )
-async def ucus_analizi_baslat(istek: UcusAnalizIstegi):
-    await _hiz_sinirini_kontrol_et("tek_ucus")
+async def ucus_analizi_baslat(istek: UcusAnalizIstegi, request: Request, rol: str = Depends(api_anahtarini_dogrula)):
+    await _hiz_sinirini_kontrol_et(f"tek_ucus:{_istemci_kimligi(request, rol)}")
     gorev_id = await _gorev_olustur(
         "ucus", ucus_numarasi=istek.ucus_numarasi, tarih=istek.tarih, webhook_url=istek.bildirim_webhook_url
     )
@@ -1123,7 +1205,7 @@ async def ucus_analizi_baslat(istek: UcusAnalizIstegi):
     response_model=GorevBaslatildiYaniti,
     tags=["Analiz"],
 )
-async def rota_analizi_baslat(istek: RotaAnalizIstegi):
+async def rota_analizi_baslat(istek: RotaAnalizIstegi, request: Request, rol: str = Depends(api_anahtarini_dogrula)):
     """
     OpenSky'a BAĞLANMADAN, dışarıdan alınmış bir ADS-B izini (başka bir
     izleme servisi, uçuş kayıt cihazı vb.) analiz eder: aynı eşleştirme,
@@ -1132,7 +1214,7 @@ async def rota_analizi_baslat(istek: RotaAnalizIstegi):
     çalışır. Tarih, ilk noktanın UTC gününden türetilir; sonuç
     GET /ucuslar/{ucus_numarasi}/{tarih} ile okunur.
     """
-    await _hiz_sinirini_kontrol_et("rota")
+    await _hiz_sinirini_kontrol_et(f"rota:{_istemci_kimligi(request, rol)}")
     tarih = min(n.zaman for n in istek.noktalar).date().isoformat()
     gorev_id = await _gorev_olustur(
         "rota",
@@ -1151,8 +1233,8 @@ async def rota_analizi_baslat(istek: RotaAnalizIstegi):
     response_model=GorevBaslatildiYaniti,
     tags=["Analiz"],
 )
-async def toplu_analiz_baslat(istek: TopluAnalizIstegi):
-    await _hiz_sinirini_kontrol_et("toplu")
+async def toplu_analiz_baslat(istek: TopluAnalizIstegi, request: Request, rol: str = Depends(api_anahtarini_dogrula)):
+    await _hiz_sinirini_kontrol_et(f"toplu:{_istemci_kimligi(request, rol)}")
     if not istek.ucuslar:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="'ucuslar' listesi boş olamaz.")
     gorev_id = await _gorev_olustur(
@@ -1176,14 +1258,17 @@ async def analiz_durumu(gorev_id: str):
 
 
 @v1.post("/sigmet/guncelle", dependencies=_YONETICI, response_model=SigmetYenilemeYaniti, tags=["SIGMET"])
-async def sigmetleri_yenile():
+async def sigmetleri_yenile(request: Request, rol: str = Depends(api_anahtarini_dogrula)):
     """AWC'den (aviationweather.gov: ABD `airsigmet` + uluslararası `isigmet`)
     canlı SIGMET'leri çekip veritabanını günceller; akıştan düşen (iptal
     edilen) SIGMET'lerin geçerliliği sona erdirilir. n8n/cron'un periyodik
     (örn. 10-15 dk) tetiklemesi için -- ya da SIGMET_OTOMATIK_GUNCELLEME_DAKIKA
     ile API'nin kendi zamanlayıcısı kullanılır."""
-    await _hiz_sinirini_kontrol_et("sigmet")
-    return await asyncio.to_thread(sigmetleri_guncelle)
+    await _hiz_sinirini_kontrol_et(f"sigmet:{_istemci_kimligi(request, rol)}")
+    try:
+        return await asyncio.to_thread(sigmetleri_guncelle)
+    finally:
+        _rota_onbellegi.temizle()
 
 
 @v1.get("/sigmet", response_model=list[SigmetOzetiYaniti], tags=["SIGMET"])
@@ -1232,15 +1317,20 @@ async def kisitli_sahalari_listele(
 )
 async def kisitli_sahalari_ice_aktar(
     geojson: dict,
+    request: Request,
     kaynak: str = Query(min_length=1, max_length=32, pattern=r"^[a-z0-9_\-]+$"),
     eskileri_kaldir: bool = Query(default=False, description="Bu kaynağın yeni veride olmayan kayıtlarını sil"),
+    rol: str = Depends(api_anahtarini_dogrula),
 ):
     """GeoJSON FeatureCollection içe aktarır (Polygon/MultiPolygon; properties:
     kimlik, ad, tur, taban_ft, tavan_ft, baslangic, bitis, aciklama). Örn. n8n
     bir NOTAM akışından geçici kısıtları `kaynak=notam` ile iter. Aynı
     kaynak:kimlik ikinci kez gelirse güncellenir."""
-    await _hiz_sinirini_kontrol_et("kisitli_saha")
-    return await asyncio.to_thread(geojson_ice_aktar, geojson, kaynak, eskileri_kaldir)
+    await _hiz_sinirini_kontrol_et(f"kisitli_saha:{_istemci_kimligi(request, rol)}")
+    try:
+        return await asyncio.to_thread(geojson_ice_aktar, geojson, kaynak, eskileri_kaldir)
+    finally:
+        _rota_onbellegi.temizle()
 
 
 @v1.post(
@@ -1250,11 +1340,15 @@ async def kisitli_sahalari_ice_aktar(
     response_model=GorevBaslatildiYaniti,
     tags=["Kısıtlı Hava Sahaları"],
 )
-async def openaip_sahalarini_yenile(ulke: list[str] | None = Query(default=None, description="ISO ülke kodu(ları)")):
+async def openaip_sahalarini_yenile(
+    request: Request,
+    ulke: list[str] | None = Query(default=None, description="ISO ülke kodu(ları)"),
+    rol: str = Depends(api_anahtarini_dogrula),
+):
     """Gerçek kısıtlı/yasak sahaları openAIP'ten çekip 'openaip' kaynağını tam
     yeniler (OPENAIP_API_ANAHTARI gerekir; AIRAC döngüsünde n8n tetikleyebilir).
     Kuyruğa girer; sonuç GET /analiz/durum/{gorev_id}."""
-    await _hiz_sinirini_kontrol_et("kisitli_saha")
+    await _hiz_sinirini_kontrol_et(f"kisitli_saha:{_istemci_kimligi(request, rol)}")
     return _kuyruga_alindi(await _gorev_olustur("openaip", parametreler={"ulkeler": ulke}))
 
 
@@ -1264,9 +1358,13 @@ async def openaip_sahalarini_yenile(ulke: list[str] | None = Query(default=None,
     status_code=status.HTTP_204_NO_CONTENT,
     tags=["Kısıtlı Hava Sahaları"],
 )
-async def kisitli_saha_sil(dis_kimlik: str = Path(max_length=128)):
-    await _hiz_sinirini_kontrol_et("kisitli_saha")
-    if not await asyncio.to_thread(kisitli_sahayi_sil, dis_kimlik):
+async def kisitli_saha_sil(
+    request: Request, dis_kimlik: str = Path(max_length=128), rol: str = Depends(api_anahtarini_dogrula)
+):
+    await _hiz_sinirini_kontrol_et(f"kisitli_saha:{_istemci_kimligi(request, rol)}")
+    silindi_mi = await asyncio.to_thread(kisitli_sahayi_sil, dis_kimlik)
+    _rota_onbellegi.temizle()
+    if not silindi_mi:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kısıtlı saha bulunamadı.")
 
 
@@ -1287,12 +1385,12 @@ async def hava_durumu_kupleri(limit: int = Query(default=50, ge=1, le=500)):
     response_model=GorevBaslatildiYaniti,
     tags=["Veri Sağlayıcı"],
 )
-async def canli_veri_hazirla(istek: CanliVeriIstegi):
+async def canli_veri_hazirla(istek: CanliVeriIstegi, request: Request, rol: str = Depends(api_anahtarini_dogrula)):
     """Verilen bölge/zaman için canlı NOAA GFS küpünü arka planda hazırlar
     (katalogda taze bir küp varsa onu kullanır, yoksa indirir). Yavaş ağda
     indirme dakikalar sürebildiği için istek beklemez: 202 + gorev_id döner,
     küp özeti GET /analiz/durum/{gorev_id} yanıtının 'ozet' alanındadır."""
-    await _hiz_sinirini_kontrol_et("canli_veri")
+    await _hiz_sinirini_kontrol_et(f"canli_veri:{_istemci_kimligi(request, rol)}")
     if istek.enlem_min >= istek.enlem_maks or istek.boylam_min >= istek.boylam_maks:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Kutu sınırları geçersiz (min < maks olmalı).")
     enlem_genisligi, boylam_genisligi = istek.enlem_maks - istek.enlem_min, istek.boylam_maks - istek.boylam_min
@@ -1343,12 +1441,14 @@ async def ucus_backtesti(
     tags=["Backtest"],
 )
 async def toplu_backtest_baslat(
+    request: Request,
     limit: int = Query(default=20, ge=1, le=200),
     bildirim_webhook_url: str | None = Query(default=None),
+    rol: str = Depends(api_anahtarini_dogrula),
 ):
     """Henüz backtest'i olmayan uçuşları arka planda karşılaştırır (örn. n8n'in
     gece tetiklemesi); sonuç /analiz/durum/{gorev_id} ve webhook ile alınır."""
-    await _hiz_sinirini_kontrol_et("backtest")
+    await _hiz_sinirini_kontrol_et(f"backtest:{_istemci_kimligi(request, rol)}")
     try:
         webhook = _webhook_url_dogrula(bildirim_webhook_url)
     except ValueError as hata:
@@ -1403,9 +1503,10 @@ def _sigmet_kontrolu():
 def _canli_gfs_kontrolu():
     if not config.CANLI_HAVA_VERISI_ETKIN:
         return {"durum": "kapali"}
+    indirmeler = canli_indirme_durumu()
     kayitlar = kaynak_durumlarini_getir([canli_durum_anahtari("gfs")])
     if not kayitlar:
-        return {"durum": "kullanilmadi"}
+        return {"durum": "kullanilmadi", "indirmeler": indirmeler}
     kayit = kayitlar[0]
     return {
         "durum": "hata" if kayit["ardisik_hata_sayisi"] else "tamam",
@@ -1413,6 +1514,7 @@ def _canli_gfs_kontrolu():
         "son_deneme": kayit["son_deneme_zamani"],
         "ardisik_hata_sayisi": kayit["ardisik_hata_sayisi"],
         "son_hata": kayit["son_hata"],
+        "indirmeler": indirmeler,
     }
 
 
@@ -1520,6 +1622,9 @@ async def _anlik_metrikleri_guncelle():
         metrikler.SIGMET_YASI.set((datetime.now(UTC) - son).total_seconds() if son else float("nan"))
     except Exception as hata:
         _logger.warning("SIGMET yaşı metriği okunamadı: %s", dostane_hata_mesaji(hata))
+    indirmeler = canli_indirme_durumu()
+    metrikler.CANLI_INDIRME.labels("calisiyor").set(indirmeler["calisiyor"])
+    metrikler.CANLI_INDIRME.labels("bekliyor").set(indirmeler["bekliyor"])
     metrikler.WS_BAGLANTILARI.set(len(baglanti_yoneticisi.baglantilar))
 
 

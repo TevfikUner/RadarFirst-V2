@@ -76,6 +76,13 @@ def _saglik_onbellegini_temizle():
     api_servisi._saglik_onbellegi.update(zaman=None, sonuc=None)
 
 
+@pytest.fixture(autouse=True)
+def _rota_onbellegini_temizle():
+    api_servisi._rota_onbellegi.temizle()
+    yield
+    api_servisi._rota_onbellegi.temizle()
+
+
 @pytest.fixture
 def api_anahtari():
     anahtar = os.environ.get("API_ANAHTARI")
