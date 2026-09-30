@@ -6,6 +6,7 @@ Aday, en son günlerden ayrılan holdout'ta aktif modeli F1'de geçmez ya da
 recall'ı düşürürse yalnızca versiyon olarak saklanır, aktifleştirilmez.
 """
 
+import argparse
 import json
 import math
 import os
@@ -15,6 +16,8 @@ import joblib
 import numpy as np
 import pandas as pd
 from sklearn.base import clone
+from sklearn.calibration import CalibratedClassifierCV
+from sklearn.model_selection import StratifiedGroupKFold
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -22,13 +25,16 @@ from turbulans_radar import config
 from turbulans_radar.depo.models import MlOrnegi
 from turbulans_radar.depo.veritabani import motor_al
 from turbulans_radar.loglama import logger_al
+from turbulans_radar.ml.degerlendirme import olasilik_metrikleri, ti1_referansi
 from turbulans_radar.ml.ml_egitimi import _tahmin_metrikleri, modelleri_egit_ve_karsilastir
 from turbulans_radar.ml.turbulans_ml_modeli import (
     MODEL_BILGI_DOSYA_YOLU,
     MODEL_DOSYA_YOLU,
     OZELLIK_SUTUNLARI,
+    model_versiyonlarini_listele,
     ozellikleri_temizle,
     versiyon_kaydet,
+    versiyona_geri_don,
 )
 
 _logger = logger_al(__name__)
@@ -70,12 +76,19 @@ def zamansal_holdout(gunler: pd.Series, oran=None) -> pd.Series:
     return gunler.isin(set(sirali[len(sirali) - ayrilan :]))
 
 
-def terfi_karari(aday: dict, sampiyon: dict | None, y_holdout: pd.Series) -> tuple[bool, str]:
+def terfi_karari(
+    aday: dict, sampiyon: dict | None, y_holdout: pd.Series, ti1_referansi: dict | None = None
+) -> tuple[bool, str]:
     pozitif = int(y_holdout.sum())
     if len(y_holdout) < config.ML_MIN_HOLDOUT_ORNEK or pozitif < 5 or len(y_holdout) - pozitif < 5:
         return False, f"Holdout yetersiz ({len(y_holdout)} örnek, {pozitif} pozitif); aktif model korunur."
+    if ti1_referansi is not None and not (aday["roc_auc"] >= ti1_referansi["roc_auc"] + config.ML_TI1_AUC_USTUNLUGU):
+        return False, (
+            f"Aday tek başına TI1 referansını geçemedi (holdout ROC-AUC {aday['roc_auc']:.3f} vs TI1 "
+            f"{ti1_referansi['roc_auc']:.3f}); yalnızca versiyon olarak saklandı."
+        )
     if sampiyon is None:
-        return True, "Aktif model yok; aday aktifleştirildi."
+        return True, "Aktif model yok; aday TI1 referansını geçti ve aktifleştirildi."
     f1_farki = aday["f1"] - sampiyon["f1"]
     recall_farki = aday["recall"] - sampiyon["recall"]
     ozet = (
@@ -84,6 +97,17 @@ def terfi_karari(aday: dict, sampiyon: dict | None, y_holdout: pd.Series) -> tup
     if f1_farki >= config.ML_MIN_F1_IYILESME and recall_farki >= -config.ML_RECALL_TOLERANSI:
         return True, f"Aday aktif modeli geçti ({ozet})."
     return False, f"Aday aktif modeli geçemedi ({ozet}); yalnızca versiyon olarak saklandı."
+
+
+def olasilik_kalibre_et(model, X, y, gunler, kat_sayisi=5):
+    kat = max(2, min(kat_sayisi, pd.Series(gunler).nunique()))
+    bolmeler = list(StratifiedGroupKFold(n_splits=kat, shuffle=True, random_state=0).split(X, y, gunler))
+    return CalibratedClassifierCV(clone(model), method="sigmoid", cv=bolmeler).fit(X, y)
+
+
+def _holdout_metrikleri(model, X, y) -> dict:
+    olasilik = model.predict_proba(X[OZELLIK_SUTUNLARI])[:, 1]
+    return {**_tahmin_metrikleri(y, olasilik), **olasilik_metrikleri(y, olasilik)}
 
 
 def _aktif_modeli_yukle():
@@ -132,17 +156,15 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
     )
     isim = max(sonuclar, key=lambda ad: (sonuclar[ad][1]["recall"], sonuclar[ad][1]["f1"]))
     aday_model, cv_metrikleri, _ = sonuclar[isim]
+    aday_model = olasilik_kalibre_et(aday_model, X[egitim], y[egitim], gunler[egitim], kat_sayisi)
 
-    aday_holdout = _tahmin_metrikleri(y[holdout], aday_model.predict_proba(X[holdout])[:, 1])
+    aday_holdout = _holdout_metrikleri(aday_model, X[holdout], y[holdout])
+    ti1_holdout = ti1_referansi(y[holdout], X[holdout]["ti1_indeksi"])
     sampiyon = (sampiyon_yukleyici or _aktif_modeli_yukle)()
-    sampiyon_holdout = (
-        _tahmin_metrikleri(y[holdout], sampiyon.predict_proba(X[holdout][OZELLIK_SUTUNLARI])[:, 1])
-        if sampiyon is not None
-        else None
-    )
-    terfi, gerekce = terfi_karari(aday_holdout, sampiyon_holdout, y[holdout])
+    sampiyon_holdout = _holdout_metrikleri(sampiyon, X[holdout], y[holdout]) if sampiyon is not None else None
+    terfi, gerekce = terfi_karari(aday_holdout, sampiyon_holdout, y[holdout], ti1_holdout)
 
-    nihai_model = clone(aday_model).fit(X, y)
+    nihai_model = olasilik_kalibre_et(sonuclar[isim][0], X, y, gunler, kat_sayisi)
     bilgi = _json_guvenli(
         {
             "secilen_model": isim,
@@ -157,7 +179,10 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
                 "gunler": sorted(gunler[holdout].unique().tolist()),
                 "aday": aday_holdout,
                 "aktif_model": sampiyon_holdout,
+                "ti1_referansi": ti1_holdout,
             },
+            "olasilik_kalibrasyonu": "sigmoid (Platt), gün bazında gruplu çapraz doğrulama",
+            "uyari": "Olasılık, raporlanan PIREP'lerdeki orta+ türbülans oranına göredir; sertifikalı EDR değildir.",
             "aktiflestirildi": terfi,
             "karar_gerekcesi": gerekce,
         }
@@ -173,4 +198,29 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
         "holdout_ornek": int(holdout.sum()),
         "aday_holdout": bilgi["holdout"]["aday"],
         "aktif_model_holdout": bilgi["holdout"]["aktif_model"],
+        "ti1_referansi_holdout": bilgi["holdout"]["ti1_referansi"],
     }
+
+
+def ana(argv=None):
+    ayristirici = argparse.ArgumentParser(
+        description="ml_ornekleri ile champion/challenger eğitim; model sürümlerini listeleme ve geri alma."
+    )
+    grup = ayristirici.add_mutually_exclusive_group()
+    grup.add_argument("--listele", action="store_true", help="Kayıtlı model sürümlerini listeler")
+    grup.add_argument("--geri-al", metavar="VERSIYON_ID", help="Verilen sürümü aktif model yapar")
+    argumanlar = ayristirici.parse_args(argv)
+    if argumanlar.listele:
+        for surum in model_versiyonlarini_listele():
+            durum = "aktif edildi" if surum.get("aktiflestirildi", True) else "saklandı"
+            print(f"{surum['versiyon_id']}  {surum.get('secilen_model')}  {durum}  {surum.get('karar_gerekcesi', '')}")
+        return
+    if argumanlar.geri_al:
+        bilgi = versiyona_geri_don(argumanlar.geri_al)
+        print(f"Aktif model: {argumanlar.geri_al} ({bilgi.get('secilen_model')}, {bilgi.get('egitim_zamani')})")
+        return
+    print(json.dumps(otomatik_egitim_calistir(), ensure_ascii=False, indent=2))
+
+
+if __name__ == "__main__":
+    ana()

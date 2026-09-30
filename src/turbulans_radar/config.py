@@ -94,6 +94,7 @@ ML_HOLDOUT_ORANI = _ortam_sayi("ML_HOLDOUT_ORANI", 0.2)
 ML_MIN_HOLDOUT_ORNEK = _ortam_sayi("ML_MIN_HOLDOUT_ORNEK", 50, int)
 ML_MIN_F1_IYILESME = _ortam_sayi("ML_MIN_F1_IYILESME", 0.01)
 ML_RECALL_TOLERANSI = _ortam_sayi("ML_RECALL_TOLERANSI", 0.02)
+ML_TI1_AUC_USTUNLUGU = _ortam_sayi("ML_TI1_AUC_USTUNLUGU", 0.02)
 ERA5_OTOMATIK_INDIRME = _ortam_bool("ERA5_OTOMATIK_INDIRME", True)
 
 OPENSKY_ONBELLEK_KLASORU = _ortam_str("OPENSKY_ONBELLEK_KLASORU", "opensky_onbellek")
@@ -157,6 +158,7 @@ TI1_ESIK_ORTA_SIDDETLI = _ortam_sayi("TI1_ESIK_ORTA_SIDDETLI", 8e-7)
 # python pirep_kalibrasyon_verisi_uret.py && python kalibrasyon.py
 # pirep_kalibrasyon_verisi.csv
 EDR_OLCEKLENDIRME_KATSAYISI = _ortam_sayi("EDR_OLCEKLENDIRME_KATSAYISI", 0.23)
+EDR_OLCEKLENDIRME_KATSAYISI_ESKI = 0.23
 EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI = _ortam_bool("EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI", True)
 
 # toplu_analiz.py, art arda çok sayıda uçuş için Trino/OpenSky sorgusu atar.

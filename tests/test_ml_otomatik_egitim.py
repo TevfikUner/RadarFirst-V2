@@ -9,14 +9,14 @@ from turbulans_radar.ml import ml_otomatik_egitim as me
 from turbulans_radar.ml import turbulans_ml_modeli as tm
 
 
-def _veri(gun_sayisi=80, gunluk=6, ayrim=2.0, tohum=0):
+def _veri(gun_sayisi=80, gunluk=6, ayrim=2.0, tohum=0, ti1_ayrimi=0.3):
     rng = np.random.default_rng(tohum)
     n = gun_sayisi * gunluk
     y = pd.Series(rng.integers(0, 2, n))
     X = pd.DataFrame(
         {
-            "ti1_indeksi": (rng.normal(0, 1, n) + ayrim * y) * 1e-7 + 5e-7,
-            "richardson_sayisi": rng.normal(2, 1, n) - 0.5 * ayrim * y,
+            "ti1_indeksi": (rng.normal(0, 1, n) + ti1_ayrimi * ayrim * y) * 1e-7 + 5e-7,
+            "richardson_sayisi": rng.normal(2, 1, n) - ayrim * y,
             "ruzgar_hizi_ms": rng.normal(30, 5, n),
             "basinc_hpa": rng.choice([200.0, 250.0, 300.0], n),
         }
@@ -99,3 +99,42 @@ def test_aday_aktif_modeli_gecemezse_aktif_model_degismez(monkeypatch, gecici_mo
     assert not os.path.exists(me.MODEL_BILGI_DOSYA_YOLU)
     surum = tm.model_versiyonlarini_listele()[0]
     assert surum["aktiflestirildi"] is False and surum["holdout"]["aktif_model"]["f1"] == 1.0
+
+
+def test_tek_basina_ti1_kadar_iyi_olmayan_aday_aktiflestirilmez(monkeypatch, gecici_model_klasoru):
+    X, y, gunler = _veri(ayrim=2.0, ti1_ayrimi=1.0)
+    X["richardson_sayisi"] = 2.0
+    monkeypatch.setattr(me, "veritabanindan_veri_hazirla", lambda motor=None: (X, y, gunler))
+    sonuc = me.otomatik_egitim_calistir(sampiyon_yukleyici=lambda: None, kat_sayisi=3, tekrar_sayisi=1)
+    assert sonuc["karar"] == "saklandi" and "TI1 referansını geçemedi" in sonuc["gerekce"]
+    assert sonuc["ti1_referansi_holdout"]["roc_auc"] > 0.8
+    assert not os.path.exists(me.MODEL_DOSYA_YOLU)
+
+
+def test_aday_olasiliklari_kalibre_edilir_ve_brier_raporlanir(monkeypatch, gecici_model_klasoru):
+    monkeypatch.setattr(me, "veritabanindan_veri_hazirla", lambda motor=None: _veri())
+    sonuc = me.otomatik_egitim_calistir(sampiyon_yukleyici=lambda: None, kat_sayisi=3, tekrar_sayisi=1)
+    aday = sonuc["aday_holdout"]
+    assert 0.0 <= aday["brier"] < 0.25 and aday["brier_becerisi"] > 0
+    assert {"pod", "pofd", "peirce"} <= set(aday)
+    surum = tm.model_versiyonlarini_listele()[0]
+    assert surum["olasilik_kalibrasyonu"].startswith("sigmoid")
+
+
+@pytest.mark.parametrize("aday_auc,beklenen", [(0.74, True), (0.72, False)])
+def test_terfi_ti1_referansina_gore_kapilidir(aday_auc, beklenen):
+    y = pd.Series([1] * 40 + [0] * 40)
+    aday = {"f1": 0.7, "recall": 0.7, "roc_auc": aday_auc}
+    assert me.terfi_karari(aday, None, y, {"roc_auc": 0.71})[0] is beklenen
+
+
+def test_cli_surumleri_listeler_ve_geri_alir(monkeypatch, gecici_model_klasoru, capsys):
+    monkeypatch.setattr(me, "veritabanindan_veri_hazirla", lambda motor=None: _veri())
+    ilk = me.otomatik_egitim_calistir(sampiyon_yukleyici=lambda: None, kat_sayisi=3, tekrar_sayisi=1)
+    me.ana(["--listele"])
+    assert ilk["versiyon_id"] in capsys.readouterr().out
+    monkeypatch.setattr(tm, "MODEL_DOSYA_YOLU", me.MODEL_DOSYA_YOLU)
+    monkeypatch.setattr(tm, "MODEL_BILGI_DOSYA_YOLU", me.MODEL_BILGI_DOSYA_YOLU)
+    os.remove(me.MODEL_DOSYA_YOLU)
+    me.ana(["--geri-al", ilk["versiyon_id"]])
+    assert os.path.isfile(me.MODEL_DOSYA_YOLU) and ilk["versiyon_id"] in capsys.readouterr().out
