@@ -34,13 +34,21 @@ class KimlikBilgisiEksikHatasi(Exception):
     pass
 
 
+KULLANICI_DEGISKENLERI = ("OPENSKY_USERNAME", "OPENSKY_KULLANICI")
+SIFRE_DEGISKENLERI = ("OPENSKY_PASSWORD", "OPENSKY_SIFRE")
+
+
+def _ilk_dolu(adlar):
+    return next((os.environ[ad].strip() for ad in adlar if os.environ.get(ad, "").strip()), None)
+
+
 def kimlik_bilgilerini_al():
-    kullanici_adi = os.environ.get("OPENSKY_USERNAME")
-    sifre = os.environ.get("OPENSKY_PASSWORD")  # Trino OAuth2 akışında kullanılmıyor, opsiyonel.
+    kullanici_adi = _ilk_dolu(KULLANICI_DEGISKENLERI)
+    sifre = _ilk_dolu(SIFRE_DEGISKENLERI)  # Trino OAuth2 akışında kullanılmıyor, opsiyonel.
 
     if not kullanici_adi:
         raise KimlikBilgisiEksikHatasi(
-            "OPENSKY_USERNAME ortam değişkeni bulunamadı. '.env.example' "
+            "OPENSKY_USERNAME (ya da OPENSKY_KULLANICI) ortam değişkeni bulunamadı. '.env.example' "
             "dosyasını '.env' olarak kopyala ve içine kendi OpenSky "
             "kullanıcı adını yaz. Ayrıca bu hesabın "
             "'https://opensky-network.org/my-opensky/request-data' üzerinden "

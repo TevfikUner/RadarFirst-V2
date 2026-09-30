@@ -2,9 +2,8 @@
 kimlik_kontrol.py
 ------------------
 .env dosyasından kimlik bilgilerinin doğru okunup okunmadığını kontrol eder.
-Şifreyi ekrana tam basmaz, sadece uzunluk ve ilk/son karakteri gösterir --
-böylece kopyala-yapıştır sırasında boşluk/görünmez karakter kaçtı mı
-anlarsın.
+Şifrenin hiçbir karakterini ekrana basmaz; yalnızca var olup olmadığını,
+uzunluğunu ve başında/sonunda boşluk olup olmadığını gösterir.
 """
 
 import os
@@ -18,16 +17,18 @@ from dotenv import load_dotenv
 yuklendi_mi = load_dotenv(verbose=True)
 print(f".env dosyası bulundu ve yüklendi mi: {yuklendi_mi}")
 
-kullanici_adi = os.environ.get("OPENSKY_USERNAME")
-sifre = os.environ.get("OPENSKY_PASSWORD")
+from turbulans_radar.veri.kimlik_dogrulama import KULLANICI_DEGISKENLERI, SIFRE_DEGISKENLERI
 
-print(f"OPENSKY_USERNAME: {kullanici_adi!r}")
+kullanici_adi = next((os.environ[ad] for ad in KULLANICI_DEGISKENLERI if os.environ.get(ad)), None)
+sifre = next((os.environ[ad] for ad in SIFRE_DEGISKENLERI if os.environ.get(ad)), None)
+
+print(f"OpenSky kullanıcı adı: {kullanici_adi!r}")
 if sifre:
-    print(f"OPENSKY_PASSWORD uzunluk: {len(sifre)}, ilk karakter: {sifre[0]!r}, son karakter: {sifre[-1]!r}")
+    print(f"OpenSky şifresi: tanımlı ({len(sifre)} karakter)")
     if sifre != sifre.strip():
         print("!!! DİKKAT: şifrenin başında/sonunda boşluk var, .env dosyasını düzelt.")
 else:
-    print("OPENSKY_PASSWORD: None -- .env dosyası bulunamadı veya satır eksik/hatalı.")
+    print("OpenSky şifresi: tanımlı değil (Trino OAuth2 girişinde kullanılmaz, isteğe bağlıdır).")
 
 print(f"\nBu script'in çalıştığı klasör: {os.getcwd()}")
 print(f".env dosyası burada var mı: {os.path.exists('.env')}")
