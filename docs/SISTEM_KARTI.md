@@ -92,18 +92,23 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 **Fiziksel gösterge**
 - TI1'den türetilen EDR proxy sertifikalı bir EDR değeri değildir.
 - ERA5/GFS'nin ~25-30 km çözünürlüğü küçük ölçekli türbülansı çözemez.
-- 167 PIREP gözleminde TI1'in tek başına ayırt ediciliği zayıftır
-  (ROC-AUC 0.44). Bu, tek başına KANITLANMAMIŞ bir gösterge olduğu anlamına
+- Seyir irtifasındaki 1600 PIREP'te (16 gün) TI1'in tek başına ayırt
+  ediciliği orta düzeydedir (ROC-AUC 0.69; `TI1_ESIK_ORTA_SIDDETLI`'de POD
+  0.31, POFD 0.10). Eski 0.44 değeri 300-400 feet'teki PIREP'leri seçen
+  hatalı bir irtifa filtresinden geliyordu. Bu, tek başına KANITLANMAMIŞ bir gösterge olduğu anlamına
   gelir; bu not (`TI1_GUVENILIRLIK_NOTU`, bkz. `fizik/turbulans_indeksleri.py`)
   artık `POST /simulasyon/rota` ve `POST /turbulans/tahmin` yanıtlarında ayrı
   bir alan olarak (`ti1_guvenilirlik_notu`) ve iki web arayüzünde de
   gösteriliyor -- bugün rota güvenliğinin gerçek garantisi TI1'den değil
   SIGMET sert kısıtından geliyor (bkz. "Bağımsız kanıt" bölümü, PUE502 uçuşu).
-- EDR ölçekleme katsayısı 0.23'tür; %95 güven aralığı [0.13, 0.33].
+- EDR ölçekleme katsayısı 0.40'tır (gün bazlı bootstrap %95 GA [0.35, 0.44],
+  1600 PIREP / 16 gün). Tanh ölçeği sabit ortalama tahmininden daha iyi
+  tahmin etmez (test MSE 0.085 vs 0.071); görselleştirme ölçeğidir.
 
 **ML sınıflandırıcısı**
-- 167 örnek; gün bazında gruplu çapraz doğrulamayla ROC-AUC 0.656 ± 0.043,
-  recall 0.554 ± 0.077.
+- Aktif model hâlâ eski 167 örneklik veriyle (hatalı irtifa filtresi) eğitilmiştir;
+  yeni veriyle aday model en az 60 farklı gün eşleşince gece işinde eğitilir ve
+  yalnızca holdout'ta TI1 referansını ve aktif modeli geçerse aktifleşir.
 - Yalnızca ABD verisiyle doğrulanmıştır; karar eşiği 0.5'te sabittir.
 - Ek bir işaret olarak raporlanır; rota kararına girmez.
 

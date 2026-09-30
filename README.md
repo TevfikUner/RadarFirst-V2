@@ -869,9 +869,11 @@ python -m turbulans_radar.ml.ml_egitimi      # 3 modeli gün bazında gruplu CV 
 > 36000). Filtre bu yüzden 300-400 **feet**'teki (pist/son yaklaşma,
 > windshear) raporları seçmiş, `ml_egitimi.py` de bunları `FL*100` ile
 > 30.000-40.000 ft sayıp 200-300 hPa ERA5'le eşleştirmişti. Aynı CSV
-> `EDR_OLCEKLENDIRME_KATSAYISI` (0.23) kalibrasyonunda da kullanıldı. Bu
-> model ve katsayı, aşağıdaki doğru irtifalı veri hattıyla yeniden
-> üretilene kadar güvenilir sayılmamalıdır.
+> `EDR_OLCEKLENDIRME_KATSAYISI` (0.23) kalibrasyonunda da kullanıldı. Katsayı
+> doğru irtifalı veriyle 0.40'a yeniden kalibre edildi (aşağıya bakın); model
+> yeni veriyle en az 60 gün eşleşince yeniden eğitilir, o zamana kadar
+> güvenilir sayılmamalıdır. Doğru veride TI1'in tek başına ROC-AUC'si 0.69'dur
+> (eski veride 0.44).
 
 ### ML veri hattı ve gece otomasyonu
 
@@ -1168,25 +1170,21 @@ python -m uv pip compile requirements-era5.txt -c ana_kisit.txt --python-version
   YAKIN gerçek zaman adımına en fazla 3 saat -- aralıklı indirilmiş küplerde
   boşluktaki günler kapsam dışıdır) ve irtifa (bkz. `DIKEY_KAPSAM_TOLERANSI_
   HPA`). Kalkış/iniş ve yerdeki noktalar ile irtifası bilinmeyen noktalar bu
-  yüzden TI1 almaz (haritada gri); `geo_irtifa_m` boşsa `baro_irtifa_m`
-  kullanılır.
+  yüzden TI1 almaz (haritada gri); seviye seçiminde `baro_irtifa_m`
+  önceliklidir, yoksa `geo_irtifa_m` kullanılır.
 - `flights_data4` tablosunda `callsign` alanı 8 karakter, boşlukla
   doldurulmuş (padded) saklanır; eşleştirme bunu otomatik yapar.
 - Yatay deformasyon hesabı için veri kübünün ilgili zaman dilimindeki tüm
   enlem/boylam grid'ine ihtiyaç var (tek nokta yetmiyor).
-- `config.EDR_OLCEKLENDIRME_KATSAYISI` (0.23), `pirep_kalibrasyon_verisi_
-  uret.py` ile üretilen gerçek IEM PIREP + ERA5 gözlem setiyle (179 örnek,
-  ML sınıflandırıcısıyla AYNI veri) `kalibrasyon.py` kullanılarak kalibre
-  edildi -- ama bu ABD hava sahası verisine dayanan, bölgeden bağımsız kaba
-  bir kalibrasyondur, Türkiye/Ocak-2019 örnek veri kümesine özgü DEĞİLDİR
-  (bkz. yukarıdaki "Önemli sınırlama"). Nokta tahmini tek bir sayı gibi
-  görünse de örneklem küçük (179) olduğu için gerçek belirsizlik daha
-  geniş: `kalibrasyon.py`, bootstrap resampling ile bir %95 güven aralığı
-  da hesaplar (`[0.15, 0.34]`, 1000 tekrarla) -- `--guven-araligi-atla` ile
-  atlanabilir. NOT: 179 örneğin 12'si zaman boşluğu hatasıyla yanlış güne
-  eşleşmişti (bkz. ML bölümü); düzeltilmiş 167 örnekle yeniden hesaplanan
-  katsayı 0.21 (%95 GA `[0.13, 0.33]`) -- mevcut 0.23 bu aralığın içinde
-  olduğu için değiştirilmedi.
+- `config.EDR_OLCEKLENDIRME_KATSAYISI` (0.40) seyir irtifasındaki gerçek IEM
+  PIREP'leri + saatlik ERA5 ile (`ml_ornekleri`, 1600 örnek, 16 gün)
+  `turbulans-edr-kalibrasyon` kullanılarak kalibre edildi: gün bazlı bootstrap
+  %95 GA `[0.35, 0.44]`; son 4 günlük zamansal testte MSE 0.085 (eski 0.23:
+  0.093). Tanh ölçeği sabit ortalama tahmininden (MSE 0.071) daha iyi tahmin
+  etmez: bir görselleştirme ölçeğidir, risk için ML olasılığı kullanılmalıdır.
+  ABD hava sahası verisine dayanan, bölgeden bağımsız kaba bir kalibrasyondur;
+  veri büyüdükçe yeniden çalıştırılmalıdır. Eski 0.23 değeri hatalı irtifa
+  filtresiyle seçilmiş 300-400 feet'teki PIREP'lerle uydurulmuştu.
 - Proje gerçek bir uçuşla (OpenSky/Trino + gerçek `.nc` verisi) uçtan uca
   test edildi.
 - `docker compose up --build` WSL2 (Ubuntu, Docker Engine) üzerinde

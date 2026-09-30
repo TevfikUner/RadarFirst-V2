@@ -99,9 +99,9 @@ def ti1_indeksi_hesapla(vws, deformasyon):
 
 
 # DÜRÜSTLÜK NOTU (madde 6, bkz. konuşma geçmişi): TI1'in TEK BAŞINA gerçek
-# türbülans olaylarını ayırt ettiği BAĞIMSIZ olarak kanıtlanmamıştır. 167
-# PIREP gözleminde TI1'in tek başına ayırt ediciliği zayıftır (ROC-AUC 0.44,
-# bkz. kalibrasyon.py). Bağımsız kanıt modülüyle (dogrulama/bagimsiz_kanit.py)
+# türbülans olaylarını ayırt ettiği BAĞIMSIZ olarak kanıtlanmamıştır. Seyir
+# irtifasındaki 1600 PIREP'te (16 gün) TI1'in tek başına ayırt ediciliği orta
+# düzeydedir (ROC-AUC 0.69; eski 0.44 hatalı irtifalı veriden geliyordu). Bağımsız kanıt modülüyle (dogrulama/bagimsiz_kanit.py)
 # yapılan canlı bir sınamada (PUE502, 26 Eylül 2026) aktif TURB SIGMET'lerin
 # işaret ettiği bir bölgede TI1 HİÇ risk görmedi -- yani bugün rota
 # güvenliğini fiilen SIGMET sert kısıtı sağlıyor, TI1 değil. Bu yüzden bu not
@@ -111,22 +111,22 @@ def ti1_indeksi_hesapla(vws, deformasyon):
 # istemci (EFB arayüzü) TI1'e "kanıtlanmış" güvenmesin diye elinin altında olsun.
 TI1_GUVENILIRLIK_NOTU = (
     "TI1 fiziksel göstergesi, gerçek türbülans olaylarını TEK BAŞINA güvenilir şekilde ayırt ettiği bağımsız "
-    "olarak KANITLANMAMIŞTIR (167 PIREP'te ROC-AUC 0.44; gerçek bir uçuşta [PUE502] aktif SIGMET'in işaret "
-    "ettiği türbülansı TI1 hiç yakalamadı). Bugün güvenlik garantisi TI1'den değil SIGMET sert kısıtından "
+    "olarak KANITLANMAMIŞTIR (seyir irtifasındaki 1600 PIREP'te ROC-AUC 0.69, config eşiğinde yakalama 0.31, "
+    "yanlış alarm 0.10; gerçek bir uçuşta [PUE502] aktif SIGMET'in işaret ettiği türbülansı TI1 hiç "
+    "yakalamadı). Bugün güvenlik garantisi TI1'den değil SIGMET sert kısıtından "
     "gelir; TI1 yalnızca ek/yumuşak bir gösterge olarak değerlendirilmelidir."
 )
 
 
-def ti1_den_edr_proxy_olcegine_cevir(ti1_degeri, olceklendirme_katsayisi=0.23):
+def ti1_den_edr_proxy_olcegine_cevir(ti1_degeri, olceklendirme_katsayisi=0.40):
     """
     TI1'in tipik değer aralığı (~1e-7 - 1e-6 s^-2) EDR'nin alışılan 0-1
     aralığıyla doğrudan karşılaştırılabilir değil. Burada TI1'i, eski
     kodunla aynı yerlerde kullanılabilecek 0'a yakın-1'e yakın bir "proxy"
     ölçeğine sıkıştırıyoruz (tanh ile doygunlaştırma). Varsayılan katsayı
-    (0.23), config.EDR_OLCEKLENDIRME_KATSAYISI ile AYNIDIR -- gerçek IEM
-    PIREP + ERA5 verisiyle kalibre edildi (bkz. kalibrasyon.py,
-    pirep_kalibrasyon_verisi_uret.py); farklı bir katsayı denemek için
-    çağıran taraf bu parametreyi açıkça geçebilir.
+    (0.40), config.EDR_OLCEKLENDIRME_KATSAYISI ile AYNIDIR -- seyir
+    irtifasındaki gerçek IEM PIREP + ERA5 verisiyle kalibre edildi (bkz.
+    ml/edr_kalibrasyonu.py). Görselleştirme ölçeğidir, sertifikalı EDR değildir.
     """
     sonuc = np.tanh(np.asarray(ti1_degeri, dtype=float) * olceklendirme_katsayisi * 1e6)
     return float(sonuc) if sonuc.ndim == 0 else sonuc

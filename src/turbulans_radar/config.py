@@ -142,22 +142,15 @@ TI1_ESIK_HAFIF = _ortam_sayi("TI1_ESIK_HAFIF", 4e-7)
 TI1_ESIK_ORTA_SIDDETLI = _ortam_sayi("TI1_ESIK_ORTA_SIDDETLI", 8e-7)
 
 # turbulans_indeksleri.ti1_den_edr_proxy_olcegine_cevir()'in kullandığı
-# ölçeklendirme katsayısı. Gerçek IEM PIREP (ABD hava sahası, 2018-2020) +
-# eşleşen gerçek ERA5 verisiyle (bkz. pirep_kalibrasyon_verisi_uret.py,
-# kalibrasyon.py -- AYNI 179 örneklik gerçek gözlem seti turbulans_ml_
-# modeli.py'nin eğitiminde de kullanıldı) kalibre edildi: 0.23 (ortalama
-# karesel hata: 0.093). BELİRSİZLİK: 179 örneklik bootstrap ile hesaplanan
-# %95 güven aralığı [0.15, 0.34] (bkz. kalibrasyon.katsayi_guven_araligi_
-# hesapla) -- nokta tahmini (0.23) TEK bir sayı gibi görünse de örneklem
-# küçük olduğu için gerçek belirsizlik bu kadar geniş, "kesin" bir değer
-# değildir. DÜRÜSTLÜK NOTU: bu depodaki örnek veri kümesi (Türkiye/
-# Ocak-2019) için gerçek PIREP/AMDAR yok (bkz. README), bu yüzden katsayı
-# BÖLGEDEN BAĞIMSIZ bir fiziksel ilişkiye (TI1 -> gözlemlenen şiddet)
-# dayanıyor -- ML sınıflandırıcısının özellik seçiminde de AYNI gerekçeyle
-# enlem/boylam kasıtlı dışarıda bırakılmıştı. Yeniden kalibre etmek için:
-# python pirep_kalibrasyon_verisi_uret.py && python kalibrasyon.py
-# pirep_kalibrasyon_verisi.csv
-EDR_OLCEKLENDIRME_KATSAYISI = _ortam_sayi("EDR_OLCEKLENDIRME_KATSAYISI", 0.23)
+# ölçeklendirme katsayısı. 2026-10-01 sürümü: ml_ornekleri'ndeki seyir
+# irtifası IEM PIREP'leri (ABD, 1600 örnek, 16 gün) + saatlik ERA5 ile
+# yeniden kalibre edildi (turbulans-edr-kalibrasyon): 0.40, gün bazlı
+# bootstrap %95 GA [0.35, 0.44]; zamansal test (son 4 gün) MSE 0.085 (eski
+# 0.23: 0.093). Tanh ölçeği sabit ortalama tahmininden (MSE 0.071) daha kötü
+# tahmin eder: görselleştirme ölçeğidir, risk için ML olasılığı kullanılmalı.
+# Eski 0.23, 300-400 FEET'teki PIREP'lerle (hatalı irtifa filtresi) uyduruldu.
+# Proxy sertifikalı EDR değildir; katsayı bölgeden bağımsız bir ilişkiye dayanır.
+EDR_OLCEKLENDIRME_KATSAYISI = _ortam_sayi("EDR_OLCEKLENDIRME_KATSAYISI", 0.40)
 EDR_OLCEKLENDIRME_KATSAYISI_ESKI = 0.23
 EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI = _ortam_bool("EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI", True)
 
