@@ -45,3 +45,7 @@ build/
 dist/
 web/vendor/
 veri_dosyalari/
+
+# era5_saglayici.py -- uçuş başına ERA5 dilimleri ve ARCO saatlik küresel önbelleği.
+era5_ucus_verisi/
+era5_arco_onbellek/

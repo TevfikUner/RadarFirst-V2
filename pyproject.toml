@@ -22,7 +22,7 @@ turbulans-openapi = "turbulans_radar.cli.openapi_disa_aktar:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
-optional-dependencies = { dev = { file = ["requirements-dev.txt"] } }
+optional-dependencies = { dev = { file = ["requirements-dev.txt"] }, era5 = { file = ["requirements-era5.txt"] } }
 
 [tool.setuptools.packages.find]
 where = ["src"]

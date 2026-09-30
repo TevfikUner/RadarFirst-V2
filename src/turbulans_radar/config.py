@@ -65,6 +65,17 @@ HAVA_DURUMU_DOSYASI = _ortam_str("HAVA_DURUMU_DOSYASI", "ocak_2019_turbulans.nc"
 # Boş bırakılırsa sadece HAVA_DURUMU_DOSYASI kullanılır.
 EK_HAVA_DURUMU_KLASORU = _ortam_str("EK_HAVA_DURUMU_KLASORU", "era5_egitim_verisi")
 
+ERA5_UCUS_KLASORU = _ortam_str("ERA5_UCUS_KLASORU", "era5_ucus_verisi")
+ERA5_BASINC_SEVIYELERI_HPA = tuple(
+    float(s) for s in _ortam_str("ERA5_BASINC_SEVIYELERI_HPA", "300,250,200").split(",") if s.strip()
+)
+ERA5_YAYIN_GECIKMESI_GUN = _ortam_sayi("ERA5_YAYIN_GECIKMESI_GUN", 5, int)
+ERA5_UCUS_MAKS_SAAT = _ortam_sayi("ERA5_UCUS_MAKS_SAAT", 24, int)
+ERA5_UCUS_MAKS_HUCRE_SAAT = _ortam_sayi("ERA5_UCUS_MAKS_HUCRE_SAAT", 500_000, int)
+ARCO_ERA5_URL = _ortam_str("ARCO_ERA5_URL", "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3")
+ARCO_ONBELLEK_KLASORU = _ortam_str("ARCO_ONBELLEK_KLASORU", "era5_arco_onbellek")
+ARCO_MAKS_SAAT = _ortam_sayi("ARCO_MAKS_SAAT", 12, int)
+
 # OpenSky Trino Veritabanı Ayarları
 # ÖNEMLİ: OpenSky 2024'te yeni backend'e geçti. Catalog "opensky" DEĞİL,
 # "minio"; schema ise "osky". Kaynak: resmi doküman
