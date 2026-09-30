@@ -1,5 +1,7 @@
 # Proje Kuralları
 
+- Always communicate, summarize, and ask questions in Turkish. You can write code in English, but your conversational language must be strictly Turkish.
+
 ## İzin Verilen İşlemler (Allowlist)
 - Dosya okuma: Her zaman OK
 - Git commit: OK (main branch'e direkt push atma)
