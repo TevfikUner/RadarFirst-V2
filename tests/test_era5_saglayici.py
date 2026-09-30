@@ -150,7 +150,7 @@ def test_thy322_boyutundaki_istek_sinir_icindedir():
 
 def test_cds_saglayici_parcalari_birlestirip_ortak_semada_yazar(tmp_path):
     istemci = _SahteCdsIstemcisi()
-    saglayici = es.CdsEra5Saglayici(istemci_fabrikasi=lambda: istemci)
+    saglayici = es.CdsEra5Saglayici(istemci_fabrikasi=lambda: istemci, kota_tuketici=lambda: 1)
     hedef = str(tmp_path / "dilim.nc")
     saglayici.kup_indir(
         Kutu(40.0, 41.0, 30.0, 31.0), pd.Timestamp("2019-01-15T23:00Z"), pd.Timestamp("2019-01-16T01:00Z"), hedef

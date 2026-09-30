@@ -269,6 +269,31 @@ class KisitliHavaSahasi(Base):
     )
 
 
+class MlOrnegi(Base):
+    __tablename__ = "ml_ornekleri"
+    __table_args__ = (
+        UniqueConstraint("pirep_anahtari", name="uq_ml_ornekleri_pirep_anahtari"),
+        Index("ix_ml_ornekleri_durum_zaman", "durum", "zaman"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    pirep_anahtari: Mapped[str] = mapped_column(String(96), nullable=False)
+    kaynak: Mapped[str] = mapped_column(String(16), nullable=False)
+    zaman: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    enlem: Mapped[float] = mapped_column(Float, nullable=False)
+    boylam: Mapped[float] = mapped_column(Float, nullable=False)
+    irtifa_ft: Mapped[float] = mapped_column(Float, nullable=False)
+    sinif: Mapped[int] = mapped_column(Integer, nullable=False)
+    durum: Mapped[str] = mapped_column(String(16), nullable=False, server_default="bekliyor")
+    ozellikler: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    deneme_sayisi: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
+    son_hata: Mapped[str | None] = mapped_column(Text, nullable=True)
+    olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    guncellenme_zamani: Mapped[object] = mapped_column(
+        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
+    )
+
+
 def kutu_ifadesi(model):
     """Satırın sınır kutusu, Postgres'in yerleşik `box` tipinde (PostGIS
     gerekmez). GiST indeksi bu ifadenin üzerine kurulur; sorgu da AYNI ifadeyi

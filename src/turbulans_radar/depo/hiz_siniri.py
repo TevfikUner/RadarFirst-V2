@@ -44,3 +44,10 @@ async def sayaclari_sifirla():
     async with async_oturum_al() as oturum:
         await oturum.execute(text("DELETE FROM hiz_siniri_sayaclari"))
         await oturum.commit()
+
+
+def istegi_say_senkron(anahtar: str, pencere_saniye: int, motor=None) -> int:
+    from turbulans_radar.depo.veritabani import motor_al
+
+    with (motor or motor_al()).begin() as baglanti:
+        return baglanti.execute(_SAY, {"anahtar": anahtar[:200], "pencere": pencere_saniye}).scalar_one()

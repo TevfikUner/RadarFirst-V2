@@ -18,6 +18,7 @@ import xarray as xr
 
 from turbulans_radar import config
 from turbulans_radar.depo.dagitik_kilit import dagitik_kilit
+from turbulans_radar.depo.hiz_siniri import istegi_say_senkron
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumunu_kaydet
 from turbulans_radar.depo.kup_katalogu import kapsayan_hazir_kup_yolu, kup_kaydet
 from turbulans_radar.loglama import logger_al
@@ -44,6 +45,37 @@ _YENIDEN_ADLANDIRMA = {
 
 class Era5VeriYokHatasi(ValueError):
     pass
+
+
+class CdsKotaAsildiHatasi(RuntimeError):
+    pass
+
+
+CDS_KOTA_ANAHTARI = "cds_gunluk_istek"
+_yerel_kota = {"gun": None, "sayi": 0}
+_yerel_kota_kilidi = threading.Lock()
+
+
+def _yerel_kotayi_say() -> int:
+    bugun = pd.Timestamp.now(tz="UTC").date()
+    with _yerel_kota_kilidi:
+        if _yerel_kota["gun"] != bugun:
+            _yerel_kota.update(gun=bugun, sayi=0)
+        _yerel_kota["sayi"] += 1
+        return _yerel_kota["sayi"]
+
+
+def cds_kotasini_tuket(sayac=None) -> int:
+    try:
+        sayi = (sayac or (lambda: istegi_say_senkron(CDS_KOTA_ANAHTARI, 86400)))()
+    except Exception as hata:
+        _logger.warning("CDS kota sayacı veritabanında tutulamadı, süreç içi sayılıyor: %s", hata)
+        sayi = _yerel_kotayi_say()
+    if sayi > config.CDS_GUNLUK_MAKS_ISTEK:
+        raise CdsKotaAsildiHatasi(
+            f"Günlük CDS istek sınırı ({config.CDS_GUNLUK_MAKS_ISTEK}) doldu; UTC gece yarısı sıfırlanır."
+        )
+    return sayi
 
 
 def _naif(zaman) -> pd.Timestamp:
@@ -138,15 +170,20 @@ def _durum_kaydet(kaynak: str, basarili: bool, hata: str | None = None) -> None:
         _logger.warning("ERA5 kaynak durumu kaydedilemedi: %s", db_hatasi)
 
 
-def istek_hacmini_dogrula(kutu: Kutu, baslangic, bitis, maks_saat=None, maks_hucre_saat=None) -> None:
-    maks_saat = maks_saat or config.ERA5_UCUS_MAKS_SAAT
-    maks_hucre_saat = maks_hucre_saat or config.ERA5_UCUS_MAKS_HUCRE_SAAT
+def istek_hacmi(kutu: Kutu, baslangic, bitis) -> tuple[int, int]:
     saat_sayisi = len(_saatler(baslangic, bitis))
-    if saat_sayisi > maks_saat:
-        raise IstekSinirAsimiHatasi(f"İstenen {saat_sayisi} saat, izin verilen en fazla {maks_saat} saati aşıyor.")
     hucre = (round((kutu.enlem_maks - kutu.enlem_min) / IZGARA_DERECE) + 1) * (
         round((kutu.boylam_maks - kutu.boylam_min) / IZGARA_DERECE) + 1
     )
+    return saat_sayisi, hucre
+
+
+def istek_hacmini_dogrula(kutu: Kutu, baslangic, bitis, maks_saat=None, maks_hucre_saat=None) -> None:
+    maks_saat = maks_saat or config.ERA5_UCUS_MAKS_SAAT
+    maks_hucre_saat = maks_hucre_saat or config.ERA5_UCUS_MAKS_HUCRE_SAAT
+    saat_sayisi, hucre = istek_hacmi(kutu, baslangic, bitis)
+    if saat_sayisi > maks_saat:
+        raise IstekSinirAsimiHatasi(f"İstenen {saat_sayisi} saat, izin verilen en fazla {maks_saat} saati aşıyor.")
     if hucre * saat_sayisi > maks_hucre_saat:
         raise IstekSinirAsimiHatasi(
             f"İstek hacmi ({hucre} hücre x {saat_sayisi} saat) izin verilen {maks_hucre_saat} hücre-saati aşıyor."
@@ -190,9 +227,10 @@ class CdsEra5Saglayici:
     zaman_adimi = "1h"
     izgara_derece = IZGARA_DERECE
 
-    def __init__(self, basinc_seviyeleri_hpa=None, istemci_fabrikasi=None):
+    def __init__(self, basinc_seviyeleri_hpa=None, istemci_fabrikasi=None, kota_tuketici=None):
         self.basinc_seviyeleri_hpa = tuple(basinc_seviyeleri_hpa or config.ERA5_BASINC_SEVIYELERI_HPA)
         self._istemci_fabrikasi = istemci_fabrikasi or _cds_istemcisi
+        self._kotayi_tuket = kota_tuketici or cds_kotasini_tuket
 
     def kup_indir(self, kutu: Kutu, baslangic, bitis, hedef_yol) -> str | None:
         istekler = cds_istekleri_olustur(kutu, baslangic, bitis, self.basinc_seviyeleri_hpa)
@@ -202,6 +240,7 @@ class CdsEra5Saglayici:
         with tempfile.TemporaryDirectory(dir=os.path.dirname(hedef_yol) or ".") as gecici:
             for sira, istek in enumerate(istekler):
                 yol = os.path.join(gecici, f"{sira}.nc")
+                self._kotayi_tuket()
                 istemci.retrieve(CDS_VERI_SETI, istek, yol)
                 with hdf5_kilidi, xr.open_dataset(yol) as ham:
                     parcalar.append(era5_kupunu_normalize_et(ham, "cds").load())
