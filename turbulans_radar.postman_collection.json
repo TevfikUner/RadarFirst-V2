@@ -846,6 +846,44 @@
       ]
     },
     {
+      "name": "Makine Öğrenmesi",
+      "item": [
+        {
+          "name": "Ml Gece Isini Baslat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/ml/gece-isi",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "ml",
+                "gece-isi"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Veri Sağlayıcı",
       "item": [
         {

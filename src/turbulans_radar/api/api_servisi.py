@@ -847,6 +847,12 @@ class TopluAnalizIstegi(BaseModel):
         return _webhook_url_dogrula(deger)
 
 
+class MlGeceIsiIstegi(BaseModel):
+    iem_guncelle: bool = True
+    maks_cds_istek: int | None = Field(default=None, ge=1, le=config.ML_GECE_MAKS_CDS_ISTEK)
+    ardindan_egitim: bool = True
+
+
 @v1.post("/ws-bileti", response_model=WsBiletiYaniti, tags=["Sistem"])
 async def ws_bileti(rol: str = Depends(api_anahtarini_dogrula)):
     """/ws/uyarilar?bilet=... için 60 sn geçerli bilet (yönetici ya da pilot)."""
@@ -1350,6 +1356,28 @@ async def openaip_sahalarini_yenile(
     Kuyruğa girer; sonuç GET /analiz/durum/{gorev_id}."""
     await _hiz_sinirini_kontrol_et(f"kisitli_saha:{_istemci_kimligi(request, rol)}")
     return _kuyruga_alindi(await _gorev_olustur("openaip", parametreler={"ulkeler": ulke}))
+
+
+@v1.post(
+    "/ml/gece-isi",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=GorevBaslatildiYaniti,
+    tags=["Makine Öğrenmesi"],
+)
+async def ml_gece_isini_baslat(
+    request: Request, istek: MlGeceIsiIstegi | None = None, rol: str = Depends(api_anahtarini_dogrula)
+):
+    """n8n'in gecelik tek tetikleyicisi: yeni IEM PIREP'lerini çeker, bekleyen
+    PIREP'leri CDS'ten ERA5 ile eşleştirir (gecelik ML_GECE_MAKS_CDS_ISTEK ve
+    günlük CDS_GUNLUK_MAKS_ISTEK sınırlarıyla), ardından aday model eğitir;
+    aday yalnızca holdout'ta aktif modeli geçerse aktifleştirilir. Aynı anda
+    ikinci bir ML işi kuyruğa alınmaz (409)."""
+    await _hiz_sinirini_kontrol_et(f"ml_gece:{_istemci_kimligi(request, rol)}")
+    if await aktif_gorev_var_mi("ml_veri") or await aktif_gorev_var_mi("ml_egitim"):
+        raise HTTPException(status.HTTP_409_CONFLICT, "Bir ML gece işi zaten kuyrukta ya da çalışıyor.")
+    parametreler = (istek or MlGeceIsiIstegi()).model_dump()
+    return _kuyruga_alindi(await _gorev_olustur("ml_veri", parametreler=parametreler))
 
 
 @v1.delete(

@@ -245,3 +245,11 @@ def gorev_getir_senkron(gorev_id: str, motor=None) -> dict | None:
     with Session(motor) as oturum:
         gorev = oturum.get(AnalizGorevi, gorev_id)
         return _disari_ver(gorev) if gorev is not None else None
+
+
+def gorev_olustur_senkron(tur: str, parametreler: dict | None = None, motor=None) -> str:
+    gorev_id = str(uuid.uuid4())
+    with Session(motor or motor_al()) as oturum:
+        oturum.add(AnalizGorevi(id=gorev_id, tur=tur, durum="kuyrukta", parametreler=parametreler))
+        oturum.commit()
+    return gorev_id

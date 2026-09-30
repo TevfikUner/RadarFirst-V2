@@ -7,6 +7,7 @@ x-veri-ortami: &veri_ortami
   EK_HAVA_DURUMU_KLASORU: /veri/${EK_HAVA_DURUMU_KLASOR_ADI:-era5_egitim_verisi}
   MODEL_KLASORU: /app/model_deposu
   CDSAPI_RC: /run/secrets/cdsapirc
+  ML_PIREP_ARSIV_KLASORU: /veri/${ML_PIREP_ARSIV_KLASOR_ADI:-pirep_ham}
 
 x-ortak-volumeler: &ortak_volumeler
   - ./ciktilar:/app/ciktilar

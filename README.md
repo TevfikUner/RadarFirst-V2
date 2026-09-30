@@ -863,6 +863,59 @@ python -m turbulans_radar.ml.ml_veri_indir   # IEM PIREP + eşleşen gerçek ERA
 python -m turbulans_radar.ml.ml_egitimi      # 3 modeli gün bazında gruplu CV ile karşılaştırır, recall'a göre en iyisini (tüm veriyle eğitip) turbulans_ml_modeli.joblib olarak kaydeder
 ```
 
+> **Önemli veri hatası (2026-09-30'da bulundu):** yukarıdaki 167 örneğin
+> kaynağı `pirep_ust_seviye_siniflandirilmis.csv` "FL 300-400" filtresiyle
+> üretilmişti; ancak IEM'in `FL` sütunu **feet** cinsindendir (FL360 →
+> 36000). Filtre bu yüzden 300-400 **feet**'teki (pist/son yaklaşma,
+> windshear) raporları seçmiş, `ml_egitimi.py` de bunları `FL*100` ile
+> 30.000-40.000 ft sayıp 200-300 hPa ERA5'le eşleştirmişti. Aynı CSV
+> `EDR_OLCEKLENDIRME_KATSAYISI` (0.23) kalibrasyonunda da kullanıldı. Bu
+> model ve katsayı, aşağıdaki doğru irtifalı veri hattıyla yeniden
+> üretilene kadar güvenilir sayılmamalıdır.
+
+### ML veri hattı ve gece otomasyonu
+
+Eğitim verisi artık `ml_ornekleri` tablosunda tutulur (`ml/ml_veri_hatti.py`):
+
+1. **Arşiv:** `ML_PIREP_ARSIV_KLASORU` (varsayılan `pirep_ham/`, Docker'da
+   `/veri/pirep_ham`) içindeki ham IEM CSV'lerinden **seyir irtifasındaki**
+   (`ML_MIN_IRTIFA_FT`-`ML_MAKS_IRTIFA_FT`, varsayılan 28.000-42.000 ft)
+   ve türbülans alanı dolu PIREP'ler alınır; gün başına en fazla
+   `ML_GUNLUK_MAKS_PIREP` (100) örnek, sabit tohumla rastgele seçilir. Arşiv
+   dosyaları değişmedikçe ikinci kez okunmaz.
+2. **Yeni PIREP (artımlı):** IEM'den imleçten (`ML_IEM_BASLANGIC`, sonra
+   `veri_kaynagi_durumlari`'ndaki `ml_iem_pirep` kaydı) başlayarak gün gün,
+   gece başına en fazla `ML_IEM_GECELIK_MAKS_GUN` gün, ERA5'in yayınlandığı
+   güne kadar çekilir. Hata olursa imleç ilerlemez, sonraki gece aynı günden
+   devam edilir.
+3. **Eşleştirme:** bekleyen PIREP'ler gün ve boylama göre hacim sınırlı
+   (`ML_GRUP_MAKS_HUCRE_SAAT`) gruplara ayrılır; her grup için CDS'ten tek
+   saatlik bir ERA5 dilimi indirilip özellikler çıkarılır ve dilim silinir.
+   Maliyet PIREP değil grup sayısıyla ölçeklenir; günler mevsimlere yayılan
+   sabit karışık sırayla işlenir. Başarısız grup `ML_MAKS_DENEME` geceye
+   kadar yeniden denenir, sonra `hata` olur. ARCO yedeği burada kullanılmaz
+   (saat başına ~324 MB).
+4. **Eğitim (champion/challenger, `ml/ml_otomatik_egitim.py`):** en az
+   `ML_MIN_ORNEK` örnek ve `ML_MIN_GUN` farklı gün varsa, en son günlerden
+   `ML_HOLDOUT_ORANI` kadarı ayrılır; aday kalan günlerle gün bazlı gruplu CV
+   ile seçilir. Aday, holdout'ta F1'i en az `ML_MIN_F1_IYILESME` artırır ve
+   recall'ı `ML_RECALL_TOLERANSI`'ndan fazla düşürmezse aktifleştirilir;
+   aksi halde yalnızca versiyon olarak (`aktiflestirildi: false`, karar
+   gerekçesiyle) saklanır ve elle `/aktiflestir` ile açılabilir.
+
+**CDS kotası kod seviyesinde:** her gerçek CDS isteğinden önce
+`hiz_siniri_sayaclari` üzerinden süreçler arası günlük sayaç artırılır;
+`CDS_GUNLUK_MAKS_ISTEK` (150, UTC gece yarısı sıfırlanır) aşılırsa istek
+gönderilmez. ML gecesi ayrıca `ML_GECE_MAKS_CDS_ISTEK` (60) ile sınırlıdır;
+API bu değerin üstünü kabul etmez (422). Veritabanına ulaşılamazsa sayım
+süreç içinde tutulur.
+
+**Tetikleme:** `POST /api/v1/ml/gece-isi` (yönetici; gövde isteğe bağlı:
+`iem_guncelle`, `maks_cds_istek`, `ardindan_egitim`) `ml_veri` görevini
+kuyruğa alır; bu görev bitince `ml_egitim` görevini zincirler. Aynı anda
+ikinci bir ML işi kuyruğa alınmaz (409); iki işçi aynı işi alsa bile
+dağıtık kilit yalnızca birini çalıştırır.
+
 ## SIGMET/AIRMET doğrulaması
 
 Bu depodaki örnek veri kümesi (Türkiye/Doğu Akdeniz, Ocak 2019) için gerçek
@@ -947,6 +1000,7 @@ değişkeni olarak tut, iş akışına düz metin yazma):
 | Canlı GFS önceden ısıtma (isteğe bağlı) | 6 saatte bir, döngülerden ~4 sa sonra | `POST /api/v1/veri/canli/hazirla` (gövde: bölge kutusu, `saat_sayisi`) | Kuyruğa girer (202); küp özeti görevin `ozet` alanında. Sık kullanılan bölgenin ilk rota isteği indirme süresini beklemez. |
 | Toplu uçuş analizi | ihtiyaca göre | `POST /api/v1/analiz/toplu` | `bildirim_webhook_url` ile bitince n8n Webhook node'una bildirim ya da `GET /api/v1/analiz/durum/{gorev_id}` yoklaması. |
 | Toplu backtest (isteğe bağlı) | günlük | `POST /api/v1/backtest/toplu?limit=50` | Yeni analiz edilen uçuşları A* rotasıyla karşılaştırır; özet `GET /api/v1/backtest`. |
+| ML gece işi | her gece (örn. 02:00 UTC) | `POST /api/v1/ml/gece-isi` | Yeni IEM PIREP'leri + CDS ile ERA5 eşleştirmesi (gecelik/günlük CDS sınırlı) + champion/challenger eğitim. 409 dönerse önceki gece işi sürüyordur; sonuç `GET /api/v1/analiz/durum/{gorev_id}` (eğitim görevinin kimliği `ozet[0].egitim_gorev_id`). |
 
 Uzun işlerde n8n asla beklemez: istek 202 + `gorev_id` döner. Sonuç için
 ya `bildirim_webhook_url` (n8n Webhook node'u) verilir ya da `GET

@@ -1363,3 +1363,17 @@ def test_json_log_bicimi_satir_basina_ayrisabilir_nesne(monkeypatch):
     assert "ValueError: örnek hata" in nesne["hata"] and nesne["zaman"].endswith("+00:00")
     monkeypatch.setenv("LOG_BICIMI", "metin")
     assert not isinstance(loglama._bicimleyici(), loglama.JsonBicimleyici)
+
+
+async def test_ml_gece_isi_kuyruga_alinir_ikinci_tetikleme_ve_kota_asimi_reddedilir(
+    istemci, api_anahtari, gorev_kuyrugunu_temizle
+):
+    basliklar = {"X-API-Key": api_anahtari}
+    asiri = await istemci.post("/api/v1/ml/gece-isi", json={"maks_cds_istek": 10**6}, headers=basliklar)
+    assert asiri.status_code == 422
+    ilk = await istemci.post(
+        "/api/v1/ml/gece-isi", json={"iem_guncelle": False, "maks_cds_istek": 1}, headers=basliklar
+    )
+    assert ilk.status_code == 202 and ilk.json()["durum"] == "kuyrukta"
+    ikinci = await istemci.post("/api/v1/ml/gece-isi", headers=basliklar)
+    assert ikinci.status_code == 409

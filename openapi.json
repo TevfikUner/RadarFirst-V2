@@ -1684,6 +1684,73 @@
         }
       }
     },
+    "/api/v1/ml/gece-isi": {
+      "post": {
+        "tags": [
+          "Makine Öğrenmesi"
+        ],
+        "summary": "Ml Gece Isini Baslat",
+        "description": "n8n'in gecelik tek tetikleyicisi: yeni IEM PIREP'lerini çeker, bekleyen\nPIREP'leri CDS'ten ERA5 ile eşleştirir (gecelik ML_GECE_MAKS_CDS_ISTEK ve\ngünlük CDS_GUNLUK_MAKS_ISTEK sınırlarıyla), ardından aday model eğitir;\naday yalnızca holdout'ta aktif modeli geçerse aktifleştirilir. Aynı anda\nikinci bir ML işi kuyruğa alınmaz (409).",
+        "operationId": "ml_gece_isini_baslat_api_v1_ml_gece_isi_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/MlGeceIsiIstegi"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Istek"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GorevBaslatildiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/kisitli-sahalar/{dis_kimlik}": {
       "delete": {
         "tags": [
@@ -3093,6 +3160,35 @@
           "poligon"
         ],
         "title": "KisitliSahaYaniti"
+      },
+      "MlGeceIsiIstegi": {
+        "properties": {
+          "iem_guncelle": {
+            "type": "boolean",
+            "title": "Iem Guncelle",
+            "default": true
+          },
+          "maks_cds_istek": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "maximum": 60.0,
+                "minimum": 1.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maks Cds Istek"
+          },
+          "ardindan_egitim": {
+            "type": "boolean",
+            "title": "Ardindan Egitim",
+            "default": true
+          }
+        },
+        "type": "object",
+        "title": "MlGeceIsiIstegi"
       },
       "ModelBilgisiYaniti": {
         "properties": {

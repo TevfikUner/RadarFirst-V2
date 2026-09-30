@@ -33,9 +33,11 @@ from sqlalchemy import text
 from turbulans_radar import config, loglama
 from turbulans_radar.analiz.toplu_analiz import toplu_analiz_calistir
 from turbulans_radar.analiz.ucus_analizi import calistir, rota_df_ile_calistir
+from turbulans_radar.depo.dagitik_kilit import KilitZamanAsimiHatasi, dagitik_kilit
 from turbulans_radar.depo.gorev_deposu import (
     bayat_gorevleri_kurtar,
     gorev_getir_senkron,
+    gorev_olustur_senkron,
     gorevi_bitir,
     kalp_atisi_gonder,
     siradaki_gorevi_al,
@@ -150,6 +152,36 @@ def _openaip_gorevi(gorev):
     return {"durum": "tamamlandi", "ozet": [openaip_ice_aktar((gorev["parametreler"] or {}).get("ulkeler"))]}
 
 
+ML_ATLANDI_MESAJI = "Aynı türde bir ML işi başka bir işçide sürüyor; bu tetikleme atlandı."
+
+
+def _ml_veri_gorevi(gorev):
+    from turbulans_radar.ml.ml_veri_hatti import ml_veri_hatti_calistir
+
+    p = gorev["parametreler"] or {}
+    try:
+        with dagitik_kilit("ml_veri_hatti", zaman_asimi_saniye=0):
+            ozet = ml_veri_hatti_calistir(
+                iem_guncelle=p.get("iem_guncelle", True), maks_cds_istek=p.get("maks_cds_istek")
+            )
+    except KilitZamanAsimiHatasi:
+        return {"durum": "tamamlandi", "aciklama": ML_ATLANDI_MESAJI}
+    if p.get("ardindan_egitim", True):
+        ozet["egitim_gorev_id"] = gorev_olustur_senkron("ml_egitim", parametreler={})
+    return {"durum": "tamamlandi", "ozet": [ozet]}
+
+
+def _ml_egitim_gorevi(gorev):
+    from turbulans_radar.ml.ml_otomatik_egitim import otomatik_egitim_calistir
+
+    try:
+        with dagitik_kilit("ml_egitim", zaman_asimi_saniye=0):
+            ozet = otomatik_egitim_calistir()
+    except KilitZamanAsimiHatasi:
+        return {"durum": "tamamlandi", "aciklama": ML_ATLANDI_MESAJI}
+    return {"durum": "tamamlandi", "aciklama": ozet["gerekce"], "ozet": [ozet]}
+
+
 ISLEYICILER = {
     "ucus": _ucus_gorevi,
     "rota": _rota_gorevi,
@@ -157,6 +189,8 @@ ISLEYICILER = {
     "backtest": _backtest_gorevi,
     "canli_veri": _canli_veri_gorevi,
     "openaip": _openaip_gorevi,
+    "ml_veri": _ml_veri_gorevi,
+    "ml_egitim": _ml_egitim_gorevi,
 }
 
 
