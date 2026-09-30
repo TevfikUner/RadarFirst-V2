@@ -182,8 +182,9 @@ def hava_durumu_dosyalari():
     tüm .nc küpleri (örn. ml_veri_indir.py'nin indirdiği ABD küpleri) --
     sadece diskte gerçekten var olanlar."""
     dosyalar = [config.HAVA_DURUMU_DOSYASI]
-    if config.EK_HAVA_DURUMU_KLASORU:
-        dosyalar += sorted(glob.glob(os.path.join(config.EK_HAVA_DURUMU_KLASORU, "*.nc")))
+    for klasor in (config.EK_HAVA_DURUMU_KLASORU, config.ERA5_UCUS_KLASORU):
+        if klasor:
+            dosyalar += sorted(glob.glob(os.path.join(klasor, "*.nc")))
     return [d for d in dosyalar if os.path.isfile(d)]
 
 

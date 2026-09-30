@@ -10,6 +10,7 @@ def sahte_akis(monkeypatch, tmp_path):
     rota_df = pd.DataFrame({"zaman": pd.to_datetime(["2019-01-01T00:00:00Z"]), "enlem": [40.0], "boylam": [30.0]})
     eslesmis_df = rota_df.assign(ti1_indeksi=[1e-7])
     monkeypatch.setattr(ucus_analizi.config, "CIKTI_KLASORU", str(tmp_path))
+    monkeypatch.setattr(ucus_analizi.config, "OPENSKY_ONBELLEK_KLASORU", str(tmp_path / "opensky"))
     monkeypatch.setattr(ucus_analizi, "trino_baglantisi_olustur", lambda: object())
     monkeypatch.setattr(ucus_analizi, "ucus_numarasi_ile_rota_cek", lambda b, u, t: rota_df)
     monkeypatch.setattr(ucus_analizi, "_veri_kupunu_sec", lambda rota: None)
@@ -80,3 +81,83 @@ def test_eski_haritalar_silinir_yeni_harita_ve_diger_dosyalar_kalir(tmp_path):
     assert not eski.exists() and yeni.exists() and ozet.exists()
     assert ucus_analizi.eski_haritalari_temizle(tmp_path, gun=0, simdi=simdi + 10**9) == 0
     assert yeni.exists()
+
+
+def test_onbellekteki_rota_trinoya_gitmeden_kullanilir(sahte_akis, monkeypatch):
+    rota_df = pd.DataFrame({"zaman": pd.to_datetime(["2019-01-01T00:00:00Z"]), "enlem": [41.0], "boylam": [29.0]})
+    monkeypatch.setattr(ucus_analizi, "rota_onbellekten_oku", lambda u, t: rota_df)
+    monkeypatch.setattr(ucus_analizi, "trino_baglantisi_olustur", lambda: pytest.fail("Trino'ya bağlanılmamalı"))
+    kullanilan = []
+    monkeypatch.setattr(ucus_analizi, "rotayi_hava_durumuyla_eslestir", lambda r, k: kullanilan.append(r) or sahte_akis)
+    ucus_analizi.calistir("TESTX", "2019-01-01", harita_uret=False)
+    assert kullanilan == [rota_df]
+
+
+def test_trinodan_gelen_rota_onbellege_yazilir_ve_ikinci_calistirmada_okunur(sahte_akis, monkeypatch):
+    sorgular = []
+    rota_df = pd.DataFrame({"zaman": pd.to_datetime(["2019-01-01T00:00:00Z"]), "enlem": [40.0], "boylam": [30.0]})
+    monkeypatch.setattr(ucus_analizi, "ucus_numarasi_ile_rota_cek", lambda b, u, t: sorgular.append(u) or rota_df)
+    ucus_analizi.calistir("TESTX", "2019-01-01", harita_uret=False)
+    ucus_analizi.calistir("TESTX", "2019-01-01", harita_uret=False)
+    assert sorgular == ["TESTX"]
+
+
+@pytest.fixture
+def kup_secimi(monkeypatch):
+    rota_df = pd.DataFrame(
+        {
+            "zaman": pd.to_datetime(["2019-01-15T20:00:00Z"]),
+            "enlem": [40.0],
+            "boylam": [30.0],
+            "geo_irtifa_m": [10000.0],
+        }
+    )
+    durum = {"yerel": "yerel_kup", "kapsam_disi": False, "era5": "era5_dilimi", "cagrilar": []}
+    monkeypatch.setattr(ucus_analizi.config, "ERA5_OTOMATIK_INDIRME", True)
+    monkeypatch.setattr(ucus_analizi, "veri_kupunu_sec", lambda *a, **k: durum["yerel"])
+    monkeypatch.setattr(ucus_analizi, "kapsam_disi_maskesi", lambda kup, *a, **k: pd.Series([durum["kapsam_disi"]]))
+
+    def _era5(enlemler, boylamlar, zamanlar):
+        durum["cagrilar"].append(len(enlemler))
+        if isinstance(durum["era5"], Exception):
+            raise durum["era5"]
+        return durum["era5"]
+
+    monkeypatch.setattr(ucus_analizi, "ucus_hava_dilimi_hazirla", _era5)
+    monkeypatch.setattr(ucus_analizi, "hava_durumu_onbellekli_yukle", lambda yol: "ana_kup")
+    return rota_df, durum
+
+
+def test_yerel_kup_tam_kapsiyorsa_era5_indirilmez(kup_secimi):
+    rota_df, durum = kup_secimi
+    assert ucus_analizi._veri_kupunu_sec(rota_df) == "yerel_kup"
+    assert durum["cagrilar"] == []
+
+
+def test_yerel_kup_eksik_kapsiyorsa_ucusa_ozel_era5_dilimi_kullanilir(kup_secimi):
+    rota_df, durum = kup_secimi
+    durum["kapsam_disi"] = True
+    assert ucus_analizi._veri_kupunu_sec(rota_df) == "era5_dilimi"
+    assert durum["cagrilar"] == [1]
+
+
+def test_hic_yerel_kup_yoksa_era5_dilimi_indirilir(kup_secimi):
+    rota_df, durum = kup_secimi
+    durum["yerel"] = None
+    assert ucus_analizi._veri_kupunu_sec(rota_df) == "era5_dilimi"
+
+
+def test_era5_alinamazsa_eldeki_kupe_ya_da_ana_kupe_dusulur(kup_secimi):
+    rota_df, durum = kup_secimi
+    durum["kapsam_disi"], durum["era5"] = True, RuntimeError("CDS ve ARCO kapalı")
+    assert ucus_analizi._veri_kupunu_sec(rota_df) == "yerel_kup"
+    durum["yerel"] = None
+    assert ucus_analizi._veri_kupunu_sec(rota_df) == "ana_kup"
+
+
+def test_otomatik_indirme_kapaliysa_era5_denenmez(kup_secimi, monkeypatch):
+    rota_df, durum = kup_secimi
+    durum["yerel"] = None
+    monkeypatch.setattr(ucus_analizi.config, "ERA5_OTOMATIK_INDIRME", False)
+    assert ucus_analizi._veri_kupunu_sec(rota_df) == "ana_kup"
+    assert durum["cagrilar"] == []

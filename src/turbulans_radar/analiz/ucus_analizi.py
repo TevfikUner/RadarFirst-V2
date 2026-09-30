@@ -34,10 +34,12 @@ from turbulans_radar import config
 from turbulans_radar.arayuz.harita import zaman_kaydiricili_harita_olustur
 from turbulans_radar.depo.veritabani import VeritabaniKayitHatasi, ucus_ve_olcumleri_kaydet
 from turbulans_radar.fizik.birim_donusumleri import irtifa_metre_to_basinc_hpa
-from turbulans_radar.fizik.eslestirme import rota_irtifalari, rotayi_hava_durumuyla_eslestir
+from turbulans_radar.fizik.eslestirme import kapsam_disi_maskesi, rota_irtifalari, rotayi_hava_durumuyla_eslestir
 from turbulans_radar.fizik.turbulans_indeksleri import DINAMIK_KARARSIZLIK_ESIGI
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
+from turbulans_radar.veri.era5_saglayici import ucus_hava_dilimi_hazirla
 from turbulans_radar.veri.kimlik_dogrulama import KimlikBilgisiEksikHatasi
+from turbulans_radar.veri.opensky_onbellegi import rota_onbellege_yaz, rota_onbellekten_oku
 from turbulans_radar.veri.veri_saglayicilari import veri_kupunu_sec
 from turbulans_radar.veri.veri_yukleme import (
     hava_durumu_onbellekli_yukle,
@@ -131,6 +133,14 @@ def _veri_kupunu_sec(rota_df):
     with np.errstate(invalid="ignore"):
         basinc_hpa = irtifa_metre_to_basinc_hpa(rota_irtifalari(rota_df))
     veri_kupu = veri_kupunu_sec(rota_df["enlem"], rota_df["boylam"], rota_df["zaman"], basinc_hpa)
+    if config.ERA5_OTOMATIK_INDIRME and (
+        veri_kupu is None or kapsam_disi_maskesi(veri_kupu, rota_df["enlem"], rota_df["boylam"], rota_df["zaman"]).any()
+    ):
+        print("   -> Yerel küpler rotayı tam kapsamıyor, uçuşa özel ERA5 dilimi hazırlanıyor (CDS, yedek ARCO)...")
+        try:
+            veri_kupu = ucus_hava_dilimi_hazirla(rota_df["enlem"], rota_df["boylam"], rota_df["zaman"])
+        except Exception as hata:
+            print(f"[Uyarı] Uçuşa özel ERA5 dilimi alınamadı: {dostane_hata_mesaji(hata)}")
     return veri_kupu if veri_kupu is not None else hava_durumu_onbellekli_yukle(config.HAVA_DURUMU_DOSYASI)
 
 
@@ -138,13 +148,18 @@ def calistir(
     ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None, kayit_zorunlu: bool = False, harita_uret: bool = True
 ):
     print(f"1. '{ucus_numarasi}' uçuşu {tarih_str} tarihi için OpenSky'da aranıyor...")
-    try:
-        baglanti = trino_baglantisi_olustur()
-    except KimlikBilgisiEksikHatasi as hata:
-        print(f"[Durduruldu] {hata}")
-        return None
-
-    rota_df = ucus_numarasi_ile_rota_cek(baglanti, ucus_numarasi, tarih_str)
+    rota_df = rota_onbellekten_oku(ucus_numarasi, tarih_str)
+    if rota_df is not None:
+        print("   -> Rota OpenSky önbelleğinden okundu (Trino'ya sorgu gönderilmedi).")
+    else:
+        try:
+            baglanti = trino_baglantisi_olustur()
+        except KimlikBilgisiEksikHatasi as hata:
+            print(f"[Durduruldu] {hata}")
+            return None
+        rota_df = ucus_numarasi_ile_rota_cek(baglanti, ucus_numarasi, tarih_str)
+        if rota_df is not None:
+            rota_onbellege_yaz(rota_df, ucus_numarasi, tarih_str)
     if rota_df is None:
         print(
             "[Durduruldu] Uçuş/OpenSky verisiyle eşleşme sağlanamadı. "

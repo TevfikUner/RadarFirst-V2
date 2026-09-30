@@ -49,3 +49,6 @@ veri_dosyalari/
 # era5_saglayici.py -- uçuş başına ERA5 dilimleri ve ARCO saatlik küresel önbelleği.
 era5_ucus_verisi/
 era5_arco_onbellek/
+
+# opensky_onbellegi.py -- tamamlanmış uçuşların OpenSky rota önbelleği (Parquet).
+opensky_onbellek/
