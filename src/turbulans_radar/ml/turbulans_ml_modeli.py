@@ -46,6 +46,7 @@ from turbulans_radar.fizik.eslestirme import rotayi_hava_durumuyla_eslestir
 from turbulans_radar.rota.rota_optimizasyonu import ruzgar_bilesenlerini_toplu_al
 
 OZELLIK_SUTUNLARI = ["ti1_indeksi", "richardson_sayisi", "ruzgar_hizi_ms", "basinc_hpa"]
+EK_OZELLIK_SUTUNLARI = ["dusey_ruzgar_kaymasi", "yatay_deformasyon", "yatay_diverjans", "ti2_indeksi"]
 
 # Tüm model dosyaları config.MODEL_KLASORU altında (Docker'da kalıcı volume).
 MODEL_DOSYA_YOLU = os.path.join(config.MODEL_KLASORU, "turbulans_ml_modeli.joblib")
@@ -81,7 +82,7 @@ def ozellikleri_cikar(nokta_df: pd.DataFrame, veri_kupu) -> pd.DataFrame:
             "zaman": pd.to_datetime(nokta_df["zaman"]),
             "enlem": nokta_df["enlem"].to_numpy(dtype=float),
             "boylam": nokta_df["boylam"].to_numpy(dtype=float),
-            "geo_irtifa_m": nokta_df["irtifa_m"].to_numpy(dtype=float),
+            "baro_irtifa_m": nokta_df["irtifa_m"].to_numpy(dtype=float),
         }
     )
     eslesme = rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu)
@@ -94,7 +95,7 @@ def ozellikleri_cikar(nokta_df: pd.DataFrame, veri_kupu) -> pd.DataFrame:
     # noktalar için hesaplanır; aksi halde kapsam dışı bir nokta için "en
     # yakın ama çok uzak" bir rüzgar değeri sessizce sızabilirdi.
     ruzgar_hizlari = np.full(len(nokta_df), np.nan)
-    basinc_hpa = irtifa_metre_to_basinc_hpa(rota_df["geo_irtifa_m"].to_numpy())
+    basinc_hpa = irtifa_metre_to_basinc_hpa(rota_df["baro_irtifa_m"].to_numpy())
     gecerli = ~np.isnan(ti1_degerleri)
     if gecerli.any():
         u, v = ruzgar_bilesenlerini_toplu_al(
@@ -112,6 +113,7 @@ def ozellikleri_cikar(nokta_df: pd.DataFrame, veri_kupu) -> pd.DataFrame:
             "richardson_sayisi": eslesme["richardson_sayisi"].to_numpy(dtype=float),
             "ruzgar_hizi_ms": ruzgar_hizlari,
             "basinc_hpa": eslesme["basinc_hpa"].to_numpy(dtype=float),
+            **{s: eslesme[s].to_numpy(dtype=float) for s in EK_OZELLIK_SUTUNLARI},
         }
     )
 

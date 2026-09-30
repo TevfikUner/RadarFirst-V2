@@ -220,7 +220,7 @@ def test_eslestirme_ozellikleri_yazar_ve_kapsam_disini_ayirir(motor):
     assert (ozet["cds_istek"], ozet["eslesti"], ozet["kapsam_disi"], ozet["kalan_bekleyen"]) == (1, 2, 1, 0)
     durumlar = _durumlar(motor)
     assert set(durumlar) == {(40.0, "eslesti"), (41.0, "eslesti"), (41.5, "kapsam_disi")}
-    assert set(durumlar[(40.0, "eslesti")][1]) == set(mv.OZELLIK_SUTUNLARI)
+    assert set(durumlar[(40.0, "eslesti")][1]) == set(mv.OZELLIK_SUTUNLARI + mv.EK_OZELLIK_SUTUNLARI)
 
 
 def test_eslestirme_gecelik_cds_sinirinda_durur(motor):

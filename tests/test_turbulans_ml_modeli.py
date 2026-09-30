@@ -16,7 +16,12 @@ import pandas as pd
 import pytest
 
 from turbulans_radar import config
-from turbulans_radar.ml.turbulans_ml_modeli import OZELLIK_SUTUNLARI, ozellikleri_cikar, ozellikleri_temizle
+from turbulans_radar.ml.turbulans_ml_modeli import (
+    EK_OZELLIK_SUTUNLARI,
+    OZELLIK_SUTUNLARI,
+    ozellikleri_cikar,
+    ozellikleri_temizle,
+)
 
 xr = pytest.importorskip("xarray")
 
@@ -44,7 +49,7 @@ def test_ozellik_cikarimi_dogru_sutunlari_uretir(veri_kupu):
     )
     ozellikler = ozellikleri_cikar(nokta_df, veri_kupu)
 
-    assert list(ozellikler.columns) == OZELLIK_SUTUNLARI
+    assert list(ozellikler.columns) == OZELLIK_SUTUNLARI + EK_OZELLIK_SUTUNLARI
     assert len(ozellikler) == 2
     # Veri küpü kapsamı içinde, gerçek bir nokta -- NaN olmamalı.
     assert ozellikler.notna().all().all()

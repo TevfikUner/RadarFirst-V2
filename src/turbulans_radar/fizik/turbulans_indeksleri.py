@@ -68,6 +68,15 @@ def yatay_deformasyon_hesapla(u, v, enlem_boyutu="latitude", boylam_boyutu="long
     return np.sqrt(gerilme**2 + kayma**2)
 
 
+def yatay_diverjans_hesapla(u, v, enlem_boyutu="latitude", boylam_boyutu="longitude"):
+    dx = _metre_per_derece_boylam(u[enlem_boyutu])
+    return u.differentiate(boylam_boyutu) / dx + v.differentiate(enlem_boyutu) / METRE_PER_DERECE_ENLEM
+
+
+def ti2_indeksi_hesapla(vws, deformasyon, diverjans):
+    return np.abs(vws) * (np.asarray(deformasyon, dtype=float) - np.asarray(diverjans, dtype=float))
+
+
 def dusey_ruzgar_kaymasi_hesapla(u_ust, v_ust, u_alt, v_alt, yukseklik_farki_m):
     """
     İki komşu basınç seviyesi arasındaki rüzgar farkından düşey kaymayı (VWS)

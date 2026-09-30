@@ -25,7 +25,7 @@ from turbulans_radar.depo.models import MlOrnegi
 from turbulans_radar.depo.veritabani import motor_al
 from turbulans_radar.dogrulama.bagimsiz_kanit import iem_pireplerini_getir, pirepleri_normalize_et
 from turbulans_radar.loglama import logger_al
-from turbulans_radar.ml.turbulans_ml_modeli import OZELLIK_SUTUNLARI, ozellikleri_cikar
+from turbulans_radar.ml.turbulans_ml_modeli import EK_OZELLIK_SUTUNLARI, OZELLIK_SUTUNLARI, ozellikleri_cikar
 from turbulans_radar.veri.era5_saglayici import (
     CdsEra5Saglayici,
     CdsKotaAsildiHatasi,
@@ -222,13 +222,20 @@ def _hatayi_kaydet(idler, hata, motor) -> None:
         oturum.commit()
 
 
+def _ozellik_sozlugu(satir) -> dict:
+    return {
+        s: (float(satir[s]) if np.isfinite(satir[s]) else None)
+        for s in OZELLIK_SUTUNLARI + [e for e in EK_OZELLIK_SUTUNLARI if e in satir.index]
+    }
+
+
 def _ozellikleri_yaz(alt: pd.DataFrame, ozellikler: pd.DataFrame, motor) -> tuple[int, int]:
     gecerli = np.isfinite(ozellikler[OZELLIK_SUTUNLARI].to_numpy(dtype=float)).all(axis=1)
     guncellemeler = [
         {
             "id": int(kimlik),
             "durum": ESLESTI if tamam else KAPSAM_DISI,
-            "ozellikler": {s: float(ozellikler.iloc[i][s]) for s in OZELLIK_SUTUNLARI} if tamam else None,
+            "ozellikler": _ozellik_sozlugu(ozellikler.iloc[i]) if tamam else None,
             "son_hata": None,
         }
         for i, (kimlik, tamam) in enumerate(zip(alt["id"], gecerli))

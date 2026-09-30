@@ -69,3 +69,27 @@ def test_edr_proxy_artan_ti1_ile_artar():
         proxy = ti1_den_edr_proxy_olcegine_cevir(ti1)
         assert proxy > onceki
         onceki = proxy
+
+
+def test_diverjans_ve_deformasyon_dogrusal_alanda_analitik_degere_esittir():
+    from turbulans_radar.fizik.turbulans_indeksleri import (
+        METRE_PER_DERECE_ENLEM,
+        _metre_per_derece_boylam,
+        yatay_diverjans_hesapla,
+    )
+
+    u, v = _dogrusal_ruzgar_alani()
+    dudx = 2.0 / _metre_per_derece_boylam(u["latitude"])
+    dvdy = 3.0 / METRE_PER_DERECE_ENLEM
+    np.testing.assert_allclose(yatay_diverjans_hesapla(u, v).values, (dudx + dvdy).broadcast_like(u).values, rtol=1e-9)
+    np.testing.assert_allclose(
+        yatay_deformasyon_hesapla(u, v).values, np.abs(dudx - dvdy).broadcast_like(u).values, rtol=1e-9
+    )
+
+
+def test_ti2_diverjans_sifirken_ti1e_esit_yakinsamada_buyuk_olur():
+    from turbulans_radar.fizik.turbulans_indeksleri import ti2_indeksi_hesapla
+
+    vws, deformasyon = np.array([0.01, 0.01]), np.array([2e-5, 2e-5])
+    ti2 = ti2_indeksi_hesapla(vws, deformasyon, np.array([0.0, -1e-5]))
+    np.testing.assert_allclose(ti2, [ti1_indeksi_hesapla(0.01, 2e-5), 0.01 * 3e-5])

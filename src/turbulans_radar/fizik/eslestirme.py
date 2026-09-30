@@ -51,7 +51,9 @@ from turbulans_radar.fizik.turbulans_indeksleri import (
     richardson_sayisi_hesapla,
     ti1_den_edr_proxy_olcegine_cevir,
     ti1_indeksi_hesapla,
+    ti2_indeksi_hesapla,
     yatay_deformasyon_hesapla,
+    yatay_diverjans_hesapla,
 )
 
 _SONUC_SUTUNLARI = [
@@ -60,6 +62,11 @@ _SONUC_SUTUNLARI = [
     "edr_proxy",
     "richardson_sayisi",
     "dinamik_kararsizlik",
+    "dusey_ruzgar_kaymasi",
+    "yatay_deformasyon",
+    "yatay_diverjans",
+    "ti2_indeksi",
+    "irtifa_kaynagi",
 ]
 
 
@@ -143,13 +150,26 @@ def kapsam_disi_maskesi(veri_kupu, enlemler, boylamlar, zamanlar, basinc_hpa=Non
     )
 
 
+def _irtifa_sutunu(rota_df, sutun):
+    if sutun not in rota_df.columns:
+        return np.full(len(rota_df), np.nan)
+    return pd.to_numeric(rota_df[sutun], errors="coerce").to_numpy(dtype=float)
+
+
+def rota_irtifalari_ve_kaynagi(rota_df):
+    """Basınç seviyesi seçimi için barometrik (ISA basınç) irtifası önceliklidir;
+    yoksa GPS (geo) irtifasına düşülür. Kaynak: 'baro' | 'geo' | None."""
+    baro = _irtifa_sutunu(rota_df, "baro_irtifa_m")
+    geo = _irtifa_sutunu(rota_df, "geo_irtifa_m")
+    irtifa_m = np.where(np.isnan(baro), geo, baro)
+    kaynak = np.array([None] * len(rota_df), dtype=object)
+    kaynak[~np.isnan(geo)] = "geo"
+    kaynak[~np.isnan(baro)] = "baro"
+    return irtifa_m, kaynak
+
+
 def rota_irtifalari(rota_df):
-    """geo_irtifa_m, OpenSky'da sık sık boş gelir -- o noktalarda (varsa)
-    barometrik irtifa kullanılır; ikisi de yoksa NaN kalır (kapsam dışı)."""
-    irtifa_m = rota_df["geo_irtifa_m"].to_numpy(dtype=float)
-    if "baro_irtifa_m" in rota_df.columns:
-        irtifa_m = np.where(np.isnan(irtifa_m), rota_df["baro_irtifa_m"].to_numpy(dtype=float), irtifa_m)
-    return irtifa_m
+    return rota_irtifalari_ve_kaynagi(rota_df)[0]
 
 
 def _zamanlari_veri_kupu_izgarasina_yuvarla(veri_kupu, zaman_serisi):
@@ -169,7 +189,7 @@ def _zamanlari_veri_kupu_izgarasina_yuvarla(veri_kupu, zaman_serisi):
     return valid_time_index[konumlar]
 
 
-def _deformasyon_degerlerini_hesapla(veri_kupu, seviyeler, zaman_serisi, enlemler, boylamlar):
+def _yatay_alan_degerlerini_hesapla(veri_kupu, seviyeler, zaman_serisi, enlemler, boylamlar):
     """
     Her nokta için yatay deformasyonu hesaplar. Aynı (basınç seviyesi, zaman)
     kombinasyonuna denk gelen noktalar GRUPLANIR: pahalı .differentiate()
@@ -188,18 +208,20 @@ def _deformasyon_degerlerini_hesapla(veri_kupu, seviyeler, zaman_serisi, enlemle
         }
     )
 
-    sonuc = np.full(len(seviyeler), np.nan)
+    deformasyon = np.full(len(seviyeler), np.nan)
+    diverjans = np.full(len(seviyeler), np.nan)
     for (seviye, zaman), grup in anahtar_df.groupby(["seviye", "zaman"]):
         tam_dilim = veri_kupu.sel(pressure_level=seviye, valid_time=zaman, method="nearest")
-        deformasyon_alani = yatay_deformasyon_hesapla(tam_dilim["u"], tam_dilim["v"])
-        secilen = deformasyon_alani.sel(
+        noktalar = dict(
             latitude=xr.DataArray(grup["enlem"].to_numpy(), dims="nokta"),
             longitude=xr.DataArray(grup["boylam"].to_numpy(), dims="nokta"),
             method="nearest",
         )
-        sonuc[grup["sira"].to_numpy()] = secilen.values
+        sira = grup["sira"].to_numpy()
+        deformasyon[sira] = yatay_deformasyon_hesapla(tam_dilim["u"], tam_dilim["v"]).sel(**noktalar).values
+        diverjans[sira] = yatay_diverjans_hesapla(tam_dilim["u"], tam_dilim["v"]).sel(**noktalar).values
 
-    return sonuc
+    return deformasyon, diverjans
 
 
 def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
@@ -223,7 +245,8 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
 
     n = len(rota_df)
     with np.errstate(invalid="ignore"):
-        basinc_hpa = irtifa_metre_to_basinc_hpa(rota_irtifalari(rota_df))
+        irtifa_m, irtifa_kaynagi = rota_irtifalari_ve_kaynagi(rota_df)
+        basinc_hpa = irtifa_metre_to_basinc_hpa(irtifa_m)
 
     en_yakin_indeksleri = np.abs(basinc_seviyeleri_sirali[None, :] - basinc_hpa[:, None]).argmin(axis=1)
     alt_indeksleri = np.maximum(en_yakin_indeksleri - 1, 0)
@@ -280,11 +303,12 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
         yukseklik_farki_m=yukseklik_farki_m,
     )
 
-    deformasyon = _deformasyon_degerlerini_hesapla(
+    deformasyon, diverjans = _yatay_alan_degerlerini_hesapla(
         veri_kupu, en_yakin_seviyeler, zaman_uyumlu_dizisi, enlemler, boylamlar
     )
 
     ti1 = ti1_indeksi_hesapla(vws, deformasyon)
+    ti2 = ti2_indeksi_hesapla(vws, deformasyon, diverjans)
     edr_proxy = ti1_den_edr_proxy_olcegine_cevir(ti1, config.EDR_OLCEKLENDIRME_KATSAYISI)
 
     theta_ust = potansiyel_sicaklik_hesapla(dilim_ust["t"].values, ust_seviyeler)
@@ -301,7 +325,8 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
     dinamik_kararsizlik = richardson < DINAMIK_KARARSIZLIK_ESIGI
 
     basinc_hpa_sonuc = en_yakin_seviyeler.astype(float)
-    for dizi in (basinc_hpa_sonuc, ti1, edr_proxy, richardson):
+    vws = np.array(vws, dtype=float)
+    for dizi in (basinc_hpa_sonuc, ti1, edr_proxy, richardson, vws, deformasyon, diverjans, ti2):
         dizi[kapsam_disi] = np.nan
     dinamik_kararsizlik = dinamik_kararsizlik.astype(object)
     dinamik_kararsizlik[kapsam_disi] = None
@@ -313,6 +338,11 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
             "edr_proxy": edr_proxy,
             "richardson_sayisi": richardson,
             "dinamik_kararsizlik": dinamik_kararsizlik,
+            "dusey_ruzgar_kaymasi": vws,
+            "yatay_deformasyon": deformasyon,
+            "yatay_diverjans": diverjans,
+            "ti2_indeksi": ti2,
+            "irtifa_kaynagi": irtifa_kaynagi,
         },
         index=rota_df.index,
     )
