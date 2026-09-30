@@ -59,7 +59,7 @@ async def _gorev_bitene_kadar_bekle(istemci, api_anahtari, gorev_id, deneme=200)
 
 def _hiz_sayaclarini_sil():
     with vt.motor_al().begin() as baglanti:
-        baglanti.execute(text("DELETE FROM hiz_siniri_sayaclari"))
+        baglanti.execute(text("DELETE FROM hiz_siniri_sayaclari WHERE anahtar NOT LIKE 'kota:%'"))
 
 
 @pytest.fixture(autouse=True)
@@ -1384,3 +1384,16 @@ async def test_ml_durum_ucu_ozet_doner(istemci, api_anahtari):
     assert yanit.status_code == 200
     govde = yanit.json()
     assert {"ornekler", "eslesmis_gun_sayisi", "egitime_hazir", "cds_bugun_kullanilan", "aktif_model"} <= set(govde)
+
+
+def test_hiz_sayaci_temizligi_kota_sayaclarina_dokunmaz():
+    from turbulans_radar.depo.hiz_siniri import KOTA_ONEKI, istegi_say_senkron
+
+    anahtar = f"{KOTA_ONEKI}pytest"
+    try:
+        istegi_say_senkron(anahtar, 86400)
+        _hiz_sayaclarini_sil()
+        assert istegi_say_senkron(anahtar, 86400) == 2
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM hiz_siniri_sayaclari WHERE anahtar = :a"), {"a": anahtar})

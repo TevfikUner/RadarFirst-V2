@@ -18,7 +18,7 @@ import xarray as xr
 
 from turbulans_radar import config
 from turbulans_radar.depo.dagitik_kilit import dagitik_kilit
-from turbulans_radar.depo.hiz_siniri import istegi_say_senkron
+from turbulans_radar.depo.hiz_siniri import KOTA_ONEKI, istegi_say_senkron
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumunu_kaydet
 from turbulans_radar.depo.kup_katalogu import kapsayan_hazir_kup_yolu, kup_kaydet
 from turbulans_radar.loglama import logger_al
@@ -51,7 +51,7 @@ class CdsKotaAsildiHatasi(RuntimeError):
     pass
 
 
-CDS_KOTA_ANAHTARI = "cds_gunluk_istek"
+CDS_KOTA_ANAHTARI = f"{KOTA_ONEKI}cds_gunluk_istek"
 _yerel_kota = {"gun": None, "sayi": 0}
 _yerel_kota_kilidi = threading.Lock()
 

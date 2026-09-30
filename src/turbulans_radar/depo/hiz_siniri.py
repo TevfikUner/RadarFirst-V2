@@ -16,6 +16,7 @@ from sqlalchemy import text
 from turbulans_radar.depo.veritabani import async_oturum_al
 
 _TEMIZLIK_OLASILIGI = 0.01
+KOTA_ONEKI = "kota:"
 
 _SAY = text(
     """
@@ -42,7 +43,7 @@ async def istegi_say(anahtar: str, pencere_saniye: int) -> int:
 async def sayaclari_sifirla():
     """Testler için."""
     async with async_oturum_al() as oturum:
-        await oturum.execute(text("DELETE FROM hiz_siniri_sayaclari"))
+        await oturum.execute(text(f"DELETE FROM hiz_siniri_sayaclari WHERE anahtar NOT LIKE '{KOTA_ONEKI}%'"))
         await oturum.commit()
 
 
