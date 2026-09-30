@@ -853,6 +853,18 @@ class MlGeceIsiIstegi(BaseModel):
     ardindan_egitim: bool = True
 
 
+class MlDurumYaniti(BaseModel):
+    ornekler: dict[str, int]
+    eslesmis_gun_sayisi: int
+    egitim_icin_gereken_gun: int
+    egitime_hazir: bool
+    cds_bugun_kullanilan: int
+    cds_gunluk_sinir: int
+    iem_imleci: str | None = None
+    aktif_model: dict | None = None
+    son_gorevler: list[dict]
+
+
 @v1.post("/ws-bileti", response_model=WsBiletiYaniti, tags=["Sistem"])
 async def ws_bileti(rol: str = Depends(api_anahtarini_dogrula)):
     """/ws/uyarilar?bilet=... için 60 sn geçerli bilet (yönetici ya da pilot)."""
@@ -1378,6 +1390,16 @@ async def ml_gece_isini_baslat(
         raise HTTPException(status.HTTP_409_CONFLICT, "Bir ML gece işi zaten kuyrukta ya da çalışıyor.")
     parametreler = (istek or MlGeceIsiIstegi()).model_dump()
     return _kuyruga_alindi(await _gorev_olustur("ml_veri", parametreler=parametreler))
+
+
+@v1.get("/ml/durum", response_model=MlDurumYaniti, tags=["Makine Öğrenmesi"])
+async def ml_durumu():
+    """ML veri hattının ve gece işinin durumu: örnek sayıları, eşleşmiş gün
+    sayısı (eğitim ML_MIN_GUN'dan önce yapılmaz), bugünkü CDS kullanımı, IEM
+    imleci, aktif model sürümü ve son ml_veri/ml_egitim görevleri."""
+    from turbulans_radar.ml.ml_veri_hatti import ml_durum_ozeti
+
+    return await asyncio.to_thread(ml_durum_ozeti)
 
 
 @v1.delete(

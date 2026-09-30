@@ -914,7 +914,49 @@ süreç içinde tutulur.
 `iem_guncelle`, `maks_cds_istek`, `ardindan_egitim`) `ml_veri` görevini
 kuyruğa alır; bu görev bitince `ml_egitim` görevini zincirler. Aynı anda
 ikinci bir ML işi kuyruğa alınmaz (409); iki işçi aynı işi alsa bile
-dağıtık kilit yalnızca birini çalıştırır.
+dağıtık kilit yalnızca birini çalıştırır. Durum: `GET /api/v1/ml/durum`
+(örnek sayıları, eşleşmiş gün sayısı ve 60 gün barajı, bugünkü CDS kullanımı,
+IEM imleci, aktif model sürümü, son ML görevleri).
+
+**Aktivasyon kapısı:** aday modelin olasılıkları gün bazında gruplu çapraz
+doğrulamayla sigmoid (Platt) yöntemiyle kalibre edilir. Aday, holdout'ta
+(1) tek başına TI1'in ROC-AUC'sini en az `ML_TI1_AUC_USTUNLUGU` (0.02)
+geçmeli ve (2) aktif modeli F1/recall ölçütlerinde geçmelidir; aksi halde
+yalnızca sürüm olarak saklanır. Holdout raporu ROC-AUC, POD, POFD, Peirce,
+Brier ve Brier becerisini içerir (`ml/degerlendirme.py`).
+
+**Doğrulama, EDR kalibrasyonu ve sürüm yönetimi (CLI):**
+
+```bash
+turbulans-ml-degerlendirme          # aktif model + tek başına TI1 referansı, güvenilirlik tablosu
+turbulans-edr-kalibrasyon           # EDR proxy katsayısı, gün bazlı bootstrap güven aralığı
+turbulans-ml --listele               # kayıtlı model sürümleri (aktif edildi / saklandı + gerekçe)
+turbulans-ml --geri-al VERSIYON_ID   # tek komutla geri alma
+```
+
+`turbulans-edr-kalibrasyon`, `EDR_OLCEKLENDIRME_KATSAYISI`'nı ml_ornekleri'ndeki
+doğru irtifalı PIREP'lerle yeniden uydurur: en son günler test için ayrılır,
+güven aralığı gün bazlı bootstrap ile hesaplanır (aynı günün raporları
+bağımsız değildir), eski (0.23) ve yeni katsayının test hatası karşılaştırılır.
+Eski değer `EDR_OLCEKLENDIRME_KATSAYISI_ESKI` olarak saklanır. EDR proxy
+sertifikalı EDR değildir; PIREP şiddet sınıfının beklenen değerine uyan
+görsel bir ölçektir.
+
+**Ek özellikler:** eşleştirme her nokta için düşey rüzgar kayması, yatay
+deformasyon, yatay diverjans ve Ellrod-Knox TI2'yi (VWS × (DEF + yakınsama))
+da üretir; bunlar `ml_ornekleri`'ne kaydedilir (model şimdilik 4 özellik
+kullanır). Dağ dalgası ve konveksiyon özellikleri için ERA5'ten ek alanlar
+gerekir: yüzey jeopotansiyeli (`geopotential`, tek seviye; arazi) ve CAPE
+(`convective_available_potential_energy`, tek seviye).
+
+**n8n kurulumu:** `otomasyon/n8n_gece_isi.json`'ı n8n'de *Import from file*
+ile içe aktar. Bir *Header Auth* kimlik bilgisi oluştur (Name: `X-API-Key`,
+Value: yönetici anahtarı) ve "Gece işini tetikle" düğümüne bağla. API adresi
+`TURBULANS_API_URL` ortam değişkeninden okunur (yoksa `http://localhost:8000`;
+n8n'de `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` gerekir). Akış her gece 02:00
+UTC'de tetikler; ağ hatasında 3 kez yeniden dener; 202/409 dışındaki yanıtta
+"Stop and Error" ile çalıştırmayı hatalı bitirir — bildirim için n8n'de bir
+*Error Workflow* tanımla.
 
 ## SIGMET/AIRMET doğrulaması
 
@@ -1113,6 +1155,15 @@ python -m uv pip compile requirements-era5.txt -c ana_kisit.txt --python-version
 ## Bilinmesi gerekenler / sınırlamalar
 
 - **TI1/EDR proxy, sertifikalı bir EDR değeri değildir** -- yukarıya bakın.
+- **Seviye seçimi barometrik irtifayla yapılır:** seyirde altimetre 1013,25
+  hPa'ya ayarlı olduğu için ADS-B baro irtifası doğrudan ISA basınç
+  irtifasıdır; GPS (geo) irtifası sıcaklığa bağlı olarak yüzlerce metre sapar
+  (THY322'de medyan 225 m). Baro yoksa geo'ya düşülür ve `irtifa_kaynagi`
+  sütunu işaretlenir.
+- **ERA5 çözünürlüğünde Richardson < 0.25 neredeyse hiç görülmez:** 1000
+  eşleşmiş seyir PIREP'inde en küçük Ri 0.32 idi; "dinamik kararsızlık"
+  bayrağı bu çözünürlükte pratikte tetiklenmez. Ri yine de ayırt edici bir
+  özelliktir (düşük Ri ile tek başına ROC-AUC 0.65).
 - **Kapsam kontrolü üç boyutludur:** yatay (küp sınırı ±1°), zaman (EN
   YAKIN gerçek zaman adımına en fazla 3 saat -- aralıklı indirilmiş küplerde
   boşluktaki günler kapsam dışıdır) ve irtifa (bkz. `DIKEY_KAPSAM_TOLERANSI_

@@ -15,18 +15,19 @@ import tempfile
 import numpy as np
 import pandas as pd
 import xarray as xr
-from sqlalchemy import case, func, select, update
+from sqlalchemy import case, func, select, text, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from turbulans_radar import config
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir, kaynak_durumunu_kaydet
-from turbulans_radar.depo.models import MlOrnegi
+from turbulans_radar.depo.models import AnalizGorevi, MlOrnegi
 from turbulans_radar.depo.veritabani import motor_al
 from turbulans_radar.dogrulama.bagimsiz_kanit import iem_pireplerini_getir, pirepleri_normalize_et
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.ml.turbulans_ml_modeli import EK_OZELLIK_SUTUNLARI, OZELLIK_SUTUNLARI, ozellikleri_cikar
 from turbulans_radar.veri.era5_saglayici import (
+    CDS_KOTA_ANAHTARI,
     CdsEra5Saglayici,
     CdsKotaAsildiHatasi,
     cds_istekleri_olustur,
@@ -314,3 +315,72 @@ def ml_veri_hatti_calistir(iem_guncelle=True, maks_cds_istek=None, saglayici=Non
             ozet[f"{ad}_hata"] = f"{type(hata).__name__}: {hata}"[:300]
     ozet.update(eslestirme_calistir(maks_cds_istek, saglayici, motor, simdi))
     return ozet
+
+
+def _son_gorev(oturum, tur):
+    gorev = oturum.execute(
+        select(AnalizGorevi).where(AnalizGorevi.tur == tur).order_by(AnalizGorevi.olusturulma_zamani.desc()).limit(1)
+    ).scalar_one_or_none()
+    if gorev is None:
+        return None
+    return {
+        "tur": tur,
+        "gorev_id": gorev.id,
+        "durum": gorev.durum,
+        "aciklama": gorev.aciklama,
+        "olusturulma_zamani": gorev.olusturulma_zamani.isoformat() if gorev.olusturulma_zamani else None,
+        "bitis_zamani": gorev.bitis_zamani.isoformat() if gorev.bitis_zamani else None,
+    }
+
+
+def _aktif_model_ozeti():
+    from turbulans_radar.ml.turbulans_ml_modeli import model_bilgisini_yukle, model_versiyonlarini_listele
+
+    bilgi = model_bilgisini_yukle()
+    if bilgi is None:
+        return None
+    surum = next(
+        (
+            v["versiyon_id"]
+            for v in model_versiyonlarini_listele()
+            if v.get("egitim_zamani") == bilgi.get("egitim_zamani")
+        ),
+        None,
+    )
+    return {
+        "versiyon_id": surum,
+        "secilen_model": bilgi.get("secilen_model"),
+        "egitim_zamani": bilgi.get("egitim_zamani"),
+        "egitim_orneklem_sayisi": bilgi.get("egitim_orneklem_sayisi"),
+        "veri_kaynagi": bilgi.get("veri_kaynagi", "eski CSV (hatalı irtifa filtresi)"),
+    }
+
+
+def ml_durum_ozeti(motor=None) -> dict:
+    motor = motor or motor_al()
+    with Session(motor) as oturum:
+        ornekler = {d: int(n) for d, n in oturum.execute(select(MlOrnegi.durum, func.count()).group_by(MlOrnegi.durum))}
+        gun = oturum.execute(
+            select(func.count(func.distinct(func.date(func.timezone("UTC", MlOrnegi.zaman))))).where(
+                MlOrnegi.durum == ESLESTI
+            )
+        ).scalar_one()
+        cds = oturum.execute(
+            text(
+                "SELECT sayi FROM hiz_siniri_sayaclari WHERE anahtar = :a "
+                "AND pencere_baslangic = to_timestamp(floor(extract(epoch FROM now()) / 86400) * 86400)"
+            ),
+            {"a": CDS_KOTA_ANAHTARI},
+        ).scalar()
+        son_gorevler = [g for g in (_son_gorev(oturum, "ml_veri"), _son_gorev(oturum, "ml_egitim")) if g]
+    return {
+        "ornekler": ornekler,
+        "eslesmis_gun_sayisi": int(gun),
+        "egitim_icin_gereken_gun": config.ML_MIN_GUN,
+        "egitime_hazir": int(gun) >= config.ML_MIN_GUN and ornekler.get(ESLESTI, 0) >= config.ML_MIN_ORNEK,
+        "cds_bugun_kullanilan": int(cds or 0),
+        "cds_gunluk_sinir": config.CDS_GUNLUK_MAKS_ISTEK,
+        "iem_imleci": _durum_ozeti(IEM_DURUM_ANAHTARI, motor).get("imlec"),
+        "aktif_model": _aktif_model_ozeti(),
+        "son_gorevler": son_gorevler,
+    }

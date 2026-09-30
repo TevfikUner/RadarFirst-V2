@@ -19,6 +19,9 @@ turbulans-statik = "turbulans_radar.cli.statik_indir:ana"
 turbulans-backtest = "turbulans_radar.dogrulama.rota_backtest:ana"
 turbulans-mcp = "turbulans_radar.cli.mcp_postgres_sunucusu:ana"
 turbulans-openapi = "turbulans_radar.cli.openapi_disa_aktar:ana"
+turbulans-ml = "turbulans_radar.ml.ml_otomatik_egitim:ana"
+turbulans-ml-degerlendirme = "turbulans_radar.ml.degerlendirme:ana"
+turbulans-edr-kalibrasyon = "turbulans_radar.ml.edr_kalibrasyonu:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }

@@ -284,3 +284,14 @@ def test_iem_imleci_veritabaninda_saklanir(motor):
         kaynak=_KAYNAK,
     )
     assert mv._durum_ozeti(_IEM_ANAHTARI, motor)["imlec"].startswith("2020-04-03")
+
+
+def test_ml_durum_ozeti_sayilari_ve_egitim_barajini_doner(motor):
+    mv.pirepleri_kaydet(_pirepler([("2019-01-15T20:00", 40.0, -80.0, 35000, 1)]), _KAYNAK, motor)
+    ozet = mv.ml_durum_ozeti(motor)
+    assert ozet["ornekler"].get("bekliyor", 0) >= 1
+    assert ozet["egitim_icin_gereken_gun"] == config.ML_MIN_GUN
+    assert ozet["egitime_hazir"] is (
+        ozet["eslesmis_gun_sayisi"] >= config.ML_MIN_GUN and ozet["ornekler"].get("eslesti", 0) >= config.ML_MIN_ORNEK
+    )
+    assert ozet["cds_gunluk_sinir"] == config.CDS_GUNLUK_MAKS_ISTEK and isinstance(ozet["son_gorevler"], list)

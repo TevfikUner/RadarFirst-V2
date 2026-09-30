@@ -1751,6 +1751,56 @@
         }
       }
     },
+    "/api/v1/ml/durum": {
+      "get": {
+        "tags": [
+          "Makine Öğrenmesi"
+        ],
+        "summary": "Ml Durumu",
+        "description": "ML veri hattının ve gece işinin durumu: örnek sayıları, eşleşmiş gün\nsayısı (eğitim ML_MIN_GUN'dan önce yapılmaz), bugünkü CDS kullanımı, IEM\nimleci, aktif model sürümü ve son ml_veri/ml_egitim görevleri.",
+        "operationId": "ml_durumu_api_v1_ml_durum_get",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlDurumYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/kisitli-sahalar/{dis_kimlik}": {
       "delete": {
         "tags": [
@@ -3160,6 +3210,79 @@
           "poligon"
         ],
         "title": "KisitliSahaYaniti"
+      },
+      "MlDurumYaniti": {
+        "properties": {
+          "ornekler": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Ornekler"
+          },
+          "eslesmis_gun_sayisi": {
+            "type": "integer",
+            "title": "Eslesmis Gun Sayisi"
+          },
+          "egitim_icin_gereken_gun": {
+            "type": "integer",
+            "title": "Egitim Icin Gereken Gun"
+          },
+          "egitime_hazir": {
+            "type": "boolean",
+            "title": "Egitime Hazir"
+          },
+          "cds_bugun_kullanilan": {
+            "type": "integer",
+            "title": "Cds Bugun Kullanilan"
+          },
+          "cds_gunluk_sinir": {
+            "type": "integer",
+            "title": "Cds Gunluk Sinir"
+          },
+          "iem_imleci": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iem Imleci"
+          },
+          "aktif_model": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aktif Model"
+          },
+          "son_gorevler": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Son Gorevler"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ornekler",
+          "eslesmis_gun_sayisi",
+          "egitim_icin_gereken_gun",
+          "egitime_hazir",
+          "cds_bugun_kullanilan",
+          "cds_gunluk_sinir",
+          "son_gorevler"
+        ],
+        "title": "MlDurumYaniti"
       },
       "MlGeceIsiIstegi": {
         "properties": {

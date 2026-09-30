@@ -1,0 +1,135 @@
+{
+  "name": "Türbülans Radar - ML gece işi",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 2 * * *"
+            }
+          ]
+        }
+      },
+      "id": "3f6c1a52-9a55-4c1e-8f0e-1c0a7a0e0001",
+      "name": "Her gece 02:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ ($env.TURBULANS_API_URL || 'http://localhost:8000') + '/api/v1/ml/gece-isi' }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\"iem_guncelle\": true, \"ardindan_egitim\": true}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          },
+          "timeout": 30000
+        }
+      },
+      "id": "3f6c1a52-9a55-4c1e-8f0e-1c0a7a0e0002",
+      "name": "Gece işini tetikle",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 0],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "",
+          "name": "Türbülans Radar API anahtarı (X-API-Key)"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "3f6c1a52-9a55-4c1e-8f0e-1c0a7a0e0010",
+              "leftValue": "={{ [202, 409].includes($json.statusCode) }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "3f6c1a52-9a55-4c1e-8f0e-1c0a7a0e0003",
+      "name": "Kabul edildi mi (202/409)?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "errorMessage": "={{ 'ML gece işi tetiklenemedi: HTTP ' + $json.statusCode + ' ' + JSON.stringify($json.body) }}"
+      },
+      "id": "3f6c1a52-9a55-4c1e-8f0e-1c0a7a0e0004",
+      "name": "Hata bildir",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [720, 120]
+    }
+  ],
+  "connections": {
+    "Her gece 02:00": {
+      "main": [
+        [
+          {
+            "node": "Gece işini tetikle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Gece işini tetikle": {
+      "main": [
+        [
+          {
+            "node": "Kabul edildi mi (202/409)?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Kabul edildi mi (202/409)?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Hata bildir",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "UTC"
+  }
+}

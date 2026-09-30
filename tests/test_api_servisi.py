@@ -1377,3 +1377,10 @@ async def test_ml_gece_isi_kuyruga_alinir_ikinci_tetikleme_ve_kota_asimi_reddedi
     assert ilk.status_code == 202 and ilk.json()["durum"] == "kuyrukta"
     ikinci = await istemci.post("/api/v1/ml/gece-isi", headers=basliklar)
     assert ikinci.status_code == 409
+
+
+async def test_ml_durum_ucu_ozet_doner(istemci, api_anahtari):
+    yanit = await istemci.get("/api/v1/ml/durum", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 200
+    govde = yanit.json()
+    assert {"ornekler", "eslesmis_gun_sayisi", "egitime_hazir", "cds_bugun_kullanilan", "aktif_model"} <= set(govde)
