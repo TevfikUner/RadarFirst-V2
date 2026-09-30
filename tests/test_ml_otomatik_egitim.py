@@ -138,3 +138,12 @@ def test_cli_surumleri_listeler_ve_geri_alir(monkeypatch, gecici_model_klasoru, 
     os.remove(me.MODEL_DOSYA_YOLU)
     me.ana(["--geri-al", ilk["versiyon_id"]])
     assert os.path.isfile(me.MODEL_DOSYA_YOLU) and ilk["versiyon_id"] in capsys.readouterr().out
+
+
+def test_eski_hatla_egitilmis_aktif_model_karsilastirmada_yok_sayilir(monkeypatch, gecici_model_klasoru):
+    with open(me.MODEL_DOSYA_YOLU, "wb") as dosya:
+        dosya.write(b"eski")
+    with open(me.MODEL_BILGI_DOSYA_YOLU, "w", encoding="utf-8") as dosya:
+        json.dump({"secilen_model": "Random Forest"}, dosya)
+    monkeypatch.setattr(me.config, "ML_ESKI_MODELI_KULLAN", False)
+    assert me._aktif_modeli_yukle() is None

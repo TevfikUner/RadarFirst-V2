@@ -240,8 +240,8 @@ def test_versiyona_geri_don_bilinmeyen_id_value_error_verir(tmp_path, monkeypatc
 def test_egitilmis_model_varsa_0_1_arasi_olasilik_doner():
     from turbulans_radar.ml import turbulans_ml_modeli as tm
 
-    if tm._modeli_yukle() is None:
-        pytest.skip(f"'{tm.MODEL_DOSYA_YOLU}' henüz eğitilmedi (bkz. ml_egitimi.py) -- test atlanıyor.")
+    if tm._modeli_yukle() is None or not tm.model_kullanilabilir_mi()[0]:
+        pytest.skip(f"'{tm.MODEL_DOSYA_YOLU}' yok ya da eski veri hattıyla eğitilmiş -- test atlanıyor.")
 
     veri_kupu = xr.open_dataset(config.HAVA_DURUMU_DOSYASI)
     nokta_df = pd.DataFrame(
@@ -282,3 +282,23 @@ def test_klasor_tasininca_eski_goreli_manifest_yolu_ile_geri_donulur(tmp_path, m
         assert f.read() == b"tasinmis-model"
     with pytest.raises(ValueError, match="bulunamadı"):
         tm.versiyona_geri_don("v2")
+
+
+def test_eski_hatla_egitilmis_model_kullanilmaz_ve_nedeni_soylenir(monkeypatch):
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
+
+    monkeypatch.setattr(config, "ML_ESKI_MODELI_KULLAN", False)
+    assert tm.model_kullanilabilir_mi({"secilen_model": "RF"}, model_var_mi=True) == (False, tm.ESKI_MODEL_UYARISI)
+    assert tm.model_kullanilabilir_mi({"veri_kaynagi": "ml_ornekleri"}, model_var_mi=True) == (True, None)
+    assert tm.model_kullanilabilir_mi(None, model_var_mi=False) == (False, tm.MODEL_YOK_UYARISI)
+    monkeypatch.setattr(config, "ML_ESKI_MODELI_KULLAN", True)
+    assert tm.model_kullanilabilir_mi({"secilen_model": "RF"}, model_var_mi=True)[0] is True
+
+
+def test_eski_model_icin_tahmin_uretilmez(monkeypatch):
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
+
+    monkeypatch.setattr(tm, "model_kullanilabilir_mi", lambda *a, **k: (False, tm.ESKI_MODEL_UYARISI))
+    monkeypatch.setattr(tm, "_modeli_yukle", lambda: pytest.fail("eski model yüklenmemeli"))
+    ozellikler = pd.DataFrame({s: [1.0] for s in OZELLIK_SUTUNLARI})
+    assert tm.ozelliklerden_risk_tahmin_et(ozellikler) is None

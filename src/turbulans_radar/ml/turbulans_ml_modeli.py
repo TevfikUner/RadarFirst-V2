@@ -47,6 +47,22 @@ from turbulans_radar.rota.rota_optimizasyonu import ruzgar_bilesenlerini_toplu_a
 
 OZELLIK_SUTUNLARI = ["ti1_indeksi", "richardson_sayisi", "ruzgar_hizi_ms", "basinc_hpa"]
 EK_OZELLIK_SUTUNLARI = ["dusey_ruzgar_kaymasi", "yatay_deformasyon", "yatay_diverjans", "ti2_indeksi"]
+ESKI_MODEL_UYARISI = (
+    "Aktif ML modeli eski veri hattıyla (300-400 feet'teki PIREP'leri seçen hatalı irtifa filtresi) "
+    "eğitildiği için kullanılmıyor; doğru irtifalı veriyle eğitilen model gece işiyle aktifleşince "
+    "kullanılacak (bkz. GET /api/v1/ml/durum)."
+)
+MODEL_YOK_UYARISI = "ML modeli henüz eğitilmedi (bkz. GET /api/v1/ml/durum)."
+ESKI_VERI_HATTI_MESAJI = (
+    "Bu eski ML veri hattı kullanım dışıdır: pirep_ust_seviye_siniflandirilmis.csv, IEM'in feet cinsinden "
+    "FL sütununu uçuş seviyesi sanarak 300-400 feet'teki PIREP'leri seçmişti. Yeni hat: veri için "
+    "POST /api/v1/ml/gece-isi, eğitim için turbulans-ml, EDR kalibrasyonu için turbulans-edr-kalibrasyon."
+)
+
+
+class EskiVeriHattiHatasi(RuntimeError):
+    pass
+
 
 # Tüm model dosyaları config.MODEL_KLASORU altında (Docker'da kalıcı volume).
 MODEL_DOSYA_YOLU = os.path.join(config.MODEL_KLASORU, "turbulans_ml_modeli.joblib")
@@ -177,14 +193,29 @@ def turbulans_riski_tahmin_et(nokta_df: pd.DataFrame, veri_kupu):
     Model henüz eğitilip kaydedilmediyse (bkz. ml_egitimi.py) None döner
     (uydurma bir tahmin üretmek yerine dürüstçe "yok" der).
     """
-    if _modeli_yukle() is None:
+    if not model_kullanilabilir_mi()[0] or _modeli_yukle() is None:
         return None
     return ozelliklerden_risk_tahmin_et(ozellikleri_cikar(nokta_df, veri_kupu))
+
+
+def model_kullanilabilir_mi(bilgi=None, model_var_mi=None) -> tuple[bool, str | None]:
+    import os
+
+    if model_var_mi is None:
+        model_var_mi = os.path.isfile(MODEL_DOSYA_YOLU)
+    if not model_var_mi:
+        return False, MODEL_YOK_UYARISI
+    bilgi = model_bilgisini_yukle() if bilgi is None else bilgi
+    if config.ML_ESKI_MODELI_KULLAN or (bilgi is not None and "veri_kaynagi" in bilgi):
+        return True, None
+    return False, ESKI_MODEL_UYARISI
 
 
 def ozelliklerden_risk_tahmin_et(ozellikler: pd.DataFrame):
     """turbulans_riski_tahmin_et ile aynı, ama özellikler zaten çıkarılmışsa
     (bkz. api_servisi.turbulans_tahmini) ikinci kez hesaplatmaz."""
+    if not model_kullanilabilir_mi()[0]:
+        return None
     model = _modeli_yukle()
     if model is None:
         return None

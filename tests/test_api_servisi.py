@@ -490,6 +490,9 @@ async def test_model_bilgisi_egitilmemisse_durustce_false_doner(istemci, api_ana
         "egitim_orneklem_sayisi": None,
         "test_orneklem_sayisi": None,
         "egitim_zamani": None,
+        "veri_kaynagi": None,
+        "kullanimda": None,
+        "uyari": None,
     }
 
 
@@ -508,6 +511,11 @@ async def test_model_bilgisi_egitilmisse_metadata_doner(istemci, api_anahtari, m
     govde = yanit.json()
     assert govde["egitildi_mi"] is True
     assert govde["secilen_model"] == "Random Forest"
+    assert govde["kullanimda"] is False and "hatalı irtifa" in govde["uyari"]
+
+    monkeypatch.setattr(api_servisi, "model_bilgisini_yukle", lambda: {**sahte_bilgi, "veri_kaynagi": "ml_ornekleri"})
+    govde = (await istemci.get("/api/v1/turbulans/model-bilgisi", headers={"X-API-Key": api_anahtari})).json()
+    assert govde["kullanimda"] is True and govde["uyari"] is None
 
 
 async def test_model_versiyonlari_listesi_doner(istemci, api_anahtari, monkeypatch):

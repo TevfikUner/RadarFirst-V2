@@ -28,7 +28,7 @@ from turbulans_radar.analiz.ucus_analizi import calistir
 from turbulans_radar.depo import veritabani as vt
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
-from turbulans_radar.ml.turbulans_ml_modeli import model_bilgisini_yukle
+from turbulans_radar.ml.turbulans_ml_modeli import model_bilgisini_yukle, model_kullanilabilir_mi
 
 konsolu_utf8_yap()
 
@@ -65,8 +65,11 @@ with st.sidebar:
     st.divider()
     st.subheader("🤖 ML Türbülans Modeli")
     model_bilgisi = model_bilgisini_yukle()
+    model_kullanimda, model_uyarisi = model_kullanilabilir_mi(model_bilgisi)
     if model_bilgisi is None:
-        st.caption("Model henüz eğitilmedi (bkz. ml_egitimi.py).")
+        st.caption("Model henüz eğitilmedi (bkz. GET /api/v1/ml/durum).")
+    elif not model_kullanimda:
+        st.caption(f"⚠ {model_uyarisi}")
     else:
         st.caption(f"Seçilen model: **{model_bilgisi['secilen_model']}**")
         m = model_bilgisi["metrikler"]

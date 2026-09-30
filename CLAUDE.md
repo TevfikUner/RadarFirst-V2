@@ -34,4 +34,4 @@ Kötü: update_node(temp)
   durum `GET /api/v1/ml/durum`, kapılı aktivasyon (TI1 referansı + aktif model), `turbulans-ml --geri-al`.
 - Altyapı: WSL2 + Docker (`docker compose`: db, api, worker), PostgreSQL + Alembic, dağıtık kilit (advisory lock).
 - Testler WSL'de: `~/.venvs/turbulans/bin/python -m pytest tests/`; katmanlar `-m birim|veritabani|gercek_veri|tarayici|ag`.
-  Tam paketten önce `docker compose stop api worker` (işçi aynı DB kuyruğunu kullanır).
+  Yerelde testler otomatik olarak ayrı `<POSTGRES_DB>-test` veritabanını kullanır (tests/conftest.py); CI kendi DB'sini.

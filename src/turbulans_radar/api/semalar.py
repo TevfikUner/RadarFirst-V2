@@ -337,6 +337,9 @@ class ModelBilgisiYaniti(BaseModel):
     egitim_orneklem_sayisi: int | None = None
     test_orneklem_sayisi: int | None = None
     egitim_zamani: str | None = None
+    veri_kaynagi: str | None = None
+    kullanimda: bool | None = None
+    uyari: str | None = None
 
 
 class HavaDurumuKupuYaniti(BaseModel):

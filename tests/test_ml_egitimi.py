@@ -17,8 +17,6 @@ import pandas as pd
 import pytest
 
 from turbulans_radar.ml.ml_egitimi import (
-    ERA5_KLASORU,
-    PIREP_DOSYASI,
     en_iyi_modeli_sec_ve_kaydet,
     modelleri_egit_ve_karsilastir,
     veriyi_hazirla,
@@ -116,19 +114,8 @@ def test_en_iyi_modeli_sec_ve_kaydet_model_bilgisi_dosyasini_dogru_yazar(tmp_pat
     assert "egitim_zamani" in bilgi
 
 
-@pytest.mark.gercek_veri
-def test_veriyi_hazirla_gercek_pirep_era5_verisiyle():
-    import glob
-    import os
+def test_eski_csv_veri_hazirlama_kilitlidir():
+    from turbulans_radar.ml.turbulans_ml_modeli import EskiVeriHattiHatasi
 
-    if not os.path.exists(PIREP_DOSYASI) or not glob.glob(f"{ERA5_KLASORU}/*.nc"):
-        pytest.skip(
-            f"'{PIREP_DOSYASI}' veya '{ERA5_KLASORU}/*.nc' bulunamadı -- "
-            "ml_veri_indir.py ile indirilmedikçe bu test atlanır."
-        )
-
-    X, y, gruplar = veriyi_hazirla()
-    assert len(X) == len(y) == len(gruplar)
-    assert len(X) > 0
-    assert set(X.columns) == {"ti1_indeksi", "richardson_sayisi", "ruzgar_hizi_ms", "basinc_hpa"}
-    assert set(y.unique()) <= {0, 1}
+    with pytest.raises(EskiVeriHattiHatasi, match="feet"):
+        veriyi_hazirla()

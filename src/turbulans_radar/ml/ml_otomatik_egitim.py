@@ -31,6 +31,7 @@ from turbulans_radar.ml.turbulans_ml_modeli import (
     MODEL_BILGI_DOSYA_YOLU,
     MODEL_DOSYA_YOLU,
     OZELLIK_SUTUNLARI,
+    model_kullanilabilir_mi,
     model_versiyonlarini_listele,
     ozellikleri_temizle,
     versiyon_kaydet,
@@ -112,6 +113,14 @@ def _holdout_metrikleri(model, X, y) -> dict:
 
 def _aktif_modeli_yukle():
     if not os.path.isfile(MODEL_DOSYA_YOLU):
+        return None
+    try:
+        with open(MODEL_BILGI_DOSYA_YOLU, encoding="utf-8") as dosya:
+            bilgi = json.load(dosya)
+    except (FileNotFoundError, ValueError):
+        bilgi = None
+    if not model_kullanilabilir_mi(bilgi, model_var_mi=True)[0]:
+        _logger.info("Aktif model eski veri hattıyla eğitilmiş; karşılaştırmada aktif model yok sayılır.")
         return None
     try:
         return joblib.load(MODEL_DOSYA_YOLU)

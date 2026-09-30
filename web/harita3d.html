@@ -403,7 +403,14 @@ async function modelBilgisiniGetirVeGoster() {
   try {
     const bilgi = await apiIste("/api/v1/turbulans/model-bilgisi");
     if (!bilgi.egitildi_mi) {
-      govde.innerHTML = `<span style="color:#999">Model henüz eğitilmedi (bkz. ml_egitimi.py).</span>`;
+      govde.innerHTML = `<span style="color:#999">Model henüz eğitilmedi (bkz. GET /api/v1/ml/durum).</span>`;
+      return;
+    }
+    if (bilgi.kullanimda === false) {
+      const not = document.createElement("span");
+      not.style.color = "#e67e22";
+      not.textContent = bilgi.uyari;
+      govde.replaceChildren(not);
       return;
     }
     const m = bilgi.metrikler;

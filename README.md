@@ -1099,6 +1099,12 @@ fixture'lara göre otomatik işaretler (bkz. `pytest.ini` `markers`):
 (`pytest.ini`: `-m "not ag"`); `-m` verilince bu varsayılan ezilir.
 Katmanlar birleştirilebilir, örn. `pytest -m "birim or veritabani"`.
 
+Yerelde testler geliştirme veritabanına değil, otomatik oluşturulan ayrı bir
+`<POSTGRES_DB>-test` veritabanına bağlanır (adı `POSTGRES_TEST_DB` ile
+değiştirilebilir; CI'da `CI` tanımlı olduğundan kendi veritabanı kullanılır).
+Böylece çalışan Docker işçisi testlerin görevlerini almaz, geliştirme verisi
+kirlenmez.
+
 Windows'ta Smart App Control yerelde `postgres.exe` ve pandas'ın derlenmiş
 modüllerini engelleyebilir; bu durumda testleri WSL2 içinde çalıştırın
 (Postgres için `docker compose up -d db`).

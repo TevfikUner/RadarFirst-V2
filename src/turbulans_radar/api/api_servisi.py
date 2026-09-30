@@ -147,6 +147,7 @@ from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.isci.gorev_iscisi import BILDIRIM_KANALI, GorevIscisi
 from turbulans_radar.ml.turbulans_ml_modeli import (
     model_bilgisini_yukle,
+    model_kullanilabilir_mi,
     model_versiyonlarini_listele,
     ozelliklerden_risk_tahmin_et,
     ozellikleri_cikar,
@@ -978,6 +979,7 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi, request: Request, rol:
 
         ml_sonuc = ozelliklerden_risk_tahmin_et(ozellikler)
         ml_olasilik = float(ml_sonuc[0]) if ml_sonuc is not None and not pd.isna(ml_sonuc[0]) else None
+        _, ml_notu = model_kullanilabilir_mi()
 
         return {
             "kapsam_icinde_mi": True,
@@ -989,7 +991,7 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi, request: Request, rol:
             "aciklama": (
                 "Fizik (Ellrod TI1) ve ML tahminleri hesaplandı."
                 if ml_olasilik is not None
-                else "Fizik (Ellrod TI1) hesaplandı; ML modeli henüz eğitilmedi (bkz. ml_egitimi.py)."
+                else f"Fizik (Ellrod TI1) hesaplandı; {ml_notu or 'ML tahmini üretilemedi.'}"
             ),
         }
 
@@ -1009,7 +1011,8 @@ async def turbulans_model_bilgisi():
     bilgi = await asyncio.to_thread(model_bilgisini_yukle)
     if bilgi is None:
         return {"egitildi_mi": False}
-    return {"egitildi_mi": True, **bilgi}
+    kullanimda, uyari = model_kullanilabilir_mi(bilgi, model_var_mi=True)
+    return {"egitildi_mi": True, **bilgi, "kullanimda": kullanimda, "uyari": uyari}
 
 
 @v1.get("/turbulans/model-versiyonlari", response_model=list[ModelVersiyonuOzetiYaniti], tags=["Türbülans Tahmini"])

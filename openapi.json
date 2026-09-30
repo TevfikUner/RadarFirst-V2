@@ -3388,6 +3388,39 @@
               }
             ],
             "title": "Egitim Zamani"
+          },
+          "veri_kaynagi": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Veri Kaynagi"
+          },
+          "kullanimda": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kullanimda"
+          },
+          "uyari": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Uyari"
           }
         },
         "type": "object",

@@ -38,6 +38,39 @@ try:
 except ImportError:
     pass
 
+
+def _test_veritabanina_yonlendir():
+    if os.environ.get("CI") or not os.environ.get("POSTGRES_DB"):
+        return None
+    test_db = os.environ.get("POSTGRES_TEST_DB") or f"{os.environ['POSTGRES_DB']}-test"
+    if test_db == os.environ["POSTGRES_DB"]:
+        return None
+    try:
+        import psycopg2
+        from psycopg2 import sql
+
+        baglanti = psycopg2.connect(
+            host=os.environ.get("POSTGRES_HOST"),
+            port=os.environ.get("POSTGRES_PORT", "5432"),
+            user=os.environ.get("POSTGRES_USER"),
+            password=os.environ.get("POSTGRES_PASSWORD"),
+            dbname="postgres",
+            connect_timeout=5,
+        )
+        baglanti.autocommit = True
+        with baglanti.cursor() as imlec:
+            imlec.execute("SELECT 1 FROM pg_database WHERE datname = %s", (test_db,))
+            if imlec.fetchone() is None:
+                imlec.execute(sql.SQL("CREATE DATABASE {}").format(sql.Identifier(test_db)))
+        baglanti.close()
+    except Exception:
+        pass
+    os.environ["POSTGRES_DB"] = test_db
+    return test_db
+
+
+_TEST_VERITABANI = _test_veritabanina_yonlendir()
+
 _PROJE_KOKU = os.path.dirname(os.path.dirname(__file__))
 
 _KATMAN_FIXTURELARI = {

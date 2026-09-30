@@ -25,16 +25,12 @@ tahminidir. Kaydedilen nihai model TÜM veriyle eğitilir.
     python -m turbulans_radar.ml.ml_egitimi
 """
 
-import glob
 import os
 
-import numpy as np
 import pandas as pd
-import xarray as xr
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import (
-    ConfusionMatrixDisplay,
     accuracy_score,
     confusion_matrix,
     f1_score,
@@ -48,11 +44,11 @@ from sklearn.preprocessing import StandardScaler
 
 from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
 from turbulans_radar.ml.turbulans_ml_modeli import (
+    ESKI_VERI_HATTI_MESAJI,
     MODEL_BILGI_DOSYA_YOLU,
     MODEL_DOSYA_YOLU,
     OZELLIK_SUTUNLARI,
-    ozellikleri_cikar,
-    ozellikleri_temizle,
+    EskiVeriHattiHatasi,
     versiyon_kaydet,
 )
 
@@ -67,36 +63,7 @@ TEKRAR_SAYISI = 5
 
 
 def veriyi_hazirla():
-    """Tüm PIREP noktalarını, elimizdeki her ERA5 (yıl_ay.nc) dosyasına karşı
-    eşleştirip GERÇEK özellik+etiket veri setini kurar. Dönüş: (X, y,
-    gruplar) -- gruplar, her örneğin PIREP günü (gruplu çapraz doğrulama için)."""
-    pirep = pd.read_csv(PIREP_DOSYASI, parse_dates=["VALID"])
-    pirep["irtifa_m"] = pirep["FL"] * 100 * 0.3048
-    pirep = pirep.rename(columns={"VALID": "zaman", "LAT": "enlem", "LON": "boylam"})
-    pirep["ikili_etiket"] = (pirep["sinif"] >= 1).astype(int)
-    pirep["gun"] = pirep["zaman"].dt.strftime("%Y-%m-%d")
-
-    tum_ozellikler, tum_etiketler = [], []
-    for dosya_yolu in sorted(glob.glob(f"{ERA5_KLASORU}/*.nc")):
-        yil_ay = dosya_yolu.split("\\")[-1].split("/")[-1].replace(".nc", "")
-        yil, ay = yil_ay.split("_")
-        alt = pirep[(pirep["zaman"].dt.year == int(yil)) & (pirep["zaman"].dt.month == int(ay))]
-        if alt.empty:
-            continue
-        veri_kupu = xr.open_dataset(dosya_yolu)
-        ozellikler = ozellikleri_cikar(alt, veri_kupu)
-        temiz_ozellikler, temiz_etiketler = ozellikleri_temizle(
-            ozellikler, alt[["ikili_etiket", "gun"]].reset_index(drop=True)
-        )
-        veri_kupu.close()
-        if not temiz_ozellikler.empty:
-            print(f"[{yil_ay}] {len(alt)} PIREP -> {len(temiz_ozellikler)} eşleşen gerçek örnek")
-            tum_ozellikler.append(temiz_ozellikler)
-            tum_etiketler.append(temiz_etiketler)
-
-    X = pd.concat(tum_ozellikler, ignore_index=True)
-    etiketler = pd.concat(tum_etiketler, ignore_index=True)
-    return X, etiketler["ikili_etiket"], etiketler["gun"]
+    raise EskiVeriHattiHatasi(ESKI_VERI_HATTI_MESAJI)
 
 
 def _aday_modeller():
@@ -241,32 +208,4 @@ def en_iyi_modeli_sec_ve_kaydet(sonuclar, egitim_orneklem_sayisi, test_orneklem_
 
 
 if __name__ == "__main__":
-    print("Gerçek PIREP + gerçek ERA5 verisiyle özellik/etiket veri seti kuruluyor...\n")
-    X, y, gruplar = veriyi_hazirla()
-    print(f"\nTOPLAM gerçek, etiketli örnek sayısı: {len(X)} ({y.sum()} pozitif / {len(y) - y.sum()} negatif)")
-    print(f"Özellikler: {OZELLIK_SUTUNLARI}\n")
-
-    sonuclar, degerlendirme = modelleri_egit_ve_karsilastir(X, y, gruplar)
-    en_iyi_isim, en_iyi_metrikler = en_iyi_modeli_sec_ve_kaydet(sonuclar, len(X), len(X))
-
-    ozet_df = pd.DataFrame({isim: s[1] for isim, s in sonuclar.items()}).T
-    ozet_df.to_csv("ml_model_karsilastirmasi.csv")
-    print("\nModel karşılaştırma tablosu kaydedildi: ml_model_karsilastirmasi.csv")
-
-    try:
-        import matplotlib
-
-        matplotlib.use("Agg")
-        import matplotlib.pyplot as plt
-
-        ConfusionMatrixDisplay.from_predictions(
-            degerlendirme["y"],
-            (np.asarray(degerlendirme["oof_olasilik"][en_iyi_isim]) >= 0.5).astype(int),
-            display_labels=["Hafif altı/yok", "Orta-şiddetli+"],
-        )
-        plt.title(f"Karışıklık Matrisi (gün bazında gruplu CV) -- {en_iyi_isim}")
-        plt.tight_layout()
-        plt.savefig("ml_karisiklik_matrisi.png", dpi=120)
-        print("Karışıklık matrisi grafiği kaydedildi: ml_karisiklik_matrisi.png")
-    except ImportError:
-        print("[Bilgi] matplotlib kurulu değil, karışıklık matrisi grafiği atlandı (CSV/konsol çıktısı yeterli).")
+    raise SystemExit(ESKI_VERI_HATTI_MESAJI)
