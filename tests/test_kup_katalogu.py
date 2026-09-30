@@ -19,16 +19,19 @@ def _gereksinimler():
         pytest.skip(f"PostgreSQL'e bağlanılamadı: {hata}")
 
 
-def _era5_kayit_sayisi():
+def _era5_kayit_sayisi(yollar):
     with vt.motor_al().connect() as baglanti:
-        return baglanti.execute(text("SELECT count(*) FROM hava_durumu_kupleri WHERE kaynak = 'era5'")).scalar_one()
+        return baglanti.execute(
+            text("SELECT count(*) FROM hava_durumu_kupleri WHERE kaynak = 'era5' AND dosya_yolu = ANY(:yollar)"),
+            {"yollar": list(yollar)},
+        ).scalar_one()
 
 
 def test_yerel_era5_kupleri_kataloga_bir_kez_kaydedilir():
     dosyalar = hava_durumu_dosyalari()
     assert yerel_kupleri_katalogla() == len(dosyalar)
     assert yerel_kupleri_katalogla() == len(dosyalar)
-    assert _era5_kayit_sayisi() == len(dosyalar)
+    assert _era5_kayit_sayisi(dosyalar) == len(dosyalar)
 
     ana_kup = next(k for k in katalogu_listele(500) if k["dosya_yolu"] == config.HAVA_DURUMU_DOSYASI)
     assert ana_kup["kaynak"] == "era5"

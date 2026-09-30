@@ -8,8 +8,9 @@ WORKDIR /app
 # requirements.lock: requirements.txt'nin Linux/Python 3.12 için tüm geçişli
 # bağımlılıklarıyla, hash'li çözümü (bkz. README "Bağımlılık kilidi") --
 # her derleme aynı paketleri kurar, değiştirilmiş bir paket kurulmaz.
-COPY requirements.lock .
-RUN pip install --no-cache-dir --require-hashes -r requirements.lock
+COPY requirements.lock requirements-era5.lock ./
+RUN pip install --no-cache-dir --require-hashes -r requirements.lock \
+    && pip install --no-cache-dir --require-hashes -r requirements-era5.lock
 
 COPY . .
 ENV PYTHONPATH=/app/src

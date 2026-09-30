@@ -30,6 +30,7 @@ def sentetik_kup(tmp_path, monkeypatch):
     kup.to_netcdf(yol)
     monkeypatch.setattr(config, "HAVA_DURUMU_DOSYASI", str(yol))
     monkeypatch.setattr(config, "EK_HAVA_DURUMU_KLASORU", "")
+    monkeypatch.setattr(config, "ERA5_UCUS_KLASORU", "")
     yield str(yol)
     vy.onbellekten_cikar(str(yol))
 

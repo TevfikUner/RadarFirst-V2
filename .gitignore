@@ -52,3 +52,4 @@ era5_arco_onbellek/
 
 # opensky_onbellegi.py -- tamamlanmış uçuşların OpenSky rota önbelleği (Parquet).
 opensky_onbellek/
+.cdsapirc

@@ -158,6 +158,19 @@ indirir (`canli_veri/` volume'unda saklanır). PostgreSQL portu yalnızca
   `era5_egitim_verisi/*.nc` oradan okunur. Başka bir klasör için `.env`'de
   `YEREL_VERI_KOKU`, `HAVA_DURUMU_DOSYA_ADI`, `EK_HAVA_DURUMU_KLASOR_ADI`.
   Dosya yoksa sadece o küp atlanır.
+- **Uçuşa özel ERA5 dilimleri, ARCO saatlik önbelleği ve OpenSky rota
+  önbelleği** proje klasöründeki `era5_ucus_verisi/`, `era5_arco_onbellek/`
+  ve `opensky_onbellek/` klasörlerine bağlanır (bind mount): konteyner
+  silinse de kalır, yerel CLI ile aynı önbelleği paylaşır ve katalogdaki
+  göreli yollar iki tarafta da geçerlidir. Konteynerde OpenSky tarayıcı
+  girişi yapılamadığı için önbellekteki rotalar Trino'suz analiz edilir.
+- **Copernicus CDS kimliği:** `.env`'de `CDSAPI_RC_DOSYASI` (compose'u
+  çalıştıran makinedeki `.cdsapirc` yolu, WSL'de örn.
+  `/mnt/c/Users/<kullanici>/.cdsapirc`) verilirse dosya API ve işçiye
+  secret olarak `/run/secrets/cdsapirc` (salt okunur) bağlanır ve
+  `CDSAPI_RC` oraya ayarlanır; imaja ya da ortam değişkenlerine girmez.
+  Verilmezse boş bir dosya bağlanır, yığın yine açılır; CDS başarısız olur
+  ve ARCO yedeği (`ARCO_ONBELLEK_MAKS_GB`, varsayılan 20 GB) kullanılır.
 - **ML modeli ve sürümleri** `turbulans_modeller` adlı volume'da
   (`MODEL_KLASORU=/app/model_deposu`) tutulur: `/aktiflestir` ile yapılan
   geri dönüş ve konteyner içinde yapılan eğitim
@@ -973,6 +986,25 @@ pytest tests/
 otomatik atlanır (skip) -- CI'da Postgres bir servis konteyneriyle
 sağlanır, `.nc` dosyası (büyük olduğu için) sağlanmaz.
 
+Testler katmanlara ayrılır; `tests/conftest.py` her testi kullandığı
+fixture'lara göre otomatik işaretler (bkz. `pytest.ini` `markers`):
+
+| Katman | Gereksinim | Çalıştırma |
+|---|---|---|
+| `birim` | Hiçbiri (sahte istemci/veri, geçici klasör) | `pytest -m birim` (saniyeler) |
+| `veritabani` | Gerçek PostgreSQL | `pytest -m veritabani` |
+| `gercek_veri` | Gerçek ERA5 küpü, eğitilmiş model, PIREP verisi | `pytest -m gercek_veri` |
+| `tarayici` | Playwright + Chromium (aşağıya bakın) | `pytest -m tarayici` |
+| `ag` | Gerçek dış servis (Copernicus CDS; kimlik: `CDSAPI_RC` / `~/.cdsapirc`) | `pytest -m ag` |
+
+`ag` testleri kota harcadığı için varsayılan çalıştırmada **hariçtir**
+(`pytest.ini`: `-m "not ag"`); `-m` verilince bu varsayılan ezilir.
+Katmanlar birleştirilebilir, örn. `pytest -m "birim or veritabani"`.
+
+Windows'ta Smart App Control yerelde `postgres.exe` ve pandas'ın derlenmiş
+modüllerini engelleyebilir; bu durumda testleri WSL2 içinde çalıştırın
+(Postgres için `docker compose up -d db`).
+
 `test_web_harita3d.py`/`test_web_ucus_simulasyonu.py`, gerçek bir tarayıcıda
 (Playwright + headless Chromium) uçtan uca çalışır -- `tests/conftest.py`,
 `api_servisi.py`'yi ayrı bir alt süreçte (subprocess) canlı olarak ayağa
@@ -1013,6 +1045,17 @@ python -m uv pip compile requirements.txt --python-version 3.12 \
   --python-platform x86_64-manylinux_2_28 --generate-hashes --no-header -o requirements.lock
 ```
 
+Uçuşa özel ERA5 indirmesi için gereken paketler (`cdsapi`, `gcsfs`, `zarr`)
+isteğe bağlıdır (`pip install -e ".[era5]"`) ve Docker imajına ayrı, hash'li
+`requirements-era5.lock` ile kurulur. Bu kilit, ortak paketlerde ana kilitle
+aynı sürümü tutması için ana kilidin pinleri kısıt verilerek üretilir
+(`requirements.lock`'taki `paket==sürüm` satırları `ana_kisit.txt`'ye alınır):
+
+```bash
+python -m uv pip compile requirements-era5.txt -c ana_kisit.txt --python-version 3.12 \
+  --python-platform x86_64-manylinux_2_28 --generate-hashes --no-header -o requirements-era5.lock
+```
+
 ## Bilinmesi gerekenler / sınırlamalar
 
 - **TI1/EDR proxy, sertifikalı bir EDR değeri değildir** -- yukarıya bakın.
@@ -1041,9 +1084,10 @@ python -m uv pip compile requirements.txt --python-version 3.12 \
   olduğu için değiştirilmedi.
 - Proje gerçek bir uçuşla (OpenSky/Trino + gerçek `.nc` verisi) uçtan uca
   test edildi.
-- Bu ortamda Docker daemon'ı kurulu olmadığından `Dockerfile`/
-  `docker-compose.yml` YAML olarak doğrulandı ama `docker compose up
-  --build` ile uçtan uca denenemedi.
+- `docker compose up --build` WSL2 (Ubuntu, Docker Engine) üzerinde
+  uçtan uca denendi: imaj derlenir, API sağlıklı açılır, işçi konteyneri
+  CDS'ten gerçek ERA5 dilimi indirir ve `docker compose down` sonrası
+  önbellekler korunur.
 - `sigmet_dogrulama.py`, SADECE ABD Aviation Weather Center'ın sorumlu
   olduğu hava sahaları için gerçek veri döner -- bu depodaki örnek veri
   kümesi (Türkiye) için örtüşme çıkmaması beklenen bir durumdur (yukarıya

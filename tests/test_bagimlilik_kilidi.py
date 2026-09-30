@@ -28,3 +28,18 @@ def test_kilitteki_her_paket_hash_ile_sabitlenmis():
     bloklar = re.split(r"\n(?=[A-Za-z0-9_.\-]+==)", metin.strip())
     hashsiz = [blok.split()[0] for blok in bloklar if _PIN.match(blok) and "--hash=sha256:" not in blok]
     assert not hashsiz, f"Hash'siz paketler: {hashsiz}"
+
+
+def test_era5_kilidi_requirements_era5_ve_ana_kilitle_tutarli():
+    istenen, era5_kilit, ana_kilit = (
+        _pinler("requirements-era5.txt"),
+        _pinler("requirements-era5.lock"),
+        _pinler("requirements.lock"),
+    )
+    farklar = {ad: (surum, era5_kilit.get(ad)) for ad, surum in istenen.items() if era5_kilit.get(ad) != surum}
+    assert not farklar, f"requirements-era5.lock güncel değil (README 'Bağımlılık kilidi'): {farklar}"
+    celisen = {ad: (s, ana_kilit[ad]) for ad, s in era5_kilit.items() if ad in ana_kilit and ana_kilit[ad] != s}
+    assert not celisen, f"ERA5 kilidi ana kilitle farklı sürüm sabitliyor: {celisen}"
+    metin = (_KOK / "requirements-era5.lock").read_text(encoding="utf-8")
+    bloklar = re.split(r"\n(?=[A-Za-z0-9_.\-]+==)", metin.strip())
+    assert not [blok.split()[0] for blok in bloklar if _PIN.match(blok) and "--hash=sha256:" not in blok]

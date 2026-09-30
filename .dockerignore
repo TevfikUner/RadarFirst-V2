@@ -18,3 +18,7 @@ venv
 canli_veri/
 web/vendor/
 veri_dosyalari/
+era5_ucus_verisi/
+era5_arco_onbellek/
+opensky_onbellek/
+.cdsapirc
