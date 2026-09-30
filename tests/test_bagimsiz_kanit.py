@@ -41,6 +41,7 @@ def test_pirep_siddet_sinifi(metin, sinif):
     assert bk.pirep_siddet_sinifi(metin) == sinif
 
 
+@pytest.mark.gercek_veri
 def test_pirep_siniflamasi_ml_egitim_etiketleriyle_tutarli():
     if not os.path.exists("pirep_ust_seviye_siniflandirilmis.csv"):
         pytest.skip("ML PIREP etiket dosyası yok.")

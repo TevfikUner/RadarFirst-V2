@@ -98,3 +98,20 @@ def test_harita_uret_false_her_ucusa_iletilir_ve_varsayilan_true_kalir(monkeypat
 
     toplu_analiz.toplu_analiz_calistir(ucus_listesi_df)
     assert sahte_calistir.harita_uret_degerleri == [False, False, True, True]
+
+
+def test_rotasi_onbellekte_olan_ucus_icin_opensky_beklemesi_atlanir(monkeypatch):
+    ucus_listesi_df = pd.DataFrame(
+        {"ucus_numarasi": ["AAA1", "BBB2", "CCC3"], "tarih": ["2019-01-01", "2019-01-02", "2019-01-03"]}
+    )
+    monkeypatch.setattr(
+        toplu_analiz, "calistir", _sahte_calistir_uret({"AAA1": "basarili", "BBB2": "basarili", "CCC3": "basarili"})
+    )
+    monkeypatch.setattr(toplu_analiz.config, "TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE", 5)
+    monkeypatch.setattr(toplu_analiz, "rota_onbellekte_var_mi", lambda ucus, tarih: ucus == "BBB2")
+    beklemeler = []
+    monkeypatch.setattr(toplu_analiz.time, "sleep", beklemeler.append)
+
+    toplu_analiz.toplu_analiz_calistir(ucus_listesi_df)
+
+    assert beklemeler == [5]

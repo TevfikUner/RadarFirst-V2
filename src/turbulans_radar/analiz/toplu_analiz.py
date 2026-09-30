@@ -33,6 +33,7 @@ import pandas as pd
 from turbulans_radar import config
 from turbulans_radar.analiz.ucus_analizi import calistir
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
+from turbulans_radar.veri.opensky_onbellegi import rota_onbellekte_var_mi
 
 
 def toplu_analiz_calistir(
@@ -52,12 +53,16 @@ def toplu_analiz_calistir(
     toplam = len(ucus_listesi_df)
 
     for i, satir in ucus_listesi_df.iterrows():
-        if i > 0 and config.TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE > 0:
-            # OpenSky'yi art arda isteklerle yormamak için uçuşlar arasında bekle.
-            time.sleep(config.TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE)
-
         ucus_no = str(satir["ucus_numarasi"]).strip()
         tarih = str(satir["tarih"]).strip()
+
+        if (
+            i > 0
+            and config.TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE > 0
+            and not rota_onbellekte_var_mi(ucus_no, tarih)
+        ):
+            # OpenSky'yi art arda isteklerle yormamak için uçuşlar arasında bekle.
+            time.sleep(config.TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE)
 
         print(f"\n{'=' * 60}")
         print(f"[{i + 1}/{toplam}] {ucus_no} / {tarih} analiz ediliyor...")

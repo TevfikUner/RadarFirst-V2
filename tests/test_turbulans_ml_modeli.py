@@ -231,6 +231,7 @@ def test_versiyona_geri_don_bilinmeyen_id_value_error_verir(tmp_path, monkeypatc
         tm.versiyona_geri_don("olmayan-versiyon")
 
 
+@pytest.mark.gercek_veri
 def test_egitilmis_model_varsa_0_1_arasi_olasilik_doner():
     from turbulans_radar.ml import turbulans_ml_modeli as tm
 

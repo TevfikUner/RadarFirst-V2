@@ -8,16 +8,19 @@ küresel önbellekli ARCO-ERA5 (Google Cloud, herkese açık Zarr) yedeği.
 import hashlib
 import os
 import tempfile
+import threading
+import uuid
 
 import numpy as np
 import pandas as pd
 import xarray as xr
 
 from turbulans_radar import config
+from turbulans_radar.depo.kaynak_durumu import kaynak_durumunu_kaydet
 from turbulans_radar.depo.kup_katalogu import kapsayan_hazir_kup_yolu, kup_kaydet
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.veri.veri_indirme import IstekSinirAsimiHatasi
-from turbulans_radar.veri.veri_saglayicilari import Kutu, _utc
+from turbulans_radar.veri.veri_saglayicilari import Kutu, _utc, canli_durum_anahtari
 from turbulans_radar.veri.veri_yukleme import hava_durumu_onbellekli_yukle, hdf5_kilidi
 
 _logger = logger_al(__name__)
@@ -76,16 +79,60 @@ def _kutuyu_kes(kup: xr.Dataset, kutu: Kutu) -> xr.Dataset:
 
 def _atomik_yaz(kup: xr.Dataset, yol: str) -> None:
     os.makedirs(os.path.dirname(yol) or ".", exist_ok=True)
-    gecici = f"{yol}.yaziliyor"
-    with hdf5_kilidi:
-        kup.to_netcdf(
-            gecici,
-            encoding={
-                **{d: {"zlib": True, "complevel": 1} for d in kup.data_vars},
-                "valid_time": {"units": "hours since 1900-01-01", "dtype": "int64"},
-            },
-        )
-    os.replace(gecici, yol)
+    gecici = f"{yol}.{uuid.uuid4().hex[:12]}.yaziliyor"
+    try:
+        with hdf5_kilidi:
+            kup.to_netcdf(
+                gecici,
+                encoding={
+                    **{d: {"zlib": True, "complevel": 1} for d in kup.data_vars},
+                    "valid_time": {"units": "hours since 1900-01-01", "dtype": "int64"},
+                },
+            )
+        os.replace(gecici, yol)
+    finally:
+        if os.path.exists(gecici):
+            os.remove(gecici)
+
+
+_yol_kilitleri: dict[str, threading.Lock] = {}
+_yol_kilitleri_kilidi = threading.Lock()
+
+
+def _yol_kilidi(yol: str) -> threading.Lock:
+    with _yol_kilitleri_kilidi:
+        return _yol_kilitleri.setdefault(os.path.abspath(yol), threading.Lock())
+
+
+def arco_onbellegini_sinirla(klasor: str, maks_bayt: int, korunacaklar=()) -> int:
+    korunacaklar = {os.path.abspath(y) for y in korunacaklar}
+    dosyalar = []
+    for ad in os.listdir(klasor) if os.path.isdir(klasor) else ():
+        yol = os.path.join(klasor, ad)
+        if ad.startswith("arco_") and ad.endswith(".nc") and os.path.isfile(yol):
+            durum = os.stat(yol)
+            dosyalar.append((durum.st_mtime, durum.st_size, yol))
+    toplam = sum(boyut for _, boyut, _ in dosyalar)
+    silinen = 0
+    for _, boyut, yol in sorted(dosyalar):
+        if toplam <= maks_bayt:
+            break
+        if os.path.abspath(yol) in korunacaklar:
+            continue
+        try:
+            os.remove(yol)
+        except OSError:
+            continue
+        toplam -= boyut
+        silinen += 1
+    return silinen
+
+
+def _durum_kaydet(kaynak: str, basarili: bool, hata: str | None = None) -> None:
+    try:
+        kaynak_durumunu_kaydet(canli_durum_anahtari(kaynak), basarili, hata)
+    except Exception as db_hatasi:
+        _logger.warning("ERA5 kaynak durumu kaydedilemedi: %s", db_hatasi)
 
 
 def istek_hacmini_dogrula(kutu: Kutu, baslangic, bitis, maks_saat=None, maks_hucre_saat=None) -> None:
@@ -167,11 +214,20 @@ class ArcoEra5Saglayici:
     zaman_adimi = "1h"
     izgara_derece = IZGARA_DERECE
 
-    def __init__(self, url=None, onbellek_klasoru=None, basinc_seviyeleri_hpa=None, maks_saat=None, acici=None):
+    def __init__(
+        self,
+        url=None,
+        onbellek_klasoru=None,
+        basinc_seviyeleri_hpa=None,
+        maks_saat=None,
+        acici=None,
+        maks_onbellek_bayt=None,
+    ):
         self.url = url or config.ARCO_ERA5_URL
         self.onbellek_klasoru = onbellek_klasoru or config.ARCO_ONBELLEK_KLASORU
         self.basinc_seviyeleri_hpa = tuple(basinc_seviyeleri_hpa or config.ERA5_BASINC_SEVIYELERI_HPA)
         self.maks_saat = maks_saat or config.ARCO_MAKS_SAAT
+        self.maks_onbellek_bayt = maks_onbellek_bayt or int(config.ARCO_ONBELLEK_MAKS_GB * 1024**3)
         self._acici = acici or _arco_ac
         self._veri = None
 
@@ -201,14 +257,16 @@ class ArcoEra5Saglayici:
             raise IstekSinirAsimiHatasi(
                 f"ARCO yedeği için {len(saatler)} saat istendi, en fazla {self.maks_saat} (saat başına ~324 MB indirme)."
             )
+        yollar = [self.saat_onbellek_yolu(saat) for saat in saatler]
         parcalar = []
-        for saat in saatler:
-            yol = self.saat_onbellek_yolu(saat)
-            if not os.path.exists(yol):
-                _logger.info("ARCO-ERA5 saati indiriliyor: %s", yol)
-                self._saati_indir(saat, yol)
-            with hdf5_kilidi, xr.open_dataset(yol) as kup:
-                parcalar.append(_kutuyu_kes(kup, kutu).load())
+        for saat, yol in zip(saatler, yollar):
+            with _yol_kilidi(yol):
+                if not os.path.exists(yol):
+                    _logger.info("ARCO-ERA5 saati indiriliyor: %s", yol)
+                    self._saati_indir(saat, yol)
+                    arco_onbellegini_sinirla(self.onbellek_klasoru, self.maks_onbellek_bayt, yollar)
+                with hdf5_kilidi, xr.open_dataset(yol) as kup:
+                    parcalar.append(_kutuyu_kes(kup, kutu).load())
         kup = xr.concat(parcalar, dim="valid_time")
         kup.attrs = {"kaynak": KAYNAK, "era5_alt_kaynak": "arco"}
         _atomik_yaz(kup, hedef_yol)
@@ -220,18 +278,30 @@ class YedekliEra5Saglayici:
     zaman_adimi = "1h"
     izgara_derece = IZGARA_DERECE
 
-    def __init__(self, birincil=None, yedek=None):
+    def __init__(self, birincil=None, yedek=None, durum_kaydedici=None):
         self.birincil = birincil or CdsEra5Saglayici()
         self.yedek = yedek or ArcoEra5Saglayici()
+        self._durum_kaydet = durum_kaydedici or _durum_kaydet
+
+    def _dene(self, saglayici, kutu, baslangic, bitis, hedef_yol):
+        try:
+            sonuc = saglayici.kup_indir(kutu, baslangic, bitis, hedef_yol)
+        except IstekSinirAsimiHatasi:
+            raise
+        except Exception as hata:
+            self._durum_kaydet(saglayici.kaynak, False, f"{type(hata).__name__}: {hata}")
+            raise
+        self._durum_kaydet(saglayici.kaynak, True)
+        return sonuc
 
     def kup_indir(self, kutu: Kutu, baslangic, bitis, hedef_yol) -> str | None:
         try:
-            return self.birincil.kup_indir(kutu, baslangic, bitis, hedef_yol)
+            return self._dene(self.birincil, kutu, baslangic, bitis, hedef_yol)
         except IstekSinirAsimiHatasi:
             raise
         except Exception as hata:
             _logger.warning("CDS'ten ERA5 alınamadı, ARCO yedeğine geçiliyor: %s: %s", type(hata).__name__, hata)
-        return self.yedek.kup_indir(kutu, baslangic, bitis, hedef_yol)
+        return self._dene(self.yedek, kutu, baslangic, bitis, hedef_yol)
 
 
 def ucus_istegini_hesapla(enlemler, boylamlar, zamanlar) -> tuple[Kutu, pd.Timestamp, pd.Timestamp]:

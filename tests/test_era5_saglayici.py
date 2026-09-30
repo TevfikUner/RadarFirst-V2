@@ -210,24 +210,32 @@ def test_arco_saat_siniri_indirmeden_once_reddeder(tmp_path):
         )
 
 
+def _sessiz(*a):
+    pass
+
+
 def test_yedekli_saglayici_cds_hatasinda_arcoya_gecer():
     birincil, yedek = _KaydedenSaglayici(hata=RuntimeError("kuyruk")), _KaydedenSaglayici()
     yedek.kup_indir = lambda *a: yedek.cagrilar.append(a)
-    es.YedekliEra5Saglayici(birincil, yedek).kup_indir(Kutu(40, 41, 30, 31), "2019-01-15T19Z", "2019-01-15T20Z", "x.nc")
+    es.YedekliEra5Saglayici(birincil, yedek, _sessiz).kup_indir(
+        Kutu(40, 41, 30, 31), "2019-01-15T19Z", "2019-01-15T20Z", "x.nc"
+    )
     assert len(birincil.cagrilar) == 1 and len(yedek.cagrilar) == 1
 
 
 def test_yedekli_saglayici_cds_basariliysa_arcoyu_cagirmaz():
     birincil, yedek = _KaydedenSaglayici(), _KaydedenSaglayici()
     birincil.kup_indir = lambda *a: birincil.cagrilar.append(a)
-    es.YedekliEra5Saglayici(birincil, yedek).kup_indir(Kutu(40, 41, 30, 31), "2019-01-15T19Z", "2019-01-15T20Z", "x.nc")
+    es.YedekliEra5Saglayici(birincil, yedek, _sessiz).kup_indir(
+        Kutu(40, 41, 30, 31), "2019-01-15T19Z", "2019-01-15T20Z", "x.nc"
+    )
     assert len(birincil.cagrilar) == 1 and not yedek.cagrilar
 
 
 def test_yedekli_saglayici_sinir_asiminda_yedege_gecmez():
     birincil, yedek = _KaydedenSaglayici(hata=IstekSinirAsimiHatasi("büyük")), _KaydedenSaglayici()
     with pytest.raises(IstekSinirAsimiHatasi):
-        es.YedekliEra5Saglayici(birincil, yedek).kup_indir(
+        es.YedekliEra5Saglayici(birincil, yedek, _sessiz).kup_indir(
             Kutu(40, 41, 30, 31), "2019-01-15T19Z", "2019-01-15T20Z", "x.nc"
         )
     assert not yedek.cagrilar
@@ -280,3 +288,50 @@ def test_henuz_yayinlanmamis_era5_indirilmeye_calisilmaz(katalogsuz):
     with pytest.raises(es.Era5VeriYokHatasi):
         es.ucus_hava_dilimi_hazirla([40.0], [30.0], [pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=1)], saglayici)
     assert not saglayici.cagrilar
+
+
+def test_yedekli_saglayici_her_denemenin_durumunu_kaydeder():
+    kayitlar = []
+    birincil, yedek = _KaydedenSaglayici(hata=RuntimeError("kuyruk")), _KaydedenSaglayici()
+    birincil.kaynak, yedek.kaynak = "era5_cds", "era5_arco"
+    yedek.kup_indir = lambda *a: None
+    es.YedekliEra5Saglayici(birincil, yedek, lambda *a: kayitlar.append(a)).kup_indir(
+        Kutu(40, 41, 30, 31), "2019-01-15T19Z", "2019-01-15T20Z", "x.nc"
+    )
+    assert kayitlar == [("era5_cds", False, "RuntimeError: kuyruk"), ("era5_arco", True)]
+
+
+def test_arco_onbellek_siniri_en_eskiyi_siler_korunanlara_dokunmaz(tmp_path):
+    for sira, ad in enumerate(["arco_a.nc", "arco_b.nc", "arco_c.nc", "baska.txt"]):
+        yol = tmp_path / ad
+        yol.write_bytes(b"x" * 100)
+        os.utime(yol, (1000 + sira, 1000 + sira))
+    silinen = es.arco_onbellegini_sinirla(str(tmp_path), 150, korunacaklar=[str(tmp_path / "arco_a.nc")])
+    assert silinen == 2
+    assert sorted(os.listdir(tmp_path)) == ["arco_a.nc", "baska.txt"]
+
+
+def test_arco_yeni_saat_indirince_onbellek_sinirini_uygular(tmp_path):
+    klasor = tmp_path / "onbellek"
+    klasor.mkdir()
+    eski = klasor / "arco_19000101T00_200-250-300.nc"
+    eski.write_bytes(b"x" * 10)
+    os.utime(eski, (1, 1))
+    sahte = _arco_benzeri(pd.DatetimeIndex(["2019-01-15T20:00"]))
+    saglayici = es.ArcoEra5Saglayici(onbellek_klasoru=str(klasor), acici=lambda url: sahte, maks_onbellek_bayt=1)
+    t = pd.Timestamp("2019-01-15T20:00Z")
+    saglayici.kup_indir(Kutu(40, 41, 30, 31), t, t, str(tmp_path / "a.nc"))
+    assert os.listdir(klasor) == ["arco_20190115T20_200-250-300.nc"]
+
+
+def test_atomik_yazma_hata_olursa_gecici_dosya_birakmaz(tmp_path, monkeypatch):
+    def _patla(self, yol, **k):
+        open(yol, "wb").close()
+        raise OSError("disk dolu")
+
+    monkeypatch.setattr(xr.Dataset, "to_netcdf", _patla)
+    with pytest.raises(OSError):
+        es._atomik_yaz(
+            es.era5_kupunu_normalize_et(_arco_benzeri(pd.DatetimeIndex(["2019-01-15T20:00"]))), str(tmp_path / "a.nc")
+        )
+    assert os.listdir(tmp_path) == []

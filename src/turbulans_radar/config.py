@@ -75,6 +75,7 @@ ERA5_UCUS_MAKS_HUCRE_SAAT = _ortam_sayi("ERA5_UCUS_MAKS_HUCRE_SAAT", 500_000, in
 ARCO_ERA5_URL = _ortam_str("ARCO_ERA5_URL", "gs://gcp-public-data-arco-era5/ar/full_37-1h-0p25deg-chunk-1.zarr-v3")
 ARCO_ONBELLEK_KLASORU = _ortam_str("ARCO_ONBELLEK_KLASORU", "era5_arco_onbellek")
 ARCO_MAKS_SAAT = _ortam_sayi("ARCO_MAKS_SAAT", 12, int)
+ARCO_ONBELLEK_MAKS_GB = _ortam_sayi("ARCO_ONBELLEK_MAKS_GB", 20.0)
 ERA5_OTOMATIK_INDIRME = _ortam_bool("ERA5_OTOMATIK_INDIRME", True)
 
 OPENSKY_ONBELLEK_KLASORU = _ortam_str("OPENSKY_ONBELLEK_KLASORU", "opensky_onbellek")

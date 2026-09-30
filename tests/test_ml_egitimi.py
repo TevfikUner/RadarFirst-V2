@@ -116,6 +116,7 @@ def test_en_iyi_modeli_sec_ve_kaydet_model_bilgisi_dosyasini_dogru_yazar(tmp_pat
     assert "egitim_zamani" in bilgi
 
 
+@pytest.mark.gercek_veri
 def test_veriyi_hazirla_gercek_pirep_era5_verisiyle():
     import glob
     import os

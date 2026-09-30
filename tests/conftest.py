@@ -40,6 +40,40 @@ except ImportError:
 
 _PROJE_KOKU = os.path.dirname(os.path.dirname(__file__))
 
+_KATMAN_FIXTURELARI = {
+    "veritabani": {
+        "_db_erisilebilir_mi",
+        "_gereksinimler",
+        "canli_sunucu",
+        "kayitli_ucus",
+        "kuyruk_veritabani",
+        "motor",
+        "sahte_canli_ortam",
+        "test_veritabani",
+    },
+    "gercek_veri": {
+        "_gereksinimler",
+        "_kupler_var_mi",
+        "gercek_veri_var_mi",
+        "kayitli_ucus",
+        "sahte_canli_ortam",
+        "veri_kupu",
+        "veri_kupu_mevcut_mu",
+    },
+    "tarayici": {"canli_sunucu", "tarayici_sayfasi"},
+}
+_DIS_KATMANLAR = ("veritabani", "gercek_veri", "tarayici", "ag")
+
+
+def pytest_collection_modifyitems(config, items):
+    for oge in items:
+        fixturelar = set(getattr(oge, "fixturenames", ()))
+        for katman, adlar in _KATMAN_FIXTURELARI.items():
+            if fixturelar & adlar:
+                oge.add_marker(katman)
+        if not any(oge.get_closest_marker(k) for k in _DIS_KATMANLAR):
+            oge.add_marker("birim")
+
 
 def _bos_port_bul():
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:

@@ -667,6 +667,7 @@ async def test_turbulans_tahmini_kapsam_disinda_200_doner(istemci, api_anahtari)
     assert yanit.json()["kapsam_icinde_mi"] is False
 
 
+@pytest.mark.gercek_veri
 async def test_turbulans_tahmini_kapsam_icinde_ti1_doner(istemci, api_anahtari):
     if api_servisi.veri_kupune_eris() is None:
         pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı.")
@@ -745,6 +746,7 @@ async def test_rota_analizi_gecersiz_istek_422(istemci, api_anahtari, govde):
     assert yanit.status_code == 422
 
 
+@pytest.mark.gercek_veri
 async def test_rota_analizi_uctan_uca_kaydeder(istemci, api_anahtari, monkeypatch, tmp_path, calisan_isci):
     if api_servisi.veri_kupune_eris() is None:
         pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı.")
@@ -854,6 +856,7 @@ async def test_canli_veri_hazirla_gecersiz_kutu_400(istemci, api_anahtari, govde
     assert yanit.status_code == 400
 
 
+@pytest.mark.gercek_veri
 async def test_canli_veri_hazirla_gorev_olarak_kup_ozetini_uretir(istemci, api_anahtari, monkeypatch, calisan_isci):
     if api_servisi.veri_kupune_eris() is None:
         pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı.")
@@ -904,6 +907,7 @@ async def test_toplu_backtest_gorev_olarak_calisir(istemci, api_anahtari, monkey
     assert durum["ozet"] == sahte
 
 
+@pytest.mark.gercek_veri
 async def test_turbulans_tahmini_yerel_kup_yokken_canli_veriyi_kullanir(istemci, api_anahtari, monkeypatch):
     kup = api_servisi.veri_kupune_eris()
     if kup is None:

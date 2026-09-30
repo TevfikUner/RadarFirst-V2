@@ -7,6 +7,7 @@ uçuşlar değişmediği için aynı uçuş Trino'ya ikinci kez sorulmaz.
 
 import os
 import re
+import uuid
 
 import pandas as pd
 
@@ -29,6 +30,11 @@ def rota_onbellek_yolu(ucus_numarasi: str, tarih_str: str) -> str | None:
     return os.path.join(config.OPENSKY_ONBELLEK_KLASORU, f"{ucus}_{tarih:%Y-%m-%d}.parquet")
 
 
+def rota_onbellekte_var_mi(ucus_numarasi: str, tarih_str: str) -> bool:
+    yol = rota_onbellek_yolu(ucus_numarasi, tarih_str)
+    return yol is not None and os.path.exists(yol)
+
+
 def rota_onbellekten_oku(ucus_numarasi: str, tarih_str: str) -> pd.DataFrame | None:
     yol = rota_onbellek_yolu(ucus_numarasi, tarih_str)
     if yol is None or not os.path.exists(yol):
@@ -48,7 +54,7 @@ def rota_onbellege_yaz(rota_df: pd.DataFrame, ucus_numarasi: str, tarih_str: str
     if son_zaman > pd.Timestamp.now(tz="UTC") - pd.Timedelta(hours=config.OPENSKY_ONBELLEK_MIN_YAS_SAAT):
         return None
     os.makedirs(os.path.dirname(yol) or ".", exist_ok=True)
-    gecici = f"{yol}.yaziliyor"
+    gecici = f"{yol}.{uuid.uuid4().hex[:12]}.yaziliyor"
     try:
         rota_df.to_parquet(gecici, index=False)
         os.replace(gecici, yol)

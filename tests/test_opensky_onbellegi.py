@@ -70,3 +70,10 @@ def test_bos_rota_onbellege_yazilmaz(gecici_klasor):
 def test_bozuk_onbellek_dosyasi_none_doner_ve_hata_firlatmaz(gecici_klasor):
     (gecici_klasor / "THY322_2019-01-15.parquet").write_bytes(b"parquet degil")
     assert oo.rota_onbellekten_oku("THY322", "2019-01-15") is None
+
+
+def test_onbellekte_var_mi_yalnizca_yazilmis_rota_icin_dogru():
+    assert not oo.rota_onbellekte_var_mi("THY322", "2019-01-15")
+    oo.rota_onbellege_yaz(_rota(), "THY322", "2019-01-15")
+    assert oo.rota_onbellekte_var_mi("THY322", "2019-01-15")
+    assert not oo.rota_onbellekte_var_mi("../x", "2019-01-15")

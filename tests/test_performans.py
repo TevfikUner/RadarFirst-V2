@@ -75,6 +75,7 @@ def test_buyuk_rota_vektorel_eslestirme_makul_surede_biter(veri_kupu):
     )
 
 
+@pytest.mark.veritabani
 def test_buyuk_rota_veritabanina_yazma_makul_surede_biter(veri_kupu):
     from turbulans_radar.depo import veritabani as vt
 
