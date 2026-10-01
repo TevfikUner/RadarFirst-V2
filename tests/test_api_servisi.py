@@ -1461,3 +1461,82 @@ async def test_ml_gece_zamanlayicisi_gunde_bir_kez_ve_planli_saatten_sonra_kuyru
 def test_gecersiz_gece_isi_saati_reddedilir(deger):
     with pytest.raises(ValueError):
         api_servisi._gece_isi_saati(deger)
+
+
+# --- M6: sanal PIREP ---
+
+
+def _sanal_pirep_izi(icao24, sapma_ft=160.0):
+    from test_sanal_pirep import _sentetik_iz
+
+    iz = _sentetik_iz(icao24=icao24, sapma=(600, 20, sapma_ft))
+    return {
+        "icao24": icao24,
+        "noktalar": [
+            {
+                "zaman": z.isoformat(),
+                "enlem": e,
+                "boylam": b,
+                "irtifa_m": g,
+                "baro_irtifa_m": r,
+                "dikey_hiz_ms": d,
+            }
+            for z, e, b, g, r, d in zip(
+                iz["zaman"], iz["enlem"], iz["boylam"], iz["geo_irtifa_m"], iz["baro_irtifa_m"], iz["dikey_hiz"]
+            )
+        ],
+    }
+
+
+@pytest.fixture
+def _sanal_pirep_temizligi():
+    def _sil():
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM sanal_pirepler WHERE ucak LIKE 'e1e1%'"))
+
+    _sil()
+    yield
+    _sil()
+
+
+async def test_sanal_pirep_izi_olay_kaydeder_ve_listelenir(istemci, api_anahtari, _sanal_pirep_temizligi):
+    basliklar = {"X-API-Key": api_anahtari}
+    yanit = await istemci.post("/api/v1/sanal-pirep/iz", json=_sanal_pirep_izi("e1e1a1"), headers=basliklar)
+    assert yanit.status_code == 200, yanit.text
+    govde = yanit.json()
+    assert govde["olay_sayisi"] == 1 and govde["kaydedilen"] == 1 and govde["bildirilen"] == 0
+    assert govde["olaylar"][0]["ucak"] == "e1e1a1"
+
+    tekrar = await istemci.post("/api/v1/sanal-pirep/iz", json=_sanal_pirep_izi("e1e1a1"), headers=basliklar)
+    assert tekrar.json()["kaydedilen"] == 0
+
+    liste = await istemci.get(
+        "/api/v1/sanal-pirep",
+        params={"bitis": "2019-01-15T13:00:00Z", "son_saat": 2, "enlem_min": 39, "enlem_maks": 41},
+        headers=basliklar,
+    )
+    assert liste.status_code == 200
+    veri = liste.json()
+    assert [o["ucak"] for o in veri["olaylar"]] == ["e1e1a1"]
+    assert veri["kumeler"][0]["dogrulanmis"] is False
+    assert "EDR" in veri["aciklama"]
+    sadece = await istemci.get(
+        "/api/v1/sanal-pirep",
+        params={"bitis": "2019-01-15T13:00:00Z", "son_saat": 2, "sadece_dogrulanmis": True},
+        headers=basliklar,
+    )
+    assert sadece.json()["olaylar"] == [] and sadece.json()["kumeler"] == []
+
+
+async def test_sanal_pirep_izi_yonetici_ister_ve_irtifasiz_iz_reddedilir(
+    istemci, api_anahtari, pilot, _sanal_pirep_temizligi
+):
+    assert (
+        await istemci.post("/api/v1/sanal-pirep/iz", json=_sanal_pirep_izi("e1e1a2"), headers=pilot)
+    ).status_code == 403
+    assert (await istemci.get("/api/v1/sanal-pirep", headers=pilot)).status_code == 200
+    irtifasiz = _sanal_pirep_izi("e1e1a2")
+    for nokta in irtifasiz["noktalar"]:
+        nokta["irtifa_m"] = nokta["baro_irtifa_m"] = None
+    yanit = await istemci.post("/api/v1/sanal-pirep/iz", json=irtifasiz, headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 400

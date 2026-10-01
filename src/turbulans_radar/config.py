@@ -345,6 +345,8 @@ OPENAIP_AGL_UST_PAYI_FT = _ortam_sayi("OPENAIP_AGL_UST_PAYI_FT", 15000.0)
 # AGIR_HESAP_BEKLEME_SANIYE bekler, sonra 503 + Retry-After döner.
 ROTA_HESABI_DAKIKADA_MAKS = _ortam_sayi("ROTA_HESABI_DAKIKADA_MAKS", 20, int)
 TAHMIN_DAKIKADA_MAKS = _ortam_sayi("TAHMIN_DAKIKADA_MAKS", 60, int)
+# POST /api/v1/sanal-pirep/iz: havayolu ADS-B beslemesi uçak başına sık iz gönderebilir.
+SANAL_PIREP_IZ_DAKIKADA_MAKS = _ortam_sayi("SANAL_PIREP_IZ_DAKIKADA_MAKS", 120, int)
 AGIR_HESAP_MAKS_ESZAMANLI = _ortam_sayi("AGIR_HESAP_MAKS_ESZAMANLI", 4, int)
 AGIR_HESAP_BEKLEME_SANIYE = _ortam_sayi("AGIR_HESAP_BEKLEME_SANIYE", 15.0)
 # api/rota_onbellegi.py -- aynı rota isteğinin sonucu bu kadar saniye yeniden
@@ -384,3 +386,31 @@ MODEL_KLASORU = _ortam_str("MODEL_KLASORU", ".")
 # rota_backtest.py -- gerçek uçuşla karşılaştırılan A* rotasında kullanılan
 # uçak profili (bkz. rota_optimizasyonu.UCAK_PROFILLERI).
 BACKTEST_UCAK_MODELI = _ortam_str("BACKTEST_UCAK_MODELI", "A320")
+
+# fizik/sanal_pirep.py (M6) -- ADS-B izinden seyir fazı irtifa sapması olayları.
+# Başlangıç eşikleri kalibre EDİLMEMİŞTİR; dayanakları:
+#   sapma: RVSM otopilot irtifa tutma toleransı ±65 ft (türbülanssız düz uçuş)
+#          + ADS-B barometrik irtifa kuantizasyonu 25 ft = 90 ft
+#   düşey hız tutarlılığı: ADS-B düşey hız kuantizasyonu 64 ft/dk'nın 2 katı;
+#          düşey hız tepkisi olmayan irtifa sıçraması transponder hatası sayılır
+#   seviye değişimi: RVSM toplam düşey hata sınırı 300 ft
+# Seyir alt sınırı ML ile aynı (seyir irtifası PIREP tanımı). Kümeleme ve
+# PIREP doğrulama tüpü bagimsiz_kanit.py'deki 50 km / ±2000 ft / ±1 sa ile aynı.
+SANAL_PIREP_MIN_IRTIFA_FT = _ortam_sayi("SANAL_PIREP_MIN_IRTIFA_FT", ML_MIN_IRTIFA_FT)
+SANAL_PIREP_SEVIYE_PENCERESI_SANIYE = _ortam_sayi("SANAL_PIREP_SEVIYE_PENCERESI_SANIYE", 300, int)
+SANAL_PIREP_SEVIYE_DEGISIM_ESIGI_FT = _ortam_sayi("SANAL_PIREP_SEVIYE_DEGISIM_ESIGI_FT", 300.0)
+SANAL_PIREP_SAPMA_ESIGI_FT = _ortam_sayi("SANAL_PIREP_SAPMA_ESIGI_FT", 90.0)
+SANAL_PIREP_DIKEY_HIZ_TUTARLILIK_FTDK = _ortam_sayi("SANAL_PIREP_DIKEY_HIZ_TUTARLILIK_FTDK", 128.0)
+SANAL_PIREP_MAKS_BOSLUK_SANIYE = _ortam_sayi("SANAL_PIREP_MAKS_BOSLUK_SANIYE", 30, int)
+SANAL_PIREP_OLAY_BIRLESTIRME_SANIYE = _ortam_sayi("SANAL_PIREP_OLAY_BIRLESTIRME_SANIYE", 60, int)
+SANAL_PIREP_KUME_YARICAPI_KM = _ortam_sayi("SANAL_PIREP_KUME_YARICAPI_KM", 50.0)
+SANAL_PIREP_KUME_IRTIFA_FARKI_FT = _ortam_sayi("SANAL_PIREP_KUME_IRTIFA_FARKI_FT", 2000.0)
+SANAL_PIREP_KUME_SURESI_DAKIKA = _ortam_sayi("SANAL_PIREP_KUME_SURESI_DAKIKA", 60, int)
+# WebSocket'e yalnızca bu kadar farklı uçağın doğruladığı olaylar yayınlanır
+# (tek uçaklık işaret seviye değişimi/otopilot geçişi olabilir).
+SANAL_PIREP_BILDIRIM_MIN_UCAK = _ortam_sayi("SANAL_PIREP_BILDIRIM_MIN_UCAK", 2, int)
+# dogrulama/sanal_pirep_dogrulama.py -- PIREP çevresi OpenSky sorgusu (her biri
+# tek sorgu; kilit + günlük tavan veri_yukleme._sorgu_calistir'da).
+SANAL_PIREP_DOGRULAMA_MAKS_SORGU = _ortam_sayi("SANAL_PIREP_DOGRULAMA_MAKS_SORGU", 20, int)
+SANAL_PIREP_DOGRULAMA_PENCERE_DAKIKA = _ortam_sayi("SANAL_PIREP_DOGRULAMA_PENCERE_DAKIKA", 30, int)
+SANAL_PIREP_ONBELLEK_KLASORU = _ortam_str("SANAL_PIREP_ONBELLEK_KLASORU", f"{OPENSKY_ONBELLEK_KLASORU}/pirep_cevresi")

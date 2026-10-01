@@ -48,6 +48,10 @@ Notlar:
 
 - ML gece işini hem API zamanlayıcısı (`ML_GECE_ISI_SAATI`) hem n8n tetiklerse ikinci
   çalışma da CDS sayacına takılır: günlük 150 sınırı aşılamaz.
+- Sanal PIREP doğrulaması (`turbulans-sanal-pirep dogrula`) varsayılan olarak OpenSky'a
+  sorgu atmaz; `--maks-yeni-sorgu` en fazla 20'dir, her PIREP tek sorgu (1–2 saatlik
+  bölüm, ~180 km kutu, ±3000 ft, satır sınırı 50.000) ve sonuç Parquet önbelleğine
+  yazılır. Aynı kilit ve günlük tavan geçerlidir.
 - Sayaçlar UTC gece yarısı sıfırlanır; `GET /api/v1/ml/durum` bugünkü CDS kullanımını gösterir.
 
 ## Atıf metinleri

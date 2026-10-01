@@ -15,5 +15,6 @@ Kararlar değiştiğinde eski kayıt silinmez; durumu "yerini aldı: NNNN" olur.
 | [0008](0008-otomatik-sir-taramasi.md) | Sır taraması pre-commit ve CI'da zorunlu | Kabul edildi |
 | [0009](0009-depo-ici-demo-paketi.md) | Kimlik bilgisi gerektirmeyen depo içi demo paketi | Kabul edildi |
 | [0010](0010-konformal-belirsizlik.md) | Risk olasılığına konformal belirsizlik durumu | Kabul edildi |
+| [0011](0011-sanal-pirep.md) | ADS-B'den sanal PIREP: canlı olay sensörü | Kabul edildi |
 
 Şablon: Bağlam → Karar → Sonuçlar (kazanç ve bedel) → Değerlendirilen alternatifler.

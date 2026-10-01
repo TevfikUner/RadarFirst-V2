@@ -732,6 +732,67 @@
       ]
     },
     {
+      "name": "Sanal PIREP",
+      "item": [
+        {
+          "name": "Sanal Pirep Izi",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/sanal-pirep/iz",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sanal-pirep",
+                "iz"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
+          "name": "Sanal Pirepleri Listele",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/sanal-pirep",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sanal-pirep"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
       "name": "Kısıtlı Hava Sahaları",
       "item": [
         {

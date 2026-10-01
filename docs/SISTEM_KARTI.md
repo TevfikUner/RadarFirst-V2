@@ -31,6 +31,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | AWC SIGMET (`airsigmet`, `isigmet`) | Tehlike poligonu, irtifa bandı, geçerlilik | Canlı (API zamanlayıcısı ya da n8n ile yenilenir) | ABD + AWC'ye ulaşan uluslararası mesajlar (Ankara FIR dahil) | `veri/sigmet_saglayici.py` |
 | Kısıtlı hava sahaları (GeoJSON) | Çatışma bölgesi, P/R/D sahası, NOTAM'lı geçici kısıt: poligon, irtifa bandı, geçerlilik | Operatörün içe aktardığı kadar güncel | Paketle gelen örnek: Suriye ve Irak (Natural Earth ülke sınırı, resmi değil) | `veri/kisitli_saha_saglayici.py` |
 | IEM PIREP | Pilot türbülans raporları | Tarihsel | ABD | Yalnızca ML eğitimi ve kalibrasyon |
+| Sanal PIREP (M6) | ADS-B izinden seyir fazı irtifa sapması | Analiz edilen iz ya da havayolu beslemesi kadar taze | İzin kapsadığı yer | `fizik/sanal_pirep.py`; canlı olay sensörü, ML etiketi değil |
 
 ## 3. Karar mantığı
 
@@ -55,6 +56,11 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   3. En düşük yakıt/süre.
 - Kaçınılacak bir risk yoksa önerilen rota büyük daireyle birebir aynıdır;
   uydurma bir "iyileşme" gösterilmez.
+- **Sanal PIREP (gözlem kanalı):** Seyirdeki uçağın atanmış seviyesinden
+  ≥ 90 ft sapması (düşey hız tepkisiyle birlikte) olay sayılır; en az 2 farklı
+  uçağın 50 km / ±2000 ft / ±60 dk içinde doğruladığı olay `/ws/uyarilar`'a
+  gider. Rota kararına girmez; dispeçere bilgi verir. Sapma ham büyüklüktür,
+  EDR ya da şiddet sınıfı değildir; eşikler kalibre edilmemiştir (ADR 0011).
 
 ## 4. Hata durumlarında davranış (fail-safe)
 
@@ -211,6 +217,12 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   katmanı bu olayı yakalamadı; SIGMET sert kısıtı canlı kullanımda bunu
   telafi eder, ama TI1'in tek başına bağımsız becerisi şimdilik
   kanıtlanmamıştır.
+
+- **Sanal PIREP (M6, 1 Ekim 2026):** Tespit sentetik izlerle (seyir, sapma,
+  transponder sıçraması, kademeli tırmanış, veri boşluğu) ve gerçek THY322
+  iziyle test edildi; gerçek izde tırmanış ve iki büyük irtifa hatası yanlış
+  alarm üretmedi. Gerçek PIREP'lere karşı POD/POFD henüz ölçülmedi
+  (`turbulans-sanal-pirep dogrula`, PIREP çevresi ADS-B verisi gerekir).
 
 **Erişim**
 - İki statik anahtar (yönetici, pilot); kullanıcı başına kimlik, süre sınırlı

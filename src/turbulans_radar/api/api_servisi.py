@@ -88,6 +88,7 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from turbulans_radar import config, loglama
+from turbulans_radar.analiz.sanal_pirep_hatti import izden_sanal_pirep_uret
 from turbulans_radar.api import metrikler
 from turbulans_radar.api.rota_onbellegi import RotaOnbellegi
 from turbulans_radar.api.semalar import (
@@ -106,6 +107,8 @@ from turbulans_radar.api.semalar import (
     RotaSimulasyonuIstegi,
     RotaSimulasyonuYaniti,
     SaglikYaniti,
+    SanalPirepIzYaniti,
+    SanalPirepListesiYaniti,
     SigmetDogrulamaYaniti,
     SigmetOzetiYaniti,
     SigmetYenilemeYaniti,
@@ -131,6 +134,7 @@ from turbulans_radar.depo.gorev_deposu import (
 from turbulans_radar.depo.hiz_siniri import istegi_say
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir
 from turbulans_radar.depo.kup_katalogu import katalogu_listele, yerel_kupleri_katalogla
+from turbulans_radar.depo.sanal_pirep_deposu import olaylari_getir
 from turbulans_radar.depo.veritabani import (
     VeritabaniAyarlariEksikHatasi,
     async_motor_al,
@@ -143,9 +147,10 @@ from turbulans_radar.depo.veritabani import (
 )
 from turbulans_radar.dogrulama.rota_backtest import backtestleri_listele, ucus_backtest_et
 from turbulans_radar.dogrulama.sigmet_dogrulama import ucus_sigmet_ile_karsilastir
+from turbulans_radar.fizik.sanal_pirep import kume_ozeti, olaylari_kumele
 from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
-from turbulans_radar.isci.gorev_iscisi import BILDIRIM_KANALI, GorevIscisi
+from turbulans_radar.isci.gorev_iscisi import BILDIRIM_KANALI, GorevIscisi, bildirim_yayinla
 from turbulans_radar.ml.turbulans_ml_modeli import (
     model_bilgisini_yukle,
     model_kullanilabilir_mi,
@@ -883,6 +888,17 @@ class RotaAnalizIstegi(BaseModel):
         return _webhook_url_dogrula(deger)
 
 
+class SanalPirepNoktasi(RotaNoktasiGirdisi):
+    baro_irtifa_m: float | None = Field(default=None, ge=-500, le=20000, description="Barometrik irtifa (m), öncelikli")
+    dikey_hiz_ms: float | None = Field(default=None, ge=-150, le=150, description="Düşey hız (m/s)")
+
+
+class SanalPirepIzIstegi(BaseModel):
+    ucus_numarasi: str | None = Field(default=None, pattern=_UCUS_NUMARASI_DESENI)
+    icao24: str | None = Field(default=None, pattern=r"^[0-9a-fA-F]{6}$")
+    noktalar: list[SanalPirepNoktasi] = Field(min_length=3, max_length=config.MAKS_STATE_VECTOR_SATIRI)
+
+
 class TopluAnalizIstegi(BaseModel):
     ucuslar: list[UcusAnalizIstegi] = Field(max_length=500)
     bildirim_webhook_url: str | None = None
@@ -1365,6 +1381,88 @@ async def aktif_sigmetleri_listele(
         boylam_maks,
         tehlike or kacinilacak_tehlikeler(),
     )
+
+
+SANAL_PIREP_NOTU = (
+    "Sanal PIREP: ADS-B'deki seyir fazı irtifa sapmasıdır; sertifikalı EDR ya da şiddet sınıfı değildir. "
+    "Tek uçaklık işaret seviye değişimi ya da otopilot geçişi olabilir; 'dogrulanmis' kümeler en az "
+    f"{config.SANAL_PIREP_BILDIRIM_MIN_UCAK} farklı uçağın işaretidir. Karar destek amaçlıdır."
+)
+
+
+@v1.post(
+    "/sanal-pirep/iz",
+    dependencies=_YONETICI,
+    response_model=SanalPirepIzYaniti,
+    tags=["Sanal PIREP"],
+)
+async def sanal_pirep_izi(istek: SanalPirepIzIstegi, request: Request, rol: str = Depends(api_anahtarini_dogrula)):
+    """Havayolunun kendi ADS-B/ACARS beslemesinden bir uçağın son izi (canlı
+    kullanım; OpenSky'a bağlanmaz). Seyirdeki irtifa sapmaları kaydedilir;
+    yakınında başka uçakların da olayı varsa /ws/uyarilar'a 'sanal_pirep'
+    mesajı gider. İz, atanmış seviyeyi kurabilmek için en az birkaç dakikalık
+    seyir içermelidir (config.SANAL_PIREP_SEVIYE_PENCERESI_SANIYE)."""
+    await _hiz_sinirini_kontrol_et(
+        f"sanal_pirep:{_istemci_kimligi(request, rol)}", maks=config.SANAL_PIREP_IZ_DAKIKADA_MAKS, pencere_saniye=60
+    )
+    iz_df = pd.DataFrame(
+        {
+            "zaman": [n.zaman for n in istek.noktalar],
+            "enlem": [n.enlem for n in istek.noktalar],
+            "boylam": [n.boylam for n in istek.noktalar],
+            "geo_irtifa_m": [n.irtifa_m for n in istek.noktalar],
+            "baro_irtifa_m": [n.baro_irtifa_m for n in istek.noktalar],
+            "dikey_hiz": [n.dikey_hiz_ms for n in istek.noktalar],
+        }
+    )
+    for sutun in ("geo_irtifa_m", "baro_irtifa_m", "dikey_hiz"):
+        iz_df[sutun] = pd.to_numeric(iz_df[sutun], errors="coerce")
+    if iz_df[["geo_irtifa_m", "baro_irtifa_m"]].isna().all(axis=None):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, detail="İzde irtifa yok (irtifa_m ya da baro_irtifa_m)."
+        )
+    async with _agir_hesap_yuvasi():
+        return await asyncio.to_thread(
+            izden_sanal_pirep_uret,
+            iz_df,
+            "canli_iz",
+            bildirim_yayinla,
+            icao24=istek.icao24.lower() if istek.icao24 else None,
+            ucus_numarasi=istek.ucus_numarasi,
+        )
+
+
+@v1.get("/sanal-pirep", response_model=SanalPirepListesiYaniti, tags=["Sanal PIREP"])
+async def sanal_pirepleri_listele(
+    son_saat: float = Query(default=3.0, gt=0, le=24 * 30),
+    bitis: datetime | None = Query(default=None, description="Pencerenin sonu (UTC); verilmezse şimdi"),
+    enlem_min: float = Query(default=-90, ge=-90, le=90),
+    enlem_maks: float = Query(default=90, ge=-90, le=90),
+    boylam_min: float = Query(default=-180, ge=-180, le=180),
+    boylam_maks: float = Query(default=180, ge=-180, le=180),
+    sadece_dogrulanmis: bool = Query(default=False),
+):
+    """Koridordaki sanal PIREP'ler ve uzay-zaman kümeleri (dispeçer/önyüz için)."""
+    if bitis is None:
+        bitis = datetime.now(UTC)
+    else:
+        bitis = bitis.replace(tzinfo=UTC) if bitis.tzinfo is None else bitis.astimezone(UTC)
+
+    def _hesapla():
+        olaylar = olaylari_getir(
+            bitis - timedelta(hours=son_saat), bitis, enlem_min, enlem_maks, boylam_min, boylam_maks
+        )
+        kumelenmis = olaylari_kumele(olaylar)
+        kumeler = kume_ozeti(kumelenmis)
+        if sadece_dogrulanmis:
+            gecerli = {k["kume"] for k in kumeler if k["dogrulanmis"]}
+            kumeler = [k for k in kumeler if k["dogrulanmis"]]
+            kumelenmis = kumelenmis[kumelenmis["kume"].isin(gecerli)]
+        olay_kayitlari = kumelenmis.drop(columns=["kume"], errors="ignore").astype(object)
+        olay_kayitlari = olay_kayitlari.where(olay_kayitlari.notna(), None).to_dict(orient="records")
+        return {"kumeler": kumeler, "olaylar": olay_kayitlari, "aciklama": SANAL_PIREP_NOTU}
+
+    return await asyncio.to_thread(_hesapla)
 
 
 @v1.get("/kisitli-sahalar", response_model=list[KisitliSahaYaniti], tags=["Kısıtlı Hava Sahaları"])

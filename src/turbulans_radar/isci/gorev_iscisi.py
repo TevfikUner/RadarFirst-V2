@@ -31,6 +31,7 @@ import pandas as pd
 from sqlalchemy import text
 
 from turbulans_radar import config, loglama
+from turbulans_radar.analiz.sanal_pirep_hatti import izden_sanal_pirep_uret
 from turbulans_radar.analiz.toplu_analiz import toplu_analiz_calistir
 from turbulans_radar.analiz.ucus_analizi import calistir, rota_df_ile_calistir
 from turbulans_radar.depo.dagitik_kilit import KilitZamanAsimiHatasi, dagitik_kilit
@@ -88,8 +89,19 @@ def riskli_noktalari_bildir(eslesmis_df, ucus_numarasi, tarih) -> None:
         _logger.warning("Canlı uyarı yayınlanamadı (%s): %s", ucus_numarasi, dostane_hata_mesaji(hata))
 
 
+def sanal_pirepleri_isle(eslesmis_df, ucus_numarasi) -> None:
+    """M6: analiz edilen izden sanal PIREP olayları; analiz sonucunu asla bozmaz."""
+    if eslesmis_df is None or eslesmis_df.empty:
+        return
+    try:
+        izden_sanal_pirep_uret(eslesmis_df, "analiz", bildirim_yayinla, ucus_numarasi=ucus_numarasi)
+    except Exception as hata:
+        _logger.warning("Sanal PIREP tespiti atlandı (%s): %s", ucus_numarasi, dostane_hata_mesaji(hata))
+
+
 def _analiz_sonucu(sonuc, ucus_numarasi, tarih) -> dict:
     riskli_noktalari_bildir(sonuc, ucus_numarasi, tarih)
+    sanal_pirepleri_isle(sonuc, ucus_numarasi)
     return {"durum": "tamamlandi" if sonuc is not None else "basarisiz"}
 
 
@@ -114,9 +126,7 @@ def _toplu_gorevi(gorev):
     ozet_df = toplu_analiz_calistir(
         pd.DataFrame(gorev["parametreler"]["ucuslar"]),
         kayit_zorunlu=True,
-        ucus_tamamlandi=lambda ucus_numarasi, tarih, eslesmis_df: riskli_noktalari_bildir(
-            eslesmis_df, ucus_numarasi, tarih
-        ),
+        ucus_tamamlandi=lambda ucus_numarasi, tarih, eslesmis_df: _analiz_sonucu(eslesmis_df, ucus_numarasi, tarih),
         harita_uret=False,
     )
     return {

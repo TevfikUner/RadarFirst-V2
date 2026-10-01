@@ -23,6 +23,8 @@ tablo var, ORM sadece onların Python tarafındaki tanımı.
                                              ve sağlık kontrolü buradan okunur)
     KisitliHavaSahasi -> 'kisitli_hava_sahalari' (çatışma bölgesi, P/R/D sahaları, NOTAM'lı
                                              geçici kısıtlar; A*'ın SIGMET gibi sert kısıtı)
+    SanalPirep     -> 'sanal_pirepler'      (M6: ADS-B izinden seyir fazı irtifa sapması
+                                             olayları; canlı olay sensörü, ML etiketi DEĞİL)
 """
 
 from sqlalchemy import (
@@ -294,6 +296,35 @@ class MlOrnegi(Base):
     guncellenme_zamani: Mapped[object] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
+
+
+class SanalPirep(Base):
+    __tablename__ = "sanal_pirepler"
+    __table_args__ = (
+        UniqueConstraint("ucak", "zaman", name="uq_sanal_pirepler_ucak_zaman"),
+        Index("ix_sanal_pirepler_zaman", "zaman"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    # icao24, yoksa uçuş numarası: aynı uçağın aynı olayı iki kez kaydedilmez.
+    ucak: Mapped[str] = mapped_column(String(16), nullable=False)
+    icao24: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    ucus_numarasi: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    kaynak: Mapped[str] = mapped_column(String(16), nullable=False)
+    zaman: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    baslangic: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    bitis: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    enlem: Mapped[float] = mapped_column(Float, nullable=False)
+    boylam: Mapped[float] = mapped_column(Float, nullable=False)
+    seviye_ft: Mapped[float] = mapped_column(Float, nullable=False)
+    sapma_ft: Mapped[float] = mapped_column(Float, nullable=False)
+    maks_dikey_hiz_ftdk: Mapped[float | None] = mapped_column(Float, nullable=True)
+    sure_sn: Mapped[float] = mapped_column(Float, nullable=False)
+    irtifa_kaynagi: Mapped[str | None] = mapped_column(String(8), nullable=True)
+    # Kayıt anında çevresinde (kümeleme tüpü) olayı olan farklı uçak sayısı (kendisi dahil).
+    ucak_sayisi: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
+    bildirim_zamani: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 def kutu_ifadesi(model):

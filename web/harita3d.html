@@ -467,9 +467,15 @@ async function canliUyarilariDinle() {
   const ws = new WebSocket(`${protokol}//${location.host}/ws/uyarilar?bilet=${encodeURIComponent(bilet)}`);
   ws.onmessage = (olay) => {
     const veri = JSON.parse(olay.data);
-    if (veri.tip !== "turbulans_uyarisi") return;
     const toast = document.getElementById("uyari-toast");
-    toast.textContent = `🚨 ${veri.ucus_numarasi} (${veri.tarih}): ${veri.orta_siddetli_nokta_sayisi} orta-şiddetli nokta, maks TI1 ${Number(veri.maks_ti1).toExponential(2)}`;
+    if (veri.tip === "turbulans_uyarisi") {
+      toast.textContent = `🚨 ${veri.ucus_numarasi} (${veri.tarih}): ${veri.orta_siddetli_nokta_sayisi} orta-şiddetli nokta, maks TI1 ${Number(veri.maks_ti1).toExponential(2)}`;
+    } else if (veri.tip === "sanal_pirep") {
+      toast.textContent = `✈ Sanal PIREP: ${veri.ucus_numarasi || veri.ucak}, FL${Math.round(veri.seviye_ft / 100)} ` +
+        `${veri.enlem.toFixed(2)}, ${veri.boylam.toFixed(2)} — ${veri.sapma_ft} ft sapma, ${veri.ucak_sayisi} uçak doğruladı (ADS-B, EDR değil)`;
+    } else {
+      return;
+    }
     toast.style.display = "block";
     setTimeout(() => { toast.style.display = "none"; }, 8000);
   };

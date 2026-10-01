@@ -438,3 +438,55 @@ class DenetimKaydiYaniti(BaseModel):
     durum_kodu: int
     istemci_ip: str | None = None
     sure_ms: int
+
+
+class SanalPirepOlayiYaniti(BaseModel):
+    """M6: ADS-B izinden seyir fazı irtifa sapması. Ham büyüklüktür; EDR ya
+    da şiddet sınıfı değildir. ucak_sayisi: POST yanıtında kayıt anındaki,
+    GET'te olayın kümesindeki farklı uçak sayısı (kendisi dahil)."""
+
+    id: int | None = None
+    ucak: str | None = None
+    icao24: str | None = None
+    ucus_numarasi: str | None = None
+    kaynak: str
+    zaman: datetime
+    baslangic: datetime
+    bitis: datetime
+    enlem: float
+    boylam: float
+    seviye_ft: float
+    sapma_ft: float
+    maks_dikey_hiz_ftdk: float | None = None
+    sure_sn: float
+    irtifa_kaynagi: str | None = None
+    ucak_sayisi: int = 1
+    bildirim_zamani: datetime | None = None
+
+
+class SanalPirepKumesiYaniti(BaseModel):
+    kume: int
+    olay_sayisi: int
+    ucak_sayisi: int
+    ilk_zaman: datetime
+    son_zaman: datetime
+    enlem: float
+    boylam: float
+    seviye_ft: float
+    maks_sapma_ft: float
+    dogrulanmis: bool
+
+
+class SanalPirepListesiYaniti(BaseModel):
+    kumeler: list[SanalPirepKumesiYaniti]
+    olaylar: list[SanalPirepOlayiYaniti]
+    aciklama: str
+
+
+class SanalPirepIzYaniti(BaseModel):
+    nokta_sayisi: int
+    seyir_suresi_sn: float
+    olay_sayisi: int
+    kaydedilen: int
+    bildirilen: int
+    olaylar: list[SanalPirepOlayiYaniti]
