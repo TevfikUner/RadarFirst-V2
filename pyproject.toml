@@ -27,6 +27,7 @@ turbulans-ml-depo = "turbulans_radar.ml.ozellik_deposu:ana"
 turbulans-performans = "turbulans_radar.cli.performans_olcumu:ana"
 turbulans-sanal-pirep = "turbulans_radar.dogrulama.sanal_pirep_dogrulama:ana"
 turbulans-demo-ekranlari = "turbulans_radar.cli.demo_ekranlari:ana"
+turbulans-ayirma = "turbulans_radar.dogrulama.ayirma_gostergesi:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }

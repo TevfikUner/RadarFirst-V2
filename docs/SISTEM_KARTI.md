@@ -19,9 +19,11 @@ karar destek sistemidir. Sistem üç işi yapar:
 **Kapsam:** Rota önerisi yalnızca **seyir (en-route) safhası** içindir. Başlangıç
 ve bitiş seyre giriş (ToC) ve seyirden çıkış (ToD) noktası kabul edilir; kalkış,
 tırmanış, alçalış, SID/STAR ve yaklaşma kapsam dışıdır. Rota, ATS yolları yerine
-büyük daire etrafındaki bir koridorda aranır ve diğer trafikle ayırmayı dikkate
-almaz; ATC talimatlarının yerini tutmaz. Her rota yanıtı bunu `kapsam` alanında
-taşır.
+büyük daire etrafındaki bir koridorda aranır. İsteğe bağlı olarak yüklü bir
+ATS yolu/FRA ağında da aranabilir (`arama_uzayi="ats"`; ağ AIP'ten elle hazırlanır).
+Diğer trafikle ayırmayı dikkate almaz; ATC talimatlarının yerini tutmaz. Geçmiş
+trafikle varsayımsal minima karşılaştırması yalnızca gösterge olarak vardır
+(`turbulans-ayirma`). Her rota yanıtı kapsamı `kapsam` alanında taşır.
 
 **Kullanım zamanı:** Birincil kullanım uçuş öncesi planlamadır.
 - Rüzgar ve TI1 için canlı NOAA GFS tahmini, kalkıştan en fazla 120 saat önceye

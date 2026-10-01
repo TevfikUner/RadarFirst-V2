@@ -588,6 +588,31 @@ girmemek, (2) TI1 riskinden kaçınmak, (3) en ucuz yakıt/süre.
   varsa sistem "ÖNERİ YOK" der.
 - 3D simülasyonda kısıtlı sahalar mor yarı saydam hacimler olarak çizilir.
 
+## ATS yolları, kapsam ve ayırma göstergesi (hoca geri bildirimi)
+
+Doç. Dr. Fulya Aybek Çetek'in önerileri ve proje ekibinin analizi:
+[docs/hoca_geri_bildirim_analizi.md](docs/hoca_geri_bildirim_analizi.md).
+
+- **Kapsam ve kullanım zamanı:**
+  - Her rota yanıtı `kapsam` (yalnız seyir safhası, ToC–ToD) ve `planlama_ufku`
+    (geçmiş analiz ya da uçuş öncesi planlama, kalkışa kalan saat) taşır.
+  - Uçuşun SIGMET yayın ufkunun (4 sa) ötesindeki kısmı için `sigmet_ufuk_disi`
+    uyarısı verilir.
+- **ATS yolu / FRA ağı:**
+  - `POST /api/v1/simulasyon/rota` gövdesinde `"arama_uzayi": "ats"`, ya da
+    arayüzde "Arama uzayı → ATS yolları".
+  - Rota, `ats_verisi/ats_agi.json` ağında graf tabanlı A* ile aranır. Ağ, AIP
+    Türkiye ENR 3/4.4'ten elle hazırlanır, depoya konmaz:
+    [docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md](docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md).
+  - Ağ yoksa istek 400 döner. Varsayılan `koridor` modu değişmedi.
+- **Ayırma göstergesi:** `turbulans-ayirma UCUS TARIH [--sorgu-izni]`.
+  - Gerçek iz, büyük daire ve önerilen rota; aynı zaman penceresinde uçmuş
+    trafiğin ADS-B izleriyle karşılaştırılır.
+  - Minimalar varsayımdır: yatay 5 NM, dikey 1000 ft.
+  - Yalnızca göstergedir; rota kararına girmez.
+  - OpenSky'a uçuş başına en fazla bir sorgu gider (en fazla 3 saatlik pencere,
+    10 sn örnekleme); varsayılan yalnızca önbelleği okur.
+
 ## Canlı hava verisi: Veri Sağlayıcı katmanı (NOAA GFS)
 
 ERA5 bir reanalizdir, birkaç gün gecikmeyle yayınlanır -- "şimdi" için rota

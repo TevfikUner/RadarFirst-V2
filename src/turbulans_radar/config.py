@@ -434,4 +434,12 @@ SANAL_PIREP_BILDIRIM_MIN_UCAK = _ortam_sayi("SANAL_PIREP_BILDIRIM_MIN_UCAK", 2, 
 # tek sorgu; kilit + günlük tavan veri_yukleme._sorgu_calistir'da).
 SANAL_PIREP_DOGRULAMA_MAKS_SORGU = _ortam_sayi("SANAL_PIREP_DOGRULAMA_MAKS_SORGU", 20, int)
 SANAL_PIREP_DOGRULAMA_PENCERE_DAKIKA = _ortam_sayi("SANAL_PIREP_DOGRULAMA_PENCERE_DAKIKA", 30, int)
+# dogrulama/ayirma_gostergesi.py (hoca önerisi 4, yalnızca gösterge). Minimalar
+# VARSAYIMDIR (seyir: yatay 5 NM, RVSM dikey 1000 ft); ICAO Doc 4444 ve AIP
+# Türkiye'den doğrulanmalı. OpenSky: uçuş başına tek sorgu, pencere sınırlı.
+AYIRMA_YATAY_NM = _ortam_sayi("AYIRMA_YATAY_NM", 5.0)
+AYIRMA_DIKEY_FT = _ortam_sayi("AYIRMA_DIKEY_FT", 1000.0)
+AYIRMA_ADIM_SANIYE = _ortam_sayi("AYIRMA_ADIM_SANIYE", 10, int)
+AYIRMA_MAKS_PENCERE_SAAT = _ortam_sayi("AYIRMA_MAKS_PENCERE_SAAT", 3.0)
+AYIRMA_ONBELLEK_KLASORU = _ortam_str("AYIRMA_ONBELLEK_KLASORU", f"{OPENSKY_ONBELLEK_KLASORU}/trafik")
 SANAL_PIREP_ONBELLEK_KLASORU = _ortam_str("SANAL_PIREP_ONBELLEK_KLASORU", f"{OPENSKY_ONBELLEK_KLASORU}/pirep_cevresi")

@@ -10,6 +10,18 @@
 - Tarih: 2 Ekim 2026. Bu analiz sırasında kodda değişiklik yapılmadı.
 - Sistem sertifikalı EDR üretmez; operasyonel karar aracı değil, karar destek aracıdır.
 
+## Uygulama durumu (2 Ekim 2026)
+
+Bu analizden sonra yol haritası uygulandı. Kod ve testler hazır; gerçek AIP
+verisi ve trafik ölçümü sırada.
+
+| Aşama | Öneri | Durum | Commit |
+|---|---|---|---|
+| A0 | 3, 5: Kapsam ve kullanım zamanı | Tamam: `kapsam`, `planlama_ufku`, `sigmet_ufuk_disi` uyarısı; arayüzde ToC/ToD | 632b5f7 |
+| A1 | 2: Saha aktivasyonu | Tamam: NOTAM aralıkları (`aktif_araliklar`) ve AIP haftalık takvimi (`haftalik_takvim`). **Gerçek ENR 5 verisi hazırlanacak.** | c71bbf8 |
+| A2 | 1: ATS yolu / FRA ağı | Tamam: graf tabanlı A*, `arama_uzayi="ats"`, uçuş planı biçiminde özet. **Gerçek ENR 3/4.4 verisi hazırlanacak** (`docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md`). | cde94c9 |
+| A3 | 4: Ayırma göstergesi | Tamam: `turbulans-ayirma`. **Gerçek trafikle ölçüm, kullanıcı onayıyla OpenSky sorgusu gerektirir.** | (bu commit) |
+
 İşaretler: **[doğrulanmalı]** = proje ekibinin erişip kontrol edemediği ya da
 belleğe dayanan bilgi; rapora ya da koda girmeden önce birincil kaynaktan
 (AIP Türkiye, ICAO belgeleri, sağlayıcı sayfası) teyit edilmelidir.

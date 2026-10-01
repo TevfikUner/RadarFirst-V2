@@ -122,10 +122,9 @@ def _simulasyon_rotasi(ozet):
     )
 
 
-def ucus_backtest_et(ucus_numarasi, tarih_str, ucak_modeli=None, motor=None, kanit_toplayici=kanitlari_topla) -> dict:
-    """Bir uçuşun backtest'ini çalıştırıp `rota_backtestleri`'ne yazar; sonucu döner."""
-    ucak_modeli = ucak_modeli or config.BACKTEST_UCAK_MODELI
-    motor = motor or motor_al()
+def backtest_girdileri(ucus_numarasi, tarih_str, ucak_modeli, motor) -> dict:
+    """Gerçek izin seyir bölümü ve aynı uçlar/irtifa/zaman için önerilen rota
+    (backtest ve ayırma göstergesi ortak kullanır)."""
     olcum_df = ucus_olcumlerini_dataframe_olarak_getir(ucus_numarasi, tarih_str, motor=motor)
     if olcum_df is None:
         raise BacktestYapilamadiHatasi(f"'{ucus_numarasi}' / {tarih_str} için kayıtlı uçuş yok.")
@@ -162,6 +161,25 @@ def ucus_backtest_et(ucus_numarasi, tarih_str, ucak_modeli=None, motor=None, kan
         ucak_modeli,
         sigmetler=sigmetler,
     )
+    return {
+        "seyir": seyir,
+        "irtifa_ft": irtifa_ft,
+        "baslangic_zamani": baslangic_zamani,
+        "bitis_zamani": bitis_zamani,
+        "kutu": kutu,
+        "sigmetler": sigmetler,
+        "simulasyon": simulasyon,
+    }
+
+
+def ucus_backtest_et(ucus_numarasi, tarih_str, ucak_modeli=None, motor=None, kanit_toplayici=kanitlari_topla) -> dict:
+    """Bir uçuşun backtest'ini çalıştırıp `rota_backtestleri`'ne yazar; sonucu döner."""
+    ucak_modeli = ucak_modeli or config.BACKTEST_UCAK_MODELI
+    motor = motor or motor_al()
+    girdi = backtest_girdileri(ucus_numarasi, tarih_str, ucak_modeli, motor)
+    seyir, irtifa_ft, simulasyon = girdi["seyir"], girdi["irtifa_ft"], girdi["simulasyon"]
+    baslangic_zamani, bitis_zamani = girdi["baslangic_zamani"], girdi["bitis_zamani"]
+    kutu, sigmetler = girdi["kutu"], girdi["sigmetler"]
 
     gercek = _yeniden_ornekle(seyir, config.ROTA_SIMULASYONU_NOKTA_SAYISI)
     veri_kupu = veri_kupunu_sec(
