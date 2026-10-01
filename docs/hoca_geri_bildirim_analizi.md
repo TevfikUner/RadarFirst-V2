@@ -18,9 +18,28 @@ verisi ve trafik ölçümü sırada.
 | Aşama | Öneri | Durum | Commit |
 |---|---|---|---|
 | A0 | 3, 5: Kapsam ve kullanım zamanı | Tamam: `kapsam`, `planlama_ufku`, `sigmet_ufuk_disi` uyarısı; arayüzde ToC/ToD | 632b5f7 |
-| A1 | 2: Saha aktivasyonu | Tamam: NOTAM aralıkları (`aktif_araliklar`) ve AIP haftalık takvimi (`haftalik_takvim`). **Gerçek ENR 5 verisi hazırlanacak.** | c71bbf8 |
-| A2 | 1: ATS yolu / FRA ağı | Tamam: graf tabanlı A*, `arama_uzayi="ats"`, uçuş planı biçiminde özet. **Gerçek ENR 3/4.4 verisi hazırlanacak** (`docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md`). | cde94c9 |
+| A1 | 2: Saha aktivasyonu | Tamam: NOTAM aralıkları (`aktif_araliklar`) ve AIP haftalık takvimi (`haftalik_takvim`). **AIP ENR 5.1'den 77 saha otomatik alındı** (`turbulans-aip-sahalar`); 8'i belirsiz biçim nedeniyle elle girilecek. | c71bbf8 |
+| A2 | 1: ATS yolu / FRA ağı | Tamam: graf tabanlı A*, `arama_uzayi="ats"`, uçuş planı biçiminde özet. **AIP ENR 4.4'ten 611 FRA noktalı ağ otomatik kuruldu** (`turbulans-aip-ats`). Klasik/RNAV yolları (ENR 3.1/3.2) kurulmadı; ATS modu FRA alt sınırının (FL305) altında rota bulamaz. | cde94c9 |
 | A3 | 4: Ayırma göstergesi | Tamam: `turbulans-ayirma`. **Gerçek trafikle ölçüm, kullanıcı onayıyla OpenSky sorgusu gerektirir.** | a8c9ecc |
+
+## Doğrulama sonuçları (2 Ekim 2026)
+
+Raporda **[doğrulanmalı]** diye işaretlenen bilgiler birincil kaynaklardan
+kontrol edildi:
+
+| Konu | Sonuç | Kaynak |
+|---|---|---|
+| AIP bölüm numaraları | ATS yolları **ENR 3.1** (klasik) ve **ENR 3.2** (RNAV), önemli noktalar ENR 4.4, P/R/D ENR 5.1, askerî sahalar ENR 5.2, FRA haritası **ENR 6.3**. Önceki "ENR 3" ifadesi böyle düzeltildi. | [AIP Türkiye ENR 0.6](https://www.dhmi.gov.tr/AIPDocuments/LT_ENR_0_6_en.pdf), AIRAC AMDT 03/26 |
+| Türkiye'de FRA | **Var.** 27 Kasım 2025'ten beri FL305 ve üzerinde. ENR 4.4 her noktanın FRA rolünü veriyor: giriş, çıkış, ara nokta, varış ve kalkış bağlantısı. Başlangıçta 2025–26 kışında yerel 23:00–05:00 arasında uygulanıyordu; **güncel uygulama saatleri doğrulanmadı.** | [Türkiye Today](https://www.turkiyetoday.com/business/turkiye-launches-free-route-airspace-system-to-shorten-flights-cut-emissions-3210434), [AIP Türkiye ENR 4.4](https://www.dhmi.gov.tr/AIPDocuments/LT_ENR_4_4_en.pdf) (AIRAC AMDT 09/26) |
+| Yatay ayırma | Asgari **5 NM** radar ayırması (bazı TMA'larda yaklaşma kontrolünde 3 NM) | [AIP Türkiye ENR 1.6](https://www.dhmi.gov.tr/AIPDocuments/LT_ENR_1_6_en.pdf) §4.1–4.2 |
+| Dikey ayırma | FL290–FL410 EUR-RVSM sahası; RVSM onaylı uçaklar arası **1000 ft**, onaysız devlet uçakları gibi durumlarda 2000 ft | [AIP Türkiye ENR 1.8](https://www.dhmi.gov.tr/AIPDocuments/LT_ENR_1_8_en.pdf) §1 |
+| SIGMET geçerliliği | En fazla **4 saat**; volkanik kül ve tropikal siklon için **6 saat** | [DWD SIGMET bilgi notu](https://www.dwd.de/EN/ourservices/aviation_lf_09_information_material/sigmet.pdf?__blob=publicationFile&v=1), [ICAO APAC SIGMET Rehberi](https://www.icao.int/sites/default/files/APAC/Documents/edocs/APAC-Regional-SIGMET-Guide-8th-edition-Nov-2020-final.pdf) |
+| AIP verisinin yeniden dağıtımı | Doğrulanmadı. İndirilen PDF'ler ve üretilen veri `ats_verisi/` altında yerelde tutulur, depoya konmaz. | — |
+
+Hocamızın verdiği ayırma değerleri AIP ile örtüşüyor. Önemli bir sonuç: Türkiye'de
+seyir irtifasında (FL305+) FRA uygulandığı için, mevcut serbest koridor araması
+gerçek operasyona hava yolu ağından daha yakın. ATS modu da bu nedenle
+klasik/RNAV yolları yerine FRA noktaları üzerinden kuruldu.
 
 İşaretler: **[doğrulanmalı]** = proje ekibinin erişip kontrol edemediği ya da
 belleğe dayanan bilgi; rapora ya da koda girmeden önce birincil kaynaktan
@@ -143,7 +162,7 @@ parametresi, birkaç gün). Asıl yük veri hazırlığı: PDF tablolarından ko
 segment çıkarmak, elle kontrol etmek.
 
 **Veri gereksinimi:**
-- **AIP Türkiye (DHMİ):** ATS yolları ENR 3 bölümünde, önemli noktaların
+- **AIP Türkiye (DHMİ):** ATS yolları ENR 3.1 (klasik) ve 3.2 (RNAV) bölümlerinde, önemli noktaların
   koordinatları ENR 4.4'te **[doğrulanmalı: Türkiye AIP'sindeki bölüm numaraları
   ve güncel AIRAC sürümü]**. Ücretsiz görüntülenebilir PDF; makinece okunur bir
   sürüm olup olmadığı **[doğrulanmalı]**. Elle ya da yarı otomatik çıkarım gerekir.

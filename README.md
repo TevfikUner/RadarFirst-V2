@@ -605,6 +605,8 @@ Doç. Dr. Fulya Aybek Çetek'in önerileri ve proje ekibinin analizi:
     Türkiye ENR 3/4.4'ten elle hazırlanır, depoya konmaz:
     [docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md](docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md).
   - Ağ yoksa istek 400 döner. Varsayılan `koridor` modu değişmedi.
+  - Ağ otomatik hazırlanabilir: `turbulans-aip-ats --indir` (AIP Türkiye ENR 4.4,
+    FL305+ FRA). Kısıtlı sahalar için `turbulans-aip-sahalar --indir` (ENR 5.1).
 - **Ayırma göstergesi:** `turbulans-ayirma UCUS TARIH [--sorgu-izni]`.
   - Gerçek iz, büyük daire ve önerilen rota; aynı zaman penceresinde uçmuş
     trafiğin ADS-B izleriyle karşılaştırılır.

@@ -8,8 +8,9 @@ raporlanır. Yalnızca GÖSTERGEDİR: rota kararına girmez, ayırma garanti etm
 (uçuş öncesinde diğer trafiğin yörüngesi bilinmez; ayırma ATC'nin taktik
 sorumluluğudur).
 
-Minimalar VARSAYIMDIR (seyir: yatay 5 NM, RVSM dikey 1000 ft); kesin değerler
-ICAO Doc 4444 ve AIP Türkiye'den doğrulanmalı (config.AYIRMA_*).
+Minimalar AIP Türkiye'den: ENR 1.6 §4.1 yatay radar ayırması asgari 5 NM,
+ENR 1.8 EUR-RVSM (FL290-FL410) dikey 1000 ft (config.AYIRMA_*). Gösterge radar
+kapsaması, ATC talimatı ve RVSM onay durumunu bilmez.
 
 Kontrol: her rota AYIRMA_ADIM_SANIYE adımlarla zaman damgalı 4D yörüngeye
 çevrilir; aynı zaman dilimindeki trafik örnekleriyle yatay (NM) ve dikey (ft)
@@ -217,7 +218,10 @@ def ucus_ayirma_gostergesi(ucus_numarasi, tarih_str, sorgu_izni=False, ucak_mode
         "ucus_numarasi": ucus_numarasi,
         "tarih": str(tarih_str),
         "varsayim": {"yatay_nm": config.AYIRMA_YATAY_NM, "dikey_ft": config.AYIRMA_DIKEY_FT},
-        "not": "Gösterge: geçmiş trafikle varsayımsal minima karşılaştırması; rota kararına girmez, ayırma garanti etmez.",
+        "not": (
+            "Gösterge: geçmiş trafikle ayırma minimalarının (AIP Türkiye ENR 1.6/1.8) karşılaştırması; "
+            "rota kararına girmez, ayırma garanti etmez."
+        ),
     }
     if trafik is None:
         return {**sonuc, "durum": "trafik_verisi_yok"}

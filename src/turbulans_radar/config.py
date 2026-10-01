@@ -257,7 +257,7 @@ ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA = _ortam_sayi("ROTA_ZAMAN_BELIRSIZLIK_PAYI_DA
 ATS_AGI_DOSYASI = _ortam_str("ATS_AGI_DOSYASI", os.path.join("ats_verisi", "ats_agi.json"))
 ATS_AGI_BAGLANTI_KM = _ortam_sayi("ATS_AGI_BAGLANTI_KM", 150.0)
 ATS_AGI_BAGLANTI_SAYISI = _ortam_sayi("ATS_AGI_BAGLANTI_SAYISI", 3, int)
-ATS_AGI_ARA_NOKTA_KM = _ortam_sayi("ATS_AGI_ARA_NOKTA_KM", 40.0)
+ATS_AGI_ARA_NOKTA_KM = _ortam_sayi("ATS_AGI_ARA_NOKTA_KM", 60.0)
 
 # isci/gorev_iscisi.py -- uzun işlerin kuyruğu (analiz_gorevleri). API kendi
 # içinde gömülü bir işçi başlatır (GOREV_GOMULU_ISCI); ayrı işçi süreçleri
@@ -288,8 +288,8 @@ SIGMET_KACINILACAK_TEHLIKELER = tuple(
 SIGMET_SAKLAMA_GUN = _ortam_sayi("SIGMET_SAKLAMA_GUN", 30, int)
 # Canlı (şimdiye yakın) bir rota hesabında son SIGMET çekimi bundan eskiyse yanıt "bayat" uyarısı taşır.
 SIGMET_BAYATLIK_DAKIKA = _ortam_sayi("SIGMET_BAYATLIK_DAKIKA", 30, int)
-# SIGMET'ler kısa geçerlilikle yayımlanır (genelde en fazla 4 sa; VA/TC daha
-# uzun -- ICAO Annex 3'ten doğrulanmalı). Uçuşun şimdiden bu süreden sonraki
+# SIGMET'ler en fazla 4 sa geçerlilikle yayımlanır (VA ve TC için 6 sa; ICAO
+# Annex 3 / DWD SIGMET bilgi notu, Ekim 2026). Uçuşun şimdiden bu süreden sonraki
 # kısmı için henüz SIGMET yayımlanmamış olabilir; rota yanıtı bunu belirtir.
 SIGMET_YAYIN_UFKU_SAAT = _ortam_sayi("SIGMET_YAYIN_UFKU_SAAT", 4.0)
 # >0 ise API kendi içinde bu aralıkla (dakika) SIGMET çeker; 0 = kapalı (n8n/cron tetikler).
@@ -435,8 +435,9 @@ SANAL_PIREP_BILDIRIM_MIN_UCAK = _ortam_sayi("SANAL_PIREP_BILDIRIM_MIN_UCAK", 2, 
 SANAL_PIREP_DOGRULAMA_MAKS_SORGU = _ortam_sayi("SANAL_PIREP_DOGRULAMA_MAKS_SORGU", 20, int)
 SANAL_PIREP_DOGRULAMA_PENCERE_DAKIKA = _ortam_sayi("SANAL_PIREP_DOGRULAMA_PENCERE_DAKIKA", 30, int)
 # dogrulama/ayirma_gostergesi.py (hoca önerisi 4, yalnızca gösterge). Minimalar
-# VARSAYIMDIR (seyir: yatay 5 NM, RVSM dikey 1000 ft); ICAO Doc 4444 ve AIP
-# Türkiye'den doğrulanmalı. OpenSky: uçuş başına tek sorgu, pencere sınırlı.
+# AIP Türkiye'den (Ekim 2026): ENR 1.6 §4.1 yatay radar ayırması asgari 5 NM;
+# ENR 1.8 EUR-RVSM (FL290-FL410) RVSM onaylı uçaklar arası dikey 1000 ft.
+# OpenSky: uçuş başına tek sorgu, pencere sınırlı.
 AYIRMA_YATAY_NM = _ortam_sayi("AYIRMA_YATAY_NM", 5.0)
 AYIRMA_DIKEY_FT = _ortam_sayi("AYIRMA_DIKEY_FT", 1000.0)
 AYIRMA_ADIM_SANIYE = _ortam_sayi("AYIRMA_ADIM_SANIYE", 10, int)

@@ -28,6 +28,8 @@ turbulans-performans = "turbulans_radar.cli.performans_olcumu:ana"
 turbulans-sanal-pirep = "turbulans_radar.dogrulama.sanal_pirep_dogrulama:ana"
 turbulans-demo-ekranlari = "turbulans_radar.cli.demo_ekranlari:ana"
 turbulans-ayirma = "turbulans_radar.dogrulama.ayirma_gostergesi:ana"
+turbulans-aip-ats = "turbulans_radar.cli.aip_ats_agi:ana"
+turbulans-aip-sahalar = "turbulans_radar.cli.aip_enr51:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
