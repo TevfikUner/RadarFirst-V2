@@ -59,3 +59,6 @@ opensky_onbellek/
 !demo/era5/*.nc
 !demo/opensky_onbellek/
 ekran_goruntuleri/
+
+# ml/ozellik_deposu.py -- gece işinin ERA5 pencere deposu (GB düzeyinde büyür).
+ml_ozellik_deposu/

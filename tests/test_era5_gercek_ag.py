@@ -44,3 +44,21 @@ def test_gercek_cds_dilimi_yerel_referans_kuple_ayni(tmp_path):
         )
         for degisken in ("u", "v", "t"):
             np.testing.assert_allclose(cds[degisken].values, referans[degisken].values, atol=1e-3)
+
+
+def test_gercek_cds_ml_depo_istegi_yedi_seviye_ve_bagil_nem_doner(tmp_path):
+    pytest.importorskip("cdsapi")
+    if not _cds_kimligi_var_mi():
+        pytest.skip("CDS kimliği yok (CDSAPI_RC / ~/.cdsapirc / CDSAPI_KEY).")
+
+    hedef = str(tmp_path / "ml_depo.nc")
+    CdsEra5Saglayici(
+        basinc_seviyeleri_hpa=config.ML_DEPO_BASINC_SEVIYELERI_HPA, ek_degiskenler=config.ML_DEPO_EK_DEGISKENLER
+    ).kup_indir(
+        Kutu(40.0, 40.5, 29.0, 29.5), pd.Timestamp("2019-01-15T20:00Z"), pd.Timestamp("2019-01-15T20:00Z"), hedef
+    )
+
+    with xr.open_dataset(hedef) as kup:
+        assert set(kup.data_vars) == {"u", "v", "t", "r"}
+        assert sorted(kup[config.BASINC_BOYUTU].values.tolist()) == sorted(config.ML_DEPO_BASINC_SEVIYELERI_HPA)
+        assert float(kup["r"].min()) >= 0.0 and float(kup["r"].max()) <= 150.0

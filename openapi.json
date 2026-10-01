@@ -3270,6 +3270,18 @@
             },
             "type": "array",
             "title": "Son Gorevler"
+          },
+          "pencere_deposu": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Pencere Deposu"
           }
         },
         "type": "object",

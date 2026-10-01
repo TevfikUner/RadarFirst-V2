@@ -864,6 +864,7 @@ class MlDurumYaniti(BaseModel):
     iem_imleci: str | None = None
     aktif_model: dict | None = None
     son_gorevler: list[dict]
+    pencere_deposu: dict | None = None
 
 
 @v1.post("/ws-bileti", response_model=WsBiletiYaniti, tags=["Sistem"])

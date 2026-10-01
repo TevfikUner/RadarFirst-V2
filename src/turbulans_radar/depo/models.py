@@ -286,6 +286,8 @@ class MlOrnegi(Base):
     sinif: Mapped[int] = mapped_column(Integer, nullable=False)
     durum: Mapped[str] = mapped_column(String(16), nullable=False, server_default="bekliyor")
     ozellikler: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    # ERA5 pencere deposunda (config.ML_DEPO_KLASORU) depo köküne göreli dosya; yoksa NULL.
+    pencere_dosyasi: Mapped[str | None] = mapped_column(String(128), nullable=True)
     deneme_sayisi: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     son_hata: Mapped[str | None] = mapped_column(Text, nullable=True)
     olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -7,12 +7,19 @@ from sqlalchemy import text
 from turbulans_radar import config
 from turbulans_radar.depo import veritabani as vt
 from turbulans_radar.ml import ml_veri_hatti as mv
+from turbulans_radar.ml import ozellik_deposu as od
 from turbulans_radar.veri import era5_saglayici as es
 from turbulans_radar.veri.veri_saglayicilari import Kutu
 
 _KAYNAK = "pytest"
 _ARSIV_ANAHTARI = "pytest_ml_arsiv"
 _IEM_ANAHTARI = "pytest_ml_iem"
+
+
+@pytest.fixture(autouse=True)
+def gecici_pencere_deposu(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "ML_DEPO_KLASORU", str(tmp_path / "depo"))
+    return tmp_path / "depo"
 
 
 def _pirepler(satirlar):
@@ -295,3 +302,66 @@ def test_ml_durum_ozeti_sayilari_ve_egitim_barajini_doner(motor):
         ozet["eslesmis_gun_sayisi"] >= config.ML_MIN_GUN and ozet["ornekler"].get("eslesti", 0) >= config.ML_MIN_ORNEK
     )
     assert ozet["cds_gunluk_sinir"] == config.CDS_GUNLUK_MAKS_ISTEK and isinstance(ozet["son_gorevler"], list)
+
+
+def _pencere_dosyalari(motor):
+    with motor.connect() as baglanti:
+        return dict(
+            baglanti.execute(
+                text("SELECT enlem, pencere_dosyasi FROM ml_ornekleri WHERE kaynak = :k"), {"k": _KAYNAK}
+            ).all()
+        )
+
+
+def test_eslestirme_pencereleri_depoya_yazar_ve_depo_dogrulamasi_tutarlidir(motor, gecici_pencere_deposu):
+    mv.pirepleri_kaydet(
+        _pirepler(
+            [
+                ("2019-01-15T20:10", 40.0, -80.0, 35000, 1),
+                ("2019-01-15T21:40", 41.0, -79.0, 36000, 0),
+                ("2019-01-15T21:30", 41.5, -79.5, 3000, 0),
+            ]
+        ),
+        _KAYNAK,
+        motor,
+    )
+    saglayici = _SahteCds()
+    mv.eslestirme_calistir(maks_cds_istek=5, saglayici=saglayici, motor=motor, kaynaklar=[_KAYNAK])
+
+    _, baslangic, bitis = saglayici.cagrilar[0]
+    assert (baslangic, bitis) == (pd.Timestamp("2019-01-15T19:00Z"), pd.Timestamp("2019-01-15T23:00Z"))
+    dosyalar = _pencere_dosyalari(motor)
+    assert dosyalar[41.5] is None
+    assert dosyalar[40.0] == dosyalar[41.0] and (gecici_pencere_deposu / dosyalar[40.0]).is_file()
+
+    sonuc = od.depo_dogrula(10, motor=motor)
+    assert sonuc["kontrol_edilen"] == 2 and sonuc["uyumsuz"] == 0
+    ozet = mv.ml_durum_ozeti(motor)["pencere_deposu"]
+    assert ozet["etkin"] and ozet["pencereli_ornek"] >= 2
+
+
+def test_depo_kapaliyken_eski_davranis_ve_penceresizler_kuyruga_alinir(motor, monkeypatch):
+    monkeypatch.setattr(config, "ML_DEPO_KLASORU", "")
+    mv.pirepleri_kaydet(_pirepler([("2019-01-15T20:10", 40.0, -80.0, 35000, 1)]), _KAYNAK, motor)
+    saglayici = _SahteCds()
+    mv.eslestirme_calistir(maks_cds_istek=5, saglayici=saglayici, motor=motor, kaynaklar=[_KAYNAK])
+    assert saglayici.cagrilar[0][1:] == (pd.Timestamp("2019-01-15T20:00Z"), pd.Timestamp("2019-01-15T21:00Z"))
+    assert _pencere_dosyalari(motor) == {40.0: None}
+
+    assert od.eksikleri_kuyruga_al(motor) >= 1
+    assert (40.0, "bekliyor") in _durumlar(motor)
+
+
+def test_depo_yazilamazsa_ozellikler_yine_kaydedilir(motor, monkeypatch):
+    monkeypatch.setattr(mv, "grup_penceresini_yaz", lambda alt, kup: (_ for _ in ()).throw(OSError("disk dolu")))
+    mv.pirepleri_kaydet(_pirepler([("2019-01-15T20:10", 40.0, -80.0, 35000, 1)]), _KAYNAK, motor)
+    ozet = mv.eslestirme_calistir(maks_cds_istek=5, saglayici=_SahteCds(), motor=motor, kaynaklar=[_KAYNAK])
+    assert ozet["eslesti"] == 1 and _pencere_dosyalari(motor) == {40.0: None}
+
+
+def test_ml_saglayicisi_depo_ayarlarini_kullanir(monkeypatch):
+    saglayici = mv.ml_saglayicisi()
+    assert saglayici.basinc_seviyeleri_hpa == config.ML_DEPO_BASINC_SEVIYELERI_HPA
+    assert saglayici.ek_degiskenler == config.ML_DEPO_EK_DEGISKENLER
+    monkeypatch.setattr(config, "ML_DEPO_KLASORU", "")
+    assert mv.ml_saglayicisi().ek_degiskenler == ()

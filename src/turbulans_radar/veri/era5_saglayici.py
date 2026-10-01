@@ -35,8 +35,11 @@ ZAMAN_PAYI = pd.Timedelta(hours=1)
 CDS_VERI_SETI = "reanalysis-era5-pressure-levels"
 
 _DEGISKENLER = {"temperature": "t", "u_component_of_wind": "u", "v_component_of_wind": "v"}
+# Ortak şemanın (u, v, t) dışında isteğe bağlı indirilebilen değişkenler (CDS adı -> kısa ad).
+EK_DEGISKENLER = {"relative_humidity": "r", "specific_humidity": "q"}
 _YENIDEN_ADLANDIRMA = {
     **_DEGISKENLER,
+    **EK_DEGISKENLER,
     "time": "valid_time",
     "level": config.BASINC_BOYUTU,
     "pressure_level": config.BASINC_BOYUTU,
@@ -86,9 +89,9 @@ def _saatler(baslangic, bitis) -> pd.DatetimeIndex:
     return pd.date_range(_utc(baslangic).floor("h"), _utc(bitis).ceil("h"), freq="h")
 
 
-def era5_kupunu_normalize_et(ham: xr.Dataset, alt_kaynak: str | None = None) -> xr.Dataset:
+def era5_kupunu_normalize_et(ham: xr.Dataset, alt_kaynak: str | None = None, ek_degiskenler=()) -> xr.Dataset:
     eslesme = {k: v for k, v in _YENIDEN_ADLANDIRMA.items() if k != v and (k in ham.variables or k in ham.dims)}
-    kup = ham.rename(eslesme)[["u", "v", "t"]]
+    kup = ham.rename(eslesme)[["u", "v", "t", *(EK_DEGISKENLER[d] for d in ek_degiskenler)]]
     kup = kup.drop_vars([c for c in kup.coords if c not in kup.dims])
     boylamlar = ((kup["longitude"].values + 180.0) % 360.0) - 180.0
     kup = kup.assign_coords(
@@ -190,7 +193,7 @@ def istek_hacmini_dogrula(kutu: Kutu, baslangic, bitis, maks_saat=None, maks_huc
         )
 
 
-def cds_istekleri_olustur(kutu: Kutu, baslangic, bitis, basinc_seviyeleri_hpa) -> list[dict]:
+def cds_istekleri_olustur(kutu: Kutu, baslangic, bitis, basinc_seviyeleri_hpa, ek_degiskenler=()) -> list[dict]:
     saatler = _saatler(baslangic, bitis)
     istekler = []
     for gun in sorted(set(saatler.normalize())):
@@ -198,7 +201,7 @@ def cds_istekleri_olustur(kutu: Kutu, baslangic, bitis, basinc_seviyeleri_hpa) -
         istekler.append(
             {
                 "product_type": ["reanalysis"],
-                "variable": list(_DEGISKENLER),
+                "variable": [*_DEGISKENLER, *ek_degiskenler],
                 "year": [f"{gun.year}"],
                 "month": [f"{gun.month:02d}"],
                 "day": [f"{gun.day:02d}"],
@@ -227,13 +230,17 @@ class CdsEra5Saglayici:
     zaman_adimi = "1h"
     izgara_derece = IZGARA_DERECE
 
-    def __init__(self, basinc_seviyeleri_hpa=None, istemci_fabrikasi=None, kota_tuketici=None):
+    def __init__(self, basinc_seviyeleri_hpa=None, istemci_fabrikasi=None, kota_tuketici=None, ek_degiskenler=()):
+        bilinmeyen = set(ek_degiskenler) - set(EK_DEGISKENLER)
+        if bilinmeyen:
+            raise ValueError(f"Desteklenmeyen ERA5 ek değişkeni: {sorted(bilinmeyen)}")
         self.basinc_seviyeleri_hpa = tuple(basinc_seviyeleri_hpa or config.ERA5_BASINC_SEVIYELERI_HPA)
+        self.ek_degiskenler = tuple(ek_degiskenler)
         self._istemci_fabrikasi = istemci_fabrikasi or _cds_istemcisi
         self._kotayi_tuket = kota_tuketici or cds_kotasini_tuket
 
     def kup_indir(self, kutu: Kutu, baslangic, bitis, hedef_yol) -> str | None:
-        istekler = cds_istekleri_olustur(kutu, baslangic, bitis, self.basinc_seviyeleri_hpa)
+        istekler = cds_istekleri_olustur(kutu, baslangic, bitis, self.basinc_seviyeleri_hpa, self.ek_degiskenler)
         istemci = self._istemci_fabrikasi()
         os.makedirs(os.path.dirname(hedef_yol) or ".", exist_ok=True)
         parcalar = []
@@ -243,7 +250,7 @@ class CdsEra5Saglayici:
                 self._kotayi_tuket()
                 istemci.retrieve(CDS_VERI_SETI, istek, yol)
                 with hdf5_kilidi, xr.open_dataset(yol) as ham:
-                    parcalar.append(era5_kupunu_normalize_et(ham, "cds").load())
+                    parcalar.append(era5_kupunu_normalize_et(ham, "cds", self.ek_degiskenler).load())
         kup = xr.concat(parcalar, dim="valid_time").sortby("valid_time")
         kup = kup.sel(valid_time=slice(_naif(baslangic), _naif(bitis)))
         kup.attrs = parcalar[0].attrs

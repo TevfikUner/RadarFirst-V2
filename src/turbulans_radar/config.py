@@ -96,6 +96,21 @@ ML_MIN_F1_IYILESME = _ortam_sayi("ML_MIN_F1_IYILESME", 0.01)
 ML_RECALL_TOLERANSI = _ortam_sayi("ML_RECALL_TOLERANSI", 0.02)
 ML_TI1_AUC_USTUNLUGU = _ortam_sayi("ML_TI1_AUC_USTUNLUGU", 0.02)
 ML_ESKI_MODELI_KULLAN = _ortam_bool("ML_ESKI_MODELI_KULLAN", False)
+# ml/ozellik_deposu.py -- gece işinin indirdiği ERA5 dilimi silinmeden önce her
+# PIREP'in çevresindeki pencere (±PENCERE_DERECE, ±PENCERE_SAAT, tüm seviyeler)
+# bu klasöre yazılır; yeni bir özellik CDS'e gitmeden yeniden hesaplanabilir.
+# Depo açıkken ML indirmesi ML_DEPO_BASINC_SEVIYELERI_HPA ve ek değişkenleri
+# (bağıl nem) içerir; mevcut özellikler kalibrasyon tutarlılığı için yine
+# ERA5_BASINC_SEVIYELERI_HPA alt kümesinden hesaplanır. Boş klasör = kapalı.
+ML_DEPO_KLASORU = _ortam_str("ML_DEPO_KLASORU", "ml_ozellik_deposu")
+ML_DEPO_BASINC_SEVIYELERI_HPA = tuple(
+    float(s) for s in _ortam_str("ML_DEPO_BASINC_SEVIYELERI_HPA", "350,300,250,225,200,175,150").split(",") if s.strip()
+)
+ML_DEPO_EK_DEGISKENLER = tuple(
+    d.strip() for d in _ortam_str("ML_DEPO_EK_DEGISKENLER", "relative_humidity").split(",") if d.strip()
+)
+ML_DEPO_PENCERE_DERECE = _ortam_sayi("ML_DEPO_PENCERE_DERECE", 1.0)
+ML_DEPO_PENCERE_SAAT = _ortam_sayi("ML_DEPO_PENCERE_SAAT", 1, int)
 ERA5_OTOMATIK_INDIRME = _ortam_bool("ERA5_OTOMATIK_INDIRME", True)
 
 OPENSKY_ONBELLEK_KLASORU = _ortam_str("OPENSKY_ONBELLEK_KLASORU", "opensky_onbellek")

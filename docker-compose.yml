@@ -15,6 +15,8 @@ x-ortak-volumeler: &ortak_volumeler
   - ./era5_ucus_verisi:/app/era5_ucus_verisi
   - ./era5_arco_onbellek:/app/era5_arco_onbellek
   - ./opensky_onbellek:/app/opensky_onbellek
+  # ML ERA5 pencere deposu (gece işi yazar; bkz. docs/adr/0002-era5-pencere-deposu.md).
+  - ./ml_ozellik_deposu:/app/ml_ozellik_deposu
   - ${YEREL_VERI_KOKU:-.}:/veri:ro
   - turbulans_modeller:/app/model_deposu
 

@@ -930,11 +930,25 @@ Eğitim verisi artık `ml_ornekleri` tablosunda tutulur (`ml/ml_veri_hatti.py`):
    devam edilir.
 3. **Eşleştirme:** bekleyen PIREP'ler gün ve boylama göre hacim sınırlı
    (`ML_GRUP_MAKS_HUCRE_SAAT`) gruplara ayrılır; her grup için CDS'ten tek
-   saatlik bir ERA5 dilimi indirilip özellikler çıkarılır ve dilim silinir.
-   Maliyet PIREP değil grup sayısıyla ölçeklenir; günler mevsimlere yayılan
-   sabit karışık sırayla işlenir. Başarısız grup `ML_MAKS_DENEME` geceye
-   kadar yeniden denenir, sonra `hata` olur. ARCO yedeği burada kullanılmaz
-   (saat başına ~324 MB).
+   saatlik bir ERA5 dilimi indirilip özellikler çıkarılır. Maliyet PIREP
+   değil grup sayısıyla ölçeklenir; günler mevsimlere yayılan sabit karışık
+   sırayla işlenir. Başarısız grup `ML_MAKS_DENEME` geceye kadar yeniden
+   denenir, sonra `hata` olur. ARCO yedeği burada kullanılmaz (saat başına
+   ~324 MB).
+   **Pencere deposu** (`ML_DEPO_KLASORU`, varsayılan `ml_ozellik_deposu/`):
+   dilim silinmeden önce her PIREP'in çevresindeki pencere (±1°, ±1 saat,
+   150-350 hPa arası 7 seviye, u/v/t + bağıl nem) gün bölümlemeli NetCDF'e
+   yazılır; yolu `ml_ornekleri.pencere_dosyasi`'nda tutulur. İstek sayısı
+   değişmez, yalnızca istek boyutu büyür. Mevcut özellikler kalibrasyon
+   tutarlılığı için yine 300/250/200 hPa'dan hesaplanır; yeni bir özellik
+   CDS'e gitmeden depodan hesaplanabilir (bkz.
+   [ADR 0002](docs/adr/0002-era5-pencere-deposu.md)):
+
+   ```bash
+   turbulans-ml-depo --ozet                  # dosya, boyut, pencereli/penceresiz örnek
+   turbulans-ml-depo --dogrula 200           # depodan yeniden hesapla, DB ile kıyasla
+   turbulans-ml-depo --eksikleri-kuyruga-al  # depo öncesi eşleşmiş örnekleri yeniden indir
+   ```
 4. **Eğitim (champion/challenger, `ml/ml_otomatik_egitim.py`):** en az
    `ML_MIN_ORNEK` örnek ve `ML_MIN_GUN` farklı gün varsa, en son günlerden
    `ML_HOLDOUT_ORANI` kadarı ayrılır; aday kalan günlerle gün bazlı gruplu CV

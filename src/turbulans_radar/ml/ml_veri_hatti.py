@@ -25,6 +25,7 @@ from turbulans_radar.depo.models import AnalizGorevi, MlOrnegi
 from turbulans_radar.depo.veritabani import motor_al
 from turbulans_radar.dogrulama.bagimsiz_kanit import iem_pireplerini_getir, pirepleri_normalize_et
 from turbulans_radar.loglama import logger_al
+from turbulans_radar.ml.ozellik_deposu import grup_penceresini_yaz, ozellik_kupu
 from turbulans_radar.ml.turbulans_ml_modeli import EK_OZELLIK_SUTUNLARI, OZELLIK_SUTUNLARI, ozellikleri_cikar
 from turbulans_radar.veri.era5_saglayici import (
     CDS_KOTA_ANAHTARI,
@@ -230,13 +231,14 @@ def _ozellik_sozlugu(satir) -> dict:
     }
 
 
-def _ozellikleri_yaz(alt: pd.DataFrame, ozellikler: pd.DataFrame, motor) -> tuple[int, int]:
+def _ozellikleri_yaz(alt: pd.DataFrame, ozellikler: pd.DataFrame, motor, pencere_dosyasi=None) -> tuple[int, int]:
     gecerli = np.isfinite(ozellikler[OZELLIK_SUTUNLARI].to_numpy(dtype=float)).all(axis=1)
     guncellemeler = [
         {
             "id": int(kimlik),
             "durum": ESLESTI if tamam else KAPSAM_DISI,
             "ozellikler": _ozellik_sozlugu(ozellikler.iloc[i]) if tamam else None,
+            "pencere_dosyasi": pencere_dosyasi if tamam else None,
             "son_hata": None,
         }
         for i, (kimlik, tamam) in enumerate(zip(alt["id"], gecerli))
@@ -258,12 +260,41 @@ def bekleyen_sayisi(motor=None, kaynaklar=None) -> int:
         ).scalar_one()
 
 
+def ml_saglayicisi() -> CdsEra5Saglayici:
+    """Pencere deposu açıksa depo seviyeleri ve ek değişkenlerle (istek sayısı aynı, boyutu büyük)."""
+    if config.ML_DEPO_KLASORU:
+        return CdsEra5Saglayici(
+            basinc_seviyeleri_hpa=config.ML_DEPO_BASINC_SEVIYELERI_HPA, ek_degiskenler=config.ML_DEPO_EK_DEGISKENLER
+        )
+    return CdsEra5Saglayici()
+
+
+def _depo_zaman_payi(baslangic, bitis):
+    """Pencereler ±ML_DEPO_PENCERE_SAAT kapsasın diye istek aynı gün içinde genişletilir
+    (CDS isteği gün başına olduğu için istek sayısı değişmez)."""
+    if not config.ML_DEPO_KLASORU:
+        return baslangic, bitis
+    gun = baslangic.floor("D")
+    pay = pd.Timedelta(hours=config.ML_DEPO_PENCERE_SAAT)
+    return max(baslangic - pay, gun), min(bitis + pay, gun + pd.Timedelta(hours=23))
+
+
+def _pencereleri_yaz(alt, kup) -> str | None:
+    if not config.ML_DEPO_KLASORU:
+        return None
+    try:
+        return grup_penceresini_yaz(alt, kup)
+    except Exception as hata:
+        _logger.warning("ERA5 pencereleri depoya yazılamadı (%d PIREP); özellikler yine kaydedilir: %s", len(alt), hata)
+        return None
+
+
 def eslestirme_calistir(
     maks_cds_istek=None, saglayici=None, motor=None, simdi=None, gun_siniri=None, kaynaklar=None
 ) -> dict:
     motor = motor or motor_al()
     maks_cds_istek = min(maks_cds_istek or config.ML_GECE_MAKS_CDS_ISTEK, config.ML_GECE_MAKS_CDS_ISTEK)
-    saglayici = saglayici or CdsEra5Saglayici()
+    saglayici = saglayici or ml_saglayicisi()
     ozet = {"islenen_grup": 0, "cds_istek": 0, "eslesti": 0, "kapsam_disi": 0, "hata": 0, "durdurma": None}
     bekleyen = _bekleyenleri_oku(_son_yayin(simdi), motor, kaynaklar)
     gunler = _karisik_gun_sirasi(bekleyen["zaman"].dt.floor("D").unique()) if not bekleyen.empty else []
@@ -272,6 +303,7 @@ def eslestirme_calistir(
         for grup in gunu_grupla(gunluk):
             alt = gunluk.loc[grup]
             kutu, baslangic, bitis = grup_istegi(alt)
+            baslangic, bitis = _depo_zaman_payi(baslangic, bitis)
             istek_sayisi = len(cds_istekleri_olustur(kutu, baslangic, bitis, config.ERA5_BASINC_SEVIYELERI_HPA))
             if ozet["cds_istek"] + istek_sayisi > maks_cds_istek:
                 ozet["durdurma"] = "gecelik_cds_siniri"
@@ -279,7 +311,7 @@ def eslestirme_calistir(
             ozet["cds_istek"] += istek_sayisi
             try:
                 kup = _dilimi_indir(saglayici, kutu, baslangic, bitis)
-                ozellikler = ozellikleri_cikar(alt.assign(irtifa_m=alt["irtifa_ft"] * 0.3048), kup)
+                ozellikler = ozellikleri_cikar(alt.assign(irtifa_m=alt["irtifa_ft"] * 0.3048), ozellik_kupu(kup))
             except CdsKotaAsildiHatasi as hata:
                 ozet["durdurma"] = "gunluk_cds_kotasi"
                 _logger.warning("ML eşleştirmesi durduruldu: %s", hata)
@@ -289,7 +321,7 @@ def eslestirme_calistir(
                 _hatayi_kaydet(alt["id"], hata, motor)
                 ozet["hata"] += len(alt)
                 continue
-            eslesen, disarida = _ozellikleri_yaz(alt, ozellikler, motor)
+            eslesen, disarida = _ozellikleri_yaz(alt, ozellikler, motor, _pencereleri_yaz(alt, kup))
             ozet["eslesti"] += eslesen
             ozet["kapsam_disi"] += disarida
             ozet["islenen_grup"] += 1
@@ -373,6 +405,12 @@ def ml_durum_ozeti(motor=None) -> dict:
             {"a": CDS_KOTA_ANAHTARI},
         ).scalar()
         son_gorevler = [g for g in (_son_gorev(oturum, "ml_veri"), _son_gorev(oturum, "ml_egitim")) if g]
+        pencereli, penceresiz = oturum.execute(
+            select(
+                func.count().filter(MlOrnegi.pencere_dosyasi.is_not(None)),
+                func.count().filter(MlOrnegi.pencere_dosyasi.is_(None)),
+            ).where(MlOrnegi.durum == ESLESTI)
+        ).one()
     return {
         "ornekler": ornekler,
         "eslesmis_gun_sayisi": int(gun),
@@ -383,4 +421,9 @@ def ml_durum_ozeti(motor=None) -> dict:
         "iem_imleci": _durum_ozeti(IEM_DURUM_ANAHTARI, motor).get("imlec"),
         "aktif_model": _aktif_model_ozeti(),
         "son_gorevler": son_gorevler,
+        "pencere_deposu": {
+            "etkin": bool(config.ML_DEPO_KLASORU),
+            "pencereli_ornek": int(pencereli),
+            "penceresiz_eslesmis_ornek": int(penceresiz),
+        },
     }
