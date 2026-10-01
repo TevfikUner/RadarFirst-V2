@@ -19,7 +19,7 @@ _logger = logger_al(__name__)
 _GUVENLI_UCUS_NUMARASI = re.compile(r"[A-Z0-9]{2,8}")
 
 
-def rota_onbellek_yolu(ucus_numarasi: str, tarih_str: str) -> str | None:
+def rota_onbellek_yolu(ucus_numarasi: str, tarih_str: str, klasor: str | None = None) -> str | None:
     ucus = str(ucus_numarasi).strip().upper()
     if not _GUVENLI_UCUS_NUMARASI.fullmatch(ucus):
         return None
@@ -27,17 +27,28 @@ def rota_onbellek_yolu(ucus_numarasi: str, tarih_str: str) -> str | None:
         tarih = pd.Timestamp(tarih_str)
     except (ValueError, TypeError):
         return None
-    return os.path.join(config.OPENSKY_ONBELLEK_KLASORU, f"{ucus}_{tarih:%Y-%m-%d}.parquet")
+    return os.path.join(klasor or config.OPENSKY_ONBELLEK_KLASORU, f"{ucus}_{tarih:%Y-%m-%d}.parquet")
+
+
+def _okunacak_yol(ucus_numarasi: str, tarih_str: str) -> str | None:
+    """Önce asıl önbellek, yoksa depoyla gelen demo paketi (salt okunur)."""
+    klasorler = [config.OPENSKY_ONBELLEK_KLASORU]
+    if config.DEMO_VERI_KLASORU:
+        klasorler.append(os.path.join(config.DEMO_VERI_KLASORU, "opensky_onbellek"))
+    for klasor in klasorler:
+        yol = rota_onbellek_yolu(ucus_numarasi, tarih_str, klasor)
+        if yol is not None and os.path.exists(yol):
+            return yol
+    return None
 
 
 def rota_onbellekte_var_mi(ucus_numarasi: str, tarih_str: str) -> bool:
-    yol = rota_onbellek_yolu(ucus_numarasi, tarih_str)
-    return yol is not None and os.path.exists(yol)
+    return _okunacak_yol(ucus_numarasi, tarih_str) is not None
 
 
 def rota_onbellekten_oku(ucus_numarasi: str, tarih_str: str) -> pd.DataFrame | None:
-    yol = rota_onbellek_yolu(ucus_numarasi, tarih_str)
-    if yol is None or not os.path.exists(yol):
+    yol = _okunacak_yol(ucus_numarasi, tarih_str)
+    if yol is None:
         return None
     try:
         return pd.read_parquet(yol)

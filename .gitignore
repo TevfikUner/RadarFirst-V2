@@ -53,3 +53,8 @@ era5_arco_onbellek/
 # opensky_onbellegi.py -- tamamlanmış uçuşların OpenSky rota önbelleği (Parquet).
 opensky_onbellek/
 .cdsapirc
+
+# Depoyla gelen küçük demo paketi (bkz. demo/README.md) yukarıdaki *.nc ve
+# opensky_onbellek/ kurallarından muaftır.
+!demo/era5/*.nc
+!demo/opensky_onbellek/

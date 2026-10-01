@@ -101,6 +101,11 @@ ERA5_OTOMATIK_INDIRME = _ortam_bool("ERA5_OTOMATIK_INDIRME", True)
 OPENSKY_ONBELLEK_KLASORU = _ortam_str("OPENSKY_ONBELLEK_KLASORU", "opensky_onbellek")
 OPENSKY_ONBELLEK_MIN_YAS_SAAT = _ortam_sayi("OPENSKY_ONBELLEK_MIN_YAS_SAAT", 24, int)
 
+# Depoyla gelen, kimlik bilgisi gerektirmeyen demo paketi (bkz. demo/README.md):
+# <klasör>/era5/*.nc yerel küp olarak taranır, <klasör>/opensky_onbellek/ rota
+# önbelleğinin salt okunur yedeğidir. Boş bırakılırsa devre dışı.
+DEMO_VERI_KLASORU = _ortam_str("DEMO_VERI_KLASORU", "demo")
+
 # OpenSky Trino Veritabanı Ayarları
 # ÖNEMLİ: OpenSky 2024'te yeni backend'e geçti. Catalog "opensky" DEĞİL,
 # "minio"; schema ise "osky". Kaynak: resmi doküman

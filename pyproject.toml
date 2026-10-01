@@ -22,6 +22,7 @@ turbulans-openapi = "turbulans_radar.cli.openapi_disa_aktar:ana"
 turbulans-ml = "turbulans_radar.ml.ml_otomatik_egitim:ana"
 turbulans-ml-degerlendirme = "turbulans_radar.ml.degerlendirme:ana"
 turbulans-edr-kalibrasyon = "turbulans_radar.ml.edr_kalibrasyonu:ana"
+turbulans-demo = "turbulans_radar.cli.demo:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }

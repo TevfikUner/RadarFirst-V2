@@ -10,6 +10,7 @@ from turbulans_radar.veri import opensky_onbellegi as oo
 @pytest.fixture(autouse=True)
 def gecici_klasor(monkeypatch, tmp_path):
     monkeypatch.setattr(config, "OPENSKY_ONBELLEK_KLASORU", str(tmp_path))
+    monkeypatch.setattr(config, "DEMO_VERI_KLASORU", "")
     return tmp_path
 
 
@@ -77,3 +78,16 @@ def test_onbellekte_var_mi_yalnizca_yazilmis_rota_icin_dogru():
     oo.rota_onbellege_yaz(_rota(), "THY322", "2019-01-15")
     assert oo.rota_onbellekte_var_mi("THY322", "2019-01-15")
     assert not oo.rota_onbellekte_var_mi("../x", "2019-01-15")
+
+
+def test_asil_onbellekte_yoksa_demo_paketinden_okunur_ve_asil_onbellek_onceliklidir(monkeypatch, tmp_path):
+    demo = tmp_path / "demo"
+    (demo / "opensky_onbellek").mkdir(parents=True)
+    _rota().to_parquet(demo / "opensky_onbellek" / "THY322_2019-01-15.parquet", index=False)
+    monkeypatch.setattr(config, "DEMO_VERI_KLASORU", str(demo))
+    assert oo.rota_onbellekte_var_mi("THY322", "2019-01-15")
+    assert len(oo.rota_onbellekten_oku("THY322", "2019-01-15")) == 2
+
+    asil = pd.concat([_rota(), _rota()], ignore_index=True)
+    assert oo.rota_onbellege_yaz(asil, "THY322", "2019-01-15") is not None
+    assert len(oo.rota_onbellekten_oku("THY322", "2019-01-15")) == 4

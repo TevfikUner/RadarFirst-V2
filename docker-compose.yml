@@ -83,6 +83,25 @@ services:
     volumes: *ortak_volumeler
     secrets: [cdsapirc]
 
+  # Kimlik bilgisi gerektirmeyen demo (bkz. demo/README.md):
+  #   cp .env.demo .env && docker compose --profile demo up -d --build
+  # API ayağa kalkınca THY322 (2019-01-15) demo paketinden analiz edilip
+  # veritabanına yazılır; 3B harita http://localhost:8000/harita/harita3d.html.
+  demo:
+    build: .
+    profiles: ["demo"]
+    restart: "no"
+    command: ["python", "-m", "turbulans_radar.cli.demo"]
+    depends_on:
+      api:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      POSTGRES_HOST: db
+    volumes:
+      - ./ciktilar:/app/ciktilar
+
 secrets:
   cdsapirc:
     file: ${CDSAPI_RC_DOSYASI:-/dev/null}

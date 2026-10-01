@@ -16,7 +16,44 @@ ama bu bölgeden bağımsız, kaba bir kalibrasyondur, sertifikalı bir EDR
 sensörünün yerini TUTMAZ.
 
 Sistemin kullanım sınıfı, veri kaynakları, hata durumlarındaki davranışı ve
-bilinen sınırları için bkz. **[Sistem Kartı](docs/SISTEM_KARTI.md)**.
+bilinen sınırları için bkz. **[Sistem Kartı](docs/SISTEM_KARTI.md)**. Mimari
+diyagramlar ve tasarım kararları: [docs/mimari.md](docs/mimari.md),
+[docs/adr/](docs/adr/).
+
+## Beş dakikada çalıştır
+
+Kimlik bilgisi (OpenSky, Copernicus) ve internet bağlantısı gerektirmeyen demo.
+Depoyla gelen gerçek veri paketi ([demo/](demo/README.md)): THY322'nin
+15 Ocak 2019 rotası ve onu kapsayan ERA5 dilimi (toplam ~300 KB).
+
+**Docker ile (önerilen):**
+
+```bash
+git clone <depo-adresi> && cd <depo>
+cp .env.demo .env
+docker compose --profile demo up -d --build
+```
+
+İlk derleme birkaç dakika sürer (web kütüphaneleri imaja indirilir). Yığın
+ayağa kalkınca `demo` servisi uçuşu analiz edip veritabanına yazar
+(`docker compose logs demo` özeti gösterir). Sonra tarayıcıda:
+
+- 3B harita: <http://localhost:8000/harita/harita3d.html> -- API anahtarı
+  `demo-yerel-yonetici`, listeden THY322'yi seç.
+- Rota simülasyonu: <http://localhost:8000/harita/ucus_simulasyonu.html>
+  (örn. 41.0, 29.0 → 40.5, 43.5; FL360; 2019-01-15 20:00).
+- API belgesi: <http://localhost:8000/docs>
+
+**Docker olmadan (yalnızca analiz ve harita):**
+
+```bash
+pip install -e .
+turbulans-demo        # ciktilar/turbulans_haritasi_THY322_2019-01-15.html
+```
+
+PostgreSQL yoksa sonuç kaydedilmez ama özet ve harita yine üretilir. Demo
+anahtarları herkesçe bilinir; bu yığını ağa açmayın. Gerçek kurulum için
+aşağıdaki [Kurulum](#kurulum) bölümüne bakın.
 
 ## Mimari
 
@@ -511,7 +548,8 @@ girmemek, (2) TI1 riskinden kaçınmak, (3) en ucuz yakıt/süre.
   mevcut veriyi silmez. Alanlar resmi OpenAPI şemasından doğrulandı; FL/metre
   limitleri feet'e çevrilir, zemine göre (AGL) üst limitlere arazi payı eklenir,
   NOTAM'la etkinleşen sahalar sürekli etkin sayılır. **Lisans:** openAIP verisi
-  CC BY-NC 4.0 (ticari olmayan kullanım, atıf). Herkese açık dışa aktarım
+  CC BY-NC 4.0 (ticari olmayan kullanım, atıf; tüm kaynaklar için bkz.
+  [docs/VERI_KAYNAKLARI_VE_LISANSLAR.md](docs/VERI_KAYNAKLARI_VE_LISANSLAR.md)). Herkese açık dışa aktarım
   dosyaları artık anahtarsız indirilemiyor.
 - **Otomatik yenileme:** `OPENAIP_OTOMATIK_GUNCELLEME_SAAT` > 0 ise API bu
   aralıkla yenilemeyi işçi kuyruğuna ekler (son denemeye göre; bekleyen bir
@@ -1223,4 +1261,7 @@ Projenin geçmiş halinden bugüne kadarki tüm önemli değişiklikler için bk
 
 ## Lisans
 
-[MIT](LICENSE)
+Kaynak kodu: [MIT](LICENSE). Kullanılan dış verilerin (OpenSky, ERA5, IEM,
+NOAA, openAIP, ...) lisansları, atıf metinleri ve ticari kullanım durumu:
+[docs/VERI_KAYNAKLARI_VE_LISANSLAR.md](docs/VERI_KAYNAKLARI_VE_LISANSLAR.md).
+OpenSky verisi yalnızca araştırma ve ticari olmayan kullanım içindir.
