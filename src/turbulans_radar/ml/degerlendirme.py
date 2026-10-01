@@ -3,8 +3,11 @@ degerlendirme.py
 -------------------
 Türbülans tahminlerinin doğrulama metrikleri: ROC-AUC, POD, POFD, Peirce
 beceri skoru, Brier (ve iklimsel referansa göre Brier becerisi), güvenilirlik
-tablosu. Referans (baseline): tek başına TI1 ve config eşiği. Skorlar
-sertifikalı EDR değildir; sistem operasyonel değil, karar destek aracıdır.
+tablosu. Referans (baseline): tek başına TI1 ve config eşiği. Belirsizlik:
+gün bazlı blok bootstrap güven aralıkları ve modelin TI1'e karşı eşleştirilmiş
+ROC-AUC farkı (aynı gündeki PIREP'ler bağımsız değildir; günler birlikte
+örneklenir, bkz. docs/deney_protokolu.md). Skorlar sertifikalı EDR değildir;
+sistem operasyonel değil, karar destek aracıdır.
 """
 
 import argparse
@@ -81,15 +84,96 @@ def guvenilirlik_tablosu(y, olasilik, kutu_sayisi=10) -> list[dict]:
     return tablo
 
 
+def _gun_bloklari(gunler) -> list[np.ndarray]:
+    gunler = pd.Series(np.asarray(gunler)).reset_index(drop=True)
+    return [np.asarray(indeksler) for indeksler in gunler.groupby(gunler, sort=True).indices.values()]
+
+
+def _bootstrap_ornekleri(gunler, tekrar, tohum):
+    """Günleri iadeli örnekleyerek her tekrar için satır indekslerini üretir."""
+    bloklar = _gun_bloklari(gunler)
+    rng = np.random.default_rng(tohum)
+    for _ in range(tekrar):
+        secilen = rng.integers(0, len(bloklar), len(bloklar))
+        yield np.concatenate([bloklar[i] for i in secilen])
+
+
+def _auc(y, skor):
+    return float(roc_auc_score(y, skor)) if len(np.unique(y)) > 1 else float("nan")
+
+
+_METRIKLER = {
+    "roc_auc": _auc,
+    "brier": lambda y, p: float(brier_score_loss(y, np.clip(p, 0.0, 1.0))),
+}
+
+
+def bootstrap_guven_araligi(y, skor, gunler, metrik="roc_auc", tekrar=None, tohum=0, guven=0.95) -> dict:
+    """Metriğin gün bazlı blok bootstrap yüzdelik güven aralığı. Tek sınıflı
+    tekrarlar (AUC tanımsız) sayılmaz; geçerli tekrar sayısı raporlanır."""
+    tekrar = config.ML_BOOTSTRAP_TEKRAR if tekrar is None else tekrar
+    y, skor = np.asarray(y, dtype=int), np.asarray(skor, dtype=float)
+    fonksiyon = _METRIKLER[metrik]
+    degerler = np.array([fonksiyon(y[i], skor[i]) for i in _bootstrap_ornekleri(gunler, tekrar, tohum)])
+    degerler = degerler[np.isfinite(degerler)]
+    alfa = (1 - guven) / 2
+    return {
+        "metrik": metrik,
+        "deger": fonksiyon(y, skor),
+        "alt": float(np.quantile(degerler, alfa)) if len(degerler) else float("nan"),
+        "ust": float(np.quantile(degerler, 1 - alfa)) if len(degerler) else float("nan"),
+        "guven": guven,
+        "gecerli_tekrar": int(len(degerler)),
+        "gun_sayisi": len(_gun_bloklari(gunler)),
+    }
+
+
+def eslestirilmis_auc_farki(y, skor_a, skor_b, gunler, tekrar=None, tohum=0, guven=0.95) -> dict:
+    """ROC-AUC(a) - ROC-AUC(b) için aynı gün örnekleriyle (eşleştirilmiş) bootstrap
+    güven aralığı ve iki yönlü p değeri (farkın işaretinin 0'ı geçme oranı)."""
+    tekrar = config.ML_BOOTSTRAP_TEKRAR if tekrar is None else tekrar
+    y = np.asarray(y, dtype=int)
+    skor_a, skor_b = np.asarray(skor_a, dtype=float), np.asarray(skor_b, dtype=float)
+    farklar = np.array(
+        [_auc(y[i], skor_a[i]) - _auc(y[i], skor_b[i]) for i in _bootstrap_ornekleri(gunler, tekrar, tohum)]
+    )
+    farklar = farklar[np.isfinite(farklar)]
+    alfa = (1 - guven) / 2
+    if not len(farklar):
+        return {"fark": float("nan"), "alt": float("nan"), "ust": float("nan"), "p_degeri": float("nan")}
+    p = min(1.0, 2 * min(np.mean(farklar <= 0), np.mean(farklar >= 0)))
+    return {
+        "fark": _auc(y, skor_a) - _auc(y, skor_b),
+        "alt": float(np.quantile(farklar, alfa)),
+        "ust": float(np.quantile(farklar, 1 - alfa)),
+        "p_degeri": float(p),
+        "anlamli": bool(p < 1 - guven),
+        "guven": guven,
+        "gecerli_tekrar": int(len(farklar)),
+    }
+
+
+def guven_araliklari(y, ti1, gunler, olasilik=None, tekrar=None, tohum=0) -> dict:
+    """Raporlanan her metriğin güven aralığı ve modelin TI1'e karşı anlamlılığı."""
+    sonuc = {"ti1_roc_auc": bootstrap_guven_araligi(y, ti1, gunler, tekrar=tekrar, tohum=tohum)}
+    if olasilik is not None:
+        sonuc["model_roc_auc"] = bootstrap_guven_araligi(y, olasilik, gunler, tekrar=tekrar, tohum=tohum)
+        sonuc["model_brier"] = bootstrap_guven_araligi(y, olasilik, gunler, "brier", tekrar=tekrar, tohum=tohum)
+        sonuc["model_eksi_ti1_roc_auc"] = eslestirilmis_auc_farki(y, olasilik, ti1, gunler, tekrar=tekrar, tohum=tohum)
+    return sonuc
+
+
 def ti1_referansi(y, ti1, esik=None) -> dict:
     return ikili_metrikler(y, ti1, config.TI1_ESIK_ORTA_SIDDETLI if esik is None else esik)
 
 
-def degerlendirme_raporu(y, ti1, olasilik=None) -> dict:
+def degerlendirme_raporu(y, ti1, olasilik=None, gunler=None) -> dict:
     rapor = {"ti1_referansi": ti1_referansi(y, ti1)}
     if olasilik is not None:
         rapor["model"] = olasilik_metrikleri(y, olasilik)
         rapor["guvenilirlik"] = guvenilirlik_tablosu(y, olasilik)
+    if gunler is not None:
+        rapor["guven_araliklari"] = guven_araliklari(y, ti1, gunler, olasilik)
     return rapor
 
 
@@ -102,11 +186,13 @@ def ana(argv=None):
     from turbulans_radar.ml.ml_otomatik_egitim import veritabanindan_veri_hazirla
     from turbulans_radar.ml.turbulans_ml_modeli import ozelliklerden_risk_tahmin_et
 
-    X, y, _ = veritabanindan_veri_hazirla()
+    X, y, gunler = veritabanindan_veri_hazirla()
     if X.empty:
         raise SystemExit("ml_ornekleri'nde eşleşmiş örnek yok.")
     olasilik = ozelliklerden_risk_tahmin_et(X)
-    rapor = degerlendirme_raporu(y, X["ti1_indeksi"], None if olasilik is None else pd.Series(olasilik).fillna(0.5))
+    rapor = degerlendirme_raporu(
+        y, X["ti1_indeksi"], None if olasilik is None else pd.Series(olasilik).fillna(0.5), gunler=gunler
+    )
     print(json.dumps(rapor, ensure_ascii=False, indent=2, default=float))
 
 

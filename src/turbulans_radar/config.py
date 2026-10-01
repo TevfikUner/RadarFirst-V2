@@ -95,6 +95,9 @@ ML_MIN_HOLDOUT_ORNEK = _ortam_sayi("ML_MIN_HOLDOUT_ORNEK", 50, int)
 ML_MIN_F1_IYILESME = _ortam_sayi("ML_MIN_F1_IYILESME", 0.01)
 ML_RECALL_TOLERANSI = _ortam_sayi("ML_RECALL_TOLERANSI", 0.02)
 ML_TI1_AUC_USTUNLUGU = _ortam_sayi("ML_TI1_AUC_USTUNLUGU", 0.02)
+# ml/degerlendirme.py -- gün bazlı blok bootstrap tekrar sayısı (güven aralıkları ve
+# modelin TI1'e karşı eşleştirilmiş ROC-AUC farkı; bkz. docs/deney_protokolu.md).
+ML_BOOTSTRAP_TEKRAR = _ortam_sayi("ML_BOOTSTRAP_TEKRAR", 1000, int)
 ML_ESKI_MODELI_KULLAN = _ortam_bool("ML_ESKI_MODELI_KULLAN", False)
 # ml/ozellik_deposu.py -- gece işinin indirdiği ERA5 dilimi silinmeden önce her
 # PIREP'in çevresindeki pencere (±PENCERE_DERECE, ±PENCERE_SAAT, tüm seviyeler)

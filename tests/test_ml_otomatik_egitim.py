@@ -117,6 +117,8 @@ def test_aday_olasiliklari_kalibre_edilir_ve_brier_raporlanir(monkeypatch, gecic
     aday = sonuc["aday_holdout"]
     assert 0.0 <= aday["brier"] < 0.25 and aday["brier_becerisi"] > 0
     assert {"pod", "pofd", "peirce"} <= set(aday)
+    farki = sonuc["holdout_guven_araliklari"]["model_eksi_ti1_roc_auc"]
+    assert farki["alt"] <= farki["fark"] <= farki["ust"] and 0.0 <= farki["p_degeri"] <= 1.0
     surum = tm.model_versiyonlarini_listele()[0]
     assert surum["olasilik_kalibrasyonu"].startswith("sigmoid")
 

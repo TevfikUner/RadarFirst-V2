@@ -33,3 +33,46 @@ def test_ti1_referansi_config_esigini_kullanir():
 
 def test_tek_sinifli_veride_auc_nan_olur():
     assert np.isnan(dg.ikili_metrikler([1, 1], [0.2, 0.9], 0.5)["roc_auc"])
+
+
+def _gunluk_veri(gun_sayisi=40, gunluk=25, tohum=0, ayrim=1.5):
+    rng = np.random.default_rng(tohum)
+    gunler = np.repeat(
+        [f"2020-01-{g:02d}" if g < 32 else f"2020-02-{g - 31:02d}" for g in range(1, gun_sayisi + 1)], gunluk
+    )
+    y = rng.integers(0, 2, len(gunler))
+    iyi = y * ayrim + rng.normal(0, 1, len(y))
+    zayif = y * 0.3 + rng.normal(0, 1, len(y))
+    return y, iyi, zayif, gunler
+
+
+def test_blok_bootstrap_gunleri_bolmeden_orneklenir():
+    gunler = np.array(["a", "a", "b", "b", "b", "c"])
+    for indeksler in dg._bootstrap_ornekleri(gunler, 20, 0):
+        secilen_gunler = gunler[indeksler]
+        for gun in set(secilen_gunler):
+            assert (secilen_gunler == gun).sum() % (gunler == gun).sum() == 0
+
+
+def test_guven_araligi_degeri_kapsar_ve_tekrarlanabilir():
+    y, iyi, _, gunler = _gunluk_veri()
+    ga = dg.bootstrap_guven_araligi(y, iyi, gunler, tekrar=300, tohum=1)
+    assert ga["alt"] < ga["deger"] < ga["ust"] and ga["gun_sayisi"] == 40
+    assert ga == dg.bootstrap_guven_araligi(y, iyi, gunler, tekrar=300, tohum=1)
+    brier = dg.bootstrap_guven_araligi(y, 1 / (1 + np.exp(-iyi)), gunler, "brier", tekrar=200)
+    assert 0.0 <= brier["alt"] <= brier["deger"] <= brier["ust"] <= 1.0
+
+
+def test_eslestirilmis_fark_gercek_ustunlugu_anlamli_esitligi_anlamsiz_bulur():
+    y, iyi, zayif, gunler = _gunluk_veri()
+    ustun = dg.eslestirilmis_auc_farki(y, iyi, zayif, gunler, tekrar=400)
+    assert ustun["fark"] > 0.2 and ustun["alt"] > 0 and ustun["anlamli"] and ustun["p_degeri"] < 0.05
+    ayni = dg.eslestirilmis_auc_farki(y, iyi, iyi + 1e-9, gunler, tekrar=200)
+    assert abs(ayni["fark"]) < 1e-6 and not ayni["anlamli"]
+
+
+def test_rapor_gun_verilince_guven_araliklarini_icerir():
+    y, iyi, _, gunler = _gunluk_veri(gun_sayisi=10)
+    rapor = dg.degerlendirme_raporu(y, iyi, 1 / (1 + np.exp(-iyi)), gunler=gunler)
+    assert set(rapor["guven_araliklari"]) == {"ti1_roc_auc", "model_roc_auc", "model_brier", "model_eksi_ti1_roc_auc"}
+    assert "guven_araliklari" not in dg.degerlendirme_raporu(y, iyi)
