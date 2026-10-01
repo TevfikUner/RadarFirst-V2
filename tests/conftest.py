@@ -180,6 +180,17 @@ def tarayici_sayfasi(canli_sunucu):
 
 
 @pytest.fixture
+def ekran_goruntusu(request, tarayici_sayfasi):
+    """TARAYICI_EKRAN_KLASORU tanımlıysa test sonunda tam sayfa ekran görüntüsü
+    alır (CI bunları artifact olarak saklar)."""
+    yield
+    klasor = os.environ.get("TARAYICI_EKRAN_KLASORU")
+    if klasor:
+        os.makedirs(klasor, exist_ok=True)
+        tarayici_sayfasi["sayfa"].screenshot(path=os.path.join(klasor, f"{request.node.name}.png"), full_page=True)
+
+
+@pytest.fixture
 def gorev_kuyrugunu_temizle():
     """Test sırasında kuyruğa eklenip bitmemiş (kuyrukta/calisiyor) görevleri siler."""
     from sqlalchemy import text

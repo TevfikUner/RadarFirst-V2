@@ -1150,14 +1150,15 @@ modüllerini engelleyebilir; bu durumda testleri WSL2 içinde çalıştırın
 `test_web_harita3d.py`/`test_web_ucus_simulasyonu.py`, gerçek bir tarayıcıda
 (Playwright + headless Chromium) uçtan uca çalışır -- `tests/conftest.py`,
 `api_servisi.py`'yi ayrı bir alt süreçte (subprocess) canlı olarak ayağa
-kaldırır (bkz. o dosyadaki "neden ayrı süreç" notu). `playwright` paketi
-projenin `requirements-dev.txt`'sine BİLEREK eklenmedi (CI'de chromium
-indirmek yavaş/gereksiz) -- bu testler `playwright` kurulu değilse (CI'de
-olduğu gibi) otomatik atlanır. Yerelde çalıştırmak için:
+kaldırır (bkz. o dosyadaki "neden ayrı süreç" notu). `playwright` ana test
+işini yavaşlatmasın diye ayrı `requirements-tarayici.txt`'dedir; kurulu
+değilse bu testler yerelde atlanır. CI'daki ayrı `tarayici` işi Chromium'u
+kurup testleri çalıştırır, atlanan test olursa başarısız olur ve ekran
+görüntülerini (`arayuz-ekran-goruntuleri` artifact'ı) saklar. Yerelde:
 
 ```bash
-pip install playwright && playwright install chromium
-pytest tests/test_web_harita3d.py tests/test_web_ucus_simulasyonu.py -v
+pip install -r requirements-tarayici.txt && playwright install --with-deps chromium
+TARAYICI_EKRAN_KLASORU=ekran_goruntuleri pytest -m tarayici -v
 ```
 
 ## Geliştirme araçları

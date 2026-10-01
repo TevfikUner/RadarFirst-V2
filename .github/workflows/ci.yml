@@ -120,6 +120,66 @@ jobs:
           name: coverage-xml-${{ matrix.python }}
           path: coverage.xml
 
+  # Playwright + Chromium ile arayüz testleri (harita yükleme, model paneli,
+  # rota simülasyonu). Ana test işini yavaşlatmamak için ayrı iş; ekran
+  # görüntüleri artifact olarak saklanır.
+  tarayici:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: turbulans_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd="pg_isready -U postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    env:
+      POSTGRES_HOST: localhost
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: turbulans_ci
+      API_ANAHTARI: ci-test-anahtari
+      TARAYICI_EKRAN_KLASORU: ekran_goruntuleri
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Bağımlılıkları kur
+        run: |
+          pip install --require-hashes -r requirements.lock
+          pip install -r requirements-dev.txt -r requirements-tarayici.txt
+      - name: Chromium kur
+        run: python -m playwright install --with-deps chromium
+      - name: Web kütüphanelerini yerelden sun (CesiumJS, MapLibre; sha512 doğrulamalı)
+        run: python -m turbulans_radar.cli.statik_indir
+        env:
+          PYTHONPATH: src
+      - name: Veritabanı şemasını kur
+        run: alembic upgrade head
+      - name: Arayüz testleri (atlanan test başarısızlık sayılır)
+        shell: bash
+        run: |
+          pytest -m tarayici -v -rs | tee tarayici.log
+          if grep -q "SKIPPED" tarayici.log; then
+            echo "::error::Arayüz testlerinden biri atlandı; CI'da hepsi çalışmalı."
+            exit 1
+          fi
+      - name: Ekran görüntülerini yükle
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: arayuz-ekran-goruntuleri
+          path: ekran_goruntuleri/
+          if-no-files-found: warn
+
   docker:
     runs-on: ubuntu-latest
     steps:

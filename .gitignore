@@ -58,3 +58,4 @@ opensky_onbellek/
 # opensky_onbellek/ kurallarından muaftır.
 !demo/era5/*.nc
 !demo/opensky_onbellek/
+ekran_goruntuleri/

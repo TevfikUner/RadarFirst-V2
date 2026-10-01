@@ -38,7 +38,7 @@ def kayitli_ucus():
         baglanti.execute(text("DELETE FROM ucuslar WHERE ucus_numarasi = :un"), {"un": _UCUS_NO})
 
 
-def test_ucus_yuklenip_harita_render_olur(canli_sunucu, tarayici_sayfasi, kayitli_ucus):
+def test_ucus_yuklenip_harita_render_olur(canli_sunucu, tarayici_sayfasi, kayitli_ucus, ekran_goruntusu):
     sayfa = tarayici_sayfasi["sayfa"]
     sayfa.goto(f"{canli_sunucu['taban_url']}/harita/harita3d.html")
     sayfa.wait_for_selector("#harita")
@@ -53,6 +53,10 @@ def test_ucus_yuklenip_harita_render_olur(canli_sunucu, tarayici_sayfasi, kayitl
     assert sayfa.query_selector("canvas.maplibregl-canvas") is not None
     assert sayfa.is_visible("#zaman-kontrolu")
 
+    # Model durum paneli uçuş yüklenince API'den doldurulur (model olsun olmasın).
+    sayfa.wait_for_function("!document.getElementById('model-bilgisi-govde').innerText.includes('Uçuş yüklenince')")
+    assert "alınamadı" not in sayfa.inner_text("#model-bilgisi-govde")
+
     # GERÇEK TARAYICI TESTİYLE bulunan hatanın (MapLibre'de setProjection
     # hiç olmaması / "Style is not done loading") bir daha geri gelmediğini
     # doğrular -- bkz. CHANGELOG.
@@ -61,7 +65,7 @@ def test_ucus_yuklenip_harita_render_olur(canli_sunucu, tarayici_sayfasi, kayitl
     assert setprojection_hatalari == []
 
 
-def test_silme_ve_arama_arayuzden_calisir(canli_sunucu, tarayici_sayfasi, kayitli_ucus):
+def test_silme_ve_arama_arayuzden_calisir(canli_sunucu, tarayici_sayfasi, kayitli_ucus, ekran_goruntusu):
     sayfa = tarayici_sayfasi["sayfa"]
     sayfa.goto(f"{canli_sunucu['taban_url']}/harita/harita3d.html")
     sayfa.wait_for_selector("#harita")

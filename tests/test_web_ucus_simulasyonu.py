@@ -17,7 +17,7 @@ durumu da (rota yine de hesaplanır, sadece rüzgarsız) kabul eder.
 """
 
 
-def test_simulasyon_uctan_uca_calisir(canli_sunucu, tarayici_sayfasi):
+def test_simulasyon_uctan_uca_calisir(canli_sunucu, tarayici_sayfasi, ekran_goruntusu):
     sayfa = tarayici_sayfasi["sayfa"]
     sayfa.goto(f"{canli_sunucu['taban_url']}/harita/ucus_simulasyonu.html")
     sayfa.wait_for_selector("#kontrol-paneli")
