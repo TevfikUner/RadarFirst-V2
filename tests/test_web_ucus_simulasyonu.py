@@ -42,3 +42,31 @@ def test_simulasyon_uctan_uca_calisir(canli_sunucu, tarayici_sayfasi, ekran_goru
     # doğrular.
     imagery_hatalari = [h for h in tarayici_sayfasi["hatalar"] if "imageryProvider" in h]
     assert imagery_hatalari == []
+
+
+def test_kisitli_sahadan_kacinma_ozeti_dogru_yazilir(canli_sunucu, tarayici_sayfasi, ekran_goruntusu):
+    """Malatya -> Musul: paketle gelen örnek kısıtlı saha (Suriye) sert kısıt;
+    türbülans yokken de rota değişir, özet 'iki rota aynı' DEMEMELİ."""
+    sayfa = tarayici_sayfasi["sayfa"]
+    sayfa.goto(f"{canli_sunucu['taban_url']}/harita/ucus_simulasyonu.html")
+    sayfa.wait_for_selector("#kontrol-paneli")
+    sayfa.fill("#giris-anahtar", canli_sunucu["api_anahtari"])
+    sayfa.locator("#giris-anahtar").press("Tab")
+    sayfa.wait_for_function("document.querySelectorAll('#ucak-modeli option[value=\"A320\"]').length > 0")
+    sayfa.select_option("#ucak-modeli", "A320")
+    for kimlik, deger in (
+        ("#baslangic-enlem", "38.35"),
+        ("#baslangic-boylam", "38.31"),
+        ("#bitis-enlem", "36.34"),
+        ("#bitis-boylam", "43.13"),
+        ("#irtifa-ft", "36000"),
+    ):
+        sayfa.fill(kimlik, deger)
+    sayfa.click("#simule-et-buton")
+    sayfa.wait_for_selector("#s-optimize-kisit:not(:empty)", timeout=60000)
+
+    assert sayfa.inner_text("#s-optimize-kisit").strip() == "0 / 0"
+    assert sayfa.inner_text("#s-normal-kisit").strip() != "0 / 0"
+    ozet = sayfa.inner_text("#tasarruf-satiri")
+    assert "Sert kısıttan kaçınıldı" in ozet
+    assert "iki rota aynı" not in ozet

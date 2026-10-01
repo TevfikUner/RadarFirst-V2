@@ -293,7 +293,13 @@ function sonucPanelDoldur(sonuc) {
       ? `ekstra yakıt: %${Math.abs(sonuc.yakit_tasarrufu_yuzde).toFixed(2)} (güvenlik için sapmanın bedeli)${co2Eki}`
       : `yakıt farkı yok`;
 
-  if (sonuc.normal_rota.riskli_nokta_sayisi === 0) {
+  const n = sonuc.normal_rota, o = sonuc.optimize_rota;
+  const kisittanKacinildi = sonuc.sigmetten_kacinildi_mi || sonuc.kisitli_sahadan_kacinildi_mi;
+  if (sonuc.guvenli_rota_bulundu_mu === false) {
+    tasarrufEl.innerHTML = `<span class="tasarruf-yok">⚠ SIGMET ve kısıtlı sahalara girmeyen güvenli bir rota bulunamadı -- öneri yok.</span>`;
+  } else if (kisittanKacinildi && n.riskli_nokta_sayisi === 0) {
+    tasarrufEl.innerHTML = `<span class="tasarruf-iyi">✓ Sert kısıttan kaçınıldı</span> (SIGMET / kısıtlı saha ihlali ${n.sigmet_ihlali_sayisi} / ${n.kisitli_saha_ihlali_sayisi} → ${o.sigmet_ihlali_sayisi} / ${o.kisitli_saha_ihlali_sayisi}), ${yakitCumlesi}.`;
+  } else if (n.riskli_nokta_sayisi === 0) {
     tasarrufEl.innerHTML = `<span class="tasarruf-yok">Rotada riskli türbülans tespit edilmedi -- iki rota aynı, ${yakitCumlesi}.</span>`;
   } else if (sonuc.optimize_rota.riskli_nokta_sayisi === 0) {
     tasarrufEl.innerHTML = `<span class="tasarruf-iyi">✓ Türbülanstan TAMAMEN kaçınıldı</span> (${sonuc.normal_rota.riskli_nokta_sayisi} riskli nokta atlatıldı), ${yakitCumlesi}.`;

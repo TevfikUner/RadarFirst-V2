@@ -51,7 +51,8 @@ pip install -e .
 turbulans-demo        # ciktilar/turbulans_haritasi_THY322_2019-01-15.html
 ```
 
-PostgreSQL yoksa sonuç kaydedilmez ama özet ve harita yine üretilir. Demo
+PostgreSQL yoksa sonuç kaydedilmez ama özet ve harita yine üretilir.
+Jüri sunumu için demo akışı, sunum planı ve poster: [docs/sunum/](docs/sunum/DEMO_SENARYOSU.md). Demo
 anahtarları herkesçe bilinir; bu yığını ağa açmayın. Gerçek kurulum için
 aşağıdaki [Kurulum](#kurulum) bölümüne bakın.
 
@@ -319,7 +320,9 @@ görüntü (snapshot) kolaylığı sağlar.
 | GET | `/api/v1/turbulans/model-bilgisi` | ML modelinin seçim gerekçesi/metrikleri (recall, F1, ROC-AUC vb.) + eğitim tarihini döner; model henüz eğitilmediyse dürüstçe `egitildi_mi: false` |
 | GET | `/api/v1/turbulans/model-versiyonlari` | Şimdiye kadar eğitilmiş TÜM model versiyonlarını (en yeni önce) listeler |
 | POST | `/api/v1/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir` | Geçmiş bir model versiyonunu YENİDEN EĞİTİM GEREKMEDEN aktif model yapar (rollback); bilinmeyen `versiyon_id` 404 döner |
-| WS | `/ws/uyarilar?api_key=...` | TI1 "orta-şiddetli" eşiği aşılınca canlı uyarı yayınlar |
+| POST | `/api/v1/sanal-pirep/iz` | (yönetici) Havayolu ADS-B beslemesinden bir uçağın izi: seyirdeki irtifa sapmalarını sanal PIREP olarak kaydeder (bkz. "Sanal PIREP") |
+| GET | `/api/v1/sanal-pirep` | Koridordaki sanal PIREP olayları ve uzay-zaman kümeleri (`son_saat`, `bitis`, kutu, `sadece_dogrulanmis`) |
+| WS | `/ws/uyarilar?api_key=...` | TI1 "orta-şiddetli" eşiği aşılınca ve en az 2 uçağın doğruladığı sanal PIREP'te canlı uyarı yayınlar |
 | GET | `/saglik?derin=true` | (anahtarsız) Veritabanı + SIGMET tazeliği, canlı GFS, görev kuyruğu, kısıtlı sahalar, küp önbelleği, yerel kütüphaneler; operasyonel sorunda `durum: bozulmus` |
 | GET | `/api/v1/sistem/durum` | Aynı rapor + kaynak başına son hata metinleri (anahtarlı) |
 | GET | `/harita/harita3d.html` | 3D/canlı harita önyüzü (statik, tarayıcıda açılır) |
@@ -1021,6 +1024,26 @@ n8n'de `N8N_BLOCK_ENV_ACCESS_IN_NODE=false` gerekir). Akış her gece 02:00
 UTC'de tetikler; ağ hatasında 3 kez yeniden dener; 202/409 dışındaki yanıtta
 "Stop and Error" ile çalıştırmayı hatalı bitirir — bildirim için n8n'de bir
 *Error Workflow* tanımla.
+
+## Sanal PIREP: ADS-B'den canlı türbülans olayı (M6)
+
+Türbülansın en doğrudan sensörü onu yaşayan uçaktır. Seyir fazındaki bir uçağın
+atanmış seviyesinden ani irtifa sapması (ADS-B barometrik irtifa + düşey hız)
+"sanal PIREP" olarak kaydedilir; aynı bölgede birden çok uçağın işareti kümelenir.
+Yöntem, eşiklerin dayanağı ve bedeli: [docs/adr/0011](docs/adr/0011-sanal-pirep.md).
+
+- **Girdi:** işçideki her uçuş/rota analizinin izi (OpenSky'a ek sorgu yok) ve
+  havayolu beslemesi için `POST /api/v1/sanal-pirep/iz`.
+- **Uyarı:** en az `SANAL_PIREP_BILDIRIM_MIN_UCAK` (2) farklı uçağın doğruladığı
+  olaylar `/ws/uyarilar`'a `tip: "sanal_pirep"` olarak gider; gecikme
+  `bildirim_zamani - bitis` olarak her olayda saklanır.
+- **Sınır:** sapma ham büyüklüktür, EDR ya da şiddet sınıfı değildir; eşikler
+  kalibre edilmemiştir. Sinyal ML eğitim etiketi olarak kullanılmaz.
+- **Doğrulama (POD/POFD):** `turbulans-sanal-pirep dogrula --pozitif 50 --negatif 50`
+  ml_ornekleri PIREP'lerini çevrelerindeki ADS-B izleriyle karşılaştırır. Varsayılan
+  yalnızca önbelleği okur; `--maks-yeni-sorgu N` (en fazla 20) PIREP başına tek OpenSky
+  sorgusu atar ve sonucu `opensky_onbellek/pirep_cevresi/` altına yazar.
+- Tek bir izi denemek: `turbulans-sanal-pirep iz opensky_onbellek/UCUS_TARIH.parquet`.
 
 ## SIGMET/AIRMET doğrulaması
 

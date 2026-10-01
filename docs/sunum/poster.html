@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Türbülans Radar Posteri</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Narrow:wght@500;700&family=IBM+Plex+Sans:wght@400;600&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+/* Düzen: havacılık seyir haritası gibi; üstte başlık şeridi, altında 3 sütunlu ızgara, A1 dikey baskı. Tek (açık) tema: basılı poster. */
+:root {
+  --kagit: #f6f7f4;
+  --murekkep: #17222c;
+  --soluk: #56636e;
+  --cizgi: #c9d2d6;
+  --hava-sahasi: #1f5f8b;
+  --uyari: #a3317a;
+  --risk: #c4512b;
+  --guvenli: #2f7d4f;
+  --yuzey: #ffffff;
+  --baslik: "Archivo Narrow", "Arial Narrow", "Roboto Condensed", sans-serif;
+  --govde: "IBM Plex Sans", "Segoe UI", Arial, sans-serif;
+  --veri: "IBM Plex Mono", Consolas, "Courier New", monospace;
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { background: var(--kagit); color: var(--murekkep); }
+body { margin: 0; font: 15px/1.5 var(--govde); padding: 24px 16px; }
+.poster { max-width: 1180px; margin: 0 auto; display: grid; gap: 22px; }
+header { border-bottom: 3px solid var(--murekkep); padding-bottom: 16px; display: grid; gap: 6px; }
+.ust-etiket { font: 600 12px/1 var(--veri); letter-spacing: .12em; text-transform: uppercase; color: var(--hava-sahasi); }
+h1 { font: 700 clamp(40px, 7vw, 76px)/0.95 var(--baslik); margin: 0; letter-spacing: -.01em; text-wrap: balance; }
+.alt-baslik { font-size: 19px; max-width: 62ch; margin: 0; }
+.kunye { font: 13px/1.4 var(--veri); color: var(--soluk); }
+.izgara { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; align-items: start; }
+.genis { grid-column: span 2; }
+section { display: grid; gap: 10px; min-width: 0; }
+h2 { font: 700 24px/1.1 var(--baslik); margin: 0; padding-top: 8px; border-top: 1px solid var(--cizgi); text-wrap: balance; }
+h2 .fl { font: 600 12px var(--veri); color: var(--hava-sahasi); letter-spacing: .08em; margin-right: 8px; }
+p, ul, ol { margin: 0; }
+ul, ol { padding-left: 20px; display: grid; gap: 4px; }
+strong { font-weight: 600; }
+.katmanlar { list-style: none; padding: 0; display: grid; gap: 8px; }
+.katmanlar li { display: grid; grid-template-columns: 92px 1fr; gap: 10px; }
+.katmanlar b { font: 600 12px/1.6 var(--veri); text-transform: uppercase; letter-spacing: .06em; color: var(--hava-sahasi); }
+.akis { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font: 13px var(--veri); }
+.akis span { border: 1.5px solid var(--hava-sahasi); padding: 4px 8px; background: var(--yuzey); }
+.akis i { font-style: normal; color: var(--soluk); }
+figure { margin: 0; display: grid; gap: 6px; }
+figure img { width: 100%; max-width: 100%; display: block; border: 1px solid var(--cizgi); }
+figcaption { font-size: 13px; color: var(--soluk); }
+figcaption b { color: var(--murekkep); }
+.tablo-kap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-size: 13px; }
+th, td { text-align: left; padding: 5px 6px; border-bottom: 1px solid var(--cizgi); vertical-align: top; }
+th { font: 600 11px var(--veri); text-transform: uppercase; letter-spacing: .06em; color: var(--soluk); }
+td.sayi { font-family: var(--veri); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tamam { color: var(--guvenli); font-weight: 600; }
+.eksik { color: var(--risk); font-weight: 600; }
+.doldur { border: 1.5px dashed var(--uyari); color: var(--uyari); padding: 10px 12px; font-size: 14px; background: var(--yuzey); }
+.not { font-size: 13px; color: var(--soluk); }
+.uyari-seridi { border: 2px solid var(--uyari); padding: 12px 14px; display: grid; gap: 4px; background: var(--yuzey); }
+.uyari-seridi strong { color: var(--uyari); font-family: var(--baslik); font-size: 20px; }
+footer { border-top: 3px solid var(--murekkep); padding-top: 12px; font-size: 12px; color: var(--soluk); display: grid; gap: 4px; }
+@media (max-width: 900px) {
+  .izgara { grid-template-columns: minmax(0, 1fr); }
+  .genis { grid-column: auto; }
+}
+@page { size: A1 portrait; margin: 18mm; }
+@media print {
+  body { padding: 0; font-size: 17px; }
+  .poster { max-width: none; }
+  section, figure { break-inside: avoid; }
+}
+</style>
+</head>
+<body>
+<main class="poster">
+  <header>
+    <div class="ust-etiket">Bitirme projesi · Karar destek sistemi · FL280–FL420</div>
+    <h1>Türbülans Radar</h1>
+    <p class="alt-baslik">Gerçek uçuş izlerini ERA5 rüzgarıyla eşleştirip seyir irtifasında türbülans riskini hesaplayan ve SIGMET, kısıtlı saha ve riskli bölgelerden kaçınan rotayı öneren sistem.</p>
+    <div class="kunye">[Ad Soyad] · Danışman: [unvan, ad soyad] · [bölüm, üniversite] · [tarih]</div>
+  </header>
+
+  <div class="izgara">
+    <section>
+      <h2><span class="fl">01</span>Problem</h2>
+      <p>Açık hava türbülansı radarda görünmez. Pilot raporları (PIREP) gönüllü, gecikmeli ve konumu kabadır.</p>
+      <div class="doldur">[Türbülans kaynaklı yaralanma ve maliyet istatistiği: NTSB / EASA kaynağıyla]</div>
+      <p><strong>Soru:</strong> Açık veriyle, dispeçerin rota kararına girdi olacak, ölçülebilir ve sınırlarını söyleyen bir risk göstergesi üretilebilir mi?</p>
+    </section>
+
+    <section>
+      <h2><span class="fl">02</span>Yaklaşım</h2>
+      <ul class="katmanlar">
+        <li><b>Veri</b><span>OpenSky ADS-B izi, ERA5 (CDS birincil, ARCO yedek), NOAA GFS, AWC SIGMET, IEM PIREP.</span></li>
+        <li><b>Fizik</b><span>Ellrod TI1 (s⁻²) ve Richardson sayısı; seviye, uçağın barometrik irtifasından (hPa).</span></li>
+        <li><b>Öğrenme</b><span>Gece kendiliğinden büyüyen PIREP veri seti; gün gruplu doğrulama, bootstrap güven aralığı, konformal "belirsiz" durumu.</span></li>
+        <li><b>Karar</b><span>A*: önce SIGMET ve kısıtlı saha (sert), sonra riskli TI1 (yumuşak), sonra yakıt.</span></li>
+      </ul>
+    </section>
+
+    <section>
+      <h2><span class="fl">03</span>Mimari</h2>
+      <div class="akis">
+        <span>OpenSky · ERA5 · GFS · SIGMET</span><i>→</i><span>işçi + kuyruk</span><i>→</i><span>PostgreSQL</span><i>→</i><span>FastAPI</span><i>→</i><span>3B harita · rota simülasyonu</span>
+      </div>
+      <ul>
+        <li>Uzun işler PostgreSQL kuyruğunda (<code>FOR UPDATE SKIP LOCKED</code>), uyarılar LISTEN/NOTIFY → WebSocket.</li>
+        <li>Gece ML veri hattı API'nin kendi zamanlayıcısıyla; dış servislere kilit ve günlük tavan.</li>
+        <li>11 mimari karar kaydı, 597 otomatik test, CI'da 5 iş (sır taraması, SBOM, tarayıcı testleri).</li>
+      </ul>
+    </section>
+
+    <figure class="genis">
+      <img src="ekranlar/02_simulasyon_turbulanstan_kacinma.jpg" alt="Rota simülasyonu: büyük daire ve türbülanstan kaçınan optimize rota, sonuç tablosu">
+      <figcaption><b>İstanbul → Doğu Anadolu, FL360, 15.01.2019 20:00 UTC (ERA5).</b> Büyük daire rotasında 4 riskli TI1 noktası; A* 53 km yanal sapmayla hepsinden kaçındı. Bedel: +1,6 dk, +%2,0 yakıt. Ekran ağsız demo paketinden.</figcaption>
+    </figure>
+
+    <section>
+      <h2><span class="fl">04</span>Performans</h2>
+      <div class="tablo-kap">
+        <table>
+          <thead><tr><th>Ölçüt</th><th>Hedef</th><th>Ölçülen</th></tr></thead>
+          <tbody>
+            <tr><td>Tek uçuş analizi (1614 nokta)</td><td class="sayi">≤ 10 sn</td><td class="sayi tamam">0,23 sn</td></tr>
+            <tr><td>Nokta tahmini p95, 16 eşzamanlı</td><td class="sayi">≤ 1 sn</td><td class="sayi tamam">0,30 sn</td></tr>
+            <tr><td>A* rota p95, 16 eşzamanlı, 4 süreç</td><td class="sayi">≤ 5 sn</td><td class="sayi tamam">3,95 sn</td></tr>
+            <tr><td>Aynısı, 1 süreç</td><td class="sayi">≤ 5 sn</td><td class="sayi eksik">5,45 sn</td></tr>
+            <tr><td>İşçi görev hızı</td><td class="sayi">≥ 10/dk</td><td class="sayi tamam">467/dk</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="not">Dizüstü i7-13700H, WSL2, 1 Ekim 2026. Tek süreçte GIL darboğazı; 4 süreçle verim ~3 kat.</p>
+    </section>
+
+    <figure>
+      <img src="ekranlar/01_harita3d_THY322.jpg" alt="3B harita: THY322 uçuşunun TI1 renkli izi">
+      <figcaption><b>THY322, 15.01.2019.</b> 1614 gerçek ADS-B noktası; 150–350 hPa içindeki 720'si ERA5 ile eşleşti. Kapsam dışı noktalar "veri yok" kalır.</figcaption>
+    </figure>
+
+    <figure>
+      <img src="ekranlar/03_simulasyon_kisitli_sahadan_kacinma.jpg" alt="Rota simülasyonu: kısıtlı sahadan kaçınan rota">
+      <figcaption><b>Malatya → Musul.</b> Normal rota örnek kısıtlı sahaya 11 noktada giriyor; önerilen rota 0. ERA5 kapsamı dışında: sistem rüzgarı hesaba katamadığını yazıyor.</figcaption>
+    </figure>
+
+    <section>
+      <h2><span class="fl">05</span>Doğruluk</h2>
+      <ul>
+        <li><strong>TI1 tek başına sınırlı:</strong> seyir irtifasındaki 1600 PIREP'te ROC-AUC 0,69; eşikte yakalama 0,31, yanlış alarm 0,10. PUE502 uçuşunda aktif TURB SIGMET'i TI1 yakalamadı. Güvenlik garantisi SIGMET sert kısıtından gelir.</li>
+        <li><strong>Backtest (15.01.2019):</strong> riskli nokta oranı gerçek uçuşlarda 0,28, önerilen rotalarda 0,00. Ölçüm döngüseldir: A* TI1'i düşürür, başarı TI1 ile ölçülür.</li>
+      </ul>
+      <div class="doldur">[ML: ilk gerçek eğitim (60 eşleşmiş gün) sonrası F1, ROC-AUC ve %95 güven aralıkları, TI1'e göre AUC farkı, holdout'ta konformal kapsama]</div>
+    </section>
+
+    <section>
+      <h2><span class="fl">06</span>Sanal PIREP</h2>
+      <p>Seyirdeki uçağın atanmış seviyesinden ≥ 90 ft sapması (RVSM otopilot toleransı ±65 ft + 25 ft ADS-B kuantizasyonu), düşey hız tepkisiyle birlikte olay sayılır. 50 km / ±2000 ft / ±60 dk içinde en az 2 uçağın doğruladığı olay dispeçere WebSocket ile gider.</p>
+      <p class="not">Ham sapmadır, EDR değildir; eşikler kalibre edilmedi. POD/POFD: [ölçüm sonrası].</p>
+    </section>
+
+    <section>
+      <h2><span class="fl">07</span>Sınırlar ve sonraki adımlar</h2>
+      <ul>
+        <li>Etiket PIREP'tir; nesnel EDR için NOAA MADIS başvurusu yapıldı.</li>
+        <li>OpenSky ticari olmayan araştırma içindir; ürünleşmede havayolunun kendi ADS-B akışı.</li>
+        <li>Sonraki: tahmin modu ve WAFS kıyası, uçak tipine duyarlı risk, OGC API – EDR / IWXXM.</li>
+      </ul>
+    </section>
+  </div>
+
+  <div class="uyari-seridi">
+    <strong>Karar destek aracıdır.</strong>
+    <span>Çıktılar sertifikalı EDR değildir; operasyonel kararın tek dayanağı olarak kullanılmaz.</span>
+  </div>
+
+  <footer>
+    <span>Veri: OpenSky Network (Schäfer ve ark., IPSN 2014) · Contains modified Copernicus Climate Change Service information 2026 (ERA5, DOI 10.24381/cds.bd0915c6) · PIREP: Iowa Environmental Mesonet of Iowa State University · SIGMET: NOAA Aviation Weather Center.</span>
+    <span>Örnek kısıtlı sahalar Natural Earth ülke sınırlarından türetilmiştir; resmi AIP/NOTAM değildir.</span>
+  </footer>
+</main>
+</body>
+</html>

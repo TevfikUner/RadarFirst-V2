@@ -4,6 +4,24 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Sanal PIREP (M6) ve sunum paketi (E8)
+
+- **Sanal PIREP:** ADS-B izinden seyir fazı irtifa sapması olayları
+  (`fizik/sanal_pirep.py`, `sanal_pirepler` tablosu, göç `e2b6c8d4a1f9`).
+  İşçideki her uçuş/rota analizi izi tarar (OpenSky'a ek sorgu yok); havayolu
+  beslemesi için `POST /api/v1/sanal-pirep/iz`, koridor sorgusu için
+  `GET /api/v1/sanal-pirep`. En az 2 uçağın doğruladığı olaylar `/ws/uyarilar`'a
+  `tip: "sanal_pirep"` olarak gider. Eşiklerin dayanağı ADR 0011'de.
+- **POD/POFD aracı:** `turbulans-sanal-pirep dogrula` ml_ornekleri PIREP'lerini
+  çevrelerindeki ADS-B izleriyle karşılaştırır; varsayılan yalnızca önbellek,
+  yeni OpenSky sorgusu açık bayrakla ve en fazla 20.
+- **Sunum paketi:** `docs/sunum/` altında demo senaryosu, 15 dakikalık sunum
+  akışı, basılabilir poster ve ağsız demo ekranları (`turbulans-demo-ekranlari`
+  ile yeniden üretilir).
+- **Düzeltme:** Rota simülasyonu, türbülans yokken yalnızca SIGMET/kısıtlı saha
+  nedeniyle değişen rotada "iki rota aynı" yazıyordu; artık sert kısıttan
+  kaçınıldığını ve ihlal sayılarını gösteriyor. Güvenli rota yoksa "öneri yok" der.
+
 ## Şema sapması düzeltildi, API/kuyruk yollarında disk sınırsız büyümüyor
 
 - **`ucuslar.olusturulma_zamani` şema sapması:** ORM modeli bu sütunu
