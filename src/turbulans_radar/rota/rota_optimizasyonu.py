@@ -772,6 +772,7 @@ _SAHA_OZET_ALANLARI = (
     "gecerlilik_baslangic",
     "gecerlilik_bitis",
     "poligon",
+    "aktivasyon",
 )
 
 

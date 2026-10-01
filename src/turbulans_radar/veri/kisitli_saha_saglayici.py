@@ -10,7 +10,9 @@ Veri GeoJSON FeatureCollection olarak içe aktarılır. Geometri Polygon ya da
 MultiPolygon (her parça ayrı kayıt); iç halkalar (delikler) muhafazakâr olarak
 yok sayılır. properties: kimlik, ad, tur (CATISMA/YASAK/KISITLI/TEHLIKELI/
 GECICI), taban_ft, tavan_ft (boş = yer / sınırsız), baslangic, bitis (ISO
-8601; boş = süresiz), aciklama.
+8601; boş = süresiz), aciklama; isteğe bağlı aktif_araliklar (NOTAM
+aktivasyonları) ve haftalik_takvim (AIP "MON-FRI 0600-1500"): verilirse saha
+geçerlilik içinde yalnızca o zamanlarda aktiftir (bkz. saha_aktivasyonu.py).
     turbulans-kisitli-saha ice-aktar sahalar.geojson --kaynak aip
     POST /api/v1/kisitli-sahalar?kaynak=notam   (örn. n8n: NOTAM -> geçici kısıt)
 
@@ -33,6 +35,7 @@ from sqlalchemy.orm import Session
 
 from turbulans_radar.depo.models import KisitliHavaSahasi, kutuyla_kesisir
 from turbulans_radar.depo.veritabani import motor_al
+from turbulans_radar.veri.saha_aktivasyonu import aktivasyonu_ayristir
 
 SAHA_TURLERI = ("CATISMA", "YASAK", "KISITLI", "TEHLIKELI", "GECICI")
 ORNEK_KAYNAK = "ornek"
@@ -122,6 +125,10 @@ def geojson_kayitlarina_cevir(geojson: dict, kaynak: str, maks_ozellik: int | No
         bitis = _zaman(ozellikler_.get("bitis"), sira, "bitis")
         if baslangic and bitis and baslangic >= bitis:
             raise _hata(sira, "baslangic bitis'ten önce olmalı")
+        try:
+            aktivasyon = aktivasyonu_ayristir(ozellikler_.get("aktif_araliklar"), ozellikler_.get("haftalik_takvim"))
+        except ValueError as hata:
+            raise _hata(sira, str(hata)) from None
         kimlik = str(ozellikler_.get("kimlik") or hashlib.sha1(json.dumps(halkalar).encode()).hexdigest()[:16])
         ad = str(ozellikler_.get("ad") or kimlik)
         for parca, halka in enumerate(halkalar):
@@ -142,6 +149,7 @@ def geojson_kayitlarina_cevir(geojson: dict, kaynak: str, maks_ozellik: int | No
                 "boylam_min": min(boylamlar),
                 "boylam_maks": max(boylamlar),
                 "aciklama": ozellikler_.get("aciklama"),
+                "aktivasyon": aktivasyon,
             }
             # MultiPolygon her PARÇASI ayrı bir kayıt üretir (yukarı bkz.);
             # maks_ozellik sadece 'features' sayısını sınırlar, tek bir
@@ -214,6 +222,7 @@ def _satiri_sozluge_cevir(s: KisitliHavaSahasi) -> dict:
         "gecerlilik_bitis": s.gecerlilik_bitis,
         "poligon": s.poligon,
         "aciklama": s.aciklama,
+        "aktivasyon": s.aktivasyon,
     }
 
 

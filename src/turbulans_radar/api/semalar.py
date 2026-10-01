@@ -215,6 +215,8 @@ class KisitliSahaYaniti(BaseModel):
     gecerlilik_bitis: datetime | None = None
     poligon: list[list[float]]
     aciklama: str | None = None
+    # NULL: geçerlilik içinde her zaman aktif; aksi halde {araliklar, haftalik} (UTC).
+    aktivasyon: dict | None = None
 
 
 class KisitliSahaKontroluYaniti(BaseModel):

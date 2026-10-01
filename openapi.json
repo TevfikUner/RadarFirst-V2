@@ -3418,6 +3418,18 @@
               }
             ],
             "title": "Aciklama"
+          },
+          "aktivasyon": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aktivasyon"
           }
         },
         "type": "object",

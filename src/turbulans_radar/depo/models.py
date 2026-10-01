@@ -266,6 +266,9 @@ class KisitliHavaSahasi(Base):
     boylam_min: Mapped[float] = mapped_column(Float, nullable=False)
     boylam_maks: Mapped[float] = mapped_column(Float, nullable=False)
     aciklama: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # Geçerlilik içinde yalnızca bu zamanlarda aktif (NOTAM aralıkları, AIP
+    # haftalık takvimi; bkz. veri/saha_aktivasyonu.py). NULL: her zaman aktif.
+    aktivasyon: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     guncellenme_zamani: Mapped[object] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )

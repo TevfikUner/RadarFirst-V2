@@ -34,6 +34,7 @@ import shapely.affinity
 
 from turbulans_radar import config
 from turbulans_radar.fizik.eslestirme import rotayi_hava_durumuyla_eslestir
+from turbulans_radar.veri.saha_aktivasyonu import aktif_maskesi
 
 TURBULANS_CEZASI_SANIYE = 6 * 3600.0
 _KM_PER_DERECE = 111.2
@@ -152,6 +153,8 @@ class PoligonKisitKatmani:
             maske &= baslangic <= t + d
         if bitis is not None:
             maske &= t - d <= bitis
+        if kayit.get("aktivasyon"):
+            maske &= aktif_maskesi(kayit["aktivasyon"], t, d)
         return maske
 
     def _kayma_araliklari(self, kayit, kos_enlem, t, d):

@@ -568,6 +568,14 @@ girmemek, (2) TI1 riskinden kaçınmak, (3) en ucuz yakıt/süre.
   `turbulans-kisitli-saha ice-aktar sahalar.geojson --kaynak aip` ya da
   `POST /api/v1/kisitli-sahalar?kaynak=notam` (n8n bir NOTAM akışından geçici
   kısıtları bu uçla iter). İç halkalar (delikler) muhafazakâr olarak yok sayılır.
+- **Aktivasyon zamanları (askerî sahalar):** Bir saha geçerlilik süresi içinde
+  yalnızca belirli zamanlarda aktif olabilir. `aktif_araliklar` NOTAM ile duyurulan
+  aktivasyonları (`[{"baslangic": "...Z", "bitis": "...Z"}]`), `haftalik_takvim`
+  AIP'teki "MON-FRI 0600-1500" türü takvimi tutar
+  (`[{"gunler": ["PZT", "CUM"], "baslangic": "06:00", "bitis": "15:00"}]`, UTC;
+  bitiş başlangıçtan küçükse gece yarısını aşar). İkisi de yoksa saha her zaman
+  aktiftir. A*, uçağın o noktaya varış zamanı (± belirsizlik payı) aktif bir
+  zamana denk geliyorsa sahayı yasak sayar.
 - **Örnek veri:** paketle gelen `ornek_kisitli_sahalar.geojson`, Natural Earth
   1:50m (kamu malı) ülke sınırlarından **Suriye ve Irak'ı** "çatışma bölgesi"
   olarak içerir. `KISITLI_SAHA_ORNEK_VERI_YUKLE=true` (varsayılan) iken API
