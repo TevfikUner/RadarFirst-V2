@@ -11,6 +11,7 @@ import glob
 import hashlib
 import os
 import tempfile
+import time
 
 import numpy as np
 import pandas as pd
@@ -130,6 +131,8 @@ def yeni_iem_pireplerini_cek(
     imlec = imlec.tz_localize("UTC") if imlec.tzinfo is None else imlec.tz_convert("UTC")
     ozet = {"iem_gun": 0, "iem_eklenen": 0}
     while ozet["iem_gun"] < maks_gun and imlec + pd.Timedelta(days=1) <= son_yayin:
+        if ozet["iem_gun"]:
+            time.sleep(config.ML_IEM_ISTEKLER_ARASI_SANIYE)
         bitis = imlec + pd.Timedelta(days=1)
         try:
             gunluk = getirici(imlec, bitis)

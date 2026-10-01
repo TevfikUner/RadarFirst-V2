@@ -92,6 +92,8 @@ ML_GECE_MAKS_CDS_ISTEK = _ortam_sayi("ML_GECE_MAKS_CDS_ISTEK", 60, int)
 ML_GECE_ISI_SAATI = _ortam_str("ML_GECE_ISI_SAATI", "").strip()
 ML_IEM_BASLANGIC = _ortam_str("ML_IEM_BASLANGIC", "2020-04-01")
 ML_IEM_GECELIK_MAKS_GUN = _ortam_sayi("ML_IEM_GECELIK_MAKS_GUN", 7, int)
+# IEM'in yazılı hız sınırı yok; günlük PIREP istekleri arasında nezaket beklemesi.
+ML_IEM_ISTEKLER_ARASI_SANIYE = _ortam_sayi("ML_IEM_ISTEKLER_ARASI_SANIYE", 2.0)
 ML_MIN_ORNEK = _ortam_sayi("ML_MIN_ORNEK", 300, int)
 ML_MIN_GUN = _ortam_sayi("ML_MIN_GUN", 60, int)
 ML_HOLDOUT_ORANI = _ortam_sayi("ML_HOLDOUT_ORANI", 0.2)
@@ -148,6 +150,14 @@ TRINO_SCHEMA = _ortam_str("TRINO_SCHEMA", "osky")
 # Trino 479+ tarafından otomatik reddediliyor). Bu yüzden veri_yukleme.py
 # her state-vector sorgusuna hour filtresi de ekliyor.
 MAKS_STATE_VECTOR_SATIRI = _ortam_sayi("MAKS_STATE_VECTOR_SATIRI", 50_000, int)
+
+# OpenSky Trino kuralları (openskynetwork.github.io/opensky-api/trino.html): kullanıcı
+# başına en fazla 2 eşzamanlı + 2 kuyrukta sorgu, sorgu başına 30 dk; tekrarlanan
+# ihlal hesabı askıya aldırır. Sistem genelinde (tüm süreçler) aynı anda yalnızca
+# bir sorgu çalışır (dağıtık kilit) ve günlük sorgu sayısı burada sınırlanır
+# (bir uçuş = 2 sorgu; yeniden denemeler de sayılır).
+OPENSKY_GUNLUK_MAKS_SORGU = _ortam_sayi("OPENSKY_GUNLUK_MAKS_SORGU", 400, int)
+OPENSKY_SORGU_KILIDI_BEKLEME_SANIYE = _ortam_sayi("OPENSKY_SORGU_KILIDI_BEKLEME_SANIYE", 1800.0)
 
 # veri_yukleme.py -- bu boyuttan (MB) küçük küpler tamamen belleğe yüklenir;
 # büyükleri (örn. GB boyutlu ERA5 arşivi) sadece rotanın bölge/zaman

@@ -22,6 +22,11 @@ def gecici_pencere_deposu(monkeypatch, tmp_path):
     return tmp_path / "depo"
 
 
+@pytest.fixture(autouse=True)
+def iem_beklemesi_yok(monkeypatch):
+    monkeypatch.setattr(config, "ML_IEM_ISTEKLER_ARASI_SANIYE", 0.0)
+
+
 def _pirepler(satirlar):
     return pd.DataFrame(
         {
@@ -146,6 +151,16 @@ def test_iem_gecelik_gun_siniri_ve_imlecten_devam(sahte_iem_deposu):
         getirici=lambda b, e: istenen.append(b.date().isoformat()) or _pirepler([]),
     )
     assert istenen == ["2021-03-01", "2021-03-02"]
+
+
+def test_iem_gunluk_istekleri_arasinda_bekler(sahte_iem_deposu, monkeypatch):
+    durum, _ = sahte_iem_deposu
+    durum[mv.IEM_DURUM_ANAHTARI] = {"imlec": "2021-03-01T00:00:00+00:00"}
+    monkeypatch.setattr(config, "ML_IEM_ISTEKLER_ARASI_SANIYE", 2.0)
+    beklemeler = []
+    monkeypatch.setattr(mv.time, "sleep", beklemeler.append)
+    mv.yeni_iem_pireplerini_cek(simdi="2026-09-30T10:00Z", maks_gun=3, getirici=lambda b, e: _pirepler([]))
+    assert beklemeler == [2.0, 2.0]
 
 
 def test_iem_hatasinda_imlec_korunur_ve_hata_raporlanir(sahte_iem_deposu):
