@@ -20,7 +20,7 @@ verisi ve trafik ölçümü sırada.
 | A0 | 3, 5: Kapsam ve kullanım zamanı | Tamam: `kapsam`, `planlama_ufku`, `sigmet_ufuk_disi` uyarısı; arayüzde ToC/ToD | 632b5f7 |
 | A1 | 2: Saha aktivasyonu | Tamam: NOTAM aralıkları (`aktif_araliklar`) ve AIP haftalık takvimi (`haftalik_takvim`). **Gerçek ENR 5 verisi hazırlanacak.** | c71bbf8 |
 | A2 | 1: ATS yolu / FRA ağı | Tamam: graf tabanlı A*, `arama_uzayi="ats"`, uçuş planı biçiminde özet. **Gerçek ENR 3/4.4 verisi hazırlanacak** (`docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md`). | cde94c9 |
-| A3 | 4: Ayırma göstergesi | Tamam: `turbulans-ayirma`. **Gerçek trafikle ölçüm, kullanıcı onayıyla OpenSky sorgusu gerektirir.** | (bu commit) |
+| A3 | 4: Ayırma göstergesi | Tamam: `turbulans-ayirma`. **Gerçek trafikle ölçüm, kullanıcı onayıyla OpenSky sorgusu gerektirir.** | a8c9ecc |
 
 İşaretler: **[doğrulanmalı]** = proje ekibinin erişip kontrol edemediği ya da
 belleğe dayanan bilgi; rapora ya da koda girmeden önce birincil kaynaktan
