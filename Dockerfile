@@ -19,7 +19,7 @@ RUN pip install --no-cache-dir --require-hashes -r requirements.lock \
 # yeniden derleme internete gitmez (zayıf bağlantıda derleme takılmasın).
 COPY src/turbulans_radar/__init__.py src/turbulans_radar/
 COPY src/turbulans_radar/cli/__init__.py src/turbulans_radar/cli/statik_indir.py src/turbulans_radar/cli/
-RUN PYTHONPATH=/app/src python -m turbulans_radar.cli.statik_indir --fir-hedef veri_dosyalari/fir_sinirlari.geojson
+RUN PYTHONPATH=/app/src PYTHONUNBUFFERED=1 python -m turbulans_radar.cli.statik_indir --fir-hedef veri_dosyalari/fir_sinirlari.geojson
 
 COPY . .
 ENV PYTHONPATH=/app/src

@@ -169,10 +169,12 @@ def paketi_kur(ad: str, hedef: Path = VARSAYILAN_HEDEF, zorla=False, indirici=_i
 
 
 def dosyayi_kur(ad: str, hedef_yol: str | None = None, zorla=False, indirici=_indir) -> str:
-    from turbulans_radar import config
+    if hedef_yol is None:
+        from turbulans_radar import config
 
+        hedef_yol = config.FIR_SINIRLARI_DOSYASI
     bilgi = DOSYALAR[ad]
-    yol = Path(hedef_yol or config.FIR_SINIRLARI_DOSYASI)
+    yol = Path(hedef_yol)
     if not zorla and yol.exists():
         try:
             butunlugu_dogrula(yol.read_bytes(), bilgi["butunluk"])
