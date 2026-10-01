@@ -122,6 +122,7 @@ from turbulans_radar.api.semalar import (
     WsBiletiYaniti,
 )
 from turbulans_radar.cli.statik_indir import yerel_kutuphane_durumu
+from turbulans_radar.depo.dagitik_kilit import LiderKilidi
 from turbulans_radar.depo.denetim import denetim_kaydet, denetim_kayitlarini_listele
 from turbulans_radar.depo.gorev_deposu import (
     aktif_gorev_var_mi,
@@ -204,32 +205,64 @@ async def _yasam_dongusu(uygulama):
         except Exception as hata:
             _logger.warning("Örnek kısıtlı sahalar yüklenemedi: %s", dostane_hata_mesaji(hata))
     _anahtar_ayarlarini_denetle()
-    zamanlayici = None
-    if config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA > 0:
-        zamanlayici = asyncio.create_task(_sigmet_zamanlayicisi(config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA * 60))
     dinleyici = asyncio.create_task(_uyari_dinleyicisi())
-    openaip_zamanlayici = None
+    lider = LiderKilidi(ZAMANLAYICI_LIDER_KILIDI)
+    fabrikalar = _zamanlayici_fabrikalari()
+    lider_dongusu = asyncio.create_task(_zamanlayici_lider_dongusu(lider, fabrikalar)) if fabrikalar else None
+    isci = GorevIscisi().baslat() if config.GOREV_GOMULU_ISCI else None
+    yield
+    for gorev in (dinleyici, lider_dongusu):
+        if gorev is not None:
+            gorev.cancel()
+    await asyncio.to_thread(lider.birak)
+    if isci is not None:
+        await asyncio.to_thread(isci.durdur, 5.0)
+
+
+ZAMANLAYICI_LIDER_KILIDI = "api_zamanlayicilari"
+
+
+def _zamanlayici_fabrikalari() -> list:
+    """Açık olan, dış servise giden zamanlayıcılar (coroutine fabrikaları)."""
+    fabrikalar = []
+    if config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA > 0:
+        fabrikalar.append(lambda: _sigmet_zamanlayicisi(config.SIGMET_OTOMATIK_GUNCELLEME_DAKIKA * 60))
     if config.OPENAIP_OTOMATIK_GUNCELLEME_SAAT > 0:
         if os.environ.get("OPENAIP_API_ANAHTARI"):
-            openaip_zamanlayici = asyncio.create_task(
-                _openaip_zamanlayicisi(config.OPENAIP_OTOMATIK_GUNCELLEME_SAAT * 3600)
-            )
+            fabrikalar.append(lambda: _openaip_zamanlayicisi(config.OPENAIP_OTOMATIK_GUNCELLEME_SAAT * 3600))
         else:
             _logger.warning("OPENAIP_OTOMATIK_GUNCELLEME_SAAT açık ama OPENAIP_API_ANAHTARI yok; yenileme kapalı.")
-    ml_zamanlayici = None
     if config.ML_GECE_ISI_SAATI:
         try:
             _gece_isi_saati(config.ML_GECE_ISI_SAATI)
-            ml_zamanlayici = asyncio.create_task(_ml_gece_zamanlayicisi(config.ML_GECE_ISI_SAATI))
+            fabrikalar.append(lambda: _ml_gece_zamanlayicisi(config.ML_GECE_ISI_SAATI))
         except ValueError as hata:
             _logger.error("ML_GECE_ISI_SAATI geçersiz, ML gece işi zamanlayıcısı kapalı: %s", hata)
-    isci = GorevIscisi().baslat() if config.GOREV_GOMULU_ISCI else None
-    yield
-    for gorev in (zamanlayici, dinleyici, openaip_zamanlayici, ml_zamanlayici):
-        if gorev is not None:
+    return fabrikalar
+
+
+async def _zamanlayici_lider_dongusu(lider, fabrikalar=None, yoklama_saniye=None):
+    """Zamanlayıcıları yalnızca lider kilidini tutan API süreci çalıştırır
+    (WEB_CONCURRENCY > 1'de AWC/openAIP/CDS'e giden istekler çoğalmasın).
+    Liderlik kaybedilirse zamanlayıcılar durdurulur, başka süreç devralır."""
+    fabrikalar = _zamanlayici_fabrikalari() if fabrikalar is None else fabrikalar
+    yoklama = config.ZAMANLAYICI_LIDER_YOKLAMA_SANIYE if yoklama_saniye is None else yoklama_saniye
+    gorevler = []
+    try:
+        while True:
+            lider_mi = await asyncio.to_thread(lider.dene)
+            if lider_mi and not gorevler:
+                gorevler = [asyncio.create_task(fabrika()) for fabrika in fabrikalar]
+                _logger.info("Bu API süreci zamanlayıcı lideri (%d zamanlayıcı başlatıldı).", len(gorevler))
+            elif not lider_mi and gorevler:
+                for gorev in gorevler:
+                    gorev.cancel()
+                gorevler = []
+                _logger.warning("Zamanlayıcı liderliği kaybedildi; zamanlayıcılar durduruldu.")
+            await asyncio.sleep(yoklama)
+    finally:
+        for gorev in gorevler:
             gorev.cancel()
-    if isci is not None:
-        await asyncio.to_thread(isci.durdur, 5.0)
 
 
 async def _uyari_iletildi(baglanti, pid, kanal, yuk):

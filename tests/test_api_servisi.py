@@ -1540,3 +1540,55 @@ async def test_sanal_pirep_izi_yonetici_ister_ve_irtifasiz_iz_reddedilir(
         nokta["irtifa_m"] = nokta["baro_irtifa_m"] = None
     yanit = await istemci.post("/api/v1/sanal-pirep/iz", json=irtifasiz, headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 400
+
+
+# --- Zamanlayıcı liderliği (WEB_CONCURRENCY > 1) ---
+
+
+def test_lider_kilidini_tek_surec_tutar_ve_birakinca_devredilir():
+    from turbulans_radar.depo.dagitik_kilit import LiderKilidi
+
+    birinci, ikinci = LiderKilidi("test_lider_kilidi"), LiderKilidi("test_lider_kilidi")
+    try:
+        assert birinci.dene() and birinci.dene()
+        assert not ikinci.dene()
+        birinci.birak()
+        assert ikinci.dene() and ikinci.lider_mi
+    finally:
+        birinci.birak()
+        ikinci.birak()
+
+
+async def test_zamanlayicilari_yalnizca_lider_calistirir_ve_liderlik_kaybinda_durdurur():
+    class SahteLider:
+        def __init__(self, durumlar):
+            self.durumlar = list(durumlar)
+
+        def dene(self):
+            return self.durumlar.pop(0) if self.durumlar else False
+
+    baslayan, iptal_edilen = [], []
+
+    async def sahte_zamanlayici():
+        baslayan.append(1)
+        try:
+            await asyncio.sleep(3600)
+        except asyncio.CancelledError:
+            iptal_edilen.append(1)
+            raise
+
+    lider_olmayan = asyncio.create_task(
+        api_servisi._zamanlayici_lider_dongusu(SahteLider([False] * 5), [sahte_zamanlayici], yoklama_saniye=0.01)
+    )
+    await asyncio.sleep(0.1)
+    assert baslayan == []
+    lider_olmayan.cancel()
+
+    gorev = asyncio.create_task(
+        api_servisi._zamanlayici_lider_dongusu(
+            SahteLider([True, True, False]), [sahte_zamanlayici, sahte_zamanlayici], yoklama_saniye=0.01
+        )
+    )
+    await asyncio.sleep(0.15)
+    assert len(baslayan) == 2 and len(iptal_edilen) == 2
+    gorev.cancel()

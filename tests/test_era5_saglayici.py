@@ -381,3 +381,36 @@ def test_baska_islemin_hazirladigi_dilim_kilitten_sonra_yeniden_indirilmez(monke
 def test_ucus_dilimi_indirmesi_dagitik_kilitle_korunur(katalogsuz, kilit_kayitlari):
     es.ucus_hava_dilimi_hazirla([40.0], [30.0], ["2019-01-15T20:00Z"], _KaydedenSaglayici())
     assert len(kilit_kayitlari) == 1 and kilit_kayitlari[0].startswith("era5_dilim:era5_20190115T19_")
+
+
+def test_cds_istekleri_arasinda_nezaket_beklemesi(monkeypatch):
+    from turbulans_radar.veri import era5_saglayici
+
+    monkeypatch.setattr(era5_saglayici.config, "CDS_ISTEKLER_ARASI_SANIYE", 5.0)
+    monkeypatch.setattr(era5_saglayici, "_son_cds_istegi", None)
+    an = [100.0]
+    uykular = []
+
+    def uyku(saniye):
+        uykular.append(saniye)
+        an[0] += saniye
+
+    assert era5_saglayici.cds_nezaket_beklemesi(lambda: an[0], uyku) == 0.0
+    an[0] += 2.0
+    assert era5_saglayici.cds_nezaket_beklemesi(lambda: an[0], uyku) == pytest.approx(3.0)
+    an[0] += 10.0
+    assert era5_saglayici.cds_nezaket_beklemesi(lambda: an[0], uyku) == 0.0
+    assert uykular == [pytest.approx(3.0)]
+
+
+def test_cds_istemcisi_yeniden_denemeyi_sinirlar(monkeypatch):
+    import sys
+    import types
+
+    from turbulans_radar.veri import era5_saglayici
+
+    alinan = {}
+    sahte = types.SimpleNamespace(Client=lambda **kw: alinan.update(kw) or object())
+    monkeypatch.setitem(sys.modules, "cdsapi", sahte)
+    era5_saglayici._cds_istemcisi()
+    assert alinan["retry_max"] == era5_saglayici.config.CDS_ISTEMCI_MAKS_DENEME <= 10

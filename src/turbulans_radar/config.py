@@ -77,7 +77,16 @@ ARCO_ONBELLEK_KLASORU = _ortam_str("ARCO_ONBELLEK_KLASORU", "era5_arco_onbellek"
 ARCO_MAKS_SAAT = _ortam_sayi("ARCO_MAKS_SAAT", 12, int)
 ARCO_ONBELLEK_MAKS_GB = _ortam_sayi("ARCO_ONBELLEK_MAKS_GB", 20.0)
 DAGITIK_KILIT_ZAMAN_ASIMI_SANIYE = _ortam_sayi("DAGITIK_KILIT_ZAMAN_ASIMI_SANIYE", 1800.0)
+# Birden çok API süreci (WEB_CONCURRENCY > 1) varken dış servise giden
+# zamanlayıcıları (SIGMET, openAIP, ML gece işi) yalnızca lider kilidini tutan
+# süreç çalıştırır; diğerleri bu aralıkla liderliği devralmayı dener.
+ZAMANLAYICI_LIDER_YOKLAMA_SANIYE = _ortam_sayi("ZAMANLAYICI_LIDER_YOKLAMA_SANIYE", 60.0)
 CDS_GUNLUK_MAKS_ISTEK = _ortam_sayi("CDS_GUNLUK_MAKS_ISTEK", 150, int)
+# cdsapi istemcisi geçici hatada varsayılan olarak 500 kez (120 sn arayla)
+# yeniden dener; bir arızada saatlerce istek göndermesin diye sınırlanır
+# (10 deneme ≈ en fazla ~20 dk). Ardışık CDS istekleri arasına nezaket beklemesi.
+CDS_ISTEMCI_MAKS_DENEME = _ortam_sayi("CDS_ISTEMCI_MAKS_DENEME", 10, int)
+CDS_ISTEKLER_ARASI_SANIYE = _ortam_sayi("CDS_ISTEKLER_ARASI_SANIYE", 5.0)
 
 ML_PIREP_ARSIV_KLASORU = _ortam_str("ML_PIREP_ARSIV_KLASORU", "pirep_ham")
 ML_MIN_IRTIFA_FT = _ortam_sayi("ML_MIN_IRTIFA_FT", 28000.0)

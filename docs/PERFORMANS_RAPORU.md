@@ -128,10 +128,10 @@ iki kez de yeniden kuyruğa aldı).
      10+20). 4 süreç teorik olarak PostgreSQL'in 100 bağlantı sınırını aşabilir;
      `VERITABANI_HAVUZ_*` ve `ASYNC_VERITABANI_HAVUZ_*` süreç sayısına göre düşürülmeli
      ya da `max_connections` artırılmalı.
-   - SIGMET, openAIP ve ML gece işi zamanlayıcıları her süreçte çalışır: SIGMET süreç
-     sayısı kadar çekilir (zararsız ama gereksiz). ML gece işinde aynı anda iki görev
-     oluşsa bile işçideki dağıtık kilit yalnızca birini çalıştırır. Zamanlayıcıları tek
-     bir "lider" sürece bağlamak (advisory lock) sonraki iyileştirmedir.
+   - SIGMET, openAIP ve ML gece işi zamanlayıcıları ölçüm sırasında her süreçte
+     çalışıyordu (SIGMET süreç sayısı kadar çekiliyordu). 2 Ekim 2026'dan beri yalnızca
+     PostgreSQL lider kilidini tutan süreç çalıştırır; lider düşerse diğeri
+     `ZAMANLAYICI_LIDER_YOKLAMA_SANIYE` içinde devralır.
 3. **Analiz ve işçi kapasitesi bol.** Ağ gerektirmeyen bir uçuş analizi ~0,2 sn sürüyor;
    gerçek süreyi OpenSky ve CDS belirliyor. Folium haritası analiz süresinin yarısıdır
    ve API/işçi çalıştırmalarında zaten üretilmez.

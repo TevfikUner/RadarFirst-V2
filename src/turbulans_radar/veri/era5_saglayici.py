@@ -218,7 +218,26 @@ def cds_istekleri_olustur(kutu: Kutu, baslangic, bitis, basinc_seviyeleri_hpa, e
 def _cds_istemcisi():
     import cdsapi
 
-    return cdsapi.Client(quiet=True)
+    return cdsapi.Client(quiet=True, retry_max=config.CDS_ISTEMCI_MAKS_DENEME, sleep_max=120)
+
+
+_cds_bekleme_kilidi = threading.Lock()
+_son_cds_istegi = None
+
+
+def cds_nezaket_beklemesi(saat=time.monotonic, uyku=time.sleep) -> float:
+    """Süreç içindeki ardışık CDS istekleri arasında en az
+    CDS_ISTEKLER_ARASI_SANIYE bekler (eşzamanlı iş parçacıkları sıraya girer).
+    Dönüş: beklenen süre (sn)."""
+    global _son_cds_istegi
+    with _cds_bekleme_kilidi:
+        bekleme = 0.0
+        if _son_cds_istegi is not None:
+            bekleme = max(0.0, config.CDS_ISTEKLER_ARASI_SANIYE - (saat() - _son_cds_istegi))
+            if bekleme > 0:
+                uyku(bekleme)
+        _son_cds_istegi = saat()
+        return bekleme
 
 
 def _arco_ac(url):
@@ -248,6 +267,7 @@ class CdsEra5Saglayici:
             for sira, istek in enumerate(istekler):
                 yol = os.path.join(gecici, f"{sira}.nc")
                 self._kotayi_tuket()
+                cds_nezaket_beklemesi()
                 istemci.retrieve(CDS_VERI_SETI, istek, yol)
                 with hdf5_kilidi, xr.open_dataset(yol) as ham:
                     parcalar.append(era5_kupunu_normalize_et(ham, "cds", self.ek_degiskenler).load())

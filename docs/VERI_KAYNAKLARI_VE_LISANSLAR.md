@@ -37,7 +37,7 @@ Sağlayıcının yazılı sınırı ile sistemin kod seviyesinde uyguladığı s
 | Kaynak | Sağlayıcının sınırı | Sistemin sınırı | Değerlendirme |
 |---|---|---|---|
 | OpenSky Trino | Kullanıcı başına 2 eşzamanlı + 2 kuyrukta sorgu; sorgu ≤ 30 dk; tarama ≤ 100 GB; bölüm filtresi (`hour`/`day`) zorunlu; toplu global indirme yasak; tekrarlanan ihlal hesabı askıya aldırır | Tüm süreçlerde aynı anda **1** sorgu (dağıtık kilit); günde en fazla `OPENSKY_GUNLUK_MAKS_SORGU` (400) sorgu; her sorguda bölüm filtresi ve tek gün / tek uçuş aralığı; satır sınırı 50.000; toplu analizde uçuşlar arası 2 sn; tamamlanmış uçuşlar Parquet önbelleğinden okunur; yalnızca geçici hatalarda en fazla 3 deneme | Sınırın yarısında |
-| Copernicus CDS | ERA5 basınç seviyeleri için istek başına ≤ 120.000 alan; kuyruk yükü sistemce ayarlanır | Günde ≤ 150 istek, gece işi ≤ 60 istek (kota sayacı veritabanında); en büyük istek 4 değişken × 7 seviye × 24 saat = 672 alan; ML istekleri sırayla gönderilir | Alan sınırının %1'inin altında |
+| Copernicus CDS | ERA5 basınç seviyeleri için istek başına ≤ 120.000 alan; kuyruk yükü sistemce ayarlanır | Günde ≤ 150 istek, gece işi ≤ 60 istek (kota sayacı veritabanında); en büyük istek 4 değişken × 7 seviye × 24 saat = 672 alan; istekler sırayla, aralarında en az 5 sn (`CDS_ISTEKLER_ARASI_SANIYE`); istemcinin geçici hata yeniden denemesi 500'den 10'a indirildi (`CDS_ISTEMCI_MAKS_DENEME`) | Alan sınırının %1'inin altında |
 | ARCO-ERA5 (Google) | Herkese açık bucket; yazılı istek sınırı yok | Yalnızca CDS başarısız olursa; uçuş başına ≤ 12 saat; disk önbelleği ≤ 20 GB; gece işinde kullanılmaz | Düşük |
 | NOAA AWC | Dakikada 100 istek; yanıt başına ≤ 400 kayıt | 15 dakikada bir 2 istek (API süreci başına) | Sınırın çok altında |
 | NOAA GFS (UCAR THREDDS) | Paylaşımlı kamu sunucusu; yazılı sınır bulunamadı | Aynı anda en fazla 2 bölge indirmesi; aynı küp 6 saat yeniden kullanılır | Düşük |
@@ -52,6 +52,8 @@ Notlar:
   sorgu atmaz; `--maks-yeni-sorgu` en fazla 20'dir, her PIREP tek sorgu (1–2 saatlik
   bölüm, ~180 km kutu, ±3000 ft, satır sınırı 50.000) ve sonuç Parquet önbelleğine
   yazılır. Aynı kilit ve günlük tavan geçerlidir.
+- Birden çok API süreci çalışsa da zamanlayıcıları (SIGMET, openAIP, ML gece işi) yalnızca
+  lider kilidini tutan süreç çalıştırır; istekler süreç sayısıyla çoğalmaz.
 - Sayaçlar UTC gece yarısı sıfırlanır; `GET /api/v1/ml/durum` bugünkü CDS kullanımını gösterir.
 
 ## Atıf metinleri

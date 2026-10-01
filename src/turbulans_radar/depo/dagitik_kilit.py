@@ -74,3 +74,60 @@ def dagitik_kilit(ad: str, zaman_asimi_saniye: float | None = None, yoklama_sani
                 _logger.warning("'%s' kilidi açıkça bırakılamadı (bağlantı kapanınca bırakılır): %s", ad, hata)
     finally:
         baglanti.close()
+
+
+class LiderKilidi:
+    """Süreç ömrü boyunca tutulan advisory lock (liderlik). dene() kilidi alır
+    ya da tutulduğunu doğrular; bağlantı koparsa PostgreSQL kilidi bırakır ve
+    dene() False döner, başka bir süreç devralabilir. Veritabanına ulaşılamazsa
+    False (kapalı kalır): dış servise giden zamanlayıcılar çoğalmasın."""
+
+    def __init__(self, ad: str, motor=None):
+        self.ad = ad
+        self._anahtar = kilit_anahtari(ad)
+        self._motor = motor
+        self._baglanti = None
+
+    @property
+    def lider_mi(self) -> bool:
+        return self._baglanti is not None
+
+    def _kapat(self):
+        baglanti, self._baglanti = self._baglanti, None
+        if baglanti is not None:
+            try:
+                baglanti.close()
+            except Exception:
+                pass
+
+    def dene(self) -> bool:
+        if self._baglanti is not None:
+            try:
+                self._baglanti.execute(text("SELECT 1"))
+                return True
+            except Exception as hata:
+                _logger.warning("'%s' liderlik bağlantısı koptu, liderlik bırakıldı: %s", self.ad, hata)
+                self._kapat()
+        try:
+            baglanti = (self._motor or _kilit_motoru()).connect()
+        except Exception as hata:
+            _logger.warning("'%s' liderlik kilidi için veritabanına bağlanılamadı: %s", self.ad, hata)
+            return False
+        try:
+            alindi = baglanti.execute(text("SELECT pg_try_advisory_lock(:k)"), {"k": self._anahtar}).scalar()
+        except Exception as hata:
+            _logger.warning("'%s' liderlik kilidi denenemedi: %s", self.ad, hata)
+            alindi = False
+        if not alindi:
+            baglanti.close()
+            return False
+        self._baglanti = baglanti
+        return True
+
+    def birak(self) -> None:
+        if self._baglanti is not None:
+            try:
+                self._baglanti.execute(text("SELECT pg_advisory_unlock(:k)"), {"k": self._anahtar})
+            except Exception:
+                pass
+        self._kapat()

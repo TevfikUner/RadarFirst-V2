@@ -38,6 +38,10 @@ try:
 except ImportError:
     pass
 
+# Yerel .env gece işi saatini açabilir; testlerde (canlı test sunucusu dahil)
+# ML zamanlayıcısı test veritabanına görev eklemesin.
+os.environ["ML_GECE_ISI_SAATI"] = ""
+
 
 def _test_veritabanina_yonlendir():
     if os.environ.get("CI") or not os.environ.get("POSTGRES_DB"):
@@ -188,6 +192,13 @@ def ekran_goruntusu(request, tarayici_sayfasi):
     if klasor:
         os.makedirs(klasor, exist_ok=True)
         tarayici_sayfasi["sayfa"].screenshot(path=os.path.join(klasor, f"{request.node.name}.png"), full_page=True)
+
+
+@pytest.fixture(autouse=True)
+def _cds_nezaket_beklemesi_kapali(monkeypatch):
+    from turbulans_radar import config
+
+    monkeypatch.setattr(config, "CDS_ISTEKLER_ARASI_SANIYE", 0.0)
 
 
 @pytest.fixture
