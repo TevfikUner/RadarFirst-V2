@@ -151,3 +151,15 @@ def test_backtestte_a_yildiz_turbulans_sigmetini_gormez_ve_bagimsiz_kanit_kayded
     ozet = rb.backtestleri_listele()["ozet"]
     assert ozet["bagimsiz_kanitli_ucus_sayisi"] >= 1
     assert ozet["turb_sigmet_karsilastirilabilir_ucus"] >= 1
+
+
+def test_seyir_bolumu_tekil_hatali_noktayi_ve_tirmanisi_disarida_birakir():
+    """THY322 deseni: kalkışta 2775 ft'te tek bir kapsam içi nokta, 11 dk sonra
+    tırmanış ve seyir. Seyir, gerçek seyirle başlamalı."""
+    dakikalar = [0] + list(range(11, 16)) + list(range(16, 60))
+    olcum = _olcum_df(dakikalar, [True] * len(dakikalar))
+    olcum.loc[0, "irtifa_m"] = 2775 * 0.3048
+    olcum.loc[1:5, "irtifa_m"] = np.linspace(6900, 8500, 5)
+    seyir = rb._seyir_bolumu(olcum)
+    assert pd.Timestamp(seyir["zaman"].iloc[0]) == pd.Timestamp("2019-01-15T10:16:00", tz="UTC")
+    assert (seyir["irtifa_m"] == 10000.0).all()

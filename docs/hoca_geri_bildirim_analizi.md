@@ -20,7 +20,7 @@ verisi ve trafik ölçümü sırada.
 | A0 | 3, 5: Kapsam ve kullanım zamanı | Tamam: `kapsam`, `planlama_ufku`, `sigmet_ufuk_disi` uyarısı; arayüzde ToC/ToD | 632b5f7 |
 | A1 | 2: Saha aktivasyonu | Tamam: NOTAM aralıkları (`aktif_araliklar`) ve AIP haftalık takvimi (`haftalik_takvim`). **AIP ENR 5.1'den 77 saha otomatik alındı** (`turbulans-aip-sahalar`); 8'i belirsiz biçim nedeniyle elle girilecek. | c71bbf8 |
 | A2 | 1: ATS yolu / FRA ağı | Tamam: graf tabanlı A*, `arama_uzayi="ats"`, uçuş planı biçiminde özet. **AIP ENR 4.4'ten 611 FRA noktalı ağ otomatik kuruldu** (`turbulans-aip-ats`). Klasik/RNAV yolları (ENR 3.1/3.2) kurulmadı; ATS modu FRA alt sınırının (FL305) altında rota bulamaz. | cde94c9 |
-| A3 | 4: Ayırma göstergesi | Tamam: `turbulans-ayirma`. **Gerçek trafikle ölçüm, kullanıcı onayıyla OpenSky sorgusu gerektirir.** | a8c9ecc |
+| A3 | 4: Ayırma göstergesi | Tamam: `turbulans-ayirma`. İlk ölçüm (THY322, 15.01.2019; 1 OpenSky sorgusu): seyir penceresinde 10 uçak; gerçek iz, büyük daire ve önerilen rotada **0 ihlal** (5 NM / 1000 ft). İlk çalıştırmada büyük dairede görülen 1 ihlalin (3,9 NM / 75 ft), backtest'in seyir bölümüne karışan tekil bir ADS-B irtifa hatasından (19:39'da 2775 ft) doğduğu bulundu ve düzeltildi. | a8c9ecc |
 
 ## Doğrulama sonuçları (2 Ekim 2026)
 

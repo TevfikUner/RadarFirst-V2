@@ -94,3 +94,23 @@ def test_trafik_izleri_varsayilan_sorgu_atmaz_izinle_tek_sorgu_ve_onbellek(monke
 def test_uzun_pencere_reddedilir():
     with pytest.raises(ValueError, match="saatten uzun"):
         ag.trafik_izleri((0, 1, 0, 1), BAS, BAS + pd.Timedelta(hours=5), 30000, 40000, sorgu_izni=True)
+
+
+def test_kapsayan_onbellek_yeni_sorgu_atmadan_suzer(monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "AYIRMA_ONBELLEK_KLASORU", str(tmp_path))
+    sorgular = []
+
+    def sahte(baglanti, sorgu, sutunlar, parametreler):
+        sorgular.append(parametreler)
+        return pd.DataFrame([_trafik("aaaaa1", 2, 35000), _trafik("aaaaa2", 2, 35000, zaman_kayma_dk=-9)])[sutunlar]
+
+    import turbulans_radar.veri.veri_yukleme as vy
+
+    monkeypatch.setattr(vy, "_sorgu_calistir", sahte)
+    genis = ((39.0, 41.0, 29.0, 33.0), BAS, BAS + pd.Timedelta(minutes=60), 30000, 40000)
+    assert len(ag.trafik_izleri(*genis, sorgu_izni=True, baglanti=object())) == 2
+    dar = ((39.5, 40.5, 30.0, 32.0), BAS + pd.Timedelta(minutes=5), BAS + pd.Timedelta(minutes=30), 32000, 38000)
+    sonuc = ag.trafik_izleri(*dar)
+    assert list(sonuc["icao24"]) == ["aaaaa1"] and len(sorgular) == 1
+    disarida = ((39.5, 42.0, 30.0, 32.0), BAS, BAS + pd.Timedelta(minutes=30), 32000, 38000)
+    assert ag.trafik_izleri(*disarida) is None

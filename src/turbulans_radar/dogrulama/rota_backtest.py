@@ -57,6 +57,8 @@ _KANIT_METRIKLERI = ("turb_sigmet", "mog_pirep")
 _KANIT_PAYI_DERECE = 5.0
 _EN_AZ_SEYIR_NOKTASI = 10
 _SEYIR_BOSLUGU = pd.Timedelta(minutes=15)
+_TEKIL_NOKTA_ARALIGI = pd.Timedelta(minutes=2)
+_SEYIR_IRTIFA_TOLERANSI_M = 4000 * 0.3048
 _YETERSIZ_SEYIR_MESAJI = (
     "Hava küpünün kapsadığı kesintisiz seyir bölümünde yeterli nokta yok ({nokta} < 10) -- uçuş küp dışında "
     "olabilir ya da ölçümlerde irtifa kayıtlı değil (irtifa_m sütunundan önce analiz edilmiş uçuşları yeniden "
@@ -104,9 +106,21 @@ def _seyir_bolumu(olcum_df):
     if kapsam_ici.empty:
         raise BacktestYapilamadiHatasi(_YETERSIZ_SEYIR_MESAJI.format(nokta=0))
     zaman = pd.to_datetime(kapsam_ici["zaman"], utc=True)
+    # Komşusu _TEKIL_NOKTA_ARALIGI'ndan uzak tekil nokta: irtifa hatasıyla kapsama
+    # düşmüş olabilir (THY322: 19:39'da 2775 ft'te tek nokta, 11 dk sonraki seyre
+    # boşluk toleransıyla eklenip backtest'in başlangıcını İstanbul'a çekiyordu).
+    once, sonra = zaman.diff(), -zaman.diff(-1)
+    tekil = (once.isna() | (once > _TEKIL_NOKTA_ARALIGI)) & (sonra.isna() | (sonra > _TEKIL_NOKTA_ARALIGI))
+    kapsam_ici, zaman = kapsam_ici[~tekil].reset_index(drop=True), zaman[~tekil].reset_index(drop=True)
+    if kapsam_ici.empty:
+        raise BacktestYapilamadiHatasi(_YETERSIZ_SEYIR_MESAJI.format(nokta=0))
     blok = (zaman.diff() > _SEYIR_BOSLUGU).cumsum()
     sureler = zaman.groupby(blok).agg(lambda z: z.max() - z.min())
     seyir = kapsam_ici[blok == sureler.idxmax()].reset_index(drop=True)
+    # Seyir: blok medyan irtifasına yakın noktalar (tırmanış/alçalış ve irtifa hataları dışarıda).
+    seyir = seyir[(seyir["irtifa_m"] - seyir["irtifa_m"].median()).abs() <= _SEYIR_IRTIFA_TOLERANSI_M].reset_index(
+        drop=True
+    )
     if len(seyir) < _EN_AZ_SEYIR_NOKTASI:
         raise BacktestYapilamadiHatasi(_YETERSIZ_SEYIR_MESAJI.format(nokta=len(seyir)))
     return seyir

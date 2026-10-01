@@ -145,6 +145,9 @@ def trafik_izleri(kutu, baslangic, bitis, irtifa_alt_ft, irtifa_ust_ft, sorgu_iz
     yol = _onbellek_yolu(parametreler)
     if os.path.exists(yol):
         return pd.read_parquet(yol)
+    kapsayan = _kapsayan_onbellek(parametreler)
+    if kapsayan is not None:
+        return kapsayan
     if not sorgu_izni:
         return None
     from turbulans_radar.veri.veri_yukleme import _sorgu_calistir, trino_baglantisi_olustur
@@ -158,7 +161,52 @@ def trafik_izleri(kutu, baslangic, bitis, irtifa_alt_ft, irtifa_ust_ft, sorgu_iz
     finally:
         if os.path.exists(gecici):
             os.remove(gecici)
+    kayit_yaz(yol, parametreler)
     return df
+
+
+def kayit_yaz(yol: str, parametreler) -> None:
+    """Önbellek dosyasının sorgu parametreleri (kapsayan önbellek araması için)."""
+    with open(yol.replace(".parquet", ".json"), "w", encoding="utf-8") as dosya:
+        json.dump({"parametreler": [float(x) for x in parametreler], "adim_sn": config.AYIRMA_ADIM_SANIYE}, dosya)
+
+
+def _kapsayan_onbellek(parametreler) -> pd.DataFrame | None:
+    """İstenen pencereyi, kutuyu ve irtifa bandını KAPSAYAN önceki bir sorgunun
+    önbelleği varsa ondan süzerek döner: OpenSky'a yeniden sorgu gitmez."""
+    _, _, bas, bit, e_min, e_maks, b_min, b_maks, i_min, i_maks = map(float, parametreler)
+    if not os.path.isdir(config.AYIRMA_ONBELLEK_KLASORU):
+        return None
+    for ad in sorted(os.listdir(config.AYIRMA_ONBELLEK_KLASORU)):
+        if not ad.endswith(".json"):
+            continue
+        try:
+            with open(os.path.join(config.AYIRMA_ONBELLEK_KLASORU, ad), encoding="utf-8") as dosya:
+                kayit = json.load(dosya)
+            _, _, k_bas, k_bit, ke_min, ke_maks, kb_min, kb_maks, ki_min, ki_maks = kayit["parametreler"]
+        except (OSError, ValueError, KeyError):
+            continue
+        kapsar = (
+            kayit.get("adim_sn") == config.AYIRMA_ADIM_SANIYE
+            and k_bas <= bas
+            and bit <= k_bit
+            and ke_min <= e_min
+            and e_maks <= ke_maks
+            and kb_min <= b_min
+            and b_maks <= kb_maks
+            and ki_min <= i_min
+            and i_maks <= ki_maks
+        )
+        yol = os.path.join(config.AYIRMA_ONBELLEK_KLASORU, ad.replace(".json", ".parquet"))
+        if kapsar and os.path.exists(yol):
+            df = pd.read_parquet(yol)
+            return df[
+                df["zaman_unix"].between(bas, bit)
+                & df["enlem"].between(e_min, e_maks)
+                & df["boylam"].between(b_min, b_maks)
+                & df["baro_irtifa_m"].between(i_min, i_maks)
+            ].reset_index(drop=True)
+    return None
 
 
 def _ozet(ihlaller: pd.DataFrame) -> dict:
@@ -217,7 +265,11 @@ def ucus_ayirma_gostergesi(ucus_numarasi, tarih_str, sorgu_izni=False, ucak_mode
     sonuc = {
         "ucus_numarasi": ucus_numarasi,
         "tarih": str(tarih_str),
-        "varsayim": {"yatay_nm": config.AYIRMA_YATAY_NM, "dikey_ft": config.AYIRMA_DIKEY_FT},
+        "minima": {
+            "yatay_nm": config.AYIRMA_YATAY_NM,
+            "dikey_ft": config.AYIRMA_DIKEY_FT,
+            "kaynak": "AIP Türkiye ENR 1.6 §4.1 (5 NM), ENR 1.8 EUR-RVSM (1000 ft)",
+        },
         "not": (
             "Gösterge: geçmiş trafikle ayırma minimalarının (AIP Türkiye ENR 1.6/1.8) karşılaştırması; "
             "rota kararına girmez, ayırma garanti etmez."
