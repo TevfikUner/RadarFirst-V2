@@ -3282,6 +3282,17 @@
               }
             ],
             "title": "Pencere Deposu"
+          },
+          "gece_isi_saati_utc": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Gece Isi Saati Utc"
           }
         },
         "type": "object",

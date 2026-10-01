@@ -421,6 +421,7 @@ def ml_durum_ozeti(motor=None) -> dict:
         "iem_imleci": _durum_ozeti(IEM_DURUM_ANAHTARI, motor).get("imlec"),
         "aktif_model": _aktif_model_ozeti(),
         "son_gorevler": son_gorevler,
+        "gece_isi_saati_utc": config.ML_GECE_ISI_SAATI or None,
         "pencere_deposu": {
             "etkin": bool(config.ML_DEPO_KLASORU),
             "pencereli_ornek": int(pencereli),

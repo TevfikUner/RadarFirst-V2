@@ -93,6 +93,14 @@ async def aktif_gorev_var_mi(tur: str) -> bool:
         ).first() is not None
 
 
+async def son_gorev_zamani(tur: str) -> datetime | None:
+    """Bu türdeki en son görevin oluşturulma zamanı (durumundan bağımsız)."""
+    async with async_oturum_al() as oturum:
+        return (
+            await oturum.execute(select(func.max(AnalizGorevi.olusturulma_zamani)).where(AnalizGorevi.tur == tur))
+        ).scalar_one_or_none()
+
+
 async def eski_gorevleri_temizle(saklama_suresi: timedelta = GOREV_SAKLAMA_SURESI) -> int:
     """Saklama süresinden eski BİTMİŞ görevleri siler (kuyruktaki/çalışanlara dokunmaz)."""
     sinir = datetime.now(UTC) - saklama_suresi

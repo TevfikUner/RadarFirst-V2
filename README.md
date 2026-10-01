@@ -1106,7 +1106,7 @@ değişkeni olarak tut, iş akışına düz metin yazma):
 | Canlı GFS önceden ısıtma (isteğe bağlı) | 6 saatte bir, döngülerden ~4 sa sonra | `POST /api/v1/veri/canli/hazirla` (gövde: bölge kutusu, `saat_sayisi`) | Kuyruğa girer (202); küp özeti görevin `ozet` alanında. Sık kullanılan bölgenin ilk rota isteği indirme süresini beklemez. |
 | Toplu uçuş analizi | ihtiyaca göre | `POST /api/v1/analiz/toplu` | `bildirim_webhook_url` ile bitince n8n Webhook node'una bildirim ya da `GET /api/v1/analiz/durum/{gorev_id}` yoklaması. |
 | Toplu backtest (isteğe bağlı) | günlük | `POST /api/v1/backtest/toplu?limit=50` | Yeni analiz edilen uçuşları A* rotasıyla karşılaştırır; özet `GET /api/v1/backtest`. |
-| ML gece işi | her gece (örn. 02:00 UTC) | `POST /api/v1/ml/gece-isi` | Yeni IEM PIREP'leri + CDS ile ERA5 eşleştirmesi (gecelik/günlük CDS sınırlı) + champion/challenger eğitim. 409 dönerse önceki gece işi sürüyordur; sonuç `GET /api/v1/analiz/durum/{gorev_id}` (eğitim görevinin kimliği `ozet[0].egitim_gorev_id`). |
+| ML gece işi | her gece (örn. 02:00 UTC) | `POST /api/v1/ml/gece-isi` | Yeni IEM PIREP'leri + CDS ile ERA5 eşleştirmesi (gecelik/günlük CDS sınırlı) + champion/challenger eğitim. 409 dönerse önceki gece işi sürüyordur; sonuç `GET /api/v1/analiz/durum/{gorev_id}` (eğitim görevinin kimliği `ozet[0].egitim_gorev_id`). Alternatif: `ML_GECE_ISI_SAATI` (UTC, `SS:DD`) ile API'nin kendi zamanlayıcısı (Docker'da varsayılan 23:07 UTC = 02:07 TSİ); API o saatte kapalıysa aynı gün açılınca bir kez telafi eder. İkisini aynı anda açmayın. |
 
 Uzun işlerde n8n asla beklemez: istek 202 + `gorev_id` döner. Sonuç için
 ya `bildirim_webhook_url` (n8n Webhook node'u) verilir ya da `GET

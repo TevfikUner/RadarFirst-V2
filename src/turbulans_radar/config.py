@@ -86,6 +86,10 @@ ML_GUNLUK_MAKS_PIREP = _ortam_sayi("ML_GUNLUK_MAKS_PIREP", 100, int)
 ML_GRUP_MAKS_HUCRE_SAAT = _ortam_sayi("ML_GRUP_MAKS_HUCRE_SAAT", 400_000, int)
 ML_MAKS_DENEME = _ortam_sayi("ML_MAKS_DENEME", 3, int)
 ML_GECE_MAKS_CDS_ISTEK = _ortam_sayi("ML_GECE_MAKS_CDS_ISTEK", 60, int)
+# "SS:DD" (UTC) verilirse API, ML gece işini (POST /ml/gece-isi ile aynı) her gün
+# bu saatte kendisi kuyruğa alır; n8n gerekmez. API o saatte kapalıysa aynı gün
+# açıldığında bir kez telafi eder. Boş = kapalı (docker-compose varsayılanı 23:07).
+ML_GECE_ISI_SAATI = _ortam_str("ML_GECE_ISI_SAATI", "").strip()
 ML_IEM_BASLANGIC = _ortam_str("ML_IEM_BASLANGIC", "2020-04-01")
 ML_IEM_GECELIK_MAKS_GUN = _ortam_sayi("ML_IEM_GECELIK_MAKS_GUN", 7, int)
 ML_MIN_ORNEK = _ortam_sayi("ML_MIN_ORNEK", 300, int)

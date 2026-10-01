@@ -126,6 +126,7 @@ from turbulans_radar.depo.gorev_deposu import (
     gorev_getir,
     gorev_olustur,
     kuyruk_durumu,
+    son_gorev_zamani,
 )
 from turbulans_radar.depo.hiz_siniri import istegi_say
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir
@@ -210,9 +211,16 @@ async def _yasam_dongusu(uygulama):
             )
         else:
             _logger.warning("OPENAIP_OTOMATIK_GUNCELLEME_SAAT açık ama OPENAIP_API_ANAHTARI yok; yenileme kapalı.")
+    ml_zamanlayici = None
+    if config.ML_GECE_ISI_SAATI:
+        try:
+            _gece_isi_saati(config.ML_GECE_ISI_SAATI)
+            ml_zamanlayici = asyncio.create_task(_ml_gece_zamanlayicisi(config.ML_GECE_ISI_SAATI))
+        except ValueError as hata:
+            _logger.error("ML_GECE_ISI_SAATI geçersiz, ML gece işi zamanlayıcısı kapalı: %s", hata)
     isci = GorevIscisi().baslat() if config.GOREV_GOMULU_ISCI else None
     yield
-    for gorev in (zamanlayici, dinleyici, openaip_zamanlayici):
+    for gorev in (zamanlayici, dinleyici, openaip_zamanlayici, ml_zamanlayici):
         if gorev is not None:
             gorev.cancel()
     if isci is not None:
@@ -271,6 +279,42 @@ async def _openaip_zamanlayicisi(aralik_saniye, kontrol_saniye=600.0):
         except Exception as hata:
             _logger.warning("openAIP zamanlayıcısı çalışamadı: %s", dostane_hata_mesaji(hata))
         await asyncio.sleep(min(kontrol_saniye, aralik_saniye))
+
+
+def _gece_isi_saati(deger: str) -> tuple[int, int]:
+    saat, _, dakika = deger.partition(":")
+    saat, dakika = int(saat), int(dakika or 0)
+    if not (0 <= saat < 24 and 0 <= dakika < 60):
+        raise ValueError(f"'{deger}' SS:DD biçiminde olmalı")
+    return saat, dakika
+
+
+async def _ml_gece_zamanlayici_adimi(saat_metni: str, simdi: datetime | None = None) -> str | None:
+    """Bugünün planlı saati geçtiyse ve o saatten sonra hiç ml_veri görevi
+    oluşturulmadıysa gece işini kuyruğa alır. Kuyrukta/çalışan bir ML işi varsa
+    eklemez (birden fazla API kopyası ya da elle tetikleme çoğaltmasın)."""
+    simdi = simdi or datetime.now(UTC)
+    saat, dakika = _gece_isi_saati(saat_metni)
+    planli = simdi.replace(hour=saat, minute=dakika, second=0, microsecond=0)
+    if simdi < planli:
+        return None
+    son = await son_gorev_zamani("ml_veri")
+    if son is not None and son >= planli:
+        return None
+    if await aktif_gorev_var_mi("ml_veri") or await aktif_gorev_var_mi("ml_egitim"):
+        return None
+    gorev_id = await _gorev_olustur("ml_veri", parametreler=MlGeceIsiIstegi().model_dump())
+    _logger.info("ML gece işi zamanlayıcıyla kuyruğa alındı (%s, planlı %s UTC).", gorev_id, saat_metni)
+    return gorev_id
+
+
+async def _ml_gece_zamanlayicisi(saat_metni: str, kontrol_saniye=300.0):
+    while True:
+        try:
+            await _ml_gece_zamanlayici_adimi(saat_metni)
+        except Exception as hata:
+            _logger.warning("ML gece işi zamanlayıcısı çalışamadı: %s", dostane_hata_mesaji(hata))
+        await asyncio.sleep(kontrol_saniye)
 
 
 async def _sigmet_zamanlayicisi(aralik_saniye):
@@ -866,6 +910,7 @@ class MlDurumYaniti(BaseModel):
     aktif_model: dict | None = None
     son_gorevler: list[dict]
     pencere_deposu: dict | None = None
+    gece_isi_saati_utc: str | None = None
 
 
 @v1.post("/ws-bileti", response_model=WsBiletiYaniti, tags=["Sistem"])

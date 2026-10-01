@@ -55,6 +55,10 @@ services:
       POSTGRES_HOST: db
       # Otonom backend: API, canlı AWC SIGMET'lerini kendi içinde periyodik yeniler.
       SIGMET_OTOMATIK_GUNCELLEME_DAKIKA: ${SIGMET_OTOMATIK_GUNCELLEME_DAKIKA:-15}
+      # ML gece işi (IEM PIREP + CDS eşleştirme + eğitim) her gün bu saatte (UTC;
+      # 23:07 = Türkiye 02:07) API tarafından kuyruğa alınır. .env'de boş
+      # bırakılırsa (ML_GECE_ISI_SAATI=) kapalıdır; n8n kullanılıyorsa kapatın.
+      ML_GECE_ISI_SAATI: ${ML_GECE_ISI_SAATI-23:07}
       # Uzun işler (analiz, backtest, canlı veri) ayrı 'worker' servisinde çalışır.
       GOREV_GOMULU_ISCI: "false"
       <<: *veri_ortami

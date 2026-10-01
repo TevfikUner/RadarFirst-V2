@@ -148,3 +148,17 @@ async def test_kuyruk_durumu_bekleyen_ve_calisan_gorevleri_sayar():
     assert sonra["kuyrukta"] == once["kuyrukta"] + 1
     assert sonra["calisiyor"] == once["calisiyor"] + 1
     assert sonra["en_eski_bekleme_saniye"] is not None
+
+
+async def test_son_gorev_zamani_turun_en_yeni_gorevini_doner():
+    tur = "test_son_zaman"
+    assert await gorev_deposu.son_gorev_zamani(tur) is None
+    eski = await gorev_deposu.gorev_olustur(tur)
+    await _yaslandir(eski, 2)
+    yeni = await gorev_deposu.gorev_olustur(tur)
+    await gorev_deposu.gorev_guncelle(yeni, durum="tamamlandi")
+    son = await gorev_deposu.son_gorev_zamani(tur)
+    assert datetime.now(UTC) - son < timedelta(minutes=1)
+    async with vt.async_oturum_al() as oturum:
+        await oturum.execute(text("DELETE FROM analiz_gorevleri WHERE tur = :t"), {"t": tur})
+        await oturum.commit()

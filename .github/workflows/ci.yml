@@ -198,6 +198,7 @@ jobs:
           POSTGRES_DB=turbulans_ci
           API_ANAHTARI=ci-duman-yonetici
           API_PILOT_ANAHTARI=ci-duman-pilot
+          ML_GECE_ISI_SAATI=
           ORTAM
           docker compose up -d --build --wait --wait-timeout 300
       - name: Duman testi
