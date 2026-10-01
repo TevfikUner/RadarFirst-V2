@@ -1056,6 +1056,10 @@ modülün kendi docstring'indeki örnek: Anchorage FIR, 2019-01-15, gerçek bir
 
 ## İzleme ve çevrimdışı kullanım
 
+Ölçülmüş gecikme, verim ve görev hızı değerleri (hedeflerle birlikte):
+[docs/PERFORMANS_RAPORU.md](docs/PERFORMANS_RAPORU.md). Ölçüm tekrarlanabilir:
+`turbulans-performans hepsi` (bölümler: `analiz`, `api`, `gorev`, `gece`).
+
 - **Prometheus (`GET /metrics`):** yönetici anahtarı ister (`X-API-Key` ya
   da `Authorization: Bearer <anahtar>`, Prometheus `scrape_config` ->
   `authorization`). Zaman serileri: `turbulans_http_istekleri_total` ve

@@ -59,6 +59,9 @@ services:
       # 23:07 = Türkiye 02:07) API tarafından kuyruğa alınır. .env'de boş
       # bırakılırsa (ML_GECE_ISI_SAATI=) kapalıdır; n8n kullanılıyorsa kapatın.
       ML_GECE_ISI_SAATI: ${ML_GECE_ISI_SAATI-23:07}
+      # uvicorn süreç sayısı (uvicorn bu değişkeni kendisi okur). >1 verimi artırır;
+      # DB havuzu ve süreç başı önbellek notları: docs/PERFORMANS_RAPORU.md §5.
+      WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
       # Uzun işler (analiz, backtest, canlı veri) ayrı 'worker' servisinde çalışır.
       GOREV_GOMULU_ISCI: "false"
       <<: *veri_ortami
