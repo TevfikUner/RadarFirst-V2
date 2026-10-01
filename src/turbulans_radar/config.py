@@ -280,6 +280,10 @@ SIGMET_KACINILACAK_TEHLIKELER = tuple(
 SIGMET_SAKLAMA_GUN = _ortam_sayi("SIGMET_SAKLAMA_GUN", 30, int)
 # Canlı (şimdiye yakın) bir rota hesabında son SIGMET çekimi bundan eskiyse yanıt "bayat" uyarısı taşır.
 SIGMET_BAYATLIK_DAKIKA = _ortam_sayi("SIGMET_BAYATLIK_DAKIKA", 30, int)
+# SIGMET'ler kısa geçerlilikle yayımlanır (genelde en fazla 4 sa; VA/TC daha
+# uzun -- ICAO Annex 3'ten doğrulanmalı). Uçuşun şimdiden bu süreden sonraki
+# kısmı için henüz SIGMET yayımlanmamış olabilir; rota yanıtı bunu belirtir.
+SIGMET_YAYIN_UFKU_SAAT = _ortam_sayi("SIGMET_YAYIN_UFKU_SAAT", 4.0)
 # >0 ise API kendi içinde bu aralıkla (dakika) SIGMET çeker; 0 = kapalı (n8n/cron tetikler).
 SIGMET_OTOMATIK_GUNCELLEME_DAKIKA = _ortam_sayi("SIGMET_OTOMATIK_GUNCELLEME_DAKIKA", 0, int)
 # Bir kaynağın akışındaki SIGMET kayıtlarının bu orandan fazlası çözümlenemezse

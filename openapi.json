@@ -3233,6 +3233,24 @@
         "title": "HavaDurumuKupuYaniti",
         "description": "hava_durumu_kupleri kataloğundaki bir küp (bkz. kup_katalogu.py)."
       },
+      "KapsamYaniti": {
+        "properties": {
+          "safha": {
+            "type": "string",
+            "title": "Safha"
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "safha",
+          "aciklama"
+        ],
+        "title": "KapsamYaniti"
+      },
       "KisitliSahaIceAktarmaYaniti": {
         "properties": {
           "kaydedilen": {
@@ -3784,6 +3802,40 @@
         ],
         "title": "OlcumYaniti"
       },
+      "PlanlamaUfkuYaniti": {
+        "properties": {
+          "kullanim": {
+            "type": "string",
+            "title": "Kullanim"
+          },
+          "kalkisa_kalan_saat": {
+            "type": "number",
+            "title": "Kalkisa Kalan Saat"
+          },
+          "tahmin_ufku_saat": {
+            "type": "integer",
+            "title": "Tahmin Ufku Saat"
+          },
+          "sigmet_yayin_ufku_saat": {
+            "type": "number",
+            "title": "Sigmet Yayin Ufku Saat"
+          },
+          "tahmin_ufku_disi": {
+            "type": "boolean",
+            "title": "Tahmin Ufku Disi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kullanim",
+          "kalkisa_kalan_saat",
+          "tahmin_ufku_saat",
+          "sigmet_yayin_ufku_saat",
+          "tahmin_ufku_disi"
+        ],
+        "title": "PlanlamaUfkuYaniti",
+        "description": "kullanim: gecmis_analiz | ucus_oncesi_planlama. tahmin_ufku_disi: kalkış\ncanlı GFS tahmin ufkundan ileride (rüzgar/TI1 yok)."
+      },
       "RotaAnalizIstegi": {
         "properties": {
           "ucus_numarasi": {
@@ -3847,7 +3899,7 @@
           "seviye"
         ],
         "title": "RotaBulgusuYaniti",
-        "description": "'aciklama' metnindeki her cümlenin makine-okunur karşılığı; istemci\n(EFB) metni ayrıştırmadan kendi dilinde gösterebilir. seviye: bilgi |\nuyari | kritik. kod örnekleri: veri_gfs_tahmin, veri_era5, ti1_risk_yok,\nti1_risk_var, ruzgar_hesaba_katilamadi, sigmet_erisilemedi,\nsigmet_uygulandi, sigmet_bayat, kisitli_saha_erisilemedi,\nkisitli_saha_uygulandi, kisitli_saha_uc_koridoru, kisitli_saha_ornek_veri,\nguvenli_rota_yok, sapma_gereksiz, kacinma_sert_kisit, kacinma_tam_guvenli,\nti1_riski_kismen_kaldi."
+        "description": "'aciklama' metnindeki her cümlenin makine-okunur karşılığı; istemci\n(EFB) metni ayrıştırmadan kendi dilinde gösterebilir. seviye: bilgi |\nuyari | kritik. kod örnekleri: veri_gfs_tahmin, veri_era5, ti1_risk_yok,\nti1_risk_var, ruzgar_hesaba_katilamadi, sigmet_erisilemedi,\nsigmet_uygulandi, sigmet_bayat, sigmet_ufuk_disi, kisitli_saha_erisilemedi,\nkisitli_saha_uygulandi, kisitli_saha_uc_koridoru, kisitli_saha_ornek_veri,\nguvenli_rota_yok, sapma_gereksiz, kacinma_sert_kisit, kacinma_tam_guvenli,\nti1_riski_kismen_kaldi."
       },
       "RotaNoktasiGirdisi": {
         "properties": {
@@ -4063,6 +4115,26 @@
           "co2_farki_kg": {
             "type": "number",
             "title": "Co2 Farki Kg"
+          },
+          "kapsam": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KapsamYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "planlama_ufku": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/PlanlamaUfkuYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "czml": {
             "items": {
@@ -4697,6 +4769,22 @@
             "type": "array",
             "title": "Sigmetler",
             "default": []
+          },
+          "yayin_ufku_disi": {
+            "type": "string",
+            "title": "Yayin Ufku Disi",
+            "default": "yok"
+          },
+          "yayin_ufku_saat": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yayin Ufku Saat"
           }
         },
         "type": "object",

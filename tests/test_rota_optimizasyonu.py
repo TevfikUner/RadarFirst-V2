@@ -458,3 +458,48 @@ def test_kisitli_saha_koridoru_yuksek_enlemde_hedeflenen_genisligi_korur():
     # daralmış demektir).
     (kalan_saha,) = kontrol["sahalar"]
     assert "koridoru hariç" in kalan_saha["ad"]
+
+
+# --- Kapsam ve planlama ufku (hoca geri bildirimi, öneri 3 ve 5) ---
+
+
+def test_sigmet_yayin_ufku_kismi_ve_tam(monkeypatch):
+    from turbulans_radar.rota.rota_optimizasyonu import sigmet_ufku
+
+    monkeypatch.setattr(config, "SIGMET_YAYIN_UFKU_SAAT", 4.0)
+    simdi = pd.Timestamp("2026-10-02T00:00Z")
+    saat = pd.Timedelta(hours=1)
+    assert sigmet_ufku(simdi + saat, simdi + 3 * saat, simdi)["yayin_ufku_disi"] == "yok"
+    assert sigmet_ufku(simdi + 2 * saat, simdi + 6 * saat, simdi)["yayin_ufku_disi"] == "kismi"
+    assert sigmet_ufku(simdi + 5 * saat, simdi + 8 * saat, simdi)["yayin_ufku_disi"] == "tam"
+
+
+def test_planlama_ufku_gecmis_ve_gelecek_uculari_ayirir():
+    from turbulans_radar.rota.rota_optimizasyonu import planlama_ufku
+
+    simdi = pd.Timestamp("2026-10-02T00:00Z")
+    assert planlama_ufku("2019-01-15T20:00:00", simdi)["kullanim"] == "gecmis_analiz"
+    ileri = planlama_ufku("2026-10-02T06:00:00", simdi)
+    assert ileri["kullanim"] == "ucus_oncesi_planlama" and ileri["kalkisa_kalan_saat"] == 6.0
+    assert not ileri["tahmin_ufku_disi"]
+    assert planlama_ufku("2026-10-10T00:00:00", simdi)["tahmin_ufku_disi"]
+
+
+def test_ileri_tarihli_ucusta_sigmet_ufku_uyarisi_ve_kapsam(monkeypatch):
+    monkeypatch.setattr(config, "CANLI_HAVA_VERISI_ETKIN", False)
+    monkeypatch.setattr(config, "ERA5_OTOMATIK_INDIRME", False)
+    zaman = (pd.Timestamp.now(tz="UTC") + pd.Timedelta(hours=10)).strftime("%Y-%m-%dT%H:%M:%S")
+    sonuc = rota_simulasyonu_olustur(41.0, 28.9, 39.9, 32.8, 36000, zaman, "A320", sigmetler=[], kisitli_sahalar=[])
+    kodlar = {b["kod"]: b for b in sonuc["bulgular"]}
+    assert kodlar["sigmet_ufuk_disi"]["parametreler"]["kisim"] == "tam"
+    assert sonuc["sigmet_kontrolu"]["yayin_ufku_disi"] == "tam"
+    assert sonuc["kapsam"]["safha"] == "seyir"
+    assert sonuc["planlama_ufku"]["kullanim"] == "ucus_oncesi_planlama"
+
+
+def test_gecmis_tarihli_ucusta_sigmet_ufku_uyarisi_yok():
+    sonuc = rota_simulasyonu_olustur(
+        40.7, -74.0, 42.3, -71.0, 34000, "2019-01-15T10:00:00", "A320", sigmetler=[], kisitli_sahalar=[]
+    )
+    assert "sigmet_ufuk_disi" not in {b["kod"] for b in sonuc["bulgular"]}
+    assert sonuc["planlama_ufku"]["kullanim"] == "gecmis_analiz"

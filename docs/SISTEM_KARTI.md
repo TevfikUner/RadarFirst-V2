@@ -16,6 +16,24 @@ karar destek sistemidir. Sistem üç işi yapar:
    alternatif bir rota önerir.
 3. Önerilerini gerçek uçuş izleriyle otomatik olarak karşılaştırır.
 
+**Kapsam:** Rota önerisi yalnızca **seyir (en-route) safhası** içindir. Başlangıç
+ve bitiş seyre giriş (ToC) ve seyirden çıkış (ToD) noktası kabul edilir; kalkış,
+tırmanış, alçalış, SID/STAR ve yaklaşma kapsam dışıdır. Rota, ATS yolları yerine
+büyük daire etrafındaki bir koridorda aranır ve diğer trafikle ayırmayı dikkate
+almaz; ATC talimatlarının yerini tutmaz. Her rota yanıtı bunu `kapsam` alanında
+taşır.
+
+**Kullanım zamanı:** Birincil kullanım uçuş öncesi planlamadır.
+- Rüzgar ve TI1 için canlı NOAA GFS tahmini, kalkıştan en fazla 120 saat önceye
+  kadar kullanılabilir.
+- SIGMET'ler kısa geçerlilikle yayımlandığı için (varsayılan ufuk 4 saat,
+  `SIGMET_YAYIN_UFKU_SAAT`), uçuşun bu ufkun ötesindeki kısmında "aktif SIGMET
+  yok" sonucu güvence değildir. Yanıt bu durumda `sigmet_ufuk_disi` uyarısı verir.
+- Kalkıştan önceki son saatlerde yeniden hesaplanmalıdır.
+- Hesaplama süresi, veri hazırken rota başına 0,02–0,27 sn'dir
+  (`docs/hoca_geri_bildirim_analizi.md` §3).
+- Uçuş sırasında yeniden hesaplama mekanizması gösterim amaçlıdır.
+
 Sistem **sertifikalı değildir**. Herhangi bir EFB onayı yoktur ve
 operasyonel karar yetkisi pilotta ve dispeçerdedir. Üretilen değerler
 gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.

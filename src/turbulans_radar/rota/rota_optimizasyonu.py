@@ -717,9 +717,48 @@ def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, t
         for sg in katman.sigmetler
     ]
     ozet["aktif_sigmet_sayisi"] = len(katman.sigmetler)
+    ozet.update(sigmet_ufku(baslangic, bitis))
     if not katman.sigmetler:
         return None, ozet
     return katman, {**ozet, "durum": "uygulandi"}
+
+
+def sigmet_ufku(baslangic, bitis, simdi=None) -> dict:
+    """Uçuş penceresinin SIGMET yayın ufkunun (şimdi + SIGMET_YAYIN_UFKU_SAAT)
+    ötesine düşen kısmı: 'yok' | 'kismi' | 'tam'. O kısım için 'aktif SIGMET
+    yok' sonucu güvence değildir; henüz yayımlanmamış olabilir."""
+    simdi = pd.Timestamp.now(tz="UTC") if simdi is None else pd.Timestamp(simdi)
+    ufuk = simdi + pd.Timedelta(hours=config.SIGMET_YAYIN_UFKU_SAAT)
+    baslangic, bitis = pd.Timestamp(baslangic), pd.Timestamp(bitis)
+    kisim = "tam" if baslangic > ufuk else "kismi" if bitis > ufuk else "yok"
+    return {"yayin_ufku_disi": kisim, "yayin_ufku_saat": config.SIGMET_YAYIN_UFKU_SAAT}
+
+
+def planlama_ufku(zaman_iso, simdi=None) -> dict:
+    """Uçuşun şimdiye göre konumu ve kullanılabilecek veri: geçmiş tarihli
+    uçuş (analiz/backtest) ya da uçuş öncesi planlama (kalkışa kalan saat)."""
+    simdi = pd.Timestamp.now(tz="UTC") if simdi is None else pd.Timestamp(simdi)
+    kalkis = pd.Timestamp(zaman_iso)
+    kalkis = kalkis.tz_localize("UTC") if kalkis.tzinfo is None else kalkis.tz_convert("UTC")
+    kalan_saat = (kalkis - simdi).total_seconds() / 3600.0
+    return {
+        "kullanim": "gecmis_analiz" if kalan_saat < 0 else "ucus_oncesi_planlama",
+        "kalkisa_kalan_saat": round(kalan_saat, 2),
+        "tahmin_ufku_saat": config.CANLI_TAHMIN_UFKU_SAAT,
+        "sigmet_yayin_ufku_saat": config.SIGMET_YAYIN_UFKU_SAAT,
+        "tahmin_ufku_disi": kalan_saat > config.CANLI_TAHMIN_UFKU_SAAT,
+    }
+
+
+KAPSAM = {
+    "safha": "seyir",
+    "aciklama": (
+        "Rota yalnızca seyir (en-route) safhası içindir: başlangıç ve bitiş seyre giriş (ToC) ve seyirden "
+        "çıkış (ToD) noktası, irtifa seyir irtifası kabul edilir. Kalkış, tırmanış, alçalış, SID/STAR ve "
+        "yaklaşma kapsam dışıdır. ATS yolları ve diğer trafikle ayırma dikkate alınmaz; ATC talimatlarının "
+        "yerini tutmaz."
+    ),
+}
 
 
 _SAHA_OZET_ALANLARI = (
@@ -977,6 +1016,8 @@ def rota_simulasyonu_olustur(
         ),
         "co2_farki_kg": normal_yakit_kg * CO2_KG_PER_KG_YAKIT - optimize_yakit_kg * CO2_KG_PER_KG_YAKIT,
         "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
+        "kapsam": KAPSAM,
+        "planlama_ufku": planlama_ufku(zaman_iso),
     }
 
 
@@ -1096,6 +1137,20 @@ def _bulgulari_olustur(
                 + (f"{ihlal} nokta/bacakta bunlara giriyor." if ihlal else "bunlara girmiyor."),
                 aktif_sigmet_sayisi=sigmet_kontrolu["aktif_sigmet_sayisi"],
                 normal_rota_ihlali=ihlal,
+            )
+        )
+    ufuk_disi = sigmet_kontrolu.get("yayin_ufku_disi", "yok")
+    if durum != "erisilemedi" and ufuk_disi != "yok":
+        bulgular.append(
+            _bulgu(
+                "sigmet_ufuk_disi",
+                "uyari",
+                ("Uçuşun tamamı" if ufuk_disi == "tam" else "Uçuşun bir kısmı")
+                + f" şu andan {config.SIGMET_YAYIN_UFKU_SAAT:g} saatten daha sonra; o zaman dilimi için SIGMET henüz "
+                "yayımlanmamış olabilir. SIGMET kontrolü bu kısım için güvence vermez -- kalkıştan önceki son "
+                "saatlerde yeniden hesaplayın.",
+                kisim=ufuk_disi,
+                yayin_ufku_saat=config.SIGMET_YAYIN_UFKU_SAAT,
             )
         )
     if sigmet_kontrolu.get("bayat_mi"):

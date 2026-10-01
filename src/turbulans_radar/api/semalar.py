@@ -197,6 +197,10 @@ class SigmetKontroluYaniti(BaseModel):
     bayat_mi: bool = False
     sorunlu_kaynaklar: list[str] = []
     sigmetler: list[SigmetOzetiYaniti] = []
+    # Uçuş penceresinin SIGMET yayın ufkunun (şimdi + yayin_ufku_saat) ötesine
+    # düşen kısmı: yok | kismi | tam (o kısım için SIGMET henüz yayımlanmamış olabilir).
+    yayin_ufku_disi: str = "yok"
+    yayin_ufku_saat: float | None = None
 
 
 class KisitliSahaYaniti(BaseModel):
@@ -246,7 +250,7 @@ class RotaBulgusuYaniti(BaseModel):
     (EFB) metni ayrıştırmadan kendi dilinde gösterebilir. seviye: bilgi |
     uyari | kritik. kod örnekleri: veri_gfs_tahmin, veri_era5, ti1_risk_yok,
     ti1_risk_var, ruzgar_hesaba_katilamadi, sigmet_erisilemedi,
-    sigmet_uygulandi, sigmet_bayat, kisitli_saha_erisilemedi,
+    sigmet_uygulandi, sigmet_bayat, sigmet_ufuk_disi, kisitli_saha_erisilemedi,
     kisitli_saha_uygulandi, kisitli_saha_uc_koridoru, kisitli_saha_ornek_veri,
     guvenli_rota_yok, sapma_gereksiz, kacinma_sert_kisit, kacinma_tam_guvenli,
     ti1_riski_kismen_kaldi."""
@@ -254,6 +258,22 @@ class RotaBulgusuYaniti(BaseModel):
     kod: str
     seviye: Literal["bilgi", "uyari", "kritik"]
     parametreler: dict = {}
+
+
+class KapsamYaniti(BaseModel):
+    safha: str
+    aciklama: str
+
+
+class PlanlamaUfkuYaniti(BaseModel):
+    """kullanim: gecmis_analiz | ucus_oncesi_planlama. tahmin_ufku_disi: kalkış
+    canlı GFS tahmin ufkundan ileride (rüzgar/TI1 yok)."""
+
+    kullanim: str
+    kalkisa_kalan_saat: float
+    tahmin_ufku_saat: int
+    sigmet_yayin_ufku_saat: float
+    tahmin_ufku_disi: bool
 
 
 class RotaSimulasyonuYaniti(BaseModel):
@@ -275,6 +295,8 @@ class RotaSimulasyonuYaniti(BaseModel):
     ti1_guvenilirlik_notu: str
     yakit_tasarrufu_yuzde: float
     co2_farki_kg: float
+    kapsam: KapsamYaniti | None = None
+    planlama_ufku: PlanlamaUfkuYaniti | None = None
     czml: list[dict]
 
 
