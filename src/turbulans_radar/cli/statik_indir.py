@@ -204,14 +204,15 @@ def yerel_kutuphane_durumu(hedef: Path = VARSAYILAN_HEDEF) -> dict:
     return {"durum": "yerel" if all(p["yerel"] for p in paketler.values()) else "cdn_yedegi", "paketler": paketler}
 
 
-def ana():
+def ana(argv=None):
     ayristirici = argparse.ArgumentParser(description="Web arayüzü kütüphanelerini yerel olarak sunmak için indirir.")
     ayristirici.add_argument("--hedef", default=str(VARSAYILAN_HEDEF))
     ayristirici.add_argument("--zorla", action="store_true", help="Güncel olsa bile yeniden indir")
-    argumanlar = ayristirici.parse_args()
+    ayristirici.add_argument("--fir-hedef", default=None, help="FIR sınırları dosyası (varsayılan: config)")
+    argumanlar = ayristirici.parse_args(argv)
     for ad in PAKETLER:
         print(f"{ad}: {paketi_kur(ad, Path(argumanlar.hedef), argumanlar.zorla)}")
-    print(f"fir_sinirlari: {dosyayi_kur('fir_sinirlari', zorla=argumanlar.zorla)}")
+    print(f"fir_sinirlari: {dosyayi_kur('fir_sinirlari', argumanlar.fir_hedef, zorla=argumanlar.zorla)}")
 
 
 if __name__ == "__main__":

@@ -101,8 +101,9 @@ Bulgu: tek süreçte GIL darboğazı; 4 süreçle aynı donanımda verim ~3 kat.
   ve %95 güven aralıkları (gün blok bootstrap), TI1'e göre eşleştirilmiş AUC farkı ve
   p-değeri, zamansal holdout'ta konformal kapsama (hedef %90)]. Kaynak:
   `GET /api/v1/turbulans/model-bilgisi`.
-- **Sanal PIREP (M6):** Yöntem uygulandı ve test edildi; gerçek PIREP'lere karşı
-  POD/POFD [ölçüldüyse buraya, ölçülmediyse "ölçülmedi" diye] yazılır.
+- **Sanal PIREP (M6):** İlk küçük ölçüm (2 Ekim 2026, 16 değerlendirilebilir PIREP):
+  POD 1/8 = 0,13 (%95 Wilson 0,02–0,47), POFD 0/8 = 0 (0–0,32). Dedektör tutucu;
+  örneklem küçük, aralıklar geniş. Eşik bu örneklemle ayarlanmadı.
 
 ## 9. Sınırlamalar
 

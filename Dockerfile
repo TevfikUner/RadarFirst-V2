@@ -12,12 +12,18 @@ COPY requirements.lock requirements-era5.lock ./
 RUN pip install --no-cache-dir --require-hashes -r requirements.lock \
     && pip install --no-cache-dir --require-hashes -r requirements-era5.lock
 
-COPY . .
-ENV PYTHONPATH=/app/src
-
 # Web arayüzü kütüphaneleri (CesiumJS, MapLibre) imaja gömülür: EFB kokpitte
 # çevrimdışı/düşük bant genişliğinde CDN'e gitmeden açılır. Paketler koda
 # sabitlenmiş sha512 bütünlük değeriyle doğrulanır (bkz. statik_indir.py).
+# İndirme, yalnızca statik_indir.py'ye bağlı ayrı bir katmanda: kod değişince
+# yeniden derleme internete gitmez (zayıf bağlantıda derleme takılmasın).
+COPY src/turbulans_radar/__init__.py src/turbulans_radar/
+COPY src/turbulans_radar/cli/__init__.py src/turbulans_radar/cli/statik_indir.py src/turbulans_radar/cli/
+RUN PYTHONPATH=/app/src python -m turbulans_radar.cli.statik_indir --fir-hedef veri_dosyalari/fir_sinirlari.geojson
+
+COPY . .
+ENV PYTHONPATH=/app/src
+# Yalnızca doğrular: paketler güncelse indirme yapılmaz.
 RUN python -m turbulans_radar.cli.statik_indir
 
 # Model deposu (MODEL_KLASORU): docker-compose buraya adlandırılmış bir volume

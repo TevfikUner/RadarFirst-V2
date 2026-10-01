@@ -221,8 +221,15 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - **Sanal PIREP (M6, 1 Ekim 2026):** Tespit sentetik izlerle (seyir, sapma,
   transponder sıçraması, kademeli tırmanış, veri boşluğu) ve gerçek THY322
   iziyle test edildi; gerçek izde tırmanış ve iki büyük irtifa hatası yanlış
-  alarm üretmedi. Gerçek PIREP'lere karşı POD/POFD henüz ölçülmedi
-  (`turbulans-sanal-pirep dogrula`, PIREP çevresi ADS-B verisi gerekir).
+  alarm üretmedi.
+- **Sanal PIREP POD/POFD (2 Ekim 2026, ilk küçük ölçüm):** 20 seyir PIREP'i
+  (10 orta ve üstü, 10 yok/hafif), her biri için OpenSky'dan çevresindeki ADS-B
+  izleri (±30 dk); 4'ünün çevresinde ADS-B verisi yoktu. POD 1/8 = 0,13 (%95
+  Wilson 0,02–0,47), POFD 0/8 = 0 (0–0,32). Örneklem çok küçük, aralıklar geniş.
+  Tanı: PIREP tüpündeki seyir uçaklarının çoğunda sapma 0–50 ft (ADS-B 25 ft
+  adımları); 1000–3000 ft'lik irtifa sıçramaları düşey hız kontrolüyle elendi.
+  Dedektör bu haliyle tutucudur (yanlış alarm görülmedi, yakalama düşük);
+  eşikler bu örneklemle ayarlanmadı.
 
 **Erişim**
 - İki statik anahtar (yönetici, pilot); kullanıcı başına kimlik, süre sınırlı

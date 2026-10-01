@@ -35,7 +35,10 @@ düşey hız taşır ama kullanılmıyordu. PIREP gönüllüdür, gecikir ve kon
 
 - Model dışı, gözleme dayalı ikinci bir türbülans kanalı; uyarı gecikmesi
   `bildirim_zamani - bitis` olarak her olayda kayıtlı.
-- Eşikler kalibre edilmemiştir; POD/POFD ölçülmeden operasyonel güven verilmez.
+- Eşikler kalibre edilmemiştir. İlk küçük ölçüm (2 Ekim 2026, 16 değerlendirilebilir
+  PIREP): POD 1/8 = 0,13 (%95 Wilson 0,02–0,47), POFD 0/8 = 0 (0–0,32). Dedektör
+  tutucu; operasyonel güven için daha büyük örneklem gerekir. Eşik bu örneklemle
+  ayarlanmadı (16 örnekle ayar aşırı uyum olurdu).
 - Yanlış alarm kaynakları: dalga takibi, otopilot mod geçişi, ATC'nin verdiği küçük
   seviye düzeltmeleri. Çoklu uçak doğrulaması bunun için vardır.
 - ADS-B'de PIREP'i veren uçak tanınamaz; doğrulamada tüpteki herhangi bir uçağın olayı

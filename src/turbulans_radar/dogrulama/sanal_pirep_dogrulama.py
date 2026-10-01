@@ -201,6 +201,10 @@ def dogrulama_calistir(pozitif=50, negatif=50, maks_yeni_sorgu=0, motor=None, ba
         onbellekte = os.path.exists(onbellek_yolu(pirep["pirep_anahtari"]))
         if not onbellekte and izin and yeni_sorgu > 0:
             time.sleep(config.TOPLU_ANALIZ_ISTEKLER_ARASI_BEKLEME_SANIYE)
+        if not onbellekte and izin and baglanti is None:
+            from turbulans_radar.veri.veri_yukleme import trino_baglantisi_olustur
+
+            baglanti = trino_baglantisi_olustur()
         izler = pirep_cevresi_izleri(pirep, baglanti=baglanti, sorgu_izni=izin)
         if not onbellekte and izler is not None:
             yeni_sorgu += 1
