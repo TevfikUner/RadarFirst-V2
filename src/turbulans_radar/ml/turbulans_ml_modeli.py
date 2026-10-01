@@ -227,6 +227,19 @@ def ozelliklerden_risk_tahmin_et(ozellikler: pd.DataFrame):
     return tum_tahminler
 
 
+def risk_durumlarini_hesapla(olasiliklar, bilgi=None):
+    """Aktif modelin konformal eşiğiyle her olasılık için dusuk_risk / yuksek_risk
+    / belirsiz (bkz. ml/belirsizlik.py). Model konformal eşikle eğitilmediyse None."""
+    from turbulans_radar.ml.belirsizlik import risk_durumlari
+
+    if olasiliklar is None:
+        return None
+    konformal = ((model_bilgisini_yukle() if bilgi is None else bilgi) or {}).get("konformal")
+    if not konformal or konformal.get("esik") is None:
+        return None
+    return risk_durumlari(olasiliklar, konformal["esik"])
+
+
 def model_bilgisini_yukle():
     """ml_egitimi.py'nin kaydettiği model metadata'sını (seçilen model adı,
     test metrikleri, özellik listesi, eğitim tarihi) döner. Model henüz

@@ -109,7 +109,14 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Aktif model hâlâ eski 167 örneklik veriyle (hatalı irtifa filtresi) eğitilmiştir;
   yeni veriyle aday model en az 60 farklı gün eşleşince gece işinde eğitilir ve
   yalnızca holdout'ta TI1 referansını ve aktif modeli geçerse aktifleşir.
-- Yalnızca ABD verisiyle doğrulanmıştır; karar eşiği 0.5'te sabittir.
+- Yalnızca ABD verisiyle doğrulanmıştır. `ml_riski_var_mi` için olasılık eşiği
+  `ML_KARAR_ESIGI` (varsayılan 0.5) ile yapılandırılır.
+- Konformal belirsizlik: yeni veri hattıyla eğitilen her model bir konformal
+  eşikle saklanır; `POST /turbulans/tahmin` olasılığın yanında
+  `ml_risk_durumu` (`dusuk_risk` / `yuksek_risk` / `belirsiz`) döner. Hedef
+  kapsama %90'dır (`ML_KONFORMAL_ALFA` = 0.10); gerçekleşen kapsama zamansal
+  holdout'ta ölçülüp sürüm kaydına yazılır. "Belirsiz", verinin bu güven
+  düzeyinde iki sınıfı ayırmaya yetmediği anlamına gelir; güvenli demek değildir.
 - Ek bir işaret olarak raporlanır; rota kararına girmez.
 
 **Rota modeli**

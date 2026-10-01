@@ -312,6 +312,8 @@ class TurbulansTahminYaniti(BaseModel):
     ti1_guvenilirlik_notu: str | None = None
     ml_riski_var_mi: bool | None = None
     ml_olasilik: float | None = None
+    ml_risk_durumu: Literal["dusuk_risk", "yuksek_risk", "belirsiz"] | None = None
+    ml_konformal_hedef_kapsama: float | None = None
     aciklama: str
 
 
@@ -340,6 +342,7 @@ class ModelBilgisiYaniti(BaseModel):
     veri_kaynagi: str | None = None
     kullanimda: bool | None = None
     uyari: str | None = None
+    konformal: dict | None = None
 
 
 class HavaDurumuKupuYaniti(BaseModel):

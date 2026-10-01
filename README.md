@@ -977,7 +977,17 @@ doğrulamayla sigmoid (Platt) yöntemiyle kalibre edilir. Aday, holdout'ta
 (1) tek başına TI1'in ROC-AUC'sini en az `ML_TI1_AUC_USTUNLUGU` (0.02)
 geçmeli ve (2) aktif modeli F1/recall ölçütlerinde geçmelidir; aksi halde
 yalnızca sürüm olarak saklanır. Holdout raporu ROC-AUC, POD, POFD, Peirce,
-Brier ve Brier becerisini içerir (`ml/degerlendirme.py`).
+Brier ve Brier becerisini içerir (`ml/degerlendirme.py`); her metrik gün
+bazlı blok bootstrap %95 güven aralığıyla, modelin TI1'e karşı ROC-AUC farkı
+eşleştirilmiş bootstrap p değeriyle raporlanır ([deney protokolü](docs/deney_protokolu.md)).
+
+**Belirsizlik ("emin değilim" diyebilen çıktı):** eğitimde gün gruplu kat dışı
+olasılıklardan konformal bir eşik hesaplanıp modelle saklanır (`ml/belirsizlik.py`).
+`POST /api/v1/turbulans/tahmin` olasılığın yanında `ml_risk_durumu` döner:
+`yuksek_risk`, `dusuk_risk` ya da veri iki sınıfı bu güven düzeyinde ayıramıyorsa
+`belirsiz`. Hedef kapsama `1 - ML_KONFORMAL_ALFA` (%90); holdout'ta ölçülen
+kapsama ve belirsiz oranı sürüm kaydında ve 3B haritanın model panelinde görünür.
+`ML_KARAR_ESIGI` (varsayılan 0.5) `ml_riski_var_mi` eşiğidir (risk iştahı).
 
 **Doğrulama, EDR kalibrasyonu ve sürüm yönetimi (CLI):**
 

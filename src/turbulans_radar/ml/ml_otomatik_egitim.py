@@ -25,6 +25,7 @@ from turbulans_radar import config
 from turbulans_radar.depo.models import MlOrnegi
 from turbulans_radar.depo.veritabani import motor_al
 from turbulans_radar.loglama import logger_al
+from turbulans_radar.ml.belirsizlik import kapsama_raporu, konformal_esik
 from turbulans_radar.ml.degerlendirme import guven_araliklari, olasilik_metrikleri, ti1_referansi
 from turbulans_radar.ml.ml_egitimi import _tahmin_metrikleri, modelleri_egit_ve_karsilastir
 from turbulans_radar.ml.turbulans_ml_modeli import (
@@ -106,6 +107,19 @@ def olasilik_kalibre_et(model, X, y, gunler, kat_sayisi=5):
     return CalibratedClassifierCV(clone(model), method="sigmoid", cv=bolmeler).fit(X, y)
 
 
+def kat_disi_olasiliklar(model, X, y, gunler, kat_sayisi=5) -> np.ndarray:
+    """Gün gruplu katlarda, her kat kalan günlerle kalibre edilmiş modelle tahmin
+    edilir: konformal eşik eğitimde görülmemiş günlerin skorlarından hesaplanır."""
+    gunler = pd.Series(gunler).reset_index(drop=True)
+    kat = max(2, min(kat_sayisi, gunler.nunique()))
+    olasilik = np.full(len(X), np.nan)
+    bolucu = StratifiedGroupKFold(n_splits=kat, shuffle=True, random_state=1)
+    for egitim_i, test_i in bolucu.split(X, y, gunler):
+        kalibre = olasilik_kalibre_et(model, X.iloc[egitim_i], y.iloc[egitim_i], gunler.iloc[egitim_i], kat_sayisi)
+        olasilik[test_i] = kalibre.predict_proba(X.iloc[test_i][OZELLIK_SUTUNLARI])[:, 1]
+    return olasilik
+
+
 def _holdout_metrikleri(model, X, y) -> dict:
     olasilik = model.predict_proba(X[OZELLIK_SUTUNLARI])[:, 1]
     return {**_tahmin_metrikleri(y, olasilik), **olasilik_metrikleri(y, olasilik)}
@@ -169,17 +183,19 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
 
     aday_holdout = _holdout_metrikleri(aday_model, X[holdout], y[holdout])
     ti1_holdout = ti1_referansi(y[holdout], X[holdout]["ti1_indeksi"])
-    holdout_guven = guven_araliklari(
-        y[holdout],
-        X[holdout]["ti1_indeksi"],
-        gunler[holdout],
-        aday_model.predict_proba(X[holdout][OZELLIK_SUTUNLARI])[:, 1],
+    aday_olasilik = aday_model.predict_proba(X[holdout][OZELLIK_SUTUNLARI])[:, 1]
+    holdout_guven = guven_araliklari(y[holdout], X[holdout]["ti1_indeksi"], gunler[holdout], aday_olasilik)
+    alfa = config.ML_KONFORMAL_ALFA
+    aday_esik = konformal_esik(
+        y[egitim], kat_disi_olasiliklar(sonuclar[isim][0], X[egitim], y[egitim], gunler[egitim], kat_sayisi), alfa
     )
+    holdout_kapsama = kapsama_raporu(y[holdout], aday_olasilik, aday_esik, alfa)
     sampiyon = (sampiyon_yukleyici or _aktif_modeli_yukle)()
     sampiyon_holdout = _holdout_metrikleri(sampiyon, X[holdout], y[holdout]) if sampiyon is not None else None
     terfi, gerekce = terfi_karari(aday_holdout, sampiyon_holdout, y[holdout], ti1_holdout)
 
     nihai_model = olasilik_kalibre_et(sonuclar[isim][0], X, y, gunler, kat_sayisi)
+    nihai_esik = konformal_esik(y, kat_disi_olasiliklar(sonuclar[isim][0], X, y, gunler, kat_sayisi), alfa)
     bilgi = _json_guvenli(
         {
             "secilen_model": isim,
@@ -198,6 +214,12 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
                 "guven_araliklari": holdout_guven,
             },
             "olasilik_kalibrasyonu": "sigmoid (Platt), gün bazında gruplu çapraz doğrulama",
+            "konformal": {
+                "alfa": alfa,
+                "esik": nihai_esik,
+                "yontem": "çapraz-konformal: gün gruplu kat dışı kalibre olasılıklar, s = 1 - p(gerçek sınıf)",
+                "holdout_dogrulamasi": {**holdout_kapsama, "esik": aday_esik},
+            },
             "uyari": "Olasılık, raporlanan PIREP'lerdeki orta+ türbülans oranına göredir; sertifikalı EDR değildir.",
             "aktiflestirildi": terfi,
             "karar_gerekcesi": gerekce,
@@ -216,6 +238,7 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
         "aktif_model_holdout": bilgi["holdout"]["aktif_model"],
         "ti1_referansi_holdout": bilgi["holdout"]["ti1_referansi"],
         "holdout_guven_araliklari": bilgi["holdout"]["guven_araliklari"],
+        "konformal": bilgi["konformal"],
     }
 
 

@@ -493,6 +493,7 @@ async def test_model_bilgisi_egitilmemisse_durustce_false_doner(istemci, api_ana
         "veri_kaynagi": None,
         "kullanimda": None,
         "uyari": None,
+        "konformal": None,
     }
 
 
@@ -1405,3 +1406,21 @@ def test_hiz_sayaci_temizligi_kota_sayaclarina_dokunmaz():
     finally:
         with vt.motor_al().begin() as baglanti:
             baglanti.execute(text("DELETE FROM hiz_siniri_sayaclari WHERE anahtar = :a"), {"a": anahtar})
+
+
+async def test_turbulans_tahmini_konformal_risk_durumunu_doner(istemci, api_anahtari, monkeypatch):
+    govde = {"enlem": 40.8, "boylam": 34.0, "irtifa_ft": 36000, "zaman": "2019-01-15T20:00:00"}
+    monkeypatch.setattr(api_servisi, "model_kullanilabilir_mi", lambda *a, **k: (True, None))
+    monkeypatch.setattr(api_servisi, "model_bilgisini_yukle", lambda: {"konformal": {"alfa": 0.1, "esik": 0.2}})
+    sonuclar = {}
+    for olasilik in (0.93, 0.5, 0.04):
+        monkeypatch.setattr(api_servisi, "ozelliklerden_risk_tahmin_et", lambda X, p=olasilik: [p])
+        yanit = await istemci.post("/api/v1/turbulans/tahmin", json=govde, headers={"X-API-Key": api_anahtari})
+        assert yanit.status_code == 200 and yanit.json()["kapsam_icinde_mi"] is True
+        sonuclar[olasilik] = yanit.json()
+    assert [sonuclar[p]["ml_risk_durumu"] for p in (0.93, 0.5, 0.04)] == ["yuksek_risk", "belirsiz", "dusuk_risk"]
+    assert sonuclar[0.93]["ml_konformal_hedef_kapsama"] == pytest.approx(0.9)
+
+    monkeypatch.setattr(api_servisi, "model_bilgisini_yukle", lambda: {"secilen_model": "eski"})
+    yanit = await istemci.post("/api/v1/turbulans/tahmin", json=govde, headers={"X-API-Key": api_anahtari})
+    assert yanit.json()["ml_risk_durumu"] is None and yanit.json()["ml_olasilik"] == pytest.approx(0.04)

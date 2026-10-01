@@ -119,8 +119,13 @@ def test_aday_olasiliklari_kalibre_edilir_ve_brier_raporlanir(monkeypatch, gecic
     assert {"pod", "pofd", "peirce"} <= set(aday)
     farki = sonuc["holdout_guven_araliklari"]["model_eksi_ti1_roc_auc"]
     assert farki["alt"] <= farki["fark"] <= farki["ust"] and 0.0 <= farki["p_degeri"] <= 1.0
+    konformal = sonuc["konformal"]
+    assert 0.0 <= konformal["esik"] <= 1.0 and konformal["alfa"] == 0.1
+    dogrulama = konformal["holdout_dogrulamasi"]
+    assert dogrulama["ornek"] == sonuc["holdout_ornek"] and 0.0 <= dogrulama["kapsama"] <= 1.0
     surum = tm.model_versiyonlarini_listele()[0]
     assert surum["olasilik_kalibrasyonu"].startswith("sigmoid")
+    assert tm.risk_durumlarini_hesapla([0.0, 1.0], surum)[0] in ("dusuk_risk", "belirsiz")
 
 
 @pytest.mark.parametrize("aday_auc,beklenen", [(0.74, True), (0.72, False)])

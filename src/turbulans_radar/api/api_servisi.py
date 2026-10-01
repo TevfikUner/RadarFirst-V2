@@ -151,6 +151,7 @@ from turbulans_radar.ml.turbulans_ml_modeli import (
     model_versiyonlarini_listele,
     ozelliklerden_risk_tahmin_et,
     ozellikleri_cikar,
+    risk_durumlarini_hesapla,
     versiyona_geri_don,
 )
 from turbulans_radar.rota.rota_optimizasyonu import (
@@ -981,14 +982,19 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi, request: Request, rol:
         ml_sonuc = ozelliklerden_risk_tahmin_et(ozellikler)
         ml_olasilik = float(ml_sonuc[0]) if ml_sonuc is not None and not pd.isna(ml_sonuc[0]) else None
         _, ml_notu = model_kullanilabilir_mi()
+        bilgi = model_bilgisini_yukle() if ml_olasilik is not None else None
+        durumlar = risk_durumlarini_hesapla([ml_olasilik], bilgi) if ml_olasilik is not None else None
+        konformal = (bilgi or {}).get("konformal") if durumlar is not None else None
 
         return {
             "kapsam_icinde_mi": True,
             "ti1_indeksi": float(ti1),
             "ti1_riskli_mi": bool(ti1 >= config.TI1_ESIK_ORTA_SIDDETLI),
             "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
-            "ml_riski_var_mi": (ml_olasilik >= 0.5) if ml_olasilik is not None else None,
+            "ml_riski_var_mi": (ml_olasilik >= config.ML_KARAR_ESIGI) if ml_olasilik is not None else None,
             "ml_olasilik": ml_olasilik,
+            "ml_risk_durumu": durumlar[0] if durumlar is not None else None,
+            "ml_konformal_hedef_kapsama": (1 - konformal["alfa"]) if konformal else None,
             "aciklama": (
                 "Fizik (Ellrod TI1) ve ML tahminleri hesaplandı."
                 if ml_olasilik is not None

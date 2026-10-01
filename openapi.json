@@ -3433,6 +3433,18 @@
               }
             ],
             "title": "Uyari"
+          },
+          "konformal": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Konformal"
           }
         },
         "type": "object",
@@ -4482,6 +4494,33 @@
               }
             ],
             "title": "Ml Olasilik"
+          },
+          "ml_risk_durumu": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "dusuk_risk",
+                  "yuksek_risk",
+                  "belirsiz"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ml Risk Durumu"
+          },
+          "ml_konformal_hedef_kapsama": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ml Konformal Hedef Kapsama"
           },
           "aciklama": {
             "type": "string",

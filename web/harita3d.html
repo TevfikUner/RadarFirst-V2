@@ -414,13 +414,22 @@ async function modelBilgisiniGetirVeGoster() {
       return;
     }
     const m = bilgi.metrikler;
-    govde.replaceChildren(...[
+    const satirlar = [
       ["Seçilen model", bilgi.secilen_model],
       ["Recall", m.recall.toFixed(3)],
       ["F1", m.f1.toFixed(3)],
       ["ROC-AUC", m.roc_auc.toFixed(3)],
       ["Eğitim örneklemi", bilgi.egitim_orneklem_sayisi],
-    ].map(([etiket, deger]) => {
+    ];
+    // Konformal belirsizlik (ml/belirsizlik.py): holdout'ta ölçülen kapsama ve
+    // "belirsiz" denen tahminlerin oranı.
+    const konformal = bilgi.konformal && bilgi.konformal.holdout_dogrulamasi;
+    if (konformal) {
+      const yuzde = (x) => `%${(100 * x).toFixed(0)}`;
+      satirlar.push(["Kapsama (hedef)", `${yuzde(konformal.kapsama)} (${yuzde(konformal.hedef_kapsama)})`]);
+      satirlar.push(["Belirsiz oranı", yuzde(konformal.belirsiz_orani)]);
+    }
+    govde.replaceChildren(...satirlar.map(([etiket, deger]) => {
       const satir = document.createElement("div");
       satir.className = "satir";
       const etiketEl = metinSpan(etiket);

@@ -98,6 +98,12 @@ ML_TI1_AUC_USTUNLUGU = _ortam_sayi("ML_TI1_AUC_USTUNLUGU", 0.02)
 # ml/degerlendirme.py -- gün bazlı blok bootstrap tekrar sayısı (güven aralıkları ve
 # modelin TI1'e karşı eşleştirilmiş ROC-AUC farkı; bkz. docs/deney_protokolu.md).
 ML_BOOTSTRAP_TEKRAR = _ortam_sayi("ML_BOOTSTRAP_TEKRAR", 1000, int)
+# ml/belirsizlik.py -- konformal tahmin kümesinin hata payı: gerçek sınıf kümede en
+# az 1-alfa olasılıkla bulunur (0.10 -> %90). Küme iki sınıfı da içeriyorsa (ya da
+# hiçbirini) yanıt "belirsiz" olur. ML_KARAR_ESIGI: ml_riski_var_mi için olasılık
+# eşiği (risk iştahı; düşürmek daha çok uyarı, yükseltmek daha az uyarı demektir).
+ML_KONFORMAL_ALFA = _ortam_sayi("ML_KONFORMAL_ALFA", 0.10)
+ML_KARAR_ESIGI = _ortam_sayi("ML_KARAR_ESIGI", 0.5)
 ML_ESKI_MODELI_KULLAN = _ortam_bool("ML_ESKI_MODELI_KULLAN", False)
 # ml/ozellik_deposu.py -- gece işinin indirdiği ERA5 dilimi silinmeden önce her
 # PIREP'in çevresindeki pencere (±PENCERE_DERECE, ±PENCERE_SAAT, tüm seviyeler)
