@@ -98,6 +98,11 @@
     </div>
     <label>Uçak modeli</label>
     <select id="ucak-modeli"><option value="">(önce API anahtarını gir)</option></select>
+    <label>Arama uzayı</label>
+    <select id="arama-uzayi">
+      <option value="koridor">Serbest koridor (büyük daire çevresi)</option>
+      <option value="ats">ATS yolları / FRA (yüklü ağ)</option>
+    </select>
 
     <button id="simule-et-buton">Simüle Et</button>
     <button id="yeniden-hesapla-buton" style="display:none; background:#e67e22; margin-top:6px;">
@@ -284,9 +289,15 @@ function sonucPanelDoldur(sonuc) {
     yanal: "Strateji: yanal sapma (A*)",
     irtifa_yukari: "Strateji: tırmanma (irtifa artırıldı)",
     irtifa_asagi: "Strateji: alçalma (irtifa azaltıldı)",
+    ats_alternatif: "Strateji: ATS ağında alternatif rota",
     yok: "",
   };
-  document.getElementById("strateji-satiri").textContent = stratejiEtiketleri[sonuc.kacinma_stratejisi] || "";
+  const atsMetni = (noktalar) => noktalar
+    .map((n) => (n.yol ? `${n.yol} ` : "") + n.nokta.replace("<ToC>", "ToC").replace("<ToD>", "ToD"))
+    .join(" ");
+  document.getElementById("strateji-satiri").textContent =
+    (stratejiEtiketleri[sonuc.kacinma_stratejisi] || "") +
+    (sonuc.ats ? ` · ATS: ${atsMetni(sonuc.ats.optimize_rota)} (${sonuc.ats.kaynak})` : "");
 
   // Önce GÜVENLİK durumu, sonra yakıt etkisi ayrı ayrı gösterilir -- ikisini
   // tek bir "iyi/kötü" yargısına karıştırmıyoruz (bkz. rota_optimizasyonu.py
@@ -395,6 +406,7 @@ async function simulasyonuCalistir() {
     irtifa_ft: Number(document.getElementById("irtifa-ft").value),
     zaman: document.getElementById("zaman").value + ":00",
     ucak_modeli: document.getElementById("ucak-modeli").value,
+    arama_uzayi: document.getElementById("arama-uzayi").value,
   };
   const anahtar = anahtarAl();
   if (!anahtar) { durumGoster("API anahtarı gerekli.", "hata"); return; }
@@ -452,6 +464,7 @@ async function ucusSirasindaYenidenHesapla() {
     irtifa_ft: cografi.height / 0.3048,
     zaman: Cesium.JulianDate.toIso8601(suAnkiZaman).slice(0, 19),
     ucak_modeli: sonUcakModeli,
+    arama_uzayi: document.getElementById("arama-uzayi").value,
   };
 
   const buton = document.getElementById("yeniden-hesapla-buton");

@@ -17,6 +17,9 @@ x-ortak-volumeler: &ortak_volumeler
   - ./opensky_onbellek:/app/opensky_onbellek
   # ML ERA5 pencere deposu (gece işi yazar; bkz. docs/adr/0002-era5-pencere-deposu.md).
   - ./ml_ozellik_deposu:/app/ml_ozellik_deposu
+  # ATS yolu/FRA ağı (AIP'ten elle hazırlanır, depoya konmaz; bkz.
+  # docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md). Yoksa ATS modu 400 döner.
+  - ./ats_verisi:/app/ats_verisi:ro
   - ${YEREL_VERI_KOKU:-.}:/veri:ro
   - turbulans_modeller:/app/model_deposu
 

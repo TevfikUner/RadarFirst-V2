@@ -62,3 +62,5 @@ ekran_goruntuleri/
 
 # ml/ozellik_deposu.py -- gece işinin ERA5 pencere deposu (GB düzeyinde büyür).
 ml_ozellik_deposu/
+# ATS yolu/FRA ağı: AIP verisinden türetilir, yeniden dağıtım izni doğrulanmadı.
+ats_verisi/

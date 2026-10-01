@@ -250,6 +250,14 @@ ROTA_YANAL_IZGARA_KM = _ortam_sayi("ROTA_YANAL_IZGARA_KM", 20.0)
 # ~%30'u; yanal sapma yolu da uzatır).
 ROTA_ZAMAN_BELIRSIZLIK_ORANI = _ortam_sayi("ROTA_ZAMAN_BELIRSIZLIK_ORANI", 0.3)
 ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA = _ortam_sayi("ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA", 5.0)
+# rota/hava_yolu_agi.py -- ATS yolları / FRA ağı (AIP'ten elle hazırlanır, depoya
+# konmaz; bkz. docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md). ToC/ToD ağa en yakın
+# ATS_AGI_BAGLANTI_SAYISI noktaya (en fazla ATS_AGI_BAGLANTI_KM) DCT bağlanır;
+# uzun segmentler risk kontrolü için ATS_AGI_ARA_NOKTA_KM'lik parçalara bölünür.
+ATS_AGI_DOSYASI = _ortam_str("ATS_AGI_DOSYASI", os.path.join("ats_verisi", "ats_agi.json"))
+ATS_AGI_BAGLANTI_KM = _ortam_sayi("ATS_AGI_BAGLANTI_KM", 150.0)
+ATS_AGI_BAGLANTI_SAYISI = _ortam_sayi("ATS_AGI_BAGLANTI_SAYISI", 3, int)
+ATS_AGI_ARA_NOKTA_KM = _ortam_sayi("ATS_AGI_ARA_NOKTA_KM", 40.0)
 
 # isci/gorev_iscisi.py -- uzun işlerin kuyruğu (analiz_gorevleri). API kendi
 # içinde gömülü bir işçi başlatır (GOREV_GOMULU_ISCI); ayrı işçi süreçleri

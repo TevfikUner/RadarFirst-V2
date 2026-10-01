@@ -135,6 +135,8 @@ class RotaSimulasyonuIstegi(BaseModel):
     irtifa_ft: float = Field(ge=1000, le=45000)
     zaman: str  # ISO 8601 (örn. '2019-01-15T10:00:00')
     ucak_modeli: str
+    # koridor: büyük daire etrafında yanal ızgara; ats: yüklü ATS yolu/FRA ağı.
+    arama_uzayi: Literal["koridor", "ats"] = "koridor"
 
     @field_validator("zaman")
     @classmethod
@@ -264,7 +266,22 @@ class RotaBulgusuYaniti(BaseModel):
 
 class KapsamYaniti(BaseModel):
     safha: str
+    arama_uzayi: str = "koridor"
     aciklama: str
+
+
+class AtsNoktasiYaniti(BaseModel):
+    """Uçuş planı biçimine yakın: 'yol' bu noktaya gelen hava yolu (DCT: doğrudan)."""
+
+    nokta: str
+    yol: str | None = None
+
+
+class AtsRotaYaniti(BaseModel):
+    kaynak: str
+    normal_rota: list[AtsNoktasiYaniti]
+    optimize_rota: list[AtsNoktasiYaniti]
+    buyuk_daire_km: float
 
 
 class PlanlamaUfkuYaniti(BaseModel):
@@ -299,6 +316,7 @@ class RotaSimulasyonuYaniti(BaseModel):
     co2_farki_kg: float
     kapsam: KapsamYaniti | None = None
     planlama_ufku: PlanlamaUfkuYaniti | None = None
+    ats: AtsRotaYaniti | None = None
     czml: list[dict]
 
 

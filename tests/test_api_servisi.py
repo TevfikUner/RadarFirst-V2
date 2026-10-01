@@ -1592,3 +1592,25 @@ async def test_zamanlayicilari_yalnizca_lider_calistirir_ve_liderlik_kaybinda_du
     await asyncio.sleep(0.15)
     assert len(baslayan) == 2 and len(iptal_edilen) == 2
     gorev.cancel()
+
+
+# --- ATS yolu ağı (hoca önerisi 1) ---
+
+
+async def test_ats_agi_yokken_ats_modu_400_ve_aciklama_doner(istemci, api_anahtari, monkeypatch, tmp_path):
+    monkeypatch.setattr(config, "ATS_AGI_DOSYASI", str(tmp_path / "yok.json"))
+    govde = {
+        "baslangic_enlem": 45.0,
+        "baslangic_boylam": -41.0,
+        "bitis_enlem": 45.0,
+        "bitis_boylam": -29.0,
+        "irtifa_ft": 36000,
+        "zaman": "2019-01-15T10:00:00",
+        "ucak_modeli": "A320",
+        "arama_uzayi": "ats",
+    }
+    yanit = await istemci.post("/api/v1/simulasyon/rota", json=govde, headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 400 and "yüklü değil" in yanit.json()["detail"]
+    govde["arama_uzayi"] = "serbest"
+    yanit = await istemci.post("/api/v1/simulasyon/rota", json=govde, headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 422

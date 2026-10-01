@@ -2579,6 +2579,65 @@
   },
   "components": {
     "schemas": {
+      "AtsNoktasiYaniti": {
+        "properties": {
+          "nokta": {
+            "type": "string",
+            "title": "Nokta"
+          },
+          "yol": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yol"
+          }
+        },
+        "type": "object",
+        "required": [
+          "nokta"
+        ],
+        "title": "AtsNoktasiYaniti",
+        "description": "Uçuş planı biçimine yakın: 'yol' bu noktaya gelen hava yolu (DCT: doğrudan)."
+      },
+      "AtsRotaYaniti": {
+        "properties": {
+          "kaynak": {
+            "type": "string",
+            "title": "Kaynak"
+          },
+          "normal_rota": {
+            "items": {
+              "$ref": "#/components/schemas/AtsNoktasiYaniti"
+            },
+            "type": "array",
+            "title": "Normal Rota"
+          },
+          "optimize_rota": {
+            "items": {
+              "$ref": "#/components/schemas/AtsNoktasiYaniti"
+            },
+            "type": "array",
+            "title": "Optimize Rota"
+          },
+          "buyuk_daire_km": {
+            "type": "number",
+            "title": "Buyuk Daire Km"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kaynak",
+          "normal_rota",
+          "optimize_rota",
+          "buyuk_daire_km"
+        ],
+        "title": "AtsRotaYaniti"
+      },
       "BacktestListesiYaniti": {
         "properties": {
           "ozet": {
@@ -3238,6 +3297,11 @@
           "safha": {
             "type": "string",
             "title": "Safha"
+          },
+          "arama_uzayi": {
+            "type": "string",
+            "title": "Arama Uzayi",
+            "default": "koridor"
           },
           "aciklama": {
             "type": "string",
@@ -4022,6 +4086,15 @@
           "ucak_modeli": {
             "type": "string",
             "title": "Ucak Modeli"
+          },
+          "arama_uzayi": {
+            "type": "string",
+            "enum": [
+              "koridor",
+              "ats"
+            ],
+            "title": "Arama Uzayi",
+            "default": "koridor"
           }
         },
         "type": "object",
@@ -4142,6 +4215,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/PlanlamaUfkuYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ats": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AtsRotaYaniti"
               },
               {
                 "type": "null"

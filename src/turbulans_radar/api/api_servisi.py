@@ -161,9 +161,11 @@ from turbulans_radar.ml.turbulans_ml_modeli import (
     risk_durumlarini_hesapla,
     versiyona_geri_don,
 )
+from turbulans_radar.rota.hava_yolu_agi import AtsAgiHatasi
 from turbulans_radar.rota.rota_optimizasyonu import (
     CANLI_VERI_HAZIRLANIYOR,
     UCAK_PROFILLERI,
+    AtsAgiKullanilamazHatasi,
     rota_simulasyonu_olustur,
     simulasyonu_czml_e_cevir,
     veri_kupune_eris,
@@ -1011,17 +1013,21 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
     nesil = _rota_onbellegi.nesil
     async with _agir_hesap_yuvasi():
         hesap_baslangici = time.monotonic()
-        sonuc = await asyncio.to_thread(
-            rota_simulasyonu_olustur,
-            istek.baslangic_enlem,
-            istek.baslangic_boylam,
-            istek.bitis_enlem,
-            istek.bitis_boylam,
-            istek.irtifa_ft,
-            istek.zaman,
-            istek.ucak_modeli,
-            canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
-        )
+        try:
+            sonuc = await asyncio.to_thread(
+                rota_simulasyonu_olustur,
+                istek.baslangic_enlem,
+                istek.baslangic_boylam,
+                istek.bitis_enlem,
+                istek.bitis_boylam,
+                istek.irtifa_ft,
+                istek.zaman,
+                istek.ucak_modeli,
+                canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
+                arama_uzayi=istek.arama_uzayi,
+            )
+        except (AtsAgiKullanilamazHatasi, AtsAgiHatasi) as hata:
+            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(hata)) from None
         metrikler.ROTA_HESABI_SURESI.observe(time.monotonic() - hesap_baslangici)
     sonuc["czml"] = simulasyonu_czml_e_cevir(sonuc)
     _rota_onbellegi.koy(onbellek_anahtari, sonuc, nesil)

@@ -85,6 +85,7 @@ from turbulans_radar.fizik.birim_donusumleri import (
 from turbulans_radar.fizik.eslestirme import kapsam_disi_maskesi
 from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.loglama import logger_al
+from turbulans_radar.rota import hava_yolu_agi
 from turbulans_radar.rota.risk_katmanlari import (
     KisitliSahaKatmani,
     SigmetKisitKatmani,
@@ -487,6 +488,86 @@ def _a_yildiz_ile_rota_ara(
     return yol_enlem, yol_boylam, maks_sapma_km
 
 
+class AtsAgiKullanilamazHatasi(ValueError):
+    """ATS modu istendi ama ağ yok ya da ToC/ToD ağa bağlanamıyor."""
+
+
+def _ats_ile_rota_ara(ag, bas, bit, irtifa_m, baslangic_zamani, tas_ms, veri_kupu, risk_katmanlari=()):
+    """hava_yolu_agi grafında, ızgara aramasıyla AYNI maliyet (rüzgarlı süre +
+    TI1 cezası) ve AYNI risk katmanlarıyla A*. Düğüm zamanı: ToC'den büyük daire
+    uzaklığı / TAS (nominal); belirsizlik payı ızgarayla aynı. Hava küpünün
+    kapsamadığı düğümler elenir. Dönüş: (enlemler, boylamlar, düğümler, yollar)
+    ya da yol yoksa None."""
+    konumlar, komsular, kenarlar = hava_yolu_agi.arama_grafi(ag, bas, bit, irtifa_m / 0.3048)
+    kalkis = pd.Timestamp(baslangic_zamani)
+    kalkis = kalkis.tz_localize("UTC") if kalkis.tzinfo is None else kalkis
+    dugumler = list(konumlar)
+    zamanlar = {
+        d: kalkis + pd.Timedelta(seconds=buyuk_daire_mesafesi_km(*bas, *konumlar[d]) * 1000.0 / tas_ms)
+        for d in dugumler
+    }
+    if veri_kupu is not None:
+        disi = kapsam_disi_maskesi(
+            veri_kupu,
+            [konumlar[d][0] for d in dugumler],
+            [konumlar[d][1] for d in dugumler],
+            [zamanlar[d] for d in dugumler],
+        )
+        dugumler = [d for d, x in zip(dugumler, disi) if not x]
+    gecerli = set(dugumler)
+    kenarlar = [(a, b) for a, b in kenarlar if a in gecerli and b in gecerli]
+    belirsizlik = {
+        d: (zamanlar[d] - kalkis) * config.ROTA_ZAMAN_BELIRSIZLIK_ORANI
+        + pd.Timedelta(minutes=config.ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA)
+        for d in dugumler
+    }
+    risk = degerlendirmeleri_birlestir(
+        katman.degerlendir(
+            {d: konumlar[d] for d in dugumler},
+            {d: zamanlar[d] for d in dugumler},
+            kenarlar,
+            irtifa_m,
+            zaman_belirsizligi=belirsizlik,
+        )
+        for katman in risk_katmanlari
+    )
+    if veri_kupu is not None:
+        u, v = ruzgar_bilesenlerini_toplu_al(
+            veri_kupu,
+            np.array([konumlar[d][0] for d in dugumler]),
+            np.array([konumlar[d][1] for d in dugumler]),
+            irtifa_metre_to_basinc_hpa(irtifa_m),
+            [zamanlar[d] for d in dugumler],
+        )
+        ruzgar = dict(zip(dugumler, zip(u.tolist(), v.tolist())))
+    else:
+        ruzgar = dict.fromkeys(dugumler, (0.0, 0.0))
+
+    def kenar_maliyeti(a, b):
+        (ea, ba), (eb, bb) = konumlar[a], konumlar[b]
+        yon = _ilk_yon_derece(ea, ba, eb, bb)
+        u, v = ruzgar[b]
+        yer_hizi = max(tas_ms + u * math.sin(_bd(yon)) + v * math.cos(_bd(yon)), tas_ms * 0.2)
+        return buyuk_daire_mesafesi_km(ea, ba, eb, bb) * 1000.0 / yer_hizi + risk.dugum_cezasi.get(b, 0.0)
+
+    def sezgisel(d):
+        return buyuk_daire_mesafesi_km(*konumlar[d], *bit) * 1000.0 / (tas_ms * 1.8)
+
+    yasak = set(konumlar) - gecerli | risk.yasak_dugumler
+    sonuc = hava_yolu_agi.a_yildiz(
+        komsular, hava_yolu_agi.BASLANGIC, hava_yolu_agi.BITIS, kenar_maliyeti, sezgisel, yasak, risk.yasak_kenarlar
+    )
+    if sonuc is None:
+        return None
+    yol_dugumleri, yol_adlari = sonuc
+    return (
+        np.array([konumlar[d][0] for d in yol_dugumleri]),
+        np.array([konumlar[d][1] for d in yol_dugumleri]),
+        yol_dugumleri,
+        yol_adlari,
+    )
+
+
 def _komsu_dugumler(dugum, izgara):
     """Bir sonraki ara noktada ulaşılabilen ızgara düğümleri: seviye değişimi
     en fazla adim_basina_seviye (bkz. _YanalIzgara -- bacak açısı sınırı);
@@ -750,15 +831,26 @@ def planlama_ufku(zaman_iso, simdi=None) -> dict:
     }
 
 
-KAPSAM = {
-    "safha": "seyir",
-    "aciklama": (
-        "Rota yalnızca seyir (en-route) safhası içindir: başlangıç ve bitiş seyre giriş (ToC) ve seyirden "
-        "çıkış (ToD) noktası, irtifa seyir irtifası kabul edilir. Kalkış, tırmanış, alçalış, SID/STAR ve "
-        "yaklaşma kapsam dışıdır. ATS yolları ve diğer trafikle ayırma dikkate alınmaz; ATC talimatlarının "
-        "yerini tutmaz."
-    ),
-}
+_KAPSAM_ORTAK = (
+    "Rota yalnızca seyir (en-route) safhası içindir: başlangıç ve bitiş seyre giriş (ToC) ve seyirden "
+    "çıkış (ToD) noktası, irtifa seyir irtifası kabul edilir. Kalkış, tırmanış, alçalış, SID/STAR ve "
+    "yaklaşma kapsam dışıdır. "
+)
+
+
+def kapsam(arama_uzayi="koridor", ats_kaynagi=None) -> dict:
+    if arama_uzayi == "ats":
+        arama = f"Rota, yüklü ATS yolu/FRA ağı ({ats_kaynagi}) üzerinde aranır; ToC/ToD ağa doğrudan (DCT) bağlanır. "
+    else:
+        arama = "Rota, ATS yolları yerine büyük daire etrafındaki bir koridorda aranır. "
+    return {
+        "safha": "seyir",
+        "arama_uzayi": arama_uzayi,
+        "aciklama": _KAPSAM_ORTAK + arama + "Diğer trafikle ayırma dikkate alınmaz; ATC talimatlarının yerini tutmaz.",
+    }
+
+
+KAPSAM = kapsam()
 
 
 _SAHA_OZET_ALANLARI = (
@@ -853,8 +945,14 @@ def rota_simulasyonu_olustur(
     sigmetler=None,
     kisitli_sahalar=None,
     canli_bekleme_saniye=None,
+    arama_uzayi="koridor",
+    ats_agi=None,
 ):
     """
+    arama_uzayi: "koridor" (büyük daire etrafında yanal ızgara) ya da "ats"
+    (ATS yolu/FRA ağı, bkz. hava_yolu_agi.py; ats_agi verilmezse
+    config.ATS_AGI_DOSYASI). ATS modunda normal rota ağdaki en hızlı yol,
+    optimize rota aynı risk katmanlarıyla ağda aranan yoldur.
     İki gerçek rota üretir: büyük daire ("normal") ve "optimize" rota.
     Öncelik sırası: (1) aktif SIGMET'lere ve kısıtlı hava sahalarına GİRMEMEK
     (sert kısıtlar, bkz. risk_katmanlari.SigmetKisitKatmani/KisitliSahaKatmani),
@@ -928,7 +1026,33 @@ def rota_simulasyonu_olustur(
     def _aday_toplam_yakit_kg(aday):
         return profil["yakit_akisi_kg_saat"] * (aday["saniye"] / 3600.0) + aday["ekstra_yakit_kg"]
 
-    normal = _aday("yok", enlemler_gc, boylamlar_gc, irtifa_m)
+    ats_yollari = {}
+    if arama_uzayi == "ats":
+        ag = ats_agi or hava_yolu_agi.agi_yukle()
+        if ag is None:
+            raise AtsAgiKullanilamazHatasi(
+                f"ATS ağı yüklü değil ({config.ATS_AGI_DOSYASI}); bkz. docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md."
+            )
+        uclar = ((baslangic_enlem, baslangic_boylam), (bitis_enlem, bitis_boylam))
+
+        def _ats_yolu(aday_irtifa_m, katmanlar):
+            return _ats_ile_rota_ara(
+                ag, *uclar, aday_irtifa_m, zaman_iso, tas_ms, veri_kupu if ruzgarli_mi else None, katmanlar
+            )
+
+        planli = _ats_yolu(irtifa_m, [])
+        if planli is None:
+            raise AtsAgiKullanilamazHatasi(
+                f"ToC/ToD ATS ağına bağlanamadı (en yakın nokta {config.ATS_AGI_BAGLANTI_KM:.0f} km'den uzak) ya da "
+                f"FL{irtifa_ft / 100:.0f}'de bu iki nokta arasında ATS rotası yok."
+            )
+        ats_yollari["yok"] = planli
+        normal = _aday("yok", planli[0], planli[1], irtifa_m)
+    elif arama_uzayi == "koridor":
+        ag = None
+        normal = _aday("yok", enlemler_gc, boylamlar_gc, irtifa_m)
+    else:
+        raise ValueError(f"Bilinmeyen arama_uzayi: {arama_uzayi!r} (koridor | ats)")
     guvenli_rota_bulundu_mu = True
 
     if normal["riskli_sayisi"] == 0 and normal["sigmet_ihlali"] == 0 and normal["kisitli_saha_ihlali"] == 0:
@@ -945,15 +1069,30 @@ def rota_simulasyonu_olustur(
         risk_katmanlari = [Ti1CezaKatmani(veri_kupu)] if ruzgarli_mi else []
         risk_katmanlari += [k for k in (sigmet_katmani, saha_katmani) if k is not None]
         adaylar = []
-        yanal = _a_yildiz_ile_rota_ara(
-            enlemler_gc, boylamlar_gc, irtifa_m, zaman_iso, tas_ms, veri_kupu if ruzgarli_mi else None, risk_katmanlari
-        )
-        if yanal is not None:
-            adaylar.append(_aday("yanal", yanal[0], yanal[1], irtifa_m, yanal_sapma_km=yanal[2]))
         irtifa_secenekleri = _en_yakin_komsu_basinc_seviyeleri(veri_kupu, irtifa_m) if ruzgarli_mi else {}
-        for strateji_adi, yeni_irtifa_m in irtifa_secenekleri.items():
-            ekstra = _irtifa_degisimi_maliyeti(irtifa_m, yeni_irtifa_m, profil["yakit_akisi_kg_saat"])
-            adaylar.append(_aday(strateji_adi, enlemler_gc, boylamlar_gc, yeni_irtifa_m, ekstra=ekstra))
+        if ag is None:
+            yanal = _a_yildiz_ile_rota_ara(
+                enlemler_gc,
+                boylamlar_gc,
+                irtifa_m,
+                zaman_iso,
+                tas_ms,
+                veri_kupu if ruzgarli_mi else None,
+                risk_katmanlari,
+            )
+            if yanal is not None:
+                adaylar.append(_aday("yanal", yanal[0], yanal[1], irtifa_m, yanal_sapma_km=yanal[2]))
+            for strateji_adi, yeni_irtifa_m in irtifa_secenekleri.items():
+                ekstra = _irtifa_degisimi_maliyeti(irtifa_m, yeni_irtifa_m, profil["yakit_akisi_kg_saat"])
+                adaylar.append(_aday(strateji_adi, enlemler_gc, boylamlar_gc, yeni_irtifa_m, ekstra=ekstra))
+        else:
+            for strateji_adi, aday_irtifa_m in {"ats_alternatif": irtifa_m, **irtifa_secenekleri}.items():
+                yol = _ats_yolu(aday_irtifa_m, risk_katmanlari)
+                if yol is None:
+                    continue
+                ats_yollari[strateji_adi] = yol
+                ekstra = _irtifa_degisimi_maliyeti(irtifa_m, aday_irtifa_m, profil["yakit_akisi_kg_saat"])
+                adaylar.append(_aday(strateji_adi, yol[0], yol[1], aday_irtifa_m, ekstra=ekstra))
 
         sert_kisita_uyan = [a for a in adaylar if a["sigmet_ihlali"] == 0 and a["kisitli_saha_ihlali"] == 0]
         tam_guvenli = [a for a in sert_kisita_uyan if a["riskli_sayisi"] == 0]
@@ -1017,8 +1156,21 @@ def rota_simulasyonu_olustur(
         ),
         "co2_farki_kg": normal_yakit_kg * CO2_KG_PER_KG_YAKIT - optimize_yakit_kg * CO2_KG_PER_KG_YAKIT,
         "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
-        "kapsam": KAPSAM,
+        "kapsam": kapsam(arama_uzayi, ag.kaynak if ag is not None else None),
         "planlama_ufku": planlama_ufku(zaman_iso),
+        "ats": (
+            None
+            if ag is None
+            else {
+                "kaynak": ag.kaynak,
+                "normal_rota": hava_yolu_agi.rota_ozeti(*ats_yollari["yok"][2:]),
+                "optimize_rota": hava_yolu_agi.rota_ozeti(*ats_yollari.get(en_iyi["strateji"], ats_yollari["yok"])[2:]),
+                "buyuk_daire_km": sum(
+                    buyuk_daire_mesafesi_km(enlemler_gc[i], boylamlar_gc[i], enlemler_gc[i + 1], boylamlar_gc[i + 1])
+                    for i in range(len(enlemler_gc) - 1)
+                ),
+            }
+        ),
     }
 
 
@@ -1195,6 +1347,7 @@ def _bulgulari_olustur(
         irtifa_farki_ft = (en_iyi["irtifa_m"] - irtifa_m) / 0.3048
         strateji_aciklamasi = {
             "yanal": f"A* araması ile yanal sapma (en fazla {en_iyi['yanal_sapma_km']:.0f} km)",
+            "ats_alternatif": "ATS ağı üzerinde alternatif rota (A*)",
             "irtifa_yukari": f"irtifayı {irtifa_farki_ft:.0f} ft artırarak (tırmanma)",
             "irtifa_asagi": f"irtifayı {-irtifa_farki_ft:.0f} ft azaltarak (alçalma)",
         }[strateji]
