@@ -1132,7 +1132,11 @@ pre-commit install         # her commit'te otomatik çalıştır
 
 `.github/workflows/ci.yml`, her push/PR'da lint ve testleri (gerçek bir
 PostgreSQL servis konteyneriyle) Python 3.12 (üretim, kilit dosyasıyla) ve
-3.14 (geliştirme) için çalıştırır.
+3.14 (geliştirme) için çalıştırır. `guvenlik` işi tüm git geçmişini
+`gitleaks` ile (Türkçe değişken adlarını da tanıyan `.gitleaks.toml`) tarar,
+sahte bir sırrın yakalandığını doğrular, kilit dosyalarını `pip-audit` ile
+denetler ve CycloneDX SBOM üretir. Commit, dal ve sır kuralları:
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Bağımlılık kilidi
 

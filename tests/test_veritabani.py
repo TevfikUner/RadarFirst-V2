@@ -93,7 +93,7 @@ def test_ozel_karakterli_sifre_url_de_dogru_ayristirilir(monkeypatch):
     from alembic.config import Config
     from sqlalchemy.engine import make_url
 
-    sifre = "p@ss:w/rd%#"
+    sifre = "p@ss:w/rd%#"  # gitleaks:allow
     for ad, deger in {
         "POSTGRES_HOST": "db.ornek",
         "POSTGRES_PORT": "5433",

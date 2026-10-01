@@ -20,6 +20,43 @@ jobs:
       - name: Biçim kontrolü (ruff format --check)
         run: ruff format --check .
 
+  guvenlik:
+    runs-on: ubuntu-latest
+    env:
+      GITLEAKS_IMAJI: zricethezav/gitleaks:v8.30.1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Sır taraması (tüm git geçmişi, .gitleaks.toml + .gitleaksignore)
+        run: docker run --rm -v "$PWD":/repo -w /repo "$GITLEAKS_IMAJI" git --redact --no-banner /repo
+      # Yapılandırma bozulursa tarama sessizce "temiz" demesin: Türkçe adlı
+      # sahte bir sır MUTLAKA yakalanmalı.
+      - name: Sahte sır doğrulaması
+        run: |
+          mkdir -p /tmp/sahte
+          printf 'def baglan():\n    sifre = "Gx7kP2qLm9Zr4w"\n' > /tmp/sahte/ornek.py  # gitleaks:allow
+          if docker run --rm -v /tmp/sahte:/tara -v "$PWD/.gitleaks.toml":/c.toml "$GITLEAKS_IMAJI" dir --config /c.toml --no-banner /tara; then
+            echo "::error::gitleaks sahte sırrı yakalamadı; .gitleaks.toml kurallarını kontrol et."
+            exit 1
+          fi
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Araçları kur
+        run: pip install pip-audit==2.9.0 cyclonedx-bom==7.5.0
+      - name: Bağımlılık açığı taraması (pip-audit)
+        run: |
+          pip-audit -r requirements.lock --no-deps --disable-pip --progress-spinner off
+          pip-audit -r requirements-era5.lock --no-deps --disable-pip --progress-spinner off
+      - name: SBOM (CycloneDX)
+        run: cyclonedx-py requirements requirements.lock --of JSON -o sbom.cdx.json
+      - name: SBOM'u artifact olarak yükle
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-cyclonedx
+          path: sbom.cdx.json
+
   test:
     runs-on: ubuntu-latest
     # 3.12 = üretim (Docker) ortamı, hash'li kilit dosyasıyla; 3.14 = yerel

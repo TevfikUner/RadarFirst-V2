@@ -1,0 +1,28 @@
+title = "Türbülans Radar sır taraması"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "turkce-sir-atamasi"
+description = "Türkçe ya da İngilizce adlı değişkene tırnaklı düz metin şifre/anahtar ataması"
+regex = '''(?i)\b[\w]*(?:sifre|şifre|parola|password|passwd|secret|gizli_anahtar|api_anahtari|token)[\w]*\s*(?::=|=|:)\s*["']([^"'\s]{6,})["']'''
+secretGroup = 1
+entropy = 2.8
+keywords = ["sifre", "şifre", "parola", "password", "passwd", "secret", "gizli_anahtar", "api_anahtari", "token"]
+
+[rules.allowlist]
+regexTarget = "match"
+regexes = [
+  '''(?i)["'](?:\$\{|<|os\.environ|getenv)''',
+  '''(?i)(?:test|ornek|örnek|sahte|demo|degistir|değiştir|changeme|placeholder|ci-duman|yanlis|gecersiz|xxx)''',
+]
+
+[allowlist]
+description = "Sır içermeyen, üretilmiş ya da ikili dosyalar"
+paths = [
+  '''(?:^|/)requirements[\w.-]*\.lock$''',
+  '''(?:^|/)openapi\.json$''',
+  '''\.postman_collection\.json$''',
+  '''\.(?:nc|parquet|joblib|png|jar|zip|pyc)$''',
+]

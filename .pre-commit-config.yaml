@@ -14,3 +14,11 @@ repos:
       - id: check-merge-conflict
       - id: check-added-large-files
         args: [--maxkb=5000]
+
+  # Sır taraması: .gitleaks.toml varsayılan kurallara Türkçe adlı değişkenleri
+  # (sifre, parola, api_anahtari...) ekler. Yanlış pozitif satıra
+  # `# gitleaks:allow` yazılır; gerçek sır koddan çıkarılıp değiştirilir.
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.1
+    hooks:
+      - id: gitleaks
