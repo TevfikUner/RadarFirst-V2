@@ -24,6 +24,7 @@ MADIS_ISTEKLER_ARASI_SANIYE, günde en fazla MADIS_GUNLUK_MAKS_DOSYA dosya
 
 import gzip
 import os
+import shutil
 import tempfile
 import time
 import uuid
@@ -127,14 +128,34 @@ def gunluk_edr(gun, indirici=None, sayac=None, uyku=time.sleep) -> pd.DataFrame:
     yol = gun_yolu(gun)
     if os.path.exists(yol):
         return pd.read_parquet(yol)
+    # Her saat işlenir işlenmez parça olarak yazılır: bağlantı koparsa ya da
+    # bilgisayar uykuya geçerse sonraki çalıştırma kaldığı saatten devam eder
+    # (inmiş saatler yeniden indirilmez, kota tüketmez).
+    parca_klasoru = yol.replace(".parquet", ".parcalar")
+    os.makedirs(parca_klasoru, exist_ok=True)
     parcalar = []
+    indirilen = 0
     with dagitik_kilit("madis_indirme", zaman_asimi_saniye=0):
         for saat in range(24):
-            if saat:
+            parca = os.path.join(parca_klasoru, f"{saat:02d}.parquet")
+            if os.path.exists(parca):
+                parcalar.append(pd.read_parquet(parca))
+                continue
+            if indirilen:
                 uyku(config.MADIS_ISTEKLER_ARASI_SANIYE)
             _kotayi_tuket(sayac)
-            parcalar.append(saatlik_edr(gun, saat, indirici))
+            df_saat = saatlik_edr(gun, saat, indirici)
+            indirilen += 1
+            _atomik_parquet(df_saat, parca)
+            parcalar.append(df_saat)
     df = pd.concat(parcalar, ignore_index=True) if parcalar else pd.DataFrame(columns=SUTUNLAR)
+    _atomik_parquet(df, yol)
+    shutil.rmtree(parca_klasoru, ignore_errors=True)
+    _logger.info("MADIS EDR %s: %d seyir gözlemi.", pd.Timestamp(gun).date(), len(df))
+    return df
+
+
+def _atomik_parquet(df: pd.DataFrame, yol: str) -> None:
     os.makedirs(os.path.dirname(yol), exist_ok=True)
     gecici = f"{yol}.{uuid.uuid4().hex[:12]}.yaziliyor"
     try:
@@ -143,8 +164,6 @@ def gunluk_edr(gun, indirici=None, sayac=None, uyku=time.sleep) -> pd.DataFrame:
     finally:
         if os.path.exists(gecici):
             os.remove(gecici)
-    _logger.info("MADIS EDR %s: %d seyir gözlemi.", pd.Timestamp(gun).date(), len(df))
-    return df
 
 
 def edr_sinifi(max_edr) -> np.ndarray:

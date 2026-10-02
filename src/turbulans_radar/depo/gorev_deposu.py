@@ -101,6 +101,18 @@ async def son_gorev_zamani(tur: str) -> datetime | None:
         ).scalar_one_or_none()
 
 
+async def gorev_durumlari(tur: str, sonra: datetime) -> list[str]:
+    """Bu türden `sonra`dan sonra oluşturulmuş görevlerin durumları."""
+    async with async_oturum_al() as oturum:
+        return list(
+            (
+                await oturum.execute(
+                    select(AnalizGorevi.durum).where(AnalizGorevi.tur == tur, AnalizGorevi.olusturulma_zamani >= sonra)
+                )
+            ).scalars()
+        )
+
+
 async def eski_gorevleri_temizle(saklama_suresi: timedelta = GOREV_SAKLAMA_SURESI) -> int:
     """Saklama süresinden eski BİTMİŞ görevleri siler (kuyruktaki/çalışanlara dokunmaz)."""
     sinir = datetime.now(UTC) - saklama_suresi

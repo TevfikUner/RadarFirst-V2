@@ -1429,32 +1429,60 @@ async def test_turbulans_tahmini_konformal_risk_durumunu_doner(istemci, api_anah
 async def test_ml_gece_zamanlayicisi_gunde_bir_kez_ve_planli_saatten_sonra_kuyruga_alir(monkeypatch):
     from datetime import UTC, datetime
 
-    olusturulan, durum = [], {"son": None, "aktif": False}
+    olusturulan, durum = [], {"durumlar": [], "aktif": False}
 
-    async def _son(tur):
-        return durum["son"]
+    async def _durumlar(tur, sonra):
+        return durum["durumlar"]
 
     async def _aktif(tur):
         return durum["aktif"]
 
     async def _olustur(tur, **k):
         olusturulan.append((tur, k["parametreler"]))
-        durum["son"] = datetime(2026, 10, 1, 23, 8, tzinfo=UTC)
+        durum["durumlar"] = ["kuyrukta"]
         return "gorev-1"
 
-    monkeypatch.setattr(api_servisi, "son_gorev_zamani", _son)
+    monkeypatch.setattr(api_servisi, "gorev_durumlari", _durumlar)
     monkeypatch.setattr(api_servisi, "aktif_gorev_var_mi", _aktif)
     monkeypatch.setattr(api_servisi, "_gorev_olustur", _olustur)
     adim = api_servisi._ml_gece_zamanlayici_adimi
 
     assert await adim("23:07", datetime(2026, 10, 1, 22, 59, tzinfo=UTC)) is None
-    durum["son"] = datetime(2026, 10, 1, 11, 20, tzinfo=UTC)
     durum["aktif"] = True
     assert await adim("23:07", datetime(2026, 10, 1, 23, 8, tzinfo=UTC)) is None
     durum["aktif"] = False
     assert await adim("23:07", datetime(2026, 10, 1, 23, 8, tzinfo=UTC)) == "gorev-1"
     assert await adim("23:07", datetime(2026, 10, 1, 23, 13, tzinfo=UTC)) is None
     assert olusturulan == [("ml_veri", {"iem_guncelle": True, "maks_cds_istek": None, "ardindan_egitim": True})]
+
+
+async def test_ml_gece_isi_yarida_kalirsa_ayni_gun_sinirli_sayida_yeniden_denenir(monkeypatch):
+    from datetime import UTC, datetime
+
+    durum = {"durumlar": ["yarida_kaldi"]}
+    olusturulan = []
+
+    async def _durumlar(tur, sonra):
+        return durum["durumlar"]
+
+    async def _aktif(tur):
+        return False
+
+    async def _olustur(tur, **k):
+        olusturulan.append(tur)
+        return f"gorev-{len(olusturulan)}"
+
+    monkeypatch.setattr(api_servisi, "gorev_durumlari", _durumlar)
+    monkeypatch.setattr(api_servisi, "aktif_gorev_var_mi", _aktif)
+    monkeypatch.setattr(api_servisi, "_gorev_olustur", _olustur)
+    monkeypatch.setattr(config, "ML_GECE_GUNLUK_MAKS_DENEME", 3)
+    an = datetime(2026, 10, 2, 12, 0, tzinfo=UTC)
+    adim = api_servisi._ml_gece_zamanlayici_adimi
+    assert await adim("06:00", an) == "gorev-1"
+    durum["durumlar"] = ["yarida_kaldi", "hata", "yarida_kaldi"]
+    assert await adim("06:00", an) is None
+    durum["durumlar"] = ["yarida_kaldi", "tamamlandi"]
+    assert await adim("06:00", an) is None
 
 
 @pytest.mark.parametrize("deger", ["25:00", "07:61", "abc"])

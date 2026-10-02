@@ -193,3 +193,26 @@ def test_edr_ornekleri_kaydi_tekrarlanmaz(motor):
     )
     assert mh.edr_orneklerini_kaydet(df, motor) == 1
     assert mh.edr_orneklerini_kaydet(df, motor) == 0
+
+
+def test_gunluk_edr_kesintiden_sonra_kaldigi_saatten_devam_eder(tmp_path):
+    icerik, istenen = _gz(tmp_path), []
+
+    def kopan(url):
+        istenen.append(url)
+        if url.endswith("_0300.gz"):
+            raise ConnectionError("bağlantı koptu")
+        return icerik
+
+    with pytest.raises(ConnectionError):
+        me.gunluk_edr("2019-01-17", indirici=kopan, sayac=lambda: 1, uyku=lambda s: None)
+    assert len(istenen) == 4
+    istenen.clear()
+    df = me.gunluk_edr(
+        "2019-01-17", indirici=lambda url: istenen.append(url) or icerik, sayac=lambda: 1, uyku=lambda s: None
+    )
+    assert len(istenen) == 21 and istenen[0].endswith("_0300.gz")
+    assert len(df) == 2 * 24
+    import os
+
+    assert not os.path.exists(me.gun_yolu("2019-01-17").replace(".parquet", ".parcalar"))

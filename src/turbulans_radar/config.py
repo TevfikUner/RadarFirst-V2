@@ -99,6 +99,8 @@ ML_GECE_MAKS_CDS_ISTEK = _ortam_sayi("ML_GECE_MAKS_CDS_ISTEK", 60, int)
 # bu saatte kendisi kuyruğa alır; n8n gerekmez. API o saatte kapalıysa aynı gün
 # açıldığında bir kez telafi eder. Boş = kapalı (docker-compose varsayılanı 23:07).
 ML_GECE_ISI_SAATI = _ortam_str("ML_GECE_ISI_SAATI", "").strip()
+# Görev yarıda kalır/hata verirse (ör. bilgisayar uykuya geçti) aynı gün en fazla bu kadar deneme.
+ML_GECE_GUNLUK_MAKS_DENEME = _ortam_sayi("ML_GECE_GUNLUK_MAKS_DENEME", 3, int)
 ML_IEM_BASLANGIC = _ortam_str("ML_IEM_BASLANGIC", "2020-04-01")
 ML_IEM_GECELIK_MAKS_GUN = _ortam_sayi("ML_IEM_GECELIK_MAKS_GUN", 7, int)
 # IEM'in yazılı hız sınırı yok; günlük PIREP istekleri arasında nezaket beklemesi.

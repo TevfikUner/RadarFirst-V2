@@ -127,10 +127,10 @@ from turbulans_radar.depo.denetim import denetim_kaydet, denetim_kayitlarini_lis
 from turbulans_radar.depo.gorev_deposu import (
     aktif_gorev_var_mi,
     eski_gorevleri_temizle,
+    gorev_durumlari,
     gorev_getir,
     gorev_olustur,
     kuyruk_durumu,
-    son_gorev_zamani,
 )
 from turbulans_radar.depo.hiz_siniri import istegi_say
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir
@@ -330,16 +330,19 @@ def _gece_isi_saati(deger: str) -> tuple[int, int]:
 
 
 async def _ml_gece_zamanlayici_adimi(saat_metni: str, simdi: datetime | None = None) -> str | None:
-    """Bugünün planlı saati geçtiyse ve o saatten sonra hiç ml_veri görevi
-    oluşturulmadıysa gece işini kuyruğa alır. Kuyrukta/çalışan bir ML işi varsa
-    eklemez (birden fazla API kopyası ya da elle tetikleme çoğaltmasın)."""
+    """Bugünün planlı saati geçtiyse ve o saatten sonra başarıyla biten ya da
+    süren bir ml_veri görevi yoksa gece işini kuyruğa alır. Bilgisayar
+    kapanır/uyursa görev yarida_kaldi/hata olabilir: aynı gün en fazla
+    ML_GECE_GUNLUK_MAKS_DENEME kez yeniden denenir (CDS/MADIS günlük kotaları
+    veritabanında olduğu için yeniden deneme sınırları aşamaz). Kuyrukta/çalışan
+    bir ML işi varsa eklemez."""
     simdi = simdi or datetime.now(UTC)
     saat, dakika = _gece_isi_saati(saat_metni)
     planli = simdi.replace(hour=saat, minute=dakika, second=0, microsecond=0)
     if simdi < planli:
         return None
-    son = await son_gorev_zamani("ml_veri")
-    if son is not None and son >= planli:
+    durumlar = await gorev_durumlari("ml_veri", planli)
+    if any(d not in ("yarida_kaldi", "hata") for d in durumlar) or len(durumlar) >= config.ML_GECE_GUNLUK_MAKS_DENEME:
         return None
     if await aktif_gorev_var_mi("ml_veri") or await aktif_gorev_var_mi("ml_egitim"):
         return None
