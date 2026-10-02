@@ -467,13 +467,13 @@ Süreler tek kişi için kaba tahmindir; veri hazırlığı (AIP'ten çıkarım)
 > 8000 km arası 7 senaryo). Belirleyici olan veri indirme süresi: canlı GFS bölge
 > verisi yaklaşık 15 saniye; aynı veri 6 saat yeniden kullanılıyor.
 >
-> **Diğer öneriler:**
-> - Yasak/tahditli sahalar zaten poligon, alt/üst seviye ve geçerlilik aralığıyla
->   modelleniyor. Resmi AIP verisi ve askerî sahaların yinelenen aktivasyon
->   takvimi ekleyeceğiz.
-> - ATS yolları için seçili koridorlarda AIP'ten hazırlanmış küçük bir hava yolu
->   ağı üzerinde graf tabanlı A* planlıyoruz.
-> - Diğer trafikle ayırmayı, uçuş öncesinde diğer trafiğin yörüngesi bilinmediği
->   ve bu ATC'nin taktik sorumluluğu olduğu için garanti etmeyi hedeflemiyoruz.
->   Bunun yerine geçmiş ADS-B verisiyle önerilen rotanın varsayımsal ayırma
->   minimalarını kaç kez ihlal ederdi sorusunu ölçen bir gösterge eklemeyi öneriyoruz.
+> **Diğer öneriler (2 Ekim 2026 itibarıyla uygulandı):**
+> - Yasak/tahditli/tehlikeli sahalar: AIP Türkiye ENR 5.1'deki 85 sahanın tamamı
+>   poligon, üst sınır ve aktivasyon zamanıyla (H24, günlük saat, NOTAM) otomatik
+>   alınıp rota aramasına sert kısıt olarak giriyor.
+> - ATS/FRA: AIP ENR 4.4'teki 611 FRA noktası üzerinde graf tabanlı A*; FRA
+>   yalnızca ENR 1.3'teki saatlerde (20:00–02:00 UTC, FL305–FL660) kullanılıyor.
+> - Diğer trafikle ayırmayı garanti etmeyi hedeflemiyoruz (ATC'nin taktik
+>   sorumluluğu). Bunun yerine geçmiş ADS-B verisiyle önerilen rotanın 5 NM /
+>   1000 ft minimalarını kaç kez ihlal ederdi sorusunu ölçen bir gösterge ekledik;
+>   ilk örnek uçuşta 0 ihlal (tek uçuş, genelleme yapılmaz).
