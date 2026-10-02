@@ -503,3 +503,37 @@ def test_gecmis_tarihli_ucusta_sigmet_ufku_uyarisi_yok():
     )
     assert "sigmet_ufuk_disi" not in {b["kod"] for b in sonuc["bulgular"]}
     assert sonuc["planlama_ufku"]["kullanim"] == "gecmis_analiz"
+
+
+def _pareto_adayi(strateji, saniye, riskli, sigmet=0, ekstra_yakit=0.0):
+    return {
+        "strateji": strateji,
+        "enlem": [40.0, 41.0],
+        "boylam": [30.0, 31.0],
+        "irtifa_m": 10972.8,
+        "zamanlar": [pd.Timestamp("2019-01-15T10:00Z"), pd.Timestamp("2019-01-15T10:10Z")],
+        "saniye": saniye,
+        "ekstra_saniye": 0.0,
+        "ekstra_yakit_kg": ekstra_yakit,
+        "maks_ti1": None,
+        "riskli_sayisi": riskli,
+        "sigmet_ihlali": sigmet,
+        "kisitli_saha_ihlali": 0,
+        "yanal_sapma_km": 0.0,
+    }
+
+
+def test_pareto_secenekleri_baskilananlari_ve_sert_kisit_ihlalini_eler():
+    from turbulans_radar.rota.rota_optimizasyonu import pareto_secenekleri
+
+    normal = _pareto_adayi("yok", 3600, 4)
+    guvenli = _pareto_adayi("yanal", 3700, 0)
+    ara = _pareto_adayi("irtifa_yukari", 3650, 1)
+    kotu = _pareto_adayi("yanal_ceza_60", 3800, 2)
+    sigmetli = _pareto_adayi("irtifa_asagi", 3500, 0, sigmet=3)
+    kopya = _pareto_adayi("yanal_ceza_300", 3700, 0)
+    yakit = lambda a: a["saniye"]  # noqa: E731
+    secenekler = pareto_secenekleri([normal, guvenli, ara, kotu, sigmetli, kopya], guvenli, normal, yakit)
+    assert [s["strateji"] for s in secenekler] == ["yanal", "irtifa_yukari", "yok"]
+    assert secenekler[0]["onerilen"] and not secenekler[2]["onerilen"]
+    assert round(secenekler[0]["ek_sure_dk"], 2) == round(100 / 60, 2) and secenekler[2]["ek_sure_dk"] == 0.0

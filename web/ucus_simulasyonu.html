@@ -133,6 +133,13 @@
   <hr>
   <div id="strateji-satiri" style="font-size:11px; color:#9fd6ff; margin-bottom:4px;"></div>
   <div id="tasarruf-satiri"></div>
+  <div id="secenekler-kutusu" style="display:none; margin-top:6px; font-size:11px;">
+    <b>Seçenekler (süre ↔ risk)</b>
+    <table id="secenekler-tablosu">
+      <tr><td></td><td>Ek süre</td><td>Ek yakıt</td><td>Riskli nokta</td></tr>
+    </table>
+    <div style="color:#999; font-size:10px;">Sert kısıtlara uyan, birbirinden üstün olmayan rotalar; seçim dispeçerindir. Risk TI1 eşiğine dayanır, sertifikalı EDR değildir.</div>
+  </div>
   <div id="ti1-guvenilirlik-notu" style="font-size:10px; color:#e67e22; margin-top:6px; border-top:1px solid #444; padding-top:6px;"></div>
 </div>
 
@@ -326,6 +333,22 @@ function sonucPanelDoldur(sonuc) {
     tasarrufEl.innerHTML = `<span class="tasarruf-yok">Kısmi kaçınma: ${sonuc.normal_rota.riskli_nokta_sayisi} → ${sonuc.optimize_rota.riskli_nokta_sayisi} riskli nokta (tamamen atlatılamadı)</span>, ${yakitCumlesi}.`;
   } else {
     tasarrufEl.innerHTML = `<span class="tasarruf-yok">Türbülans verisi/rüzgar değerlendirilemedi.</span>`;
+  }
+
+  const secenekKutusu = document.getElementById("secenekler-kutusu");
+  const secenekTablosu = document.getElementById("secenekler-tablosu");
+  while (secenekTablosu.rows.length > 1) secenekTablosu.deleteRow(1);
+  const secenekler = sonuc.secenekler || [];
+  secenekKutusu.style.display = secenekler.length > 1 ? "block" : "none";
+  for (const s of secenekler) {
+    const satir = secenekTablosu.insertRow();
+    const ad = ((s.strateji === "yok" && "Normal rota") || (s.strateji.startsWith("irtifa_yukari") && "Tırmanma") ||
+      (s.strateji.startsWith("irtifa_asagi") && "Alçalma") || (s.strateji.startsWith("ats") && "ATS alternatif") ||
+      "Yanal sapma") + ` (FL${Math.round(s.irtifa_ft / 100)})` + (s.onerilen ? " ✓" : "");
+    const isaretli = (deger, basamak) => (deger > 0 ? "+" : "") + deger.toFixed(basamak);
+    for (const metin of [ad, `${isaretli(s.ek_sure_dk, 1)} dk`, `%${isaretli(s.ek_yakit_yuzde, 1)}`, String(s.riskli_nokta_sayisi)]) {
+      satir.insertCell().textContent = metin;
+    }
   }
 
   // Madde 6 (bkz. konuşma geçmişi): TI1'in tek başına doğrulanmadığı notu

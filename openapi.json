@@ -4069,6 +4069,79 @@
         ],
         "title": "RotaNoktasiYaniti"
       },
+      "RotaSecenegiYaniti": {
+        "properties": {
+          "strateji": {
+            "type": "string",
+            "title": "Strateji"
+          },
+          "onerilen": {
+            "type": "boolean",
+            "title": "Onerilen"
+          },
+          "toplam_sure_dk": {
+            "type": "number",
+            "title": "Toplam Sure Dk"
+          },
+          "ek_sure_dk": {
+            "type": "number",
+            "title": "Ek Sure Dk"
+          },
+          "tahmini_yakit_kg": {
+            "type": "number",
+            "title": "Tahmini Yakit Kg"
+          },
+          "ek_yakit_yuzde": {
+            "type": "number",
+            "title": "Ek Yakit Yuzde"
+          },
+          "riskli_nokta_sayisi": {
+            "type": "integer",
+            "title": "Riskli Nokta Sayisi"
+          },
+          "maks_ti1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maks Ti1"
+          },
+          "irtifa_ft": {
+            "type": "number",
+            "title": "Irtifa Ft"
+          },
+          "maks_yanal_sapma_km": {
+            "type": "number",
+            "title": "Maks Yanal Sapma Km",
+            "default": 0.0
+          },
+          "noktalar": {
+            "items": {
+              "$ref": "#/components/schemas/RotaNoktasiYaniti"
+            },
+            "type": "array",
+            "title": "Noktalar"
+          }
+        },
+        "type": "object",
+        "required": [
+          "strateji",
+          "onerilen",
+          "toplam_sure_dk",
+          "ek_sure_dk",
+          "tahmini_yakit_kg",
+          "ek_yakit_yuzde",
+          "riskli_nokta_sayisi",
+          "irtifa_ft",
+          "noktalar"
+        ],
+        "title": "RotaSecenegiYaniti",
+        "description": "Zaman-risk seçeneği (Pareto): sert kısıtlara uyan ve süre/yakıt ile riskli\nnokta sayısında başka bir seçenek tarafından baskılanmayan rota."
+      },
       "RotaSimulasyonuIstegi": {
         "properties": {
           "baslangic_enlem": {
@@ -4222,6 +4295,14 @@
           "co2_farki_kg": {
             "type": "number",
             "title": "Co2 Farki Kg"
+          },
+          "secenekler": {
+            "items": {
+              "$ref": "#/components/schemas/RotaSecenegiYaniti"
+            },
+            "type": "array",
+            "title": "Secenekler",
+            "default": []
           },
           "kapsam": {
             "anyOf": [

@@ -295,6 +295,23 @@ class PlanlamaUfkuYaniti(BaseModel):
     tahmin_ufku_disi: bool
 
 
+class RotaSecenegiYaniti(BaseModel):
+    """Zaman-risk seçeneği (Pareto): sert kısıtlara uyan ve süre/yakıt ile riskli
+    nokta sayısında başka bir seçenek tarafından baskılanmayan rota."""
+
+    strateji: str
+    onerilen: bool
+    toplam_sure_dk: float
+    ek_sure_dk: float
+    tahmini_yakit_kg: float
+    ek_yakit_yuzde: float
+    riskli_nokta_sayisi: int
+    maks_ti1: float | None = None
+    irtifa_ft: float
+    maks_yanal_sapma_km: float = 0.0
+    noktalar: list[RotaNoktasiYaniti]
+
+
 class RotaSimulasyonuYaniti(BaseModel):
     ruzgar_verisi_kaynagi: str
     aciklama: str
@@ -314,6 +331,7 @@ class RotaSimulasyonuYaniti(BaseModel):
     ti1_guvenilirlik_notu: str
     yakit_tasarrufu_yuzde: float
     co2_farki_kg: float
+    secenekler: list[RotaSecenegiYaniti] = []
     kapsam: KapsamYaniti | None = None
     planlama_ufku: PlanlamaUfkuYaniti | None = None
     ats: AtsRotaYaniti | None = None

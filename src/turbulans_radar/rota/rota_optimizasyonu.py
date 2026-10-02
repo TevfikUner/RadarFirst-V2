@@ -1074,22 +1074,30 @@ def rota_simulasyonu_olustur(
         # basınç seviyesi (gerçek tırmanma/alçalma bedeliyle, bkz.
         # _irtifa_degisimi_maliyeti). Bazı CAT katmanları ve SIGMET'ler
         # irtifaya bağlıdır; seviye değiştirmek bazen en ucuz güvenli seçenektir.
-        risk_katmanlari = [Ti1CezaKatmani(veri_kupu)] if ruzgarli_mi else []
-        risk_katmanlari += [k for k in (sigmet_katmani, saha_katmani) if k is not None]
+        sert_katmanlar = [k for k in (sigmet_katmani, saha_katmani) if k is not None]
+        risk_katmanlari = ([Ti1CezaKatmani(veri_kupu)] if ruzgarli_mi else []) + sert_katmanlar
+        pareto_cezalari = config.ROTA_PARETO_CEZALARI_SANIYE if ruzgarli_mi else []
         adaylar = []
         irtifa_secenekleri = _en_yakin_komsu_basinc_seviyeleri(veri_kupu, irtifa_m) if ruzgarli_mi else {}
         if ag is None:
-            yanal = _a_yildiz_ile_rota_ara(
-                enlemler_gc,
-                boylamlar_gc,
-                irtifa_m,
-                zaman_iso,
-                tas_ms,
-                veri_kupu if ruzgarli_mi else None,
-                risk_katmanlari,
-            )
-            if yanal is not None:
-                adaylar.append(_aday("yanal", yanal[0], yanal[1], irtifa_m, yanal_sapma_km=yanal[2]))
+            for strateji_adi, katmanlar in [
+                ("yanal", risk_katmanlari),
+                *(
+                    (f"yanal_ceza_{c:g}", [Ti1CezaKatmani(veri_kupu, ceza_saniye=c), *sert_katmanlar])
+                    for c in pareto_cezalari
+                ),
+            ]:
+                yanal = _a_yildiz_ile_rota_ara(
+                    enlemler_gc,
+                    boylamlar_gc,
+                    irtifa_m,
+                    zaman_iso,
+                    tas_ms,
+                    veri_kupu if ruzgarli_mi else None,
+                    katmanlar,
+                )
+                if yanal is not None:
+                    adaylar.append(_aday(strateji_adi, yanal[0], yanal[1], irtifa_m, yanal_sapma_km=yanal[2]))
             for strateji_adi, yeni_irtifa_m in irtifa_secenekleri.items():
                 ekstra = _irtifa_degisimi_maliyeti(irtifa_m, yeni_irtifa_m, profil["yakit_akisi_kg_saat"])
                 adaylar.append(_aday(strateji_adi, enlemler_gc, boylamlar_gc, yeni_irtifa_m, ekstra=ekstra))
@@ -1101,11 +1109,17 @@ def rota_simulasyonu_olustur(
                 ats_yollari[strateji_adi] = yol
                 ekstra = _irtifa_degisimi_maliyeti(irtifa_m, aday_irtifa_m, profil["yakit_akisi_kg_saat"])
                 adaylar.append(_aday(strateji_adi, yol[0], yol[1], aday_irtifa_m, ekstra=ekstra))
+            for ceza in pareto_cezalari:
+                strateji_adi = f"ats_ceza_{ceza:g}"
+                yol = _ats_yolu(irtifa_m, [Ti1CezaKatmani(veri_kupu, ceza_saniye=ceza), *sert_katmanlar])
+                if yol is not None:
+                    ats_yollari[strateji_adi] = yol
+                    adaylar.append(_aday(strateji_adi, yol[0], yol[1], irtifa_m))
 
         sert_kisita_uyan = [a for a in adaylar if a["sigmet_ihlali"] == 0 and a["kisitli_saha_ihlali"] == 0]
         tam_guvenli = [a for a in sert_kisita_uyan if a["riskli_sayisi"] == 0]
         if tam_guvenli or sert_kisita_uyan:
-            en_iyi = min(tam_guvenli or sert_kisita_uyan, key=_aday_toplam_yakit_kg)
+            en_iyi = min(tam_guvenli or sert_kisita_uyan, key=lambda a: (a["riskli_sayisi"], _aday_toplam_yakit_kg(a)))
         else:
             # SERT kısıt sağlanamadı: kısıtı ihlal eden bir rota "optimize"
             # diye önerilmez -- normal rota gösterilir ve açıkça işaretlenir.
@@ -1117,6 +1131,9 @@ def rota_simulasyonu_olustur(
     # ayrıca hesaplanan ek yakıttan hesaplanır (bkz. _irtifa_degisimi_maliyeti).
     optimize_yakit_kg = _aday_toplam_yakit_kg(en_iyi)
     optimize_saniye = en_iyi["saniye"] + en_iyi["ekstra_saniye"]
+    secenekler = pareto_secenekleri(
+        [normal, *(adaylar if en_iyi is not normal else [])], en_iyi, normal, _aday_toplam_yakit_kg
+    )
     bulgular = _bulgulari_olustur(
         ruzgarli_mi,
         veri_kupu,
@@ -1164,6 +1181,7 @@ def rota_simulasyonu_olustur(
         ),
         "co2_farki_kg": normal_yakit_kg * CO2_KG_PER_KG_YAKIT - optimize_yakit_kg * CO2_KG_PER_KG_YAKIT,
         "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
+        "secenekler": secenekler,
         "kapsam": kapsam(arama_uzayi, ag.kaynak if ag is not None else None),
         "planlama_ufku": planlama_ufku(zaman_iso),
         "ats": (
@@ -1180,6 +1198,49 @@ def rota_simulasyonu_olustur(
             }
         ),
     }
+
+
+def pareto_secenekleri(adaylar, onerilen, normal, yakit_fonksiyonu) -> list[dict]:
+    """Sert kısıtlara (SIGMET, kısıtlı saha) uyan adaylardan, (toplam süre,
+    yakıt, riskli nokta) üçlüsünde başka bir aday tarafından baskılanmayanlar;
+    aynı rotayı (aynı süre, yakıt ve risk) bir kez listeler. Riskli nokta
+    sayısına göre sıralı. Seçenekler karar desteğidir: hangi bedelin kabul
+    edileceğine dispeçer karar verir; risk sayısı TI1 eşiğine dayanır,
+    sertifikalı EDR değildir."""
+    uygun = [a for a in adaylar if a["sigmet_ihlali"] == 0 and a["kisitli_saha_ihlali"] == 0]
+
+    def _olcut(a):
+        return (round(a["saniye"] + a["ekstra_saniye"], 1), round(yakit_fonksiyonu(a), 1), int(a["riskli_sayisi"]))
+
+    olcutler = {id(a): _olcut(a) for a in uygun}
+    tekil, gorulen = [], set()
+    for a in sorted(uygun, key=lambda a: (a is not onerilen, olcutler[id(a)])):
+        if olcutler[id(a)] not in gorulen:
+            gorulen.add(olcutler[id(a)])
+            tekil.append(a)
+
+    def _baskilanir(a, b):
+        oa, ob = olcutler[id(a)], olcutler[id(b)]
+        return all(y <= x for x, y in zip(oa, ob)) and ob != oa
+
+    cephe = [a for a in tekil if not any(_baskilanir(a, b) for b in tekil if b is not a)]
+    normal_saniye, normal_yakit = normal["saniye"] + normal["ekstra_saniye"], yakit_fonksiyonu(normal)
+    return [
+        {
+            "strateji": a["strateji"],
+            "onerilen": a is onerilen,
+            "toplam_sure_dk": (a["saniye"] + a["ekstra_saniye"]) / 60.0,
+            "ek_sure_dk": (a["saniye"] + a["ekstra_saniye"] - normal_saniye) / 60.0,
+            "tahmini_yakit_kg": yakit_fonksiyonu(a),
+            "ek_yakit_yuzde": 100.0 * (yakit_fonksiyonu(a) - normal_yakit) / normal_yakit if normal_yakit else 0.0,
+            "riskli_nokta_sayisi": int(a["riskli_sayisi"]),
+            "maks_ti1": a["maks_ti1"],
+            "irtifa_ft": a["irtifa_m"] / 0.3048,
+            "maks_yanal_sapma_km": a["yanal_sapma_km"],
+            "noktalar": _noktalari_paketle(a["enlem"], a["boylam"], a["irtifa_m"], a["zamanlar"]),
+        }
+        for a in sorted(cephe, key=lambda a: (a["riskli_sayisi"], olcutler[id(a)][0]))
+    ]
 
 
 def _rota_ozeti(aday, yakit_kg, toplam_saniye):
