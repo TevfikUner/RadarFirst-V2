@@ -1217,6 +1217,22 @@ alembic revision --autogenerate -m "kisa aciklama"   # yeni migration
 Bağlantı bilgisi `alembic.ini`'ye yazılmaz; `migrations/env.py`, tıpkı
 `veritabani.py` gibi, `.env`'den okur.
 
+### Veritabanı yedeği
+
+Docker yığınındaki `yedek` servisi (`otomasyon/db_yedekle.sh`) saatte bir
+bakar ve o UTC günü yedek yoksa `pg_dump -Fc` alır: `db_yedekleri/turbulans_YYYYAAGG.dump`
+(depoya konmaz). Dosya `pg_restore -l` ile okunamazsa yerine konmaz; en yeni
+`DB_YEDEK_SAKLA_GUN` (7) yedek tutulur. Durum: `docker compose logs yedek`.
+Bilgisayar arızasına karşı arada bir dosyayı başka bir diske/buluta kopyalayın.
+
+Geri yükleme (önce API ve işçiyi durdurun; mevcut tablolar silinip yedekle değiştirilir):
+
+```bash
+docker compose stop api worker
+docker compose exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner' < db_yedekleri/turbulans_20261002.dump
+docker compose start api worker
+```
+
 ## Testleri çalıştırmak
 
 ```bash

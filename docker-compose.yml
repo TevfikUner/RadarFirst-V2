@@ -97,6 +97,26 @@ services:
     volumes: *ortak_volumeler
     secrets: [cdsapirc]
 
+  # Günlük veritabanı yedeği: ml_ornekleri/edr_ornekleri haftalarca indirilen
+  # veriden üretildi, volume kaybolursa yeniden indirmek aylar sürer. Yedekler
+  # ./db_yedekleri'nde (depoya konmaz); geri yükleme README "Veritabanı yedeği".
+  yedek:
+    image: postgres:16
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATABASE: ${POSTGRES_DB:-Turbulence-db}
+      DB_YEDEK_SAKLA_GUN: ${DB_YEDEK_SAKLA_GUN:-7}
+    volumes:
+      - ./db_yedekleri:/yedekler
+      - ./otomasyon/db_yedekle.sh:/db_yedekle.sh:ro
+    entrypoint: ["sh", "/db_yedekle.sh"]
+
   # Kimlik bilgisi gerektirmeyen demo (bkz. demo/README.md):
   #   cp .env.demo .env && docker compose --profile demo up -d --build
   # API ayağa kalkınca THY322 (2019-01-15) demo paketinden analiz edilip

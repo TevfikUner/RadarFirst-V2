@@ -66,3 +66,4 @@ ml_ozellik_deposu/
 ats_verisi/
 # MADIS uçak EDR verisi (M1): büyük, depoya konmaz.
 madis_edr/
+db_yedekleri/
