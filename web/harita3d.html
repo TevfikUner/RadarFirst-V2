@@ -96,6 +96,14 @@
   </div>
   <div id="durum"></div>
 
+  <div id="seviye-filtresi" style="margin-top:8px; font-size:12px;">
+    <b>Seviye bandı</b> FL
+    <input id="fl-min" type="number" min="0" max="600" step="10" value="0" style="width:56px; display:inline-block">
+    –
+    <input id="fl-max" type="number" min="0" max="600" step="10" value="600" style="width:56px; display:inline-block">
+    <label style="display:block; margin-top:4px;"><input id="yalniz-seyir" type="checkbox" style="width:auto"> Yalnız seyir (FL280–FL420)</label>
+  </div>
+
   <div id="kayitli-ucuslar-bolumu">
     <b style="font-size:12px">Kayıtlı uçuşlar</b>
     <div class="buton-satiri" style="margin-top:6px">
@@ -131,6 +139,12 @@
 </div>
 
 <div id="zaman-kontrolu" class="panel" style="display:none;">
+  <button id="oynat-buton" title="Uçuşu zaman içinde oynat">▶</button>
+  <select id="oynatma-hizi" title="Oynatma hızı (gerçek zamana göre)">
+    <option value="60">60×</option>
+    <option value="300" selected>300×</option>
+    <option value="1200">1200×</option>
+  </select>
   <span id="zaman-etiketi">--:--</span>
   <input type="range" id="zaman-kaydirici" min="0" max="100" value="100">
 </div>
@@ -286,11 +300,43 @@ function sigmetKatmaniniGuncelle(sigmetler) {
   }
 }
 
+// Seviye bandı (FL) filtresi: irtifası bilinmeyen noktalar yalnızca bant
+// varsayılandayken (FL0-600) gösterilir. Oynatma, noktaların gerçek zaman
+// damgalarıyla ilerler (100 ms'de hız x 0,1 sn uçuş süresi).
+let oynatmaZamanlayicisi = null;
+
+function seviyeFiltresi() {
+  const seyir = document.getElementById("yalniz-seyir").checked;
+  const flMin = seyir ? 280 : Number(document.getElementById("fl-min").value || 0);
+  const flMax = seyir ? 420 : Number(document.getElementById("fl-max").value || 600);
+  const varsayilan = flMin <= 0 && flMax >= 600;
+  return (n) => {
+    if (n.irtifa_m === null || n.irtifa_m === undefined) return varsayilan;
+    const fl = n.irtifa_m / 0.3048 / 100;
+    return fl >= flMin && fl <= flMax;
+  };
+}
+
+function filtreyiUygula() {
+  oynatmayiDurdur();
+  zamanKaydiricisiniHazirla(tumNoktalar.filter(seviyeFiltresi()));
+}
+
+function oynatmayiDurdur() {
+  if (oynatmaZamanlayicisi) clearInterval(oynatmaZamanlayicisi);
+  oynatmaZamanlayicisi = null;
+  document.getElementById("oynat-buton").textContent = "▶";
+}
+
 function zamanKaydiricisiniHazirla(noktalar) {
   const kontrolDiv = document.getElementById("zaman-kontrolu");
   const kaydirici = document.getElementById("zaman-kaydirici");
   const etiket = document.getElementById("zaman-etiketi");
-  if (!noktalar.length) { kontrolDiv.style.display = "none"; return; }
+  if (!noktalar.length) {
+    kontrolDiv.style.display = "none";
+    rotaKatmaniniGuncelle([]);
+    return;
+  }
 
   kontrolDiv.style.display = "flex";
   kaydirici.min = 0; kaydirici.max = noktalar.length - 1; kaydirici.value = noktalar.length - 1;
@@ -300,7 +346,21 @@ function zamanKaydiricisiniHazirla(noktalar) {
     etiket.textContent = new Date(noktalar[i].zaman).toISOString().slice(11, 16);
     rotaKatmaniniGuncelle(noktalar.slice(0, i + 1));
   };
-  kaydirici.oninput = guncelle;
+  kaydirici.oninput = () => { oynatmayiDurdur(); guncelle(); };
+  document.getElementById("oynat-buton").onclick = () => {
+    if (oynatmaZamanlayicisi) { oynatmayiDurdur(); return; }
+    if (Number(kaydirici.value) >= noktalar.length - 1) kaydirici.value = 0;
+    let anlik = new Date(noktalar[Number(kaydirici.value)].zaman).getTime();
+    document.getElementById("oynat-buton").textContent = "⏸";
+    oynatmaZamanlayicisi = setInterval(() => {
+      anlik += Number(document.getElementById("oynatma-hizi").value) * 100;
+      let i = Number(kaydirici.value);
+      while (i < noktalar.length - 1 && new Date(noktalar[i + 1].zaman).getTime() <= anlik) i++;
+      kaydirici.value = i;
+      guncelle();
+      if (i >= noktalar.length - 1) oynatmayiDurdur();
+    }, 100);
+  };
   guncelle();
 }
 
@@ -319,8 +379,8 @@ async function ucusuYukle() {
     esikler = await apiIste("/api/v1/esikler");
     const detay = await apiIste(`/api/v1/ucuslar/${encodeURIComponent(ucus)}/${tarih}?olcum_limit=5000`);
     tumNoktalar = detay.olcumler;
-    rotaKatmaniniGuncelle(tumNoktalar);
-    zamanKaydiricisiniHazirla(tumNoktalar);
+    rotaKatmaniniGuncelle(tumNoktalar.filter(seviyeFiltresi()));
+    filtreyiUygula();
     durumGoster(`${detay.toplam_olcum_sayisi} nokta yüklendi.`, "bilgi");
     kayitliUcuslariListele();
     modelBilgisiniGetirVeGoster();
@@ -489,6 +549,9 @@ document.getElementById("ucuslar-arama-buton").addEventListener("click", kayitli
 document.getElementById("ucuslar-arama").addEventListener("keydown", (e) => { if (e.key === "Enter") kayitliUcuslariListele(); });
 haritayiHazirla();
 if (anahtarAl()) { kayitliUcuslariListele(); modelBilgisiniGetirVeGoster(); }
+for (const id of ["fl-min", "fl-max", "yalniz-seyir"]) {
+  document.getElementById(id).addEventListener("change", filtreyiUygula);
+}
 </script>
 </body>
 </html>

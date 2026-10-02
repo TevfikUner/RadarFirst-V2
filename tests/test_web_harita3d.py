@@ -87,3 +87,25 @@ def test_silme_ve_arama_arayuzden_calisir(canli_sunucu, tarayici_sayfasi, kayitl
     # gerçekleştiği için tekrar denemek 404 vermeli -- kayitli_ucus
     # fixture'ının DELETE'i "kayıt zaten yok" durumunda sessizce 0 satır
     # siler, hataya yol açmaz.
+
+
+def test_seviye_filtresi_ve_oynatma_calisir(canli_sunucu, tarayici_sayfasi, kayitli_ucus, ekran_goruntusu):
+    sayfa = tarayici_sayfasi["sayfa"]
+    sayfa.goto(f"{canli_sunucu['taban_url']}/harita/harita3d.html")
+    sayfa.fill("#giris-ucus", _UCUS_NO)
+    sayfa.fill("#giris-tarih", _TARIH)
+    sayfa.fill("#giris-anahtar", canli_sunucu["api_anahtari"])
+    sayfa.click("#yukle-buton")
+    sayfa.wait_for_selector("#zaman-kontrolu", state="visible")
+
+    sayfa.check("#yalniz-seyir")
+    sayfa.wait_for_selector("#zaman-kontrolu", state="hidden")
+    sayfa.uncheck("#yalniz-seyir")
+    sayfa.wait_for_selector("#zaman-kontrolu", state="visible")
+
+    sayfa.evaluate("document.getElementById('zaman-kaydirici').value = 0")
+    sayfa.select_option("#oynatma-hizi", "1200")
+    sayfa.click("#oynat-buton")
+    sayfa.wait_for_function("document.getElementById('zaman-kaydirici').value === '1'", timeout=10000)
+    assert sayfa.inner_text("#oynat-buton") == "▶"
+    assert not [h for h in tarayici_sayfasi["hatalar"] if "TypeError" in h or "ReferenceError" in h]

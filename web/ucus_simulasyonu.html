@@ -134,6 +134,13 @@
   <hr>
   <div id="strateji-satiri" style="font-size:11px; color:#9fd6ff; margin-bottom:4px;"></div>
   <div id="tasarruf-satiri"></div>
+  <div style="margin-top:6px; font-size:11px;">
+    <b>Seviye bandı</b> (SIGMET / kısıtlı saha) FL
+    <input id="hacim-fl-min" type="number" min="0" max="600" step="10" value="0" style="width:48px">
+    –
+    <input id="hacim-fl-max" type="number" min="0" max="600" step="10" value="600" style="width:48px">
+    <label style="display:block; margin-top:3px;"><input id="secenekleri-ciz" type="checkbox" checked style="width:auto"> Alternatif rotaları çiz (kesikli)</label>
+  </div>
   <div id="secenekler-kutusu" style="display:none; margin-top:6px; font-size:11px;">
     <b>Seçenekler (süre ↔ risk)</b>
     <table id="secenekler-tablosu">
@@ -225,6 +232,7 @@ viewer.imageryLayers.addImageryProvider(
 viewer.scene.globe.enableLighting = true;
 
 let mevcutDataSource = null;
+let sonEkranSonucu = null;
 
 async function ucakProfilleriniYukle() {
   const secim = document.getElementById("ucak-modeli");
@@ -392,8 +400,42 @@ function kabinBildirimiGoster(sonuc) {
 
 let sonHedefEnlem = null, sonHedefBoylam = null, sonUcakModeli = null;
 
+// Seviye bandı: tabanı-tavanı seçilen FL aralığıyla kesişmeyen SIGMET ve
+// kısıtlı saha hacimleri gizlenir (yalnız görünüm; rota hesabını değiştirmez).
+function hacimFiltresiniUygula() {
+  if (!mevcutDataSource) return;
+  const flMin = Number(document.getElementById("hacim-fl-min").value || 0);
+  const flMax = Number(document.getElementById("hacim-fl-max").value || 600);
+  const an = viewer.clock.currentTime;
+  for (const varlik of mevcutDataSource.entities.values) {
+    if (!varlik.polygon || !/^(sigmet|kisitli-saha)-/.test(varlik.id)) continue;
+    const taban = (varlik.polygon.height ? varlik.polygon.height.getValue(an) : 0) / 0.3048 / 100;
+    const tavan = (varlik.polygon.extrudedHeight ? varlik.polygon.extrudedHeight.getValue(an) : 1e9) / 0.3048 / 100;
+    varlik.show = tavan >= flMin && taban <= flMax;
+  }
+}
+
+let alternatifVarliklari = [];
+function alternatifleriCiz(sonuc) {
+  for (const v of alternatifVarliklari) viewer.entities.remove(v);
+  alternatifVarliklari = [];
+  if (!document.getElementById("secenekleri-ciz").checked) return;
+  for (const s of sonuc.secenekler || []) {
+    if (s.onerilen || s.strateji === "yok") continue;
+    alternatifVarliklari.push(viewer.entities.add({
+      name: `Alternatif: ${s.riskli_nokta_sayisi} riskli nokta, +${s.ek_sure_dk.toFixed(1)} dk`,
+      polyline: {
+        positions: Cesium.Cartesian3.fromDegreesArrayHeights(s.noktalar.flatMap((n) => [n.boylam, n.enlem, n.irtifa_m])),
+        width: 2,
+        material: new Cesium.PolylineDashMaterialProperty({ color: Cesium.Color.LIGHTGRAY.withAlpha(0.8) }),
+      },
+    }));
+  }
+}
+
 async function sonucuSahneyeUygula(sonuc, kameraUcsunMu) {
   sonucPanelDoldur(sonuc);
+  sonEkranSonucu = sonuc;
 
   if (mevcutDataSource) { viewer.dataSources.remove(mevcutDataSource, true); }
   const ds = await Cesium.CzmlDataSource.load(sonuc.czml);
@@ -407,6 +449,8 @@ async function sonucuSahneyeUygula(sonuc, kameraUcsunMu) {
   viewer.clock.multiplier = ds.clock.multiplier;
   viewer.timeline.zoomTo(ds.clock.startTime, ds.clock.stopTime);
   viewer.clock.shouldAnimate = true;
+  hacimFiltresiniUygula();
+  alternatifleriCiz(sonuc);
 
   if (kameraUcsunMu) {
     // viewer.flyTo(ds) sadece varlığın O ANKİ (tek nokta) pozisyonuna göre
@@ -514,6 +558,10 @@ document.getElementById("giris-anahtar").addEventListener("change", ucakProfille
 document.getElementById("simule-et-buton").addEventListener("click", simulasyonuCalistir);
 document.getElementById("yeniden-hesapla-buton").addEventListener("click", ucusSirasindaYenidenHesapla);
 if (anahtarAl()) ucakProfilleriniYukle();
+for (const id of ["hacim-fl-min", "hacim-fl-max"]) {
+  document.getElementById(id).addEventListener("change", hacimFiltresiniUygula);
+}
+document.getElementById("secenekleri-ciz").addEventListener("change", () => sonEkranSonucu && alternatifleriCiz(sonEkranSonucu));
 </script>
 </body>
 </html>

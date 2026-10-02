@@ -43,6 +43,11 @@ def test_simulasyon_uctan_uca_calisir(canli_sunucu, tarayici_sayfasi, ekran_goru
     imagery_hatalari = [h for h in tarayici_sayfasi["hatalar"] if "imageryProvider" in h]
     assert imagery_hatalari == []
 
+    sayfa.fill("#hacim-fl-min", "300")
+    sayfa.locator("#hacim-fl-min").press("Tab")
+    sayfa.uncheck("#secenekleri-ciz")
+    assert not [h for h in tarayici_sayfasi["hatalar"] if "TypeError" in h or "ReferenceError" in h]
+
 
 def test_kisitli_sahadan_kacinma_ozeti_dogru_yazilir(canli_sunucu, tarayici_sayfasi, ekran_goruntusu):
     """Malatya -> Musul: paketle gelen örnek kısıtlı saha (Suriye) sert kısıt;
