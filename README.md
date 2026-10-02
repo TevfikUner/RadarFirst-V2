@@ -463,6 +463,14 @@ not done loading" hatası verdiği görüldü; "globe" projeksiyonu artık
 doğrudan constructor'ın `projection` seçeneğine taşındı, `harita.on("load",
 ...)` içinde bir savunmacı ikinci deneme daha bırakıldı.
 
+**Görünüm araçları** (fikirler hook-365/adsb-3d ve kevtoe/worldview'dan, kod alınmadı):
+
+- 3B harita: seviye bandı (FL) filtresi ve "yalnız seyir (FL280–FL420)"
+  kısayolu; zaman kaydırıcısında gerçek zaman damgalarıyla oynatma (60×/300×/1200×).
+- Rota simülasyonu: SIGMET ve kısıtlı saha hacimleri için seviye bandı filtresi;
+  Pareto seçeneklerinden önerilmeyenler kesikli gri çizgiyle çizilir.
+- Filtreler yalnızca görünümü değiştirir; rota hesabı tüm kısıtlarla yapılır.
+
 ## Canlı SIGMET kısıtı ve modüler risk katmanları
 
 `rota_optimizasyonu.py`'deki A* araması, maliyetini takılabilir **risk
