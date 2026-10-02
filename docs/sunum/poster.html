@@ -58,6 +58,7 @@ th { font: 600 11px var(--veri); text-transform: uppercase; letter-spacing: .06e
 td.sayi { font-family: var(--veri); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .tamam { color: var(--guvenli); font-weight: 600; }
 .eksik { color: var(--risk); font-weight: 600; }
+.kaynak { color: var(--soluk, inherit); font-size: 0.85em; white-space: nowrap; }
 .doldur { border: 1.5px dashed var(--uyari); color: var(--uyari); padding: 10px 12px; font-size: 14px; background: var(--yuzey); }
 .not { font-size: 13px; color: var(--soluk); }
 .uyari-seridi { border: 2px solid var(--uyari); padding: 12px 14px; display: grid; gap: 4px; background: var(--yuzey); }
@@ -81,14 +82,14 @@ footer { border-top: 3px solid var(--murekkep); padding-top: 12px; font-size: 12
     <div class="ust-etiket">Bitirme projesi · Karar destek sistemi · FL280–FL420</div>
     <h1>Türbülans Radar</h1>
     <p class="alt-baslik">Gerçek uçuş izlerini ERA5 rüzgarıyla eşleştirip seyir irtifasında türbülans riskini hesaplayan ve SIGMET, kısıtlı saha ve riskli bölgelerden kaçınan rotayı öneren sistem.</p>
-    <div class="kunye">[Ad Soyad] · Danışman: [unvan, ad soyad] · [bölüm, üniversite] · [tarih]</div>
+    <div class="kunye">Tevfik Uner · Danışman: Arş. Gör. Dr. Fatih Titrek · Bilgisayar Mühendisliği, Konya Teknik Üniversitesi · 2026</div>
   </header>
 
   <div class="izgara">
     <section>
       <h2><span class="fl">01</span>Problem</h2>
       <p>Açık hava türbülansı radarda görünmez. Pilot raporları (PIREP) gönüllü, gecikmeli ve konumu kabadır.</p>
-      <div class="doldur">[Türbülans kaynaklı yaralanma ve maliyet istatistiği: NTSB / EASA kaynağıyla]</div>
+      <p>ABD'de 2009–2018 arasında tarifeli hava yolu (Part 121) kazalarının üçte birinden fazlası türbülansla ilgiliydi; çoğunda uçak hasar görmedi ama en az bir kişi ağır yaralandı, en sık yaralananlar kabin ekibiydi <span class="kaynak">(NTSB, SS-21/01, 2021)</span>.</p>
       <p><strong>Soru:</strong> Açık veriyle, dispeçerin rota kararına girdi olacak, ölçülebilir ve sınırlarını söyleyen bir risk göstergesi üretilebilir mi?</p>
     </section>
 
@@ -179,6 +180,7 @@ footer { border-top: 3px solid var(--murekkep); padding-top: 12px; font-size: 12
 
   <footer>
     <span>Veri: OpenSky Network (Schäfer ve ark., IPSN 2014) · Contains modified Copernicus Climate Change Service information 2026 (ERA5, DOI 10.24381/cds.bd0915c6) · PIREP: Iowa Environmental Mesonet of Iowa State University · SIGMET: NOAA Aviation Weather Center.</span>
+    <span>Türbülans istatistiği: NTSB, <i>Preventing Turbulence-Related Injuries in Air Carrier Operations Conducted Under 14 CFR Part 121</i>, Safety Research Report NTSB/SS-21/01, 10 Ağustos 2021.</span>
     <span>Örnek kısıtlı sahalar Natural Earth ülke sınırlarından türetilmiştir; resmi AIP/NOTAM değildir.</span>
   </footer>
 </main>

@@ -24,14 +24,20 @@ yazılmamalıdır.
 
 - Türbülans Radar: gerçek uçuş izleri ve reanaliz verisiyle türbülans riski ve
   kaçınma rotası öneren karar destek sistemi
-- [Ad Soyad] · Danışman: [unvan, ad soyad] · [bölüm, üniversite] · [tarih]
+- Tevfik Uner · Danışman: Arş. Gör. Dr. Fatih Titrek · Bilgisayar Mühendisliği,
+  Konya Teknik Üniversitesi · 2026
 
 ## 2. Problem
 
 - Seyir irtifasındaki türbülans çoğu zaman görünmez (açık hava türbülansı); pilot
   raporu (PIREP) gönüllü, gecikmeli ve konumu kabadır.
-- [Türbülans kaynaklı yaralanma/maliyet istatistiği — NTSB, EASA ya da IATA
-  kaynağıyla, E3'te derlenecek]
+- ABD'de 2009–2018 arasında Part 121 (tarifeli hava yolu) kazalarının üçte
+  birinden fazlası türbülansla ilgiliydi; çoğunda uçak hasar görmedi ama en az
+  bir kişi ağır yaralandı, en sık yaralananlar kabin ekibiydi (NTSB, Safety
+  Research Report NTSB/SS-21/01, 10 Ağustos 2021).
+- Dürüst kapsam notu: aynı rapora göre bu kazaların yaklaşık yarısı alçalma ve
+  yaklaşmada, %60'ı 20.000 ft altında oldu. Sistem yalnızca seyir safhasını
+  (FL280–FL420) kapsar; bu kazaların hepsini hedeflemez.
 - Soru: Mevcut açık veriyle, bir dispeçerin rota kararına girdi olacak, ölçülebilir
   ve dürüst bir risk göstergesi üretilebilir mi?
 
