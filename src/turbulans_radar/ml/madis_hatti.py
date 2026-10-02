@@ -24,6 +24,7 @@ from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
 from turbulans_radar import config, loglama
+from turbulans_radar.depo import veri_butcesi
 from turbulans_radar.depo.models import EdrOrnegi, MlOrnegi
 from turbulans_radar.depo.veritabani import motor_al
 from turbulans_radar.ml.edr_eslestirme import gun_eslestir, pirep_edr_karsilastir
@@ -31,6 +32,7 @@ from turbulans_radar.veri.madis_edr import gun_yolu, gunluk_edr
 
 _logger = loglama.logger_al(__name__)
 _PARCA = 2000
+GUN_TAHMINI_MB = 60.0
 
 
 def _pencere_kaydi_yolu(gun) -> str:
@@ -149,6 +151,9 @@ def madis_adimi(motor=None, maks_gun=None, edr_getirici=gunluk_edr) -> dict:
         elif len(indirilecek) < maks_gun:
             indirilecek.append(gun)
     for gun in indirilecek:
+        if not veri_butcesi.yer_var_mi(GUN_TAHMINI_MB, motor):
+            ozet["madis_durdurma"] = "gunluk_veri_butcesi"
+            break
         sonuc = gunu_isle(gun, motor, edr_getirici)
         ozet["madis_indirilen_gun"] += 1
         ozet["madis_eklenen"] += sonuc["eklenen"]

@@ -149,13 +149,16 @@ def test_thy322_boyutundaki_istek_sinir_icindedir():
 
 
 def test_cds_saglayici_parcalari_birlestirip_ortak_semada_yazar(tmp_path):
-    istemci = _SahteCdsIstemcisi()
-    saglayici = es.CdsEra5Saglayici(istemci_fabrikasi=lambda: istemci, kota_tuketici=lambda: 1)
+    istemci, baytlar = _SahteCdsIstemcisi(), []
+    saglayici = es.CdsEra5Saglayici(
+        istemci_fabrikasi=lambda: istemci, kota_tuketici=lambda: 1, bayt_sayaci=baytlar.append
+    )
     hedef = str(tmp_path / "dilim.nc")
     saglayici.kup_indir(
         Kutu(40.0, 41.0, 30.0, 31.0), pd.Timestamp("2019-01-15T23:00Z"), pd.Timestamp("2019-01-16T01:00Z"), hedef
     )
     assert len(istemci.istekler) == 2
+    assert len(baytlar) == 2 and all(b > 0 for b in baytlar)
     with xr.open_dataset(hedef) as kup:
         assert pd.DatetimeIndex(kup["valid_time"].values).tolist() == list(
             pd.date_range("2019-01-15T23:00", periods=3, freq="h")

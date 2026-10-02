@@ -998,9 +998,17 @@ Eğitim verisi artık `ml_ornekleri` tablosunda tutulur (`ml/ml_veri_hatti.py`):
 **CDS kotası kod seviyesinde:** her gerçek CDS isteğinden önce
 `hiz_siniri_sayaclari` üzerinden süreçler arası günlük sayaç artırılır;
 `CDS_GUNLUK_MAKS_ISTEK` (150, UTC gece yarısı sıfırlanır) aşılırsa istek
-gönderilmez. ML gecesi ayrıca `ML_GECE_MAKS_CDS_ISTEK` (60) ile sınırlıdır;
-API bu değerin üstünü kabul etmez (422). Veritabanına ulaşılamazsa sayım
-süreç içinde tutulur.
+gönderilmez. ML gecesi ayrıca `ML_GECE_MAKS_CDS_ISTEK` (30) ile sınırlıdır;
+API 150'nin üstünü reddeder (422), istenen değer bu sınıra indirilir.
+Veritabanına ulaşılamazsa sayım süreç içinde tutulur.
+
+**Günlük veri bütçesi:** istek sayısı ban korumasıdır, veri miktarını
+sınırlamaz (CDS dosyası 1-20 MB). Gece işinin CDS ve MADIS indirmeleri
+gerçek bayt olarak aynı tabloda UTC günü başına toplanır
+(`depo/veri_butcesi.py`); `GUNLUK_VERI_BUTCESI_MB` (500, 0 = kapalı)
+dolacaksa yeni grup/gün indirilmez (`durdurma: gunluk_veri_butcesi`).
+Bugünkü kullanım `GET /api/v1/ml/durum` → `veri_bugun_mb`. Elle başlatılan
+uçuş analizleri bütçeye tabi değildir.
 
 **Tetikleme:** `POST /api/v1/ml/gece-isi` (yönetici; gövde isteğe bağlı:
 `iem_guncelle`, `maks_cds_istek`, `ardindan_egitim`) `ml_veri` görevini

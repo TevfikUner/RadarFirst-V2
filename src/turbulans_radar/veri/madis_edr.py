@@ -34,6 +34,7 @@ import numpy as np
 import pandas as pd
 
 from turbulans_radar import config
+from turbulans_radar.depo import veri_butcesi
 from turbulans_radar.depo.dagitik_kilit import dagitik_kilit
 from turbulans_radar.depo.hiz_siniri import KOTA_ONEKI, istegi_say_senkron
 from turbulans_radar.loglama import logger_al
@@ -111,8 +112,9 @@ def _kotayi_tuket(sayac=None) -> int:
     return sayi
 
 
-def saatlik_edr(gun, saat: int, indirici=None) -> pd.DataFrame:
+def saatlik_edr(gun, saat: int, indirici=None, bayt_sayaci=None) -> pd.DataFrame:
     icerik = (indirici or _indir)(dosya_url(gun, saat))
+    (bayt_sayaci or veri_butcesi.indirileni_say)(len(icerik))
     if not icerik:
         return pd.DataFrame(columns=SUTUNLAR)
     with tempfile.TemporaryDirectory() as gecici:
@@ -122,7 +124,7 @@ def saatlik_edr(gun, saat: int, indirici=None) -> pd.DataFrame:
         return edr_cikar(yol)
 
 
-def gunluk_edr(gun, indirici=None, sayac=None, uyku=time.sleep) -> pd.DataFrame:
+def gunluk_edr(gun, indirici=None, sayac=None, uyku=time.sleep, bayt_sayaci=None) -> pd.DataFrame:
     """Bir günün 24 saatlik dosyasını sırayla işler ve Parquet'e yazar; zaten
     varsa indirmeden okur. Kilit ve kota bu fonksiyondadır."""
     yol = gun_yolu(gun)
@@ -144,7 +146,7 @@ def gunluk_edr(gun, indirici=None, sayac=None, uyku=time.sleep) -> pd.DataFrame:
             if indirilen:
                 uyku(config.MADIS_ISTEKLER_ARASI_SANIYE)
             _kotayi_tuket(sayac)
-            df_saat = saatlik_edr(gun, saat, indirici)
+            df_saat = saatlik_edr(gun, saat, indirici, bayt_sayaci)
             indirilen += 1
             _atomik_parquet(df_saat, parca)
             parcalar.append(df_saat)

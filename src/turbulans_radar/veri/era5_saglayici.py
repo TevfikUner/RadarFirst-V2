@@ -249,7 +249,14 @@ class CdsEra5Saglayici:
     zaman_adimi = "1h"
     izgara_derece = IZGARA_DERECE
 
-    def __init__(self, basinc_seviyeleri_hpa=None, istemci_fabrikasi=None, kota_tuketici=None, ek_degiskenler=()):
+    def __init__(
+        self,
+        basinc_seviyeleri_hpa=None,
+        istemci_fabrikasi=None,
+        kota_tuketici=None,
+        ek_degiskenler=(),
+        bayt_sayaci=None,
+    ):
         bilinmeyen = set(ek_degiskenler) - set(EK_DEGISKENLER)
         if bilinmeyen:
             raise ValueError(f"Desteklenmeyen ERA5 ek değişkeni: {sorted(bilinmeyen)}")
@@ -257,6 +264,7 @@ class CdsEra5Saglayici:
         self.ek_degiskenler = tuple(ek_degiskenler)
         self._istemci_fabrikasi = istemci_fabrikasi or _cds_istemcisi
         self._kotayi_tuket = kota_tuketici or cds_kotasini_tuket
+        self._bayt_sayaci = bayt_sayaci
 
     def kup_indir(self, kutu: Kutu, baslangic, bitis, hedef_yol) -> str | None:
         istekler = cds_istekleri_olustur(kutu, baslangic, bitis, self.basinc_seviyeleri_hpa, self.ek_degiskenler)
@@ -269,6 +277,8 @@ class CdsEra5Saglayici:
                 self._kotayi_tuket()
                 cds_nezaket_beklemesi()
                 istemci.retrieve(CDS_VERI_SETI, istek, yol)
+                if self._bayt_sayaci:
+                    self._bayt_sayaci(os.path.getsize(yol))
                 with hdf5_kilidi, xr.open_dataset(yol) as ham:
                     parcalar.append(era5_kupunu_normalize_et(ham, "cds", self.ek_degiskenler).load())
         kup = xr.concat(parcalar, dim="valid_time").sortby("valid_time")

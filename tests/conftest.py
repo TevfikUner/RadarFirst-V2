@@ -42,6 +42,7 @@ except ImportError:
 # ML zamanlayıcısı test veritabanına görev eklemesin.
 os.environ["ML_GECE_ISI_SAATI"] = ""
 os.environ["MADIS_GECE_ETKIN"] = "false"
+os.environ["GUNLUK_VERI_BUTCESI_MB"] = "0"
 
 
 def _test_veritabanina_yonlendir():

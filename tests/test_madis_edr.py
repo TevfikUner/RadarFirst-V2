@@ -216,3 +216,25 @@ def test_gunluk_edr_kesintiden_sonra_kaldigi_saatten_devam_eder(tmp_path):
     import os
 
     assert not os.path.exists(me.gun_yolu("2019-01-17").replace(".parquet", ".parcalar"))
+
+
+def test_indirilen_baytlar_veri_butcesine_sayilir(tmp_path):
+    icerik, baytlar = _gz(tmp_path), []
+    me.gunluk_edr(
+        "2019-01-18",
+        indirici=lambda url: icerik if url.endswith("_0500.gz") else b"",
+        sayac=lambda: 1,
+        uyku=lambda s: None,
+        bayt_sayaci=baytlar.append,
+    )
+    assert len(baytlar) == 24 and sum(baytlar) == len(icerik)
+
+
+def test_madis_adimi_veri_butcesi_doluysa_yeni_gun_indirmez(monkeypatch):
+    gunler = pd.DataFrame({"gun": pd.to_datetime(["2019-06-13"]), "pencere": [8]})
+    monkeypatch.setattr(mh, "_pencereli_gunler", lambda motor: gunler)
+    monkeypatch.setattr(mh.os.path, "exists", lambda yol: False)
+    monkeypatch.setattr(mh.veri_butcesi, "yer_var_mi", lambda tahmini_mb, motor=None: False)
+    monkeypatch.setattr(mh, "gunu_isle", lambda *a: pytest.fail("bütçe doluyken indirdi"))
+    ozet = mh.madis_adimi(motor=object(), maks_gun=1)
+    assert ozet["madis_durdurma"] == "gunluk_veri_butcesi" and ozet["madis_indirilen_gun"] == 0

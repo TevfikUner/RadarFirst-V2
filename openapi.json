@@ -3533,6 +3533,28 @@
             "type": "integer",
             "title": "Cds Gunluk Sinir"
           },
+          "veri_bugun_mb": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Veri Bugun Mb"
+          },
+          "veri_gunluk_butce_mb": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Veri Gunluk Butce Mb"
+          },
           "iem_imleci": {
             "anyOf": [
               {

@@ -94,7 +94,10 @@ ML_MAKS_IRTIFA_FT = _ortam_sayi("ML_MAKS_IRTIFA_FT", 42000.0)
 ML_GUNLUK_MAKS_PIREP = _ortam_sayi("ML_GUNLUK_MAKS_PIREP", 100, int)
 ML_GRUP_MAKS_HUCRE_SAAT = _ortam_sayi("ML_GRUP_MAKS_HUCRE_SAAT", 400_000, int)
 ML_MAKS_DENEME = _ortam_sayi("ML_MAKS_DENEME", 3, int)
-ML_GECE_MAKS_CDS_ISTEK = _ortam_sayi("ML_GECE_MAKS_CDS_ISTEK", 60, int)
+ML_GECE_MAKS_CDS_ISTEK = _ortam_sayi("ML_GECE_MAKS_CDS_ISTEK", 30, int)
+# Veri işinin (CDS + MADIS) UTC günü başına indirme bütçesi (depo/veri_butcesi.py).
+# Ölçülen CDS isteği ort. ~13 MB (1-20 MB); 500 MB ≈ 30 CDS isteği + 1 MADIS günü. 0 = kapalı.
+GUNLUK_VERI_BUTCESI_MB = _ortam_sayi("GUNLUK_VERI_BUTCESI_MB", 500.0)
 # "SS:DD" (UTC) verilirse API, ML gece işini (POST /ml/gece-isi ile aynı) her gün
 # bu saatte kendisi kuyruğa alır; n8n gerekmez. API o saatte kapalıysa aynı gün
 # açıldığında bir kez telafi eder. Boş = kapalı (docker-compose varsayılanı 23:07).

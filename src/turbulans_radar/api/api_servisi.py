@@ -962,6 +962,8 @@ class MlDurumYaniti(BaseModel):
     egitime_hazir: bool
     cds_bugun_kullanilan: int
     cds_gunluk_sinir: int
+    veri_bugun_mb: float | None = None
+    veri_gunluk_butce_mb: float | None = None
     iem_imleci: str | None = None
     aktif_model: dict | None = None
     son_gorevler: list[dict]

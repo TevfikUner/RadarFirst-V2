@@ -380,3 +380,33 @@ def test_ml_saglayicisi_depo_ayarlarini_kullanir(monkeypatch):
     assert saglayici.ek_degiskenler == config.ML_DEPO_EK_DEGISKENLER
     monkeypatch.setattr(config, "ML_DEPO_KLASORU", "")
     assert mv.ml_saglayicisi().ek_degiskenler == ()
+
+
+@pytest.fixture
+def veri_butcesi_100mb(motor, monkeypatch):
+    from turbulans_radar.depo import veri_butcesi
+
+    def _temizle():
+        with motor.begin() as baglanti:
+            baglanti.execute(text("DELETE FROM hiz_siniri_sayaclari WHERE anahtar = :a"), {"a": veri_butcesi.ANAHTAR})
+
+    monkeypatch.setattr(config, "GUNLUK_VERI_BUTCESI_MB", 100.0)
+    _temizle()
+    yield veri_butcesi
+    _temizle()
+
+
+def test_veri_butcesi_dolacaksa_eslestirme_indirmeden_durur(motor, veri_butcesi_100mb):
+    mv.pirepleri_kaydet(_pirepler([("2019-01-10T12:00", 40.0, -80.0, 35000, 1)]), _KAYNAK, motor)
+    veri_butcesi_100mb.bayt_ekle(95 * 1024 * 1024, motor)
+    saglayici = _SahteCds()
+    ozet = mv.eslestirme_calistir(maks_cds_istek=5, saglayici=saglayici, motor=motor, kaynaklar=[_KAYNAK])
+    assert (len(saglayici.cagrilar), ozet["durdurma"], ozet["kalan_bekleyen"]) == (0, "gunluk_veri_butcesi", 1)
+    assert mv.ml_durum_ozeti(motor)["veri_bugun_mb"] == 95.0
+
+
+def test_veri_butcesi_yerken_eslestirme_surer_ve_harcanani_raporlar(motor, veri_butcesi_100mb):
+    mv.pirepleri_kaydet(_pirepler([("2019-01-10T12:00", 40.0, -80.0, 35000, 1)]), _KAYNAK, motor)
+    saglayici = _SahteCds()
+    ozet = mv.eslestirme_calistir(maks_cds_istek=5, saglayici=saglayici, motor=motor, kaynaklar=[_KAYNAK])
+    assert len(saglayici.cagrilar) == 1 and ozet["durdurma"] is None and ozet["veri_mb"] == 0.0

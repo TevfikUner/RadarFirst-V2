@@ -21,6 +21,7 @@ from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
 from turbulans_radar import config
+from turbulans_radar.depo import veri_butcesi
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir, kaynak_durumunu_kaydet
 from turbulans_radar.depo.models import AnalizGorevi, MlOrnegi
 from turbulans_radar.depo.veritabani import motor_al
@@ -267,9 +268,11 @@ def ml_saglayicisi() -> CdsEra5Saglayici:
     """Pencere deposu açıksa depo seviyeleri ve ek değişkenlerle (istek sayısı aynı, boyutu büyük)."""
     if config.ML_DEPO_KLASORU:
         return CdsEra5Saglayici(
-            basinc_seviyeleri_hpa=config.ML_DEPO_BASINC_SEVIYELERI_HPA, ek_degiskenler=config.ML_DEPO_EK_DEGISKENLER
+            basinc_seviyeleri_hpa=config.ML_DEPO_BASINC_SEVIYELERI_HPA,
+            ek_degiskenler=config.ML_DEPO_EK_DEGISKENLER,
+            bayt_sayaci=veri_butcesi.indirileni_say,
         )
-    return CdsEra5Saglayici()
+    return CdsEra5Saglayici(bayt_sayaci=veri_butcesi.indirileni_say)
 
 
 def _depo_zaman_payi(baslangic, bitis):
@@ -299,6 +302,7 @@ def eslestirme_calistir(
     maks_cds_istek = min(maks_cds_istek or config.ML_GECE_MAKS_CDS_ISTEK, config.ML_GECE_MAKS_CDS_ISTEK)
     saglayici = saglayici or ml_saglayicisi()
     ozet = {"islenen_grup": 0, "cds_istek": 0, "eslesti": 0, "kapsam_disi": 0, "hata": 0, "durdurma": None}
+    butce_baslangic_mb = veri_butcesi.kullanilan_mb(motor) if veri_butcesi.etkin_mi() else 0.0
     bekleyen = _bekleyenleri_oku(_son_yayin(simdi), motor, kaynaklar)
     gunler = _karisik_gun_sirasi(bekleyen["zaman"].dt.floor("D").unique()) if not bekleyen.empty else []
     for gun in gunler[:gun_siniri]:
@@ -311,6 +315,13 @@ def eslestirme_calistir(
             if ozet["cds_istek"] + istek_sayisi > maks_cds_istek:
                 ozet["durdurma"] = "gecelik_cds_siniri"
                 break
+            if veri_butcesi.etkin_mi():
+                harcanan = veri_butcesi.kullanilan_mb(motor) - butce_baslangic_mb
+                ortalama = harcanan / ozet["cds_istek"] if ozet["cds_istek"] else veri_butcesi.VARSAYILAN_ISTEK_MB
+                if not veri_butcesi.yer_var_mi(istek_sayisi * ortalama, motor):
+                    ozet["durdurma"] = "gunluk_veri_butcesi"
+                    _logger.info("ML eşleştirmesi durduruldu: günlük veri bütçesi doluyor.")
+                    break
             ozet["cds_istek"] += istek_sayisi
             try:
                 kup = _dilimi_indir(saglayici, kutu, baslangic, bitis)
@@ -331,6 +342,8 @@ def eslestirme_calistir(
         if ozet["durdurma"]:
             break
     ozet["kalan_bekleyen"] = bekleyen_sayisi(motor, kaynaklar)
+    if veri_butcesi.etkin_mi():
+        ozet["veri_mb"] = round(veri_butcesi.kullanilan_mb(motor) - butce_baslangic_mb, 1)
     return ozet
 
 
@@ -429,6 +442,8 @@ def ml_durum_ozeti(motor=None) -> dict:
         "egitime_hazir": int(gun) >= config.ML_MIN_GUN and ornekler.get(ESLESTI, 0) >= config.ML_MIN_ORNEK,
         "cds_bugun_kullanilan": int(cds or 0),
         "cds_gunluk_sinir": config.CDS_GUNLUK_MAKS_ISTEK,
+        "veri_bugun_mb": round(veri_butcesi.kullanilan_mb(motor), 1),
+        "veri_gunluk_butce_mb": config.GUNLUK_VERI_BUTCESI_MB or None,
         "iem_imleci": _durum_ozeti(IEM_DURUM_ANAHTARI, motor).get("imlec"),
         "aktif_model": _aktif_model_ozeti(),
         "son_gorevler": son_gorevler,
