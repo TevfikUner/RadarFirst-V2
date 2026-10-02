@@ -3611,7 +3611,7 @@
             "anyOf": [
               {
                 "type": "integer",
-                "maximum": 60.0,
+                "maximum": 150.0,
                 "minimum": 1.0
               },
               {

@@ -949,7 +949,9 @@ class TopluAnalizIstegi(BaseModel):
 
 class MlGeceIsiIstegi(BaseModel):
     iem_guncelle: bool = True
-    maks_cds_istek: int | None = Field(default=None, ge=1, le=config.ML_GECE_MAKS_CDS_ISTEK)
+    # Şema ortamdan bağımsız sabit üst sınır; fazlası ml_veri_hatti'nda kurulumun
+    # ML_GECE_MAKS_CDS_ISTEK değerine indirilir (ayrıca günlük CDS tavanı geçerli).
+    maks_cds_istek: int | None = Field(default=None, ge=1, le=150)
     ardindan_egitim: bool = True
 
 
