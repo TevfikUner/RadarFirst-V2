@@ -65,7 +65,8 @@ services:
       # bırakılırsa (ML_GECE_ISI_SAATI=) kapalıdır; n8n kullanılıyorsa kapatın.
       ML_GECE_ISI_SAATI: ${ML_GECE_ISI_SAATI-23:07}
       # uvicorn süreç sayısı (uvicorn bu değişkeni kendisi okur). >1 verimi artırır;
-      # DB havuzu ve süreç başı önbellek notları: docs/PERFORMANS_RAPORU.md §5.
+      # >1 iken DB havuzları VERITABANI_API_BAGLANTI_BUTCESI'ne göre küçülür ve rota
+      # önbelleği PostgreSQL'de paylaşılır (docs/PERFORMANS_RAPORU.md §5).
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
       # Uzun işler (analiz, backtest, canlı veri) ayrı 'worker' servisinde çalışır.
       GOREV_GOMULU_ISCI: "false"

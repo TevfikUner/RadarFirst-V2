@@ -49,11 +49,36 @@ def _ortam_bool(isim, varsayilan):
 # AYNI havuzu paylaşır. pool_timeout, havuz dolduğunda isteğin sonsuza kadar
 # asılı kalması yerine açık bir hatayla (ve 503/Retry-After'a çevrilebilir
 # şekilde) başarısız olmasını sağlar.
-VERITABANI_HAVUZ_BOYUTU = _ortam_sayi("VERITABANI_HAVUZ_BOYUTU", 10, int)
-VERITABANI_HAVUZ_TASMA = _ortam_sayi("VERITABANI_HAVUZ_TASMA", 20, int)
+#
+# WEB_CONCURRENCY > 1 iken her uvicorn süreci iki motor açar: varsayılanlarla
+# 4 süreç 240 bağlantıya çıkabilir, PostgreSQL max_connections 100'dür.
+# Değerler ortamda açıkça verilmediyse API süreçlerinin toplamı
+# VERITABANI_API_BAGLANTI_BUTCESI'ne sığacak şekilde küçültülür (kalanı
+# worker, yedek ve araçlar içindir). Tek süreçte varsayılanlar değişmez.
+VERITABANI_API_BAGLANTI_BUTCESI = _ortam_sayi("VERITABANI_API_BAGLANTI_BUTCESI", 60, int)
+
+
+def havuz_boyutlari(surec_sayisi: int, butce: int, boyut: int, tasma: int) -> tuple[int, int]:
+    """Motor başına (pool_size, max_overflow): surec_sayisi x 2 motor x (boyut + tasma) <= butce."""
+    tavan = max(2, butce // (2 * max(1, surec_sayisi)))
+    yeni_boyut = min(boyut, max(1, tavan // 3))
+    return yeni_boyut, max(0, min(tasma, tavan - yeni_boyut))
+
+
+def _havuz_ayari(boyut_adi: str, tasma_adi: str) -> tuple[int, int]:
+    boyut = _ortam_sayi(boyut_adi, 10, int)
+    tasma = _ortam_sayi(tasma_adi, 20, int)
+    if boyut_adi in os.environ or tasma_adi in os.environ:
+        return boyut, tasma
+    surec = _ortam_sayi("WEB_CONCURRENCY", 1, int) if (os.environ.get("WEB_CONCURRENCY") or "").strip() else 1
+    return havuz_boyutlari(surec, VERITABANI_API_BAGLANTI_BUTCESI, boyut, tasma)
+
+
+VERITABANI_HAVUZ_BOYUTU, VERITABANI_HAVUZ_TASMA = _havuz_ayari("VERITABANI_HAVUZ_BOYUTU", "VERITABANI_HAVUZ_TASMA")
 VERITABANI_HAVUZ_ZAMAN_ASIMI_SANIYE = _ortam_sayi("VERITABANI_HAVUZ_ZAMAN_ASIMI_SANIYE", 10.0)
-ASYNC_VERITABANI_HAVUZ_BOYUTU = _ortam_sayi("ASYNC_VERITABANI_HAVUZ_BOYUTU", 10, int)
-ASYNC_VERITABANI_HAVUZ_TASMA = _ortam_sayi("ASYNC_VERITABANI_HAVUZ_TASMA", 20, int)
+ASYNC_VERITABANI_HAVUZ_BOYUTU, ASYNC_VERITABANI_HAVUZ_TASMA = _havuz_ayari(
+    "ASYNC_VERITABANI_HAVUZ_BOYUTU", "ASYNC_VERITABANI_HAVUZ_TASMA"
+)
 ASYNC_VERITABANI_HAVUZ_ZAMAN_ASIMI_SANIYE = _ortam_sayi("ASYNC_VERITABANI_HAVUZ_ZAMAN_ASIMI_SANIYE", 10.0)
 
 HAVA_DURUMU_DOSYASI = _ortam_str("HAVA_DURUMU_DOSYASI", "ocak_2019_turbulans.nc")
@@ -397,6 +422,12 @@ AGIR_HESAP_BEKLEME_SANIYE = _ortam_sayi("AGIR_HESAP_BEKLEME_SANIYE", 15.0)
 # boşaltılır; worker'daki değişiklikler en geç bu süre sonra yansır.
 ROTA_ONBELLEK_SANIYE = _ortam_sayi("ROTA_ONBELLEK_SANIYE", 60.0)
 ROTA_ONBELLEK_MAKS_KAYIT = _ortam_sayi("ROTA_ONBELLEK_MAKS_KAYIT", 256, int)
+# Birden çok API süreci varken önbellek PostgreSQL'de paylaşılır (süreç başına
+# önbellekte isabet oranı düşüyordu, PERFORMANS_RAPORU H6); temizlik her
+# sürece ve worker'a anında yansır. Varsayılan: WEB_CONCURRENCY > 1 ise açık.
+ROTA_ONBELLEK_PAYLASIMLI = _ortam_bool(
+    "ROTA_ONBELLEK_PAYLASIMLI", (os.environ.get("WEB_CONCURRENCY") or "1").strip() not in ("", "1")
+)
 
 # api_servisi.py -- her isteğin gövdesi (Content-Length ya da chunked ise
 # akış sırasında sayılarak) bu boyutu (MB) aşarsa 413 ile erken reddedilir.

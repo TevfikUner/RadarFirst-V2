@@ -228,6 +228,19 @@ class HizSiniriSayaci(Base):
     sayi: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
+class RotaOnbellekKaydi(Base):
+    """Süreçler arası paylaşılan rota önbelleği (bkz. api/rota_onbellegi.py).
+    UNLOGGED: kaybolması yalnızca yeniden hesap demektir, WAL yükü olmaz.
+    GECERSIZ_ANAHTAR satırının olusturma'sı son temizlik anıdır."""
+
+    __tablename__ = "rota_onbellegi"
+    __table_args__ = (Index("ix_rota_onbellegi_olusturma", "olusturma"), {"prefixes": ["UNLOGGED"]})
+
+    anahtar: Mapped[str] = mapped_column(String(64), primary_key=True)
+    olusturma: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    sonuc: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+
+
 class DenetimKaydi(Base):
     """/api/v1 altındaki her değiştirici istek (POST/PUT/PATCH/DELETE): kim
     (anahtarın kimliği), hangi rolle, ne yaptı, sonuç ne oldu. Reddedilen

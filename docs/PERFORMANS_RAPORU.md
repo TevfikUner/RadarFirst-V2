@@ -122,12 +122,21 @@ iki kez de yeniden kuyruğa aldı).
    sıraya giriyor. Dört süreçle aynı donanımda verim tahminde ~3 kat, rotada ~3,2 kat
    arttı; H5 sağlandı.
 2. **Süreç sayısı artarken dikkat edilecekler** (`WEB_CONCURRENCY` > 1):
-   - Rota önbelleği süreç başınadır; isabet oranı düşer (H6'daki gerileme). Paylaşılan
-     önbellek (ör. PostgreSQL ya da Redis) ayrı bir iştir.
-   - Her süreç kendi veritabanı havuzunu açar (varsayılan senkron 10+20 ve asenkron
-     10+20). 4 süreç teorik olarak PostgreSQL'in 100 bağlantı sınırını aşabilir;
-     `VERITABANI_HAVUZ_*` ve `ASYNC_VERITABANI_HAVUZ_*` süreç sayısına göre düşürülmeli
-     ya da `max_connections` artırılmalı.
+   - Rota önbelleği süreç başınaydı; aynı istek her süreçte ayrı hesaplanıyor, bir
+     süreçteki SIGMET yenilemesi diğerlerine 60 sn'ye kadar geç yansıyordu. 2 Ekim
+     2026'dan beri `WEB_CONCURRENCY` > 1 iken önbellek PostgreSQL'de paylaşılır
+     (`rota_onbellegi`, UNLOGGED); temizlik tüm süreçlere ve worker'a anında yansır.
+     Yeniden ölçüm (4 süreç, test veritabanı, aynı makine) önbellekli rota p95:
+     süreç başına 10,7 / 40,5 / 490 ms, paylaşılan 14,3 / 34,6 / 507 ms (c = 1/4/16).
+     Gecikme aynı düzeydedir (tek istekte ~4 ms veritabanı turu); kazanç, aynı rotanın
+     süreç sayısı kadar değil bir kez hesaplanması ve tazeliktir. Bu ölçümde H6 her iki
+     modda da c = 4'te sağlandı (ilk ölçümdeki 456 ms büyük olasılıkla süreçlerin soğuk
+     önbelleğiydi; tek ölçüm, kesin değil).
+   - Her süreç kendi iki veritabanı havuzunu açar (varsayılan 10+20 ve 10+20); 4 süreç
+     240 bağlantıya çıkabilir, PostgreSQL sınırı 100'dür. 2 Ekim 2026'dan beri havuzlar
+     açıkça ayarlanmadıysa API süreçlerinin toplamı `VERITABANI_API_BAGLANTI_BUTCESI`
+     (60) içinde kalacak şekilde küçültülür (4 süreçte motor başına 2+5). Tek süreçte
+     varsayılanlar değişmez.
    - SIGMET, openAIP ve ML gece işi zamanlayıcıları ölçüm sırasında her süreçte
      çalışıyordu (SIGMET süreç sayısı kadar çekiliyordu). 2 Ekim 2026'dan beri yalnızca
      PostgreSQL lider kilidini tutan süreç çalıştırır; lider düşerse diğeri

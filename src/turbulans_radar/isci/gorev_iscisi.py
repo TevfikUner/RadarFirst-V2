@@ -157,9 +157,15 @@ def _canli_veri_gorevi(gorev):
 
 
 def _openaip_gorevi(gorev):
+    from turbulans_radar.api.rota_onbellegi import paylasimli_onbellegi_temizle_senkron
     from turbulans_radar.veri.openaip_saglayici import openaip_ice_aktar
 
-    return {"durum": "tamamlandi", "ozet": [openaip_ice_aktar((gorev["parametreler"] or {}).get("ulkeler"))]}
+    ozet = openaip_ice_aktar((gorev["parametreler"] or {}).get("ulkeler"))
+    try:
+        paylasimli_onbellegi_temizle_senkron()
+    except Exception as hata:
+        _logger.warning("Paylaşılan rota önbelleği temizlenemedi: %s", dostane_hata_mesaji(hata))
+    return {"durum": "tamamlandi", "ozet": [ozet]}
 
 
 ML_ATLANDI_MESAJI = "Aynı türde bir ML işi başka bir işçide sürüyor; bu tetikleme atlandı."

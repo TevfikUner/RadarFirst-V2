@@ -90,7 +90,7 @@ from sqlalchemy.exc import SQLAlchemyError
 from turbulans_radar import config, loglama
 from turbulans_radar.analiz.sanal_pirep_hatti import izden_sanal_pirep_uret
 from turbulans_radar.api import metrikler
-from turbulans_radar.api.rota_onbellegi import RotaOnbellegi
+from turbulans_radar.api.rota_onbellegi import PaylasimliRotaOnbellegi, RotaOnbellegi
 from turbulans_radar.api.semalar import (
     BacktestListesiYaniti,
     BacktestSonucuYaniti,
@@ -366,7 +366,7 @@ async def _sigmet_zamanlayicisi(aralik_saniye):
     while True:
         try:
             ozet = await asyncio.to_thread(sigmetleri_guncelle)
-            _rota_onbellegi.temizle()
+            await _rota_onbellegini_temizle()
             if ozet["kaynak_hatalari"]:
                 _logger.error("SIGMET kaynak hataları (mevcut kayıtlar korundu): %s", ozet["kaynak_hatalari"])
             _logger.info("SIGMET'ler yenilendi: %s", ozet)
@@ -623,6 +623,43 @@ def _istemci_kimligi(request: Request, rol: str) -> str:
 
 
 _rota_onbellegi = RotaOnbellegi(config.ROTA_ONBELLEK_SANIYE, config.ROTA_ONBELLEK_MAKS_KAYIT)
+_paylasimli_rota_onbellegi = (
+    PaylasimliRotaOnbellegi(config.ROTA_ONBELLEK_SANIYE, config.ROTA_ONBELLEK_MAKS_KAYIT)
+    if config.ROTA_ONBELLEK_PAYLASIMLI
+    else None
+)
+
+
+async def _rota_onbellegini_temizle():
+    _rota_onbellegi.temizle()
+    if _paylasimli_rota_onbellegi is not None:
+        try:
+            await _paylasimli_rota_onbellegi.temizle()
+        except Exception as hata:
+            _logger.warning("Paylaşılan rota önbelleği temizlenemedi: %s", dostane_hata_mesaji(hata))
+
+
+async def _rota_onbellekten_al(anahtar):
+    """(sonuc ya da None, damga). Paylaşılan önbellek okunamazsa iska sayılır."""
+    if _paylasimli_rota_onbellegi is None:
+        return _rota_onbellegi.al(anahtar), _rota_onbellegi.nesil
+    try:
+        return await _paylasimli_rota_onbellegi.al(anahtar)
+    except Exception as hata:
+        _logger.warning("Paylaşılan rota önbelleği okunamadı: %s", dostane_hata_mesaji(hata))
+        return None, None
+
+
+async def _rota_onbellege_koy(anahtar, sonuc, damga):
+    if _paylasimli_rota_onbellegi is None:
+        _rota_onbellegi.koy(anahtar, sonuc, damga)
+        return
+    try:
+        await _paylasimli_rota_onbellegi.koy(
+            anahtar, RotaSimulasyonuYaniti.model_validate(sonuc).model_dump(mode="json"), damga
+        )
+    except Exception as hata:
+        _logger.warning("Paylaşılan rota önbelleğine yazılamadı: %s", dostane_hata_mesaji(hata))
 
 
 _agir_hesap_semaforlari: "weakref.WeakKeyDictionary[asyncio.AbstractEventLoop, asyncio.Semaphore]" = (
@@ -1012,12 +1049,11 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
         f"rota_hesabi:{_istemci_kimligi(request, rol)}", maks=config.ROTA_HESABI_DAKIKADA_MAKS, pencere_saniye=60
     )
     onbellek_anahtari = istek.model_dump_json()
-    onceki = _rota_onbellegi.al(onbellek_anahtari)
+    onceki, damga = await _rota_onbellekten_al(onbellek_anahtari)
     if onceki is not None:
         metrikler.ROTA_ONBELLEGI.labels("isabet").inc()
         return onceki
     metrikler.ROTA_ONBELLEGI.labels("iska").inc()
-    nesil = _rota_onbellegi.nesil
     async with _agir_hesap_yuvasi():
         hesap_baslangici = time.monotonic()
         try:
@@ -1037,7 +1073,7 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(hata)) from None
         metrikler.ROTA_HESABI_SURESI.observe(time.monotonic() - hesap_baslangici)
     sonuc["czml"] = simulasyonu_czml_e_cevir(sonuc)
-    _rota_onbellegi.koy(onbellek_anahtari, sonuc, nesil)
+    await _rota_onbellege_koy(onbellek_anahtari, sonuc, damga)
     return sonuc
 
 
@@ -1403,7 +1439,7 @@ async def sigmetleri_yenile(request: Request, rol: str = Depends(api_anahtarini_
     try:
         return await asyncio.to_thread(sigmetleri_guncelle)
     finally:
-        _rota_onbellegi.temizle()
+        await _rota_onbellegini_temizle()
 
 
 @v1.get("/sigmet", response_model=list[SigmetOzetiYaniti], tags=["SIGMET"])
@@ -1547,7 +1583,7 @@ async def kisitli_sahalari_ice_aktar(
     try:
         return await asyncio.to_thread(geojson_ice_aktar, geojson, kaynak, eskileri_kaldir)
     finally:
-        _rota_onbellegi.temizle()
+        await _rota_onbellegini_temizle()
 
 
 @v1.post(
@@ -1612,7 +1648,7 @@ async def kisitli_saha_sil(
 ):
     await _hiz_sinirini_kontrol_et(f"kisitli_saha:{_istemci_kimligi(request, rol)}")
     silindi_mi = await asyncio.to_thread(kisitli_sahayi_sil, dis_kimlik)
-    _rota_onbellegi.temizle()
+    await _rota_onbellegini_temizle()
     if not silindi_mi:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Kısıtlı saha bulunamadı.")
 

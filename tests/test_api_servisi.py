@@ -1642,3 +1642,28 @@ async def test_ats_agi_yokken_ats_modu_400_ve_aciklama_doner(istemci, api_anahta
     govde["arama_uzayi"] = "serbest"
     yanit = await istemci.post("/api/v1/simulasyon/rota", json=govde, headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 422
+
+
+async def test_paylasimli_rota_onbellegi_ikinci_istegi_hesaplamadan_doner(istemci, api_anahtari, monkeypatch):
+    from turbulans_radar.api.rota_onbellegi import PaylasimliRotaOnbellegi, paylasimli_onbellegi_temizle_senkron
+
+    paylasimli_onbellegi_temizle_senkron()
+    monkeypatch.setattr(api_servisi, "_paylasimli_rota_onbellegi", PaylasimliRotaOnbellegi(60, 10))
+    asil, hesaplar = api_servisi.rota_simulasyonu_olustur, []
+    monkeypatch.setattr(api_servisi, "rota_simulasyonu_olustur", lambda *a, **k: hesaplar.append(1) or asil(*a, **k))
+    govde = {
+        "baslangic_enlem": 41.0,
+        "baslangic_boylam": 28.9,
+        "bitis_enlem": 40.7,
+        "bitis_boylam": -74.0,
+        "irtifa_ft": 34000,
+        "zaman": "2019-01-15T10:00:00",
+        "ucak_modeli": "A320",
+    }
+    ilk = await istemci.post("/api/v1/simulasyon/rota", json=govde, headers={"X-API-Key": api_anahtari})
+    ikinci = await istemci.post("/api/v1/simulasyon/rota", json=govde, headers={"X-API-Key": api_anahtari})
+    assert ilk.status_code == ikinci.status_code == 200 and len(hesaplar) == 1
+    assert ikinci.json() == ilk.json()
+    await api_servisi._rota_onbellegini_temizle()
+    await istemci.post("/api/v1/simulasyon/rota", json=govde, headers={"X-API-Key": api_anahtari})
+    assert len(hesaplar) == 2
