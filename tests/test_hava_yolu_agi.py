@@ -124,12 +124,12 @@ def _sentetik_sigmet(enlem, boylam, yari=0.6):
     }
 
 
-def _rota(ag, sigmetler=(), irtifa_ft=36000, bas=TOC, bit=TOD):
+def _rota(ag, sigmetler=(), irtifa_ft=36000, bas=TOC, bit=TOD, zaman="2019-01-15T10:00:00"):
     return rota_simulasyonu_olustur(
         *bas,
         *bit,
         irtifa_ft,
-        "2019-01-15T10:00:00",
+        zaman,
         "A320",
         sigmetler=list(sigmetler),
         kisitli_sahalar=[],
@@ -187,3 +187,31 @@ def test_ats_agi_dosyasi_yoksa_hata_ve_dosyadan_yukleme(tmp_path, monkeypatch):
 def test_koridor_modu_degismedi():
     sonuc = rota_simulasyonu_olustur(*TOC, *TOD, 36000, "2019-01-15T10:00:00", "A320", sigmetler=[], kisitli_sahalar=[])
     assert sonuc["ats"] is None and sonuc["kapsam"]["arama_uzayi"] == "koridor"
+
+
+def _yalniz_fra(saatler):
+    fra = {"noktalar": ["TESTW", "TESTS", "TESTE"], "dct_maks_km": 450, "alt_fl": 305, "saatler_utc": saatler}
+    return hya.agi_kur(_veri(yollar=[], fra=fra), ara_nokta_km=0)
+
+
+@pytest.mark.parametrize(
+    "saat, acik",
+    [("12:00", False), ("19:59", False), ("20:00", True), ("23:30", True), ("01:59", True), ("02:00", False)],
+)
+def test_fra_yalniz_uygulama_saatlerinde_arama_grafina_girer(saat, acik):
+    ag = _yalniz_fra([{"baslangic": "20:00", "bitis": "02:00"}])
+    _, komsular, _ = hya.arama_grafi(ag, TOC, TOD, irtifa_ft=36000, zaman=pd.Timestamp(f"2019-01-15T{saat}Z"))
+    assert bool(komsular["TESTW"]) is acik
+
+
+def test_fra_saati_tanimsizsa_her_zaman_acik_ve_hatali_saat_reddedilir():
+    assert _yalniz_fra([]).fra_acik_mi(pd.Timestamp("2019-01-15T12:00Z"))
+    with pytest.raises(hya.AtsAgiHatasi, match="saat"):
+        _yalniz_fra([{"baslangic": "25:00", "bitis": "02:00"}])
+
+
+def test_fra_kapaliyken_ats_modu_nedenini_soyler():
+    ag = _yalniz_fra([{"baslangic": "20:00", "bitis": "02:00"}])
+    with pytest.raises(AtsAgiKullanilamazHatasi, match="FRA.*10:00 UTC.*20:00-02:00 UTC"):
+        _rota(ag)
+    assert _rota(ag, zaman="2019-01-15T21:00:00")["kapsam"]["arama_uzayi"] == "ats"

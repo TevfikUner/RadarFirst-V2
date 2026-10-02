@@ -606,7 +606,9 @@ Doç. Dr. Fulya Aybek Çetek'in önerileri ve proje ekibinin analizi:
     [docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md](docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md).
   - Ağ yoksa istek 400 döner. Varsayılan `koridor` modu değişmedi.
   - Ağ otomatik hazırlanabilir: `turbulans-aip-ats --indir` (AIP Türkiye ENR 4.4,
-    FL305+ FRA). Kısıtlı sahalar için `turbulans-aip-sahalar --indir` (ENR 5.1).
+    FL305–FL660 FRA). Kısıtlı sahalar için `turbulans-aip-sahalar --indir` (ENR 5.1).
+  - FRA yalnızca AIP ENR 1.3'teki saatlerde (20:00–02:00 UTC, AIRAC 01/26)
+    kullanılır; bu saatlerin dışında ATS modu nedenini söyleyen 400 döner.
 - **Ayırma göstergesi:** `turbulans-ayirma UCUS TARIH [--sorgu-izni]`.
   - Gerçek iz, büyük daire ve önerilen rota; aynı zaman penceresinde uçmuş
     trafiğin ADS-B izleriyle karşılaştırılır.

@@ -14,8 +14,13 @@ modül uydurma bir ağ içermez.
       "noktalar": [{"ad": "ABCDE", "enlem": 40.1, "boylam": 30.2}, ...],
       "yollar": [{"ad": "UL123", "noktalar": ["ABCDE", "FGHIJ", ...],
                   "alt_fl": 245, "ust_fl": 460, "yon": "cift"}],
-      "fra": {"noktalar": ["ABCDE", ...], "dct_maks_km": 400, "alt_fl": 245, "ust_fl": 660}
+      "fra": {"noktalar": ["ABCDE", ...], "dct_maks_km": 400, "alt_fl": 245, "ust_fl": 660,
+              "saatler_utc": [{"baslangic": "20:00", "bitis": "02:00"}]}
     }
+
+saatler_utc: FRA'nın uygulandığı UTC saat aralıkları (gece yarısını aşabilir);
+yoksa her zaman. Türkiye'de FRATURK yalnızca 20:00-02:00 UTC (AIP ENR 1.3
+§5.1.1, AIRAC 01/26). Kapalı saatte FRA'nın DCT kenarları aramaya girmez.
 
 yon: "cift" (iki yön), "ileri" (listedeki sıra), "geri". alt_fl/ust_fl boşsa
 sınır yok. Kalkış ve varış (ToC/ToD) ağa en yakın noktalara doğrudan bağlanır
@@ -49,6 +54,7 @@ class Kenar:
     yol: str
     alt_fl: float | None
     ust_fl: float | None
+    fra: bool = False
 
 
 @dataclass
@@ -56,9 +62,22 @@ class HavaYoluAgi:
     kaynak: str
     noktalar: dict[str, tuple[float, float]]
     komsular: dict[str, list[Kenar]] = field(default_factory=dict)
+    fra_saatleri: list[tuple[int, int]] = field(default_factory=list)
 
-    def kenar_ekle(self, a: str, b: str, yol: str, alt_fl=None, ust_fl=None):
-        self.komsular.setdefault(a, []).append(Kenar(b, yol, alt_fl, ust_fl))
+    def kenar_ekle(self, a: str, b: str, yol: str, alt_fl=None, ust_fl=None, fra=False):
+        self.komsular.setdefault(a, []).append(Kenar(b, yol, alt_fl, ust_fl, fra))
+
+    def fra_acik_mi(self, zaman) -> bool:
+        """zaman (UTC) FRA uygulama saatlerinde mi; saat tanımlı değilse her zaman açık."""
+        if not self.fra_saatleri or zaman is None:
+            return True
+        dakika = zaman.hour * 60 + zaman.minute
+        return any(
+            (bas <= dakika < bit) if bas < bit else (dakika >= bas or dakika < bit) for bas, bit in self.fra_saatleri
+        )
+
+    def fra_saatleri_metni(self) -> str:
+        return ", ".join(f"{b // 60:02d}:{b % 60:02d}-{s // 60:02d}:{s % 60:02d} UTC" for b, s in self.fra_saatleri)
 
 
 def mesafe_km(enlem1, boylam1, enlem2, boylam2) -> float:
@@ -90,6 +109,16 @@ def _fl(deger, alan, konum):
     return float(deger)
 
 
+def _saat_dakika(deger, konum) -> int:
+    try:
+        saat, dakika = (int(p) for p in str(deger).split(":"))
+    except (TypeError, ValueError):
+        raise AtsAgiHatasi(f"{konum}: saat 'SS:DD' biçiminde olmalı") from None
+    if not (0 <= saat <= 24 and 0 <= dakika < 60) or saat * 60 + dakika > 1440:
+        raise AtsAgiHatasi(f"{konum}: geçersiz saat {deger!r}")
+    return saat * 60 + dakika
+
+
 def agi_kur(veri: dict, ara_nokta_km: float | None = None) -> HavaYoluAgi:
     """JSON sözlüğünden ağ; hatalı veride nerede olduğunu söyleyen AtsAgiHatasi."""
     ara_nokta_km = config.ATS_AGI_ARA_NOKTA_KM if ara_nokta_km is None else ara_nokta_km
@@ -108,7 +137,7 @@ def agi_kur(veri: dict, ara_nokta_km: float | None = None) -> HavaYoluAgi:
         noktalar[ad] = (enlem, boylam)
     ag = HavaYoluAgi(kaynak=str(veri.get("kaynak") or "belirtilmedi"), noktalar=dict(noktalar))
 
-    def segment_ekle(a, b, yol, alt_fl, ust_fl, yonler):
+    def segment_ekle(a, b, yol, alt_fl, ust_fl, yonler, fra=False):
         (e1, b1), (e2, b2) = noktalar[a], noktalar[b]
         parca = max(1, math.ceil(mesafe_km(e1, b1, e2, b2) / ara_nokta_km)) if ara_nokta_km > 0 else 1
         zincir = [a]
@@ -119,9 +148,9 @@ def agi_kur(veri: dict, ara_nokta_km: float | None = None) -> HavaYoluAgi:
         zincir.append(b)
         for x, y in zip(zincir, zincir[1:]):
             if "ileri" in yonler:
-                ag.kenar_ekle(x, y, yol, alt_fl, ust_fl)
+                ag.kenar_ekle(x, y, yol, alt_fl, ust_fl, fra)
             if "geri" in yonler:
-                ag.kenar_ekle(y, x, yol, alt_fl, ust_fl)
+                ag.kenar_ekle(y, x, yol, alt_fl, ust_fl, fra)
 
     for sira, yol in enumerate(veri.get("yollar") or []):
         konum = f"yollar[{sira}]"
@@ -150,10 +179,21 @@ def agi_kur(veri: dict, ara_nokta_km: float | None = None) -> HavaYoluAgi:
             raise AtsAgiHatasi(f"fra: tanımsız nokta(lar): {', '.join(bilinmeyen)}")
         dct_km = float(fra.get("dct_maks_km") or 0)
         alt_fl, ust_fl = _fl(fra.get("alt_fl"), "alt_fl", "fra"), _fl(fra.get("ust_fl"), "ust_fl", "fra")
+        saatler = fra.get("saatler_utc") or []
+        if not isinstance(saatler, list):
+            raise AtsAgiHatasi("fra: 'saatler_utc' {baslangic, bitis} listesi olmalı")
+        for sira, aralik in enumerate(saatler):
+            konum = f"fra.saatler_utc[{sira}]"
+            if not isinstance(aralik, dict):
+                raise AtsAgiHatasi(f"{konum}: {{baslangic, bitis}} olmalı")
+            bas, bit = _saat_dakika(aralik.get("baslangic"), konum), _saat_dakika(aralik.get("bitis"), konum)
+            if bas == bit:
+                raise AtsAgiHatasi(f"{konum}: baslangic ve bitis aynı olamaz")
+            ag.fra_saatleri.append((bas, bit % 1440))
         for i, a in enumerate(fra_noktalari):
             for b in fra_noktalari[i + 1 :]:
                 if mesafe_km(*noktalar[a], *noktalar[b]) <= dct_km:
-                    segment_ekle(a, b, "DCT", alt_fl, ust_fl, ("ileri", "geri"))
+                    segment_ekle(a, b, "DCT", alt_fl, ust_fl, ("ileri", "geri"), fra=True)
     if not ag.komsular:
         raise AtsAgiHatasi("Ağda hiç segment yok ('yollar' ya da 'fra' gerekli)")
     return ag
@@ -190,13 +230,18 @@ def uc_baglantilari(ag: HavaYoluAgi, enlem, boylam, maks_km=None, sayi=None) -> 
     return [(ad, km) for km, ad in adaylar if km <= maks_km][:sayi]
 
 
-def arama_grafi(ag: HavaYoluAgi, bas, bit, irtifa_ft) -> tuple[dict, dict, list]:
-    """A* için (konumlar, komsular, kenarlar): seviyeye uymayan segmentler
-    çıkarılmış, ToC/ToD bağlantıları eklenmiş graf."""
+def arama_grafi(ag: HavaYoluAgi, bas, bit, irtifa_ft, zaman=None) -> tuple[dict, dict, list]:
+    """A* için (konumlar, komsular, kenarlar): seviyeye uymayan segmentler ve
+    (zaman verilirse) FRA kapalıyken FRA DCT kenarları çıkarılmış, ToC/ToD
+    bağlantıları eklenmiş graf."""
     fl = irtifa_ft / 100.0
+    fra_acik = ag.fra_acik_mi(zaman)
     konumlar = dict(ag.noktalar)
     konumlar[BASLANGIC], konumlar[BITIS] = bas, bit
-    komsular = {a: [(k.hedef, k.yol) for k in kenarlar if _seviyede_mi(k, fl)] for a, kenarlar in ag.komsular.items()}
+    komsular = {
+        a: [(k.hedef, k.yol) for k in kenarlar if _seviyede_mi(k, fl) and (fra_acik or not k.fra)]
+        for a, kenarlar in ag.komsular.items()
+    }
     komsular[BASLANGIC] = [(ad, "DCT") for ad, _ in uc_baglantilari(ag, *bas)]
     for ad, _ in uc_baglantilari(ag, *bit):
         komsular.setdefault(ad, []).append((BITIS, "DCT"))

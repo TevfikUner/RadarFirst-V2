@@ -23,13 +23,31 @@ turbulans-kisitli-saha ice-aktar ats_verisi/aip_enr51.geojson --kaynak aip_enr51
 ```
 
 - **ENR 4.4:** Tüm önemli noktalar koordinatları ve FRA rolleriyle alınır. FRA
-  noktaları arasında 200 km'ye kadar doğrudan (DCT) kenarlar kurulur; alt sınır
-  FL305'tir. Bu sınırlar `--dct-km` ve `--alt-fl` ile değiştirilebilir.
-- **ENR 5.1:** Yalnızca biçimi kesin olan sahalar alınır. Belirsiz olanlar
-  gerekçesiyle "ATLANDI" diye listelenir; bunları aşağıdaki §2 biçimiyle elle
-  ekleyin.
-  - 2 Ekim 2026'da 77 saha alındı, 8'i atlandı: LTP1, LTR8, LTR9, LTR43, LTR44,
-    LTD31, LTD33, LTD40.
+  noktaları arasında 200 km'ye kadar doğrudan (DCT) kenarlar kurulur.
+- **FRA kuralları (AIP ENR 1.3 §5, AIRAC 01/26, 2 Ekim 2026'da okundu):**
+  - FRATURK Ankara ve İstanbul FIR'larında **FL305–FL660**, yalnızca
+    **20:00–02:00 UTC** arasında uygulanır. Ağ bu saatleri `fra.saatler_utc`
+    olarak taşır (`--fra-saatleri`); kapalı saatte FRA DCT kenarları aramaya
+    girmez ve ATS modu nedenini söyleyen bir hatayla döner (ağda ENR 3.1 yolları yok).
+  - AIP'te en uzun DCT sınırı yoktur; 200 km bizim hesap kolaylığı için koyduğumuz
+    üst sınırdır (`--dct-km`), uzun bacaklar birden çok FRA noktasından geçer.
+  - FRA sınırına 5 NM'den yakın DCT planlanamaz ve yalnızca yayımlanmış noktalar
+    kullanılabilir. İkinci kural sağlanıyor (ağda yalnız ENR 4.4 noktaları var;
+    ara noktalar yalnız risk değerlendirmesi içindir); 5 NM sınır tamponu
+    modellenmedi.
+  - Bu saatler ilk uygulamada (2025–26 kışı) geçerliydi; 2026–27 kışında H24'e
+    geçilmesi planlanıyor. Her AIRAC'ta ENR 1.3 yeniden kontrol edilmeli.
+- **ENR 5.1:** Kural tabanlı alınır; kurala uymayanlar gerekçesiyle "ATLANDI"
+  diye listelenir ve aşağıdaki §2 biçimiyle elle eklenir.
+  - 2 Ekim 2026: AIRAC 10/26'daki 85 sahanın hepsi alındı. İlk sürümde atlanan 8
+    saha yeni kurallarla alındı: LTD40 (kapanış köşesi tekrarı), LTR8/LTR9
+    (açıklamadaki seviyeler sınır sanılıyordu), LTR43/LTR44 (IFR sınırı alındı,
+    VFR sınırı açıklamada), LTD33 ("Daily 0900-1000", UTC), LTD31 (gün
+    doğumu–batımı; sürekli aktif sayıldı), LTP1 (aşağıda).
+  - **LTP1 Çanakkale (yasak, SFC–UNL, H24):** batı kenarı "İstanbul–Atina FIR
+    hududunu takiben" tarif edilir. AIP ENR 2.1 bu hattı kesin koordinatsız
+    teorik hat olarak tanımlar; kenar VATSIM'in yaklaşık FIR sınırıyla
+    kapatıldı ve açıklamaya "YAKLAŞIK" yazıldı. Resmi bir çizim değildir.
 - **Sınırlar:**
   - Klasik ve RNAV hava yolları (ENR 3.1/3.2) bu araçlarla kurulmaz. FL305
     altında ATS modu rota bulamaz ve bunu açıkça söyler.
@@ -43,9 +61,9 @@ turbulans-kisitli-saha ice-aktar ats_verisi/aip_enr51.geojson --kaynak aip_enr51
   alt/üst sınır (FL) ve varsa tek yön kısıtı.
 - **Nokta koordinatları:** ENR 4.4 (önemli noktaların adı ve koordinatı). VOR/NDB
   gibi seyrüsefer yardımcıları ENR 4.1'de.
-- **Serbest Rota Sahası (FRA):** Türkiye'de 27 Kasım 2025'ten beri FL305 ve
-  üzerinde uygulanıyor. FRA rolleri ENR 4.4'te, harita ENR 6.3'te. Güncel
-  uygulama saatlerini AIP'ten kontrol edin.
+- **Serbest Rota Sahası (FRA):** Türkiye'de 27 Kasım 2025'ten beri. Kurallar
+  ENR 1.3 §5'te (FL305–FL660, 20:00–02:00 UTC; AIRAC 01/26), FRA rolleri
+  ENR 4.4'te, harita ENR 6.3'te.
 
 ### Kapsam önerisi
 Tüm ağ yerine, demo senaryolarının geçtiği 2–3 koridor yeterli: örneğin İstanbul

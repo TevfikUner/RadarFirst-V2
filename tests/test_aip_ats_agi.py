@@ -57,3 +57,10 @@ def test_fra_agi_hava_yolu_agina_kurulur():
 
 def test_turkiye_disi_koordinat_uyarisi():
     assert aip.dogrula([{"ad": "XXXXX", "enlem": 10.0, "boylam": 10.0}, {"ad": "XXXXX", "enlem": 39, "boylam": 32}])
+
+
+def test_fra_saatleri_ayristirilir_ve_aga_yazilir():
+    assert aip.fra_saatlerini_ayristir("20:00-02:00") == [{"baslangic": "20:00", "bitis": "02:00"}]
+    assert aip.fra_saatlerini_ayristir("") == []
+    veri = aip.fra_agi([], "01/26", 200, 305, 660, aip.fra_saatlerini_ayristir("20:00-02:00"))
+    assert veri["fra"]["saatler_utc"] == [{"baslangic": "20:00", "bitis": "02:00"}] and veri["fra"]["ust_fl"] == 660

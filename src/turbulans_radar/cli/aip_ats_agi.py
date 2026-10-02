@@ -97,7 +97,18 @@ def dogrula(kayitlar: list[dict]) -> list[str]:
     return sorunlar
 
 
-def fra_agi(kayitlar: list[dict], airac: str | None, dct_maks_km: float, alt_fl: float, ust_fl=None) -> dict:
+def fra_saatlerini_ayristir(metin: str) -> list[dict]:
+    """'20:00-02:00' ya da virgülle birden çok aralık -> saatler_utc; boş = her zaman."""
+    saatler = []
+    for parca in filter(None, (p.strip() for p in (metin or "").split(","))):
+        bas, _, bit = parca.partition("-")
+        saatler.append({"baslangic": bas.strip(), "bitis": bit.strip()})
+    return saatler
+
+
+def fra_agi(
+    kayitlar: list[dict], airac: str | None, dct_maks_km: float, alt_fl: float, ust_fl=None, saatler_utc=None
+) -> dict:
     fra_noktalari = [k["ad"] for k in kayitlar if k["fra_rolleri"]]
     return {
         "kaynak": f"AIP Türkiye ENR 4.4, AIRAC AMDT {airac or '?'} (DHMİ), {datetime.now(UTC):%Y-%m-%d} ayrıştırıldı",
@@ -106,7 +117,13 @@ def fra_agi(kayitlar: list[dict], airac: str | None, dct_maks_km: float, alt_fl:
             for k in kayitlar
         ],
         "yollar": [],
-        "fra": {"noktalar": fra_noktalari, "dct_maks_km": dct_maks_km, "alt_fl": alt_fl, "ust_fl": ust_fl},
+        "fra": {
+            "noktalar": fra_noktalari,
+            "dct_maks_km": dct_maks_km,
+            "alt_fl": alt_fl,
+            "ust_fl": ust_fl,
+            "saatler_utc": saatler_utc or [],
+        },
     }
 
 
@@ -129,7 +146,15 @@ def ana(argv=None):
     ayristirici.add_argument("--indir", action="store_true", help="ENR 4.4'ü DHMİ'den indir (tek istek).")
     ayristirici.add_argument("--cikti", default=VARSAYILAN_CIKTI)
     ayristirici.add_argument("--dct-km", type=float, default=200.0, help="FRA noktaları arası en uzun DCT kenarı (km).")
-    ayristirici.add_argument("--alt-fl", type=float, default=305.0, help="FRA alt sınırı (FL; doğrulanmalı).")
+    ayristirici.add_argument(
+        "--alt-fl", type=float, default=305.0, help="FRA alt sınırı (FL; AIP ENR 1.3 §5.1.1, AIRAC 01/26: FL305)."
+    )
+    ayristirici.add_argument("--ust-fl", type=float, default=660.0, help="FRA üst sınırı (FL; ENR 1.3: FL660).")
+    ayristirici.add_argument(
+        "--fra-saatleri",
+        default="20:00-02:00",
+        help="FRA uygulama saatleri, UTC (ENR 1.3 §5.1.1, AIRAC 01/26: 20:00-02:00). Boş = her zaman.",
+    )
     argumanlar = ayristirici.parse_args(argv)
     if argumanlar.indir:
         print("İndirildi:", indir(argumanlar.enr44))
@@ -137,7 +162,14 @@ def ana(argv=None):
     sorunlar = dogrula(kayitlar)
     for sorun in sorunlar:
         print("[Uyarı]", sorun)
-    ag = fra_agi(kayitlar, airac, argumanlar.dct_km, argumanlar.alt_fl)
+    ag = fra_agi(
+        kayitlar,
+        airac,
+        argumanlar.dct_km,
+        argumanlar.alt_fl,
+        argumanlar.ust_fl,
+        fra_saatlerini_ayristir(argumanlar.fra_saatleri),
+    )
     Path(argumanlar.cikti).parent.mkdir(parents=True, exist_ok=True)
     Path(argumanlar.cikti).write_text(json.dumps(ag, ensure_ascii=False, indent=1), encoding="utf-8")
     print(

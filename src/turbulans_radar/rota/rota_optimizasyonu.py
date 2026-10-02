@@ -498,9 +498,9 @@ def _ats_ile_rota_ara(ag, bas, bit, irtifa_m, baslangic_zamani, tas_ms, veri_kup
     uzaklığı / TAS (nominal); belirsizlik payı ızgarayla aynı. Hava küpünün
     kapsamadığı düğümler elenir. Dönüş: (enlemler, boylamlar, düğümler, yollar)
     ya da yol yoksa None."""
-    konumlar, komsular, kenarlar = hava_yolu_agi.arama_grafi(ag, bas, bit, irtifa_m / 0.3048)
     kalkis = pd.Timestamp(baslangic_zamani)
     kalkis = kalkis.tz_localize("UTC") if kalkis.tzinfo is None else kalkis
+    konumlar, komsular, kenarlar = hava_yolu_agi.arama_grafi(ag, bas, bit, irtifa_m / 0.3048, kalkis.tz_convert("UTC"))
     dugumler = list(konumlar)
     zamanlar = {
         d: kalkis + pd.Timedelta(seconds=buyuk_daire_mesafesi_km(*bas, *konumlar[d]) * 1000.0 / tas_ms)
@@ -1041,6 +1041,14 @@ def rota_simulasyonu_olustur(
             )
 
         planli = _ats_yolu(irtifa_m, [])
+        kalkis_utc = pd.Timestamp(zaman_iso)
+        kalkis_utc = kalkis_utc.tz_localize("UTC") if kalkis_utc.tzinfo is None else kalkis_utc.tz_convert("UTC")
+        if planli is None and not ag.fra_acik_mi(kalkis_utc):
+            raise AtsAgiKullanilamazHatasi(
+                f"Serbest Rota Sahası (FRA) {kalkis_utc:%H:%M} UTC'de uygulanmıyor (yalnızca "
+                f"{ag.fra_saatleri_metni()}, AIP ENR 1.3); bu saatte ATS yolları (ENR 3.1) gerekir ve ağda yok. "
+                "Koridor modunu kullanın ya da FRA saatinde planlayın."
+            )
         if planli is None:
             raise AtsAgiKullanilamazHatasi(
                 f"ToC/ToD ATS ağına bağlanamadı (en yakın nokta {config.ATS_AGI_BAGLANTI_KM:.0f} km'den uzak) ya da "
