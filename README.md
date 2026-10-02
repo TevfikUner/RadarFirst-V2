@@ -1177,6 +1177,22 @@ geçen herhangi bir uçuş/tarih için gerçek anlamda doğrulama sağlar (bkz.
 modülün kendi docstring'indeki örnek: Anchorage FIR, 2019-01-15, gerçek bir
 "OCNL SEV TURB" SIGMET'i ile doğrulandı).
 
+## IWXXM dışa aktarımı (M7, kısmi)
+
+`GET /api/v1/sigmet/{id}/iwxxm` saklanan SIGMET'i ICAO/WMO IWXXM 2025-2 XML'ine
+yeniden kodlar (`veri/iwxxm.py`; yapı WMO'nun resmi örneği wmo-im/iwxxm
+`sigmet-A6-1a-TS.xml`'i, olgu kodları WMO 49-2 SigWxPhenomena listesini izler).
+
+- Çıktı resmi XSD'ye (schemas.wmo.int/iwxxm/2025-2) göre doğrulandı (xmlschema,
+  2 Ekim 2026; tam, eksik alanlı ve gerçek AWC örnek kaydıyla). Schematron kuralları
+  ayrıca çalıştırılmadı.
+- Mesaj `permissibleUsage="NON-OPERATIONAL"` (TEST): AWC verisinin yeniden
+  kodlamasıdır, yetkili MWO yayını değildir. Kaynakta MWO kodu olmadığı için FIR
+  kodu kullanılır; eksik seri numarası ve gözlem/tahmin ayrımı varsayımları
+  `permissibleUsageSupplementary`'de yazılıdır.
+- WMO koduna kesin eşlenemeyen olgular (ABD'ye özgü CONVECTIVE, niteleyicisi
+  bilinmeyen TS) 422 döner.
+
 ## İzleme ve çevrimdışı kullanım
 
 Ölçülmüş gecikme, verim ve görev hızı değerleri (hedeflerle birlikte):

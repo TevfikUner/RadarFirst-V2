@@ -1465,6 +1465,29 @@ async def aktif_sigmetleri_listele(
     )
 
 
+@v1.get(
+    "/sigmet/{sigmet_id}/iwxxm",
+    response_class=Response,
+    responses={200: {"content": {"application/xml": {}}}},
+    tags=["SIGMET"],
+)
+async def sigmet_iwxxm_disa_aktar(sigmet_id: int = Path(ge=1)):
+    """Saklanan SIGMET'in IWXXM 2025-2 XML'i (veri/iwxxm.py). Mesaj
+    NON-OPERATIONAL (TEST) işaretlidir: AWC verisinin yeniden kodlamasıdır,
+    yetkili MWO yayını değildir. WMO koduna eşlenemeyen olgu 422 döner."""
+    from turbulans_radar.veri.iwxxm import IwxxmEslemeHatasi, sigmet_iwxxm
+    from turbulans_radar.veri.sigmet_saglayici import sigmet_getir
+
+    bulunan = await asyncio.to_thread(sigmet_getir, sigmet_id)
+    if bulunan is None:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="SIGMET bulunamadı.")
+    try:
+        xml = sigmet_iwxxm(*bulunan)
+    except IwxxmEslemeHatasi as hata:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(hata)) from None
+    return Response(content=xml, media_type="application/xml")
+
+
 SANAL_PIREP_NOTU = (
     "Sanal PIREP: ADS-B'deki seyir fazı irtifa sapmasıdır; sertifikalı EDR ya da şiddet sınıfı değildir. "
     "Tek uçaklık işaret seviye değişimi ya da otopilot geçişi olabilir; 'dogrulanmis' kümeler en az "

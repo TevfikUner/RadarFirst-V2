@@ -380,6 +380,13 @@ def _satiri_sozluge_cevir(s: Sigmet) -> dict:
     }
 
 
+def sigmet_getir(sigmet_id: int, motor=None) -> tuple[dict, str | None] | None:
+    """(kayıt, ham metin) ya da None."""
+    with Session(motor or motor_al()) as oturum:
+        satir = oturum.get(Sigmet, sigmet_id)
+        return None if satir is None else (_satiri_sozluge_cevir(satir), satir.ham_metin)
+
+
 def gecerli_sigmetleri_getir(
     baslangic: datetime,
     bitis: datetime,

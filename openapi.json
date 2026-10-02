@@ -1427,6 +1427,62 @@
         }
       }
     },
+    "/api/v1/sigmet/{sigmet_id}/iwxxm": {
+      "get": {
+        "tags": [
+          "SIGMET"
+        ],
+        "summary": "Sigmet Iwxxm Disa Aktar",
+        "description": "Saklanan SIGMET'in IWXXM 2025-2 XML'i (veri/iwxxm.py). Mesaj\nNON-OPERATIONAL (TEST) işaretlidir: AWC verisinin yeniden kodlamasıdır,\nyetkili MWO yayını değildir. WMO koduna eşlenemeyen olgu 422 döner.",
+        "operationId": "sigmet_iwxxm_disa_aktar_api_v1_sigmet__sigmet_id__iwxxm_get",
+        "parameters": [
+          {
+            "name": "sigmet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Sigmet Id"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/xml": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sanal-pirep/canli-oturum": {
       "post": {
         "tags": [

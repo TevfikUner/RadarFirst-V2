@@ -728,6 +728,37 @@
               ]
             }
           }
+        },
+        {
+          "name": "Sigmet Iwxxm Disa Aktar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/sigmet/:sigmet_id/iwxxm",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sigmet",
+                ":sigmet_id",
+                "iwxxm"
+              ],
+              "variable": [
+                {
+                  "key": "sigmet_id",
+                  "value": ""
+                }
+              ]
+            }
+          }
         }
       ]
     },

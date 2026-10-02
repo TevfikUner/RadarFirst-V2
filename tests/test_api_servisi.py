@@ -1685,3 +1685,23 @@ async def test_canli_adsb_oturumu_kapaliyken_409_acikken_kuyruga_alinir(istemci,
         "/api/v1/sanal-pirep/canli-oturum", json={"sure_dk": 5}, headers={"X-API-Key": api_anahtari}
     )
     assert yanit.status_code == 202 and yanit.json()["durum"] == "kuyrukta"
+
+
+async def test_sigmet_iwxxm_disa_aktarilir_bilinmeyende_404(istemci, api_anahtari):
+    from test_sigmet_saglayici import ULUSLARARASI_ORNEK
+
+    from turbulans_radar.veri import sigmet_saglayici
+
+    sigmet_saglayici.sigmetleri_guncelle(getirici=lambda k: [ULUSLARARASI_ORNEK], kaynaklar=("test",))
+    try:
+        with vt.motor_al().connect() as baglanti:
+            sigmet_id = baglanti.execute(text("SELECT id FROM sigmetler WHERE kaynak = 'test' LIMIT 1")).scalar_one()
+        yanit = await istemci.get(f"/api/v1/sigmet/{sigmet_id}/iwxxm", headers={"X-API-Key": api_anahtari})
+        assert yanit.status_code == 200 and yanit.headers["content-type"].startswith("application/xml")
+        assert "iwxxm:SIGMET" in yanit.text and 'permissibleUsage="NON-OPERATIONAL"' in yanit.text
+        yanit = await istemci.get("/api/v1/sigmet/999999999/iwxxm", headers={"X-API-Key": api_anahtari})
+        assert yanit.status_code == 404
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM sigmetler WHERE kaynak = 'test'"))
+            baglanti.execute(text("DELETE FROM veri_kaynagi_durumlari WHERE kaynak = 'sigmet:test'"))
