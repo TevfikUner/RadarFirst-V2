@@ -168,6 +168,24 @@ def _openaip_gorevi(gorev):
     return {"durum": "tamamlandi", "ozet": [ozet]}
 
 
+def _canli_adsb_gorevi(gorev):
+    from turbulans_radar.veri.canli_adsb import canli_oturum
+
+    p = gorev["parametreler"] or {}
+    try:
+        ozet = canli_oturum(
+            sure_dk=p.get("sure_dk"),
+            aralik_saniye=p.get("aralik_saniye"),
+            enlem=p.get("enlem"),
+            boylam=p.get("boylam"),
+            yaricap_nm=p.get("yaricap_nm"),
+            yayinla=bildirim_yayinla,
+        )
+    except KilitZamanAsimiHatasi:
+        return {"durum": "tamamlandi", "aciklama": "Başka bir canlı ADS-B oturumu sürüyor; bu istek atlandı."}
+    return {"durum": "tamamlandi", "ozet": [ozet]}
+
+
 ML_ATLANDI_MESAJI = "Aynı türde bir ML işi başka bir işçide sürüyor; bu tetikleme atlandı."
 
 
@@ -205,6 +223,7 @@ ISLEYICILER = {
     "backtest": _backtest_gorevi,
     "canli_veri": _canli_veri_gorevi,
     "openaip": _openaip_gorevi,
+    "canli_adsb": _canli_adsb_gorevi,
     "ml_veri": _ml_veri_gorevi,
     "ml_egitim": _ml_egitim_gorevi,
 }

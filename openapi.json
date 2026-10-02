@@ -1427,6 +1427,73 @@
         }
       }
     },
+    "/api/v1/sanal-pirep/canli-oturum": {
+      "post": {
+        "tags": [
+          "Sanal PIREP"
+        ],
+        "summary": "Canli Adsb Oturumu Baslat",
+        "description": "Bölgeyi kısa aralıkla sorgulayıp izleri sanal PIREP hattına veren süreli\noturumu işçi kuyruğuna alır. CANLI_ADSB_ETKIN kapalıysa 409. Veri:\nadsb.fi (kişisel/ticari olmayan kullanım, atıf zorunlu) ve ADSB.lol (ODbL).",
+        "operationId": "canli_adsb_oturumu_baslat_api_v1_sanal_pirep_canli_oturum_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/CanliAdsbOturumIstegi"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Istek"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GorevBaslatildiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/sanal-pirep/iz": {
       "post": {
         "tags": [
@@ -2906,6 +2973,78 @@
         ],
         "title": "BacktestSonucuYaniti",
         "description": "rota_backtest.py -- gerçek iz vs büyük daire vs A* rotası (aynı ölçütle).\n*_riskli_oran: TI1 >= eşik nokta oranı (hava verisi yoksa None).\nBağımsız kanıt (bkz. bagimsiz_kanit.py; kaynak kapsamıyorsa None):\n*_turb_sigmet: aktif TURB/MTW SIGMET'ine giren nokta + bacak sayısı (A* bunları\ngörmez); *_pirep_raporu / *_mog_pirep: rota tüpündeki türbülans raporları /\norta ve üstü olanlar. kanit_kaynaklari: kanıtı sağlayan kaynaklar."
+      },
+      "CanliAdsbOturumIstegi": {
+        "properties": {
+          "sure_dk": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 60.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sure Dk"
+          },
+          "aralik_saniye": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 29.0,
+                "minimum": 5.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aralik Saniye"
+          },
+          "enlem": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 90.0,
+                "minimum": -90.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Enlem"
+          },
+          "boylam": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 180.0,
+                "minimum": -180.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Boylam"
+          },
+          "yaricap_nm": {
+            "anyOf": [
+              {
+                "type": "number",
+                "maximum": 250.0,
+                "exclusiveMinimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yaricap Nm"
+          }
+        },
+        "type": "object",
+        "title": "CanliAdsbOturumIstegi",
+        "description": "Süreli canlı ADS-B oturumu (adsb.fi / adsb.lol; bkz. veri/canli_adsb.py).\nBoş alanlar config varsayılanıdır; sınırlar sunucuda da zorlanır."
       },
       "CanliVeriIstegi": {
         "properties": {

@@ -1667,3 +1667,21 @@ async def test_paylasimli_rota_onbellegi_ikinci_istegi_hesaplamadan_doner(istemc
     await api_servisi._rota_onbellegini_temizle()
     await istemci.post("/api/v1/simulasyon/rota", json=govde, headers={"X-API-Key": api_anahtari})
     assert len(hesaplar) == 2
+
+
+async def test_canli_adsb_oturumu_kapaliyken_409_acikken_kuyruga_alinir(istemci, api_anahtari, monkeypatch):
+    monkeypatch.setattr(config, "CANLI_ADSB_ETKIN", False)
+    yanit = await istemci.post("/api/v1/sanal-pirep/canli-oturum", json={}, headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 409
+    from turbulans_radar.isci import gorev_iscisi
+
+    monkeypatch.setitem(gorev_iscisi.ISLEYICILER, "canli_adsb", lambda gorev: {"durum": "tamamlandi"})
+    monkeypatch.setattr(config, "CANLI_ADSB_ETKIN", True)
+    yanit = await istemci.post(
+        "/api/v1/sanal-pirep/canli-oturum", json={"aralik_saniye": 2}, headers={"X-API-Key": api_anahtari}
+    )
+    assert yanit.status_code == 422
+    yanit = await istemci.post(
+        "/api/v1/sanal-pirep/canli-oturum", json={"sure_dk": 5}, headers={"X-API-Key": api_anahtari}
+    )
+    assert yanit.status_code == 202 and yanit.json()["durum"] == "kuyrukta"

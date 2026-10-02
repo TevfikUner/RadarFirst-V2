@@ -735,6 +735,39 @@
       "name": "Sanal PIREP",
       "item": [
         {
+          "name": "Canli Adsb Oturumu Baslat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/sanal-pirep/canli-oturum",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sanal-pirep",
+                "canli-oturum"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        },
+        {
           "name": "Sanal Pirep Izi",
           "request": {
             "method": "POST",

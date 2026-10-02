@@ -1113,6 +1113,22 @@ Yöntem, eşiklerin dayanağı ve bedeli: [docs/adr/0011](docs/adr/0011-sanal-pi
   sorgusu atar ve sonucu `opensky_onbellek/pirep_cevresi/` altına yazar.
 - Tek bir izi denemek: `turbulans-sanal-pirep iz opensky_onbellek/UCUS_TARIH.parquet`.
 
+### Canlı ADS-B oturumu (sanal PIREP için)
+
+`POST /api/v1/sanal-pirep/canli-oturum` (yönetici) ya da `turbulans-canli-adsb`
+bir bölgeyi (varsayılan merkez 39°K 35°D, 250 NM) süreli olarak (varsayılan
+15 dk, en fazla 60) 10 sn'de bir sorgular; oturum sonunda her uçağın izi sanal
+PIREP hattından geçer. Geçmiş analiz için değil, canlı gözlem içindir.
+
+- Kaynak zinciri: adsb.fi açık veri (saniyede 1 istek, yalnızca kişisel/ticari
+  olmayan kullanım, adsb.fi'ye atıf ve bağlantı zorunlu), sonra ADSB.lol (ODbL
+  1.0). airplanes.live genel API'si Nisan 2026'da kapandığı için yok.
+- Koruma: varsayılan kapalı (`CANLI_ADSB_ETKIN`), istekler arası en az 5 sn,
+  günde en fazla 1000 istek, aynı anda tek oturum, 429'da sağlayıcı 5 dk atlanır,
+  tanıtıcı `User-Agent`.
+- Oturum özeti kullanılan kaynağın atıf metnini döner; sunum ve raporda
+  kullanılırsa atıf verilmelidir.
+
 ## Nesnel türbülans etiketi: MADIS uçak EDR ölçümleri (M1)
 
 Pilot raporuna (PIREP) ek olarak, uçakların kendi ölçtüğü türbülans (EDR)

@@ -428,6 +428,25 @@ ROTA_HESABI_DAKIKADA_MAKS = _ortam_sayi("ROTA_HESABI_DAKIKADA_MAKS", 20, int)
 TAHMIN_DAKIKADA_MAKS = _ortam_sayi("TAHMIN_DAKIKADA_MAKS", 60, int)
 # POST /api/v1/sanal-pirep/iz: havayolu ADS-B beslemesi uçak başına sık iz gönderebilir.
 SANAL_PIREP_IZ_DAKIKADA_MAKS = _ortam_sayi("SANAL_PIREP_IZ_DAKIKADA_MAKS", 120, int)
+# veri/canli_adsb.py -- süreli canlı ADS-B oturumu (sanal PIREP için). Varsayılan
+# kapalı. adsb.fi açık veri sınırı saniyede 1 istek; oturum aralığı onun 10 katı.
+CANLI_ADSB_ETKIN = _ortam_bool("CANLI_ADSB_ETKIN", False)
+CANLI_ADSB_SAGLAYICILAR = tuple(
+    s.strip() for s in _ortam_str("CANLI_ADSB_SAGLAYICILAR", "adsb_fi,adsb_lol").split(",") if s.strip()
+)
+CANLI_ADSB_ARALIK_SANIYE = _ortam_sayi("CANLI_ADSB_ARALIK_SANIYE", 10.0)
+CANLI_ADSB_MIN_ARALIK_SANIYE = _ortam_sayi("CANLI_ADSB_MIN_ARALIK_SANIYE", 5.0)
+CANLI_ADSB_SURE_DK = _ortam_sayi("CANLI_ADSB_SURE_DK", 15.0)
+CANLI_ADSB_MAKS_SURE_DK = _ortam_sayi("CANLI_ADSB_MAKS_SURE_DK", 60.0)
+CANLI_ADSB_GUNLUK_MAKS_ISTEK = _ortam_sayi("CANLI_ADSB_GUNLUK_MAKS_ISTEK", 1000, int)
+CANLI_ADSB_429_BEKLEME_SANIYE = _ortam_sayi("CANLI_ADSB_429_BEKLEME_SANIYE", 300.0)
+CANLI_ADSB_HATA_BEKLEME_SANIYE = _ortam_sayi("CANLI_ADSB_HATA_BEKLEME_SANIYE", 60.0)
+CANLI_ADSB_MERKEZ_ENLEM = _ortam_sayi("CANLI_ADSB_MERKEZ_ENLEM", 39.0)
+CANLI_ADSB_MERKEZ_BOYLAM = _ortam_sayi("CANLI_ADSB_MERKEZ_BOYLAM", 35.0)
+CANLI_ADSB_YARICAP_NM = _ortam_sayi("CANLI_ADSB_YARICAP_NM", 250.0)
+CANLI_ADSB_KULLANICI_AJANI = _ortam_str(
+    "CANLI_ADSB_KULLANICI_AJANI", "TurbulansRadar/1.0 (KTUN bitirme projesi; ticari olmayan arastirma)"
+)
 AGIR_HESAP_MAKS_ESZAMANLI = _ortam_sayi("AGIR_HESAP_MAKS_ESZAMANLI", 4, int)
 AGIR_HESAP_BEKLEME_SANIYE = _ortam_sayi("AGIR_HESAP_BEKLEME_SANIYE", 15.0)
 # api/rota_onbellegi.py -- aynı rota isteğinin sonucu bu kadar saniye yeniden

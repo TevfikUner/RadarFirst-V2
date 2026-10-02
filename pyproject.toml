@@ -31,6 +31,7 @@ turbulans-ayirma = "turbulans_radar.dogrulama.ayirma_gostergesi:ana"
 turbulans-aip-ats = "turbulans_radar.cli.aip_ats_agi:ana"
 turbulans-aip-sahalar = "turbulans_radar.cli.aip_enr51:ana"
 turbulans-madis = "turbulans_radar.ml.madis_hatti:ana"
+turbulans-canli-adsb = "turbulans_radar.veri.canli_adsb:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }

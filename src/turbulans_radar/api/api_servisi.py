@@ -1472,6 +1472,40 @@ SANAL_PIREP_NOTU = (
 )
 
 
+class CanliAdsbOturumIstegi(BaseModel):
+    """Süreli canlı ADS-B oturumu (adsb.fi / adsb.lol; bkz. veri/canli_adsb.py).
+    Boş alanlar config varsayılanıdır; sınırlar sunucuda da zorlanır."""
+
+    sure_dk: float | None = Field(default=None, gt=0, le=60)
+    aralik_saniye: float | None = Field(default=None, ge=5, le=29)
+    enlem: float | None = Field(default=None, ge=-90, le=90)
+    boylam: float | None = Field(default=None, ge=-180, le=180)
+    yaricap_nm: float | None = Field(default=None, gt=0, le=250)
+
+
+@v1.post(
+    "/sanal-pirep/canli-oturum",
+    dependencies=_YONETICI,
+    status_code=status.HTTP_202_ACCEPTED,
+    response_model=GorevBaslatildiYaniti,
+    tags=["Sanal PIREP"],
+)
+async def canli_adsb_oturumu_baslat(
+    request: Request, istek: CanliAdsbOturumIstegi | None = None, rol: str = Depends(api_anahtarini_dogrula)
+):
+    """Bölgeyi kısa aralıkla sorgulayıp izleri sanal PIREP hattına veren süreli
+    oturumu işçi kuyruğuna alır. CANLI_ADSB_ETKIN kapalıysa 409. Veri:
+    adsb.fi (kişisel/ticari olmayan kullanım, atıf zorunlu) ve ADSB.lol (ODbL)."""
+    if not config.CANLI_ADSB_ETKIN:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Canlı ADS-B kapalı (CANLI_ADSB_ETKIN).")
+    await _hiz_sinirini_kontrol_et(f"canli_adsb:{_istemci_kimligi(request, rol)}", maks=2, pencere_saniye=3600)
+    if await aktif_gorev_var_mi("canli_adsb"):
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="Bir canlı ADS-B oturumu zaten sürüyor.")
+    return _kuyruga_alindi(
+        await _gorev_olustur("canli_adsb", parametreler=(istek or CanliAdsbOturumIstegi()).model_dump())
+    )
+
+
 @v1.post(
     "/sanal-pirep/iz",
     dependencies=_YONETICI,
