@@ -94,6 +94,34 @@ rapora koymayın.
 | Hart, P. E., Nilsson, N. J. ve Raphael, B. (1968). A formal basis for the heuristic determination of minimum cost paths. *IEEE Transactions on Systems Science and Cybernetics*, 4(2), 100–107. https://doi.org/10.1109/TSSC.1968.300136 | A* algoritması | ☑ |
 | Rüzgar ya da hava olayından kaçınan uçuş rotası optimizasyonu üzerine 1–2 çalışma (Scholar: "flight trajectory optimization" "turbulence avoidance") | Rota katmanının bağlamı | ☐ |
 
+## 8. Açık kaynak uygulamalar ve karşı örnekler
+
+Hakemli yayın değildir; raporda "yazılım" olarak, depo adresi ve erişim tarihiyle
+(2 Ekim 2026) verilir. Amaç, alandaki açık kaynak denemelerin çoğunun **ölçülmüş
+başarı göstermediğini** belgeleyip bizim doğrulama yaklaşımımızın farkını somutlamak.
+
+- **Anlatılacak:** GitHub'da türbülans "tahmini" yapan projeler LSTM ya da büyük dil
+  modeliyle çıktı üretiyor, ama gerçek türbülans etiketiyle (PIREP, yerinde EDR)
+  karşılaştırma ve başarı ölçütü raporlamıyor. Bir sistemin "tahmin" ettiğini söylemesi,
+  ölçüldüğü anlamına gelmez.
+- **Projeyle bağ:** Bizde her gösterge bağımsız bir referansa karşı ölçülür: TI1 ve ML
+  modeli seyir irtifası PIREP'lerine ve MADIS EDR'ye karşı (K6, M1), gün bazlı güven
+  aralıklarıyla; "TI1'i TI1 ile ölçmeme" ilkesi; sanal PIREP POD/POFD ve denetimsiz
+  karşılaştırma tabanı (ADR 0011). Sonuç zayıfsa (ör. TI1 ROC-AUC 0,69) olduğu gibi yazılır.
+
+| Depo | Ne yapıyor | Eksik olan (README'ye göre, 2 Ekim 2026) | Kullanım |
+|---|---|---|---|
+| animeshghiloria/Flymply | PyTorch LSTM otokodlayıcı; yeniden kurma hatasını "anomali/türbülans" sayar; Gemma-2B ile kokpit uyarısı | Türbülans etiketi, doğrulama verisi ve başarı metriği yok; tek commit | Karşı örnek |
+| yijia-xu/flight-turbulence-ai | Open-Meteo + NOAA PIREP + LLM ile yolcuya rapor | Türbülans indeksi ya da ölçülmüş doğruluk yok; LLM metni | Karşı örnek |
+| debjit450/skywatch-live | Kural + Isolation Forest/LOF/otokodlayıcı ile ADS-B anomalisi | Türbülansa karşı doğrulama yok | Fikir: denetimsiz taban (bizde ölçüldü, ayırt edici çıkmadı) |
+| feminaanzil/AeroContrail | ERA5 ile iz bulutu duyarlılığı (T ≤ −40 °C, RHi ≥ %100), zamansal holdout | — (yöntemini açıkça veriyor) | Fikir: M9 ölçütü |
+| argilaga15/flight_opt_r_project, hemalii3/Flight-Route-Optimization-System | Çok amaçlı rota (NSGA-II / ağırlıklı Pareto) | Gerçek hava verisiyle sonuç yok | Fikir: zaman–risk seçenekleri |
+| hook-365/adsb-3d, kevtoe/worldview | 3B ADS-B görselleştirme | — | Fikir: seviye bandı, oynatma |
+
+Bu satırları yazmadan önce depoları açıp README'nin hâlâ aynı olduğunu kontrol edin
+(depolar değişebilir); yalnızca README'de yazanı aktarın, kodu çalıştırmadıysanız
+"çalıştırdık" demeyin.
+
 ## Bölümün kapanış paragrafı (taslak cümle)
 
 "Literatürdeki operasyonel ürünler (GTG, WAFS) tahmin modeline dayalı türbülans

@@ -39,6 +39,13 @@ düşey hız taşır ama kullanılmıyordu. PIREP gönüllüdür, gecikir ve kon
   PIREP): POD 1/8 = 0,13 (%95 Wilson 0,02–0,47), POFD 0/8 = 0 (0–0,32). Dedektör
   tutucu; operasyonel güven için daha büyük örneklem gerekir. Eşik bu örneklemle
   ayarlanmadı (16 örnekle ayar aşırı uyum olurdu).
+- Denetimsiz karşılaştırma tabanı (`turbulans-anomali-tabani`, 2 Ekim 2026; aynı 16
+  PIREP, aynı tüp, önbellekten, eşit alarm bütçesi = kuralın işaretlediği seyir
+  noktası oranı %0,12): kural POD 1/8, POFD 0/8 (Peirce +0,13); Isolation Forest POD
+  2/8, POFD 3/8 (−0,13); LOF POD 5/8, POFD 5/8 (0). Denetimsiz yöntemler daha çok
+  alarm verse de türbülans bildirilen ve bildirilmeyen PIREP'leri ayırt etmedi
+  (POD ≈ POFD); kural daha seçici. Aralıklar geniş ve çakışıyor, ön bulgudur.
+  Denetimsiz işaretler etiket olarak kullanılmaz.
 - Yanlış alarm kaynakları: dalga takibi, otopilot mod geçişi, ATC'nin verdiği küçük
   seviye düzeltmeleri. Çoklu uçak doğrulaması bunun için vardır.
 - ADS-B'de PIREP'i veren uçak tanınamaz; doğrulamada tüpteki herhangi bir uçağın olayı
@@ -53,3 +60,6 @@ düşey hız taşır ama kullanılmıyordu. PIREP gönüllüdür, gecikir ve kon
 - OpenSky canlı REST API'sini periyodik taramak: kredi/ban riski ve lisans; reddedildi.
 - Tek uçak olaylarını da yayınlamak: yanlış alarm yükü; eşik `SANAL_PIREP_BILDIRIM_MIN_UCAK`
   ile ayarlanabilir bırakıldı.
+- Denetimsiz anomali tespitini (Isolation Forest/LOF; fikir debjit450/skywatch-live)
+  dedektör yapmak: doğrulanmış referansı yok ve ilk karşılaştırmada ayırt edicilik
+  göstermedi; yalnızca karşılaştırma tabanı olarak tutuldu.

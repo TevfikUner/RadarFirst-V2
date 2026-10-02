@@ -1113,6 +1113,14 @@ Yöntem, eşiklerin dayanağı ve bedeli: [docs/adr/0011](docs/adr/0011-sanal-pi
   sorgusu atar ve sonucu `opensky_onbellek/pirep_cevresi/` altına yazar.
 - Tek bir izi denemek: `turbulans-sanal-pirep iz opensky_onbellek/UCUS_TARIH.parquet`.
 
+### Denetimsiz karşılaştırma tabanı
+
+`turbulans-anomali-tabani` aynı önbellek izlerinde Isolation Forest ve LOF'u
+kural tabanlı dedektörle eşit alarm bütçesiyle kıyaslar (POD/POFD/Peirce, Wilson
+aralığı; OpenSky'a sorgu yok). İlk ölçüm (16 PIREP): kural POD 1/8, POFD 0/8;
+IF 2/8–3/8; LOF 5/8–5/8. Denetimsiz yöntemler ayırt edici çıkmadı; ön bulgu,
+ayrıntı [ADR 0011](docs/adr/0011-sanal-pirep.md).
+
 ### Canlı ADS-B oturumu (sanal PIREP için)
 
 `POST /api/v1/sanal-pirep/canli-oturum` (yönetici) ya da `turbulans-canli-adsb`
