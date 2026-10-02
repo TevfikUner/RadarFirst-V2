@@ -117,3 +117,22 @@ def test_depoda_olmayan_ornek_acik_hata_verir():
         pencereler = od.grup_pencereleri(noktalar, kup.load())
     with pytest.raises(KeyError):
         od.pencereden_kup(pencereler, 999)
+
+
+def test_gun_sinirindaki_eksik_saat_gece_isiyle_ayni_saati_secer():
+    """CDS isteği gün başınadır: 23:50'deki noktanın en yakın saati (00:00) küpte
+    yok. Gece işi en yakın mevcut saati (23:00) kullanır; depo da aynısını yapmalı."""
+    with xr.open_dataset(demo.demo_dosyalari()["era5"]) as kup:
+        kup = kup.load()
+    noktalar = _thy322_seyir_noktalari().iloc[[0]].assign(zaman=pd.Timestamp("2019-01-15T23:50Z"))
+    tam = ozellikleri_cikar(noktalar.assign(irtifa_m=noktalar["irtifa_ft"] * 0.3048), od.ozellik_kupu(kup))
+
+    goreli = od.grup_penceresini_yaz(noktalar, kup)
+    pencere_kupu = od.pencereden_kup(od.pencere_dosyasini_ac(goreli), int(noktalar["id"].iloc[0]))
+    assert pd.Timestamp("2019-01-16T00:00") not in pd.DatetimeIndex(pencere_kupu["valid_time"].values)
+    depodan = od.depodan_ozellik_cikar(noktalar.assign(pencere_dosyasi=goreli))
+    np.testing.assert_allclose(
+        depodan.loc[noktalar["id"], OZELLIK_SUTUNLARI].to_numpy(dtype=float),
+        tam[OZELLIK_SUTUNLARI].to_numpy(dtype=float),
+        rtol=1e-6,
+    )

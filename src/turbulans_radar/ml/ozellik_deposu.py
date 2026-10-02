@@ -139,11 +139,18 @@ def pencereden_kup(pencereler: xr.Dataset, ornek_id: int) -> xr.Dataset:
     kup = secim.drop_vars(["ornek_id", "merkez_enlem", "merkez_boylam", "merkez_zaman"]).rename(
         {"saat_ofset": "valid_time", "enlem_ofset": "latitude", "boylam_ofset": "longitude"}
     )
-    return kup.assign_coords(
+    kup = kup.assign_coords(
         valid_time=merkez_zaman + pd.to_timedelta(secim["saat_ofset"].values, unit="h"),
         latitude=float(secim["merkez_enlem"]) + secim["enlem_ofset"].values,
         longitude=float(secim["merkez_boylam"]) + secim["boylam_ofset"].values,
     ).assign_attrs(kaynak=pencereler.attrs.get("kaynak", "era5"))
+    # Kaynak küpte hiç olmayan saatler (ör. gün sınırındaki 00:00: CDS isteği gün
+    # başınadır) pencerede tamamen NaN'dır; eksik saat olarak atılır ki en yakın
+    # saat seçimi gece işindekiyle aynı olsun (23:55'teki PIREP -> 23:00).
+    dolu = np.zeros(kup.sizes["valid_time"], dtype=bool)
+    for degisken in kup.data_vars.values():
+        dolu |= degisken.notnull().any(dim=[b for b in degisken.dims if b != "valid_time"]).values
+    return kup.isel(valid_time=np.flatnonzero(dolu)) if dolu.any() else kup
 
 
 def pencere_dosyasini_ac(goreli_yol: str) -> xr.Dataset:
