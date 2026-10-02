@@ -1098,6 +1098,9 @@ eşleştirilir (CDS'e ek istek yok). Ayrıntı ve kısıtlar: [ADR 0012](docs/ad
   indirir (24 saatlik dosya, aralarında 5 sn; günde en fazla 48 dosya).
 - `turbulans-madis gun 2019-06-12` tek günü işler, `turbulans-madis ozet` EDR
   sınıflarını ve PIREP-EDR karşılaştırmasını verir.
+- `turbulans-madis degerlendir` TI1'i ve (doğru veriyle eğitilmiş) aktif
+  modeli ölçülen EDR'ye karşı değerlendirir: hedef "hafif ve üstü", ROC-AUC,
+  POD/POFD, gün bazlı bootstrap GA (en az 5 gün; daha azsa `on_sonuc`).
 - Şiddet sınıfları ICAO tepe EDR eşikleriyle: hafif 0,1, orta 0,4, şiddetli 0,7.
 - Public veri QC'siz ön veridir ('Z'); yeniden dağıtılmaz, depoya konmaz.
 

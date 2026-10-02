@@ -33,6 +33,13 @@ Public ACARS arşivi incelendi: saatlik dosyalarda `maxEDR`/`medEDR` var
 - Public sürümün kısıtlı sürüme göre eksik olup olmadığı bilinmiyor; MADIS'e
   soruldu (kullanıcı e-postası, 2026-10-02).
 - Veri yeniden dağıtılmaz; depoya ve demoya konmaz.
+- İlk nesnel değerlendirme (2026-10-02, `turbulans-madis degerlendir`): 2 gün,
+  5.194 eşleşmiş gözlem, 83'ü hafif (%1,6), orta ve üstü yok. TI1 (hafif eşiği
+  4e-7) ROC-AUC 0,80, POD 0,80, POFD 0,32; TI1-EDR Spearman 0,16. Yalnızca 2
+  gün olduğu için güven aralığı verilmez (ön sonuç); örnekler PIREP
+  pencerelerinden geldiği için seçim yanlılığı vardır. Aktif model eski veri
+  hattına dayandığı için değerlendirilmedi; doğru veriyle eğitilen model
+  aktifleşince aynı komutla değerlendirilecek.
 
 ## Değerlendirilen alternatifler
 

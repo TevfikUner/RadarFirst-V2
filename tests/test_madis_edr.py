@@ -238,3 +238,41 @@ def test_madis_adimi_veri_butcesi_doluysa_yeni_gun_indirmez(monkeypatch):
     monkeypatch.setattr(mh, "gunu_isle", lambda *a: pytest.fail("bütçe doluyken indirdi"))
     ozet = mh.madis_adimi(motor=object(), maks_gun=1)
     assert ozet["madis_durdurma"] == "gunluk_veri_butcesi" and ozet["madis_indirilen_gun"] == 0
+
+
+def _degerlendirme_df(gun_sayisi, tohum=0):
+    from turbulans_radar.ml.turbulans_ml_modeli import OZELLIK_SUTUNLARI
+
+    rng = np.random.default_rng(tohum)
+    n = 60 * gun_sayisi
+    ti1 = rng.uniform(0, 1e-6, n)
+    edr = np.where(ti1 > 7e-7, 0.2, 0.03) + rng.normal(0, 0.01, n)
+    df = pd.DataFrame({k: rng.normal(size=n) for k in OZELLIK_SUTUNLARI})
+    return df.assign(
+        ti1_indeksi=ti1,
+        max_edr=edr,
+        edr_sinifi=me.edr_sinifi(edr),
+        gun=np.repeat([f"2019-06-{g + 1:02d}" for g in range(gun_sayisi)], 60),
+    )
+
+
+def test_nesnel_degerlendirme_ti1_ayirt_ediciligini_ve_ga_yi_raporlar(monkeypatch):
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
+
+    monkeypatch.setattr(tm, "model_kullanilabilir_mi", lambda: (False, "eski model"))
+    rapor = mh.nesnel_degerlendirme(_degerlendirme_df(6), tekrar=50)
+    assert rapor["ti1_hafif_esigi"]["roc_auc"] > 0.9 and rapor["ti1_roc_auc_ga"]["gun_sayisi"] == 6
+    assert rapor["pozitif"] == round(rapor["taban_oran"] * rapor["ornek"])
+    assert rapor["model"] == {"durum": "degerlendirilmedi", "neden": "eski model"}
+
+
+def test_nesnel_degerlendirme_az_gunde_ga_vermez_ve_modeli_degerlendirir(monkeypatch):
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
+
+    monkeypatch.setattr(tm, "model_kullanilabilir_mi", lambda: (True, None))
+    monkeypatch.setattr(tm, "ozelliklerden_risk_tahmin_et", lambda df: np.linspace(0, 1, len(df)))
+    monkeypatch.setattr(tm, "model_bilgisini_yukle", lambda: {"veri_kaynagi": "iem"})
+    rapor = mh.nesnel_degerlendirme(_degerlendirme_df(2), tekrar=10)
+    assert rapor["ti1_roc_auc_ga"]["durum"] == "on_sonuc"
+    assert rapor["model"]["veri_kaynagi"] == "iem" and rapor["model"]["guven_araliklari"]["durum"] == "on_sonuc"
+    assert 0 <= rapor["model"]["metrikler"]["roc_auc"] <= 1

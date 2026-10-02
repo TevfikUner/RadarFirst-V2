@@ -11,6 +11,7 @@ M1 gece adımı (ml_veri_hatti'nın CDS eşleştirmesinden sonra):
 
     turbulans-madis gun 2019-06-12      (tek gün: indir + eşleştir + kaydet)
     turbulans-madis ozet                (sayılar ve PIREP-EDR karşılaştırması)
+    turbulans-madis degerlendir         (TI1 ve aktif model, ölçülen EDR'ye karşı)
 """
 
 import argparse
@@ -33,6 +34,7 @@ from turbulans_radar.veri.madis_edr import gun_yolu, gunluk_edr
 _logger = loglama.logger_al(__name__)
 _PARCA = 2000
 GUN_TAHMINI_MB = 60.0
+GA_MIN_GUN = 5
 
 
 def _pencere_kaydi_yolu(gun) -> str:
@@ -190,6 +192,84 @@ def ozet_raporu(motor=None) -> dict:
     return rapor
 
 
+def degerlendirme_verisi(motor=None) -> pd.DataFrame:
+    sorgu = select(EdrOrnegi.zaman, EdrOrnegi.max_edr, EdrOrnegi.edr_sinifi, EdrOrnegi.ozellikler)
+    with Session(motor or motor_al()) as oturum:
+        satirlar = oturum.execute(sorgu).all()
+    df = pd.DataFrame(satirlar, columns=["zaman", "max_edr", "edr_sinifi", "ozellikler"])
+    if df.empty:
+        return df
+    df = df.drop(columns="ozellikler").join(pd.DataFrame(df["ozellikler"].tolist()))
+    df["gun"] = pd.to_datetime(df["zaman"], utc=True).dt.strftime("%Y-%m-%d")
+    return df
+
+
+def nesnel_degerlendirme(df=None, motor=None, tekrar=None) -> dict:
+    """TI1 indeksi ve (kullanılabilirse) aktif ML modeli, MADIS'in ölçtüğü tepe
+    EDR'ye karşı: hedef 'hafif ve üstü' (max EDR >= EDR_ESIK_HAFIF). Güven
+    aralıkları gün bazlı blok bootstrap. Örnekler PIREP pencerelerinin içinden
+    geldiği için (±1°, ±1 sa) tüm hava sahasını temsil etmez."""
+    from turbulans_radar.ml.degerlendirme import (
+        bootstrap_guven_araligi,
+        guven_araliklari,
+        ikili_metrikler,
+        olasilik_metrikleri,
+    )
+    from turbulans_radar.ml.turbulans_ml_modeli import (
+        OZELLIK_SUTUNLARI,
+        model_bilgisini_yukle,
+        model_kullanilabilir_mi,
+        ozelliklerden_risk_tahmin_et,
+    )
+
+    df = degerlendirme_verisi(motor) if df is None else df
+    df = df.dropna(subset=["ti1_indeksi", "max_edr"]) if not df.empty else df
+    if df.empty or df["gun"].nunique() < 2:
+        return {"durum": "yetersiz_veri", "ornek": int(len(df))}
+    y = (df["edr_sinifi"] >= 1).astype(int).to_numpy()
+    ti1 = df["ti1_indeksi"].to_numpy(dtype=float)
+    rapor = {
+        "kaynak": "MADIS herkese açık ACARS maxEDR (QC 'Z': ön veri, kalite kontrolsüz)",
+        "hedef": f"max EDR >= {config.EDR_ESIK_HAFIF} (hafif ve üstü)",
+        "ornek": int(len(df)),
+        "gun": int(df["gun"].nunique()),
+        "pozitif": int(y.sum()),
+        "orta_ve_ustu": int((df["edr_sinifi"] >= 2).sum()),
+        "taban_oran": float(y.mean()),
+        "ti1_edr_spearman": float(df["ti1_indeksi"].corr(df["max_edr"], method="spearman")),
+        "ti1_hafif_esigi": ikili_metrikler(y, ti1, config.TI1_ESIK_HAFIF),
+        "sinirlar": [
+            "Örnekler PIREP'lerin ERA5 pencerelerinden (±1°, ±1 sa) gelir; seçim yanlılığı vardır.",
+            "Bölge ABD hava sahasıdır; Türkiye için geçerlilik ayrıca gösterilmelidir.",
+            "Çıktılar sertifikalı EDR değildir; sistem karar destek aracıdır.",
+        ],
+    }
+    yeterli_gun = rapor["gun"] >= GA_MIN_GUN
+    rapor["ti1_roc_auc_ga"] = (
+        bootstrap_guven_araligi(y, ti1, df["gun"], tekrar=tekrar)
+        if yeterli_gun
+        else {"durum": "on_sonuc", "neden": f"Gün bazlı güven aralığı için en az {GA_MIN_GUN} gün gerekli."}
+    )
+    kullanilabilir, uyari = model_kullanilabilir_mi()
+    olasilik = ozelliklerden_risk_tahmin_et(df[OZELLIK_SUTUNLARI]) if kullanilabilir else None
+    if olasilik is None:
+        rapor["model"] = {"durum": "degerlendirilmedi", "neden": uyari or "Aktif model yüklenemedi."}
+        return rapor
+    gecerli = np.isfinite(olasilik)
+    bilgi = model_bilgisini_yukle() or {}
+    rapor["model"] = {
+        "egitim_zamani": bilgi.get("egitim_zamani"),
+        "veri_kaynagi": bilgi.get("veri_kaynagi"),
+        "metrikler": olasilik_metrikleri(y[gecerli], olasilik[gecerli]),
+        "guven_araliklari": guven_araliklari(
+            y[gecerli], ti1[gecerli], df["gun"].to_numpy()[gecerli], olasilik[gecerli], tekrar=tekrar
+        )
+        if yeterli_gun
+        else rapor["ti1_roc_auc_ga"],
+    }
+    return rapor
+
+
 def ana(argv=None):
     ayristirici = argparse.ArgumentParser(
         description="MADIS uçak EDR (M1): indir, ERA5 pencereleriyle eşleştir, raporla."
@@ -198,8 +278,15 @@ def ana(argv=None):
     gun = alt.add_parser("gun", help="Tek günü işle (gerekirse 24 dosya indirir).")
     gun.add_argument("tarih")
     alt.add_parser("ozet", help="Kayıtlı EDR örnekleri ve PIREP-EDR karşılaştırması.")
+    degerlendir = alt.add_parser("degerlendir", help="TI1 ve aktif model, ölçülen EDR'ye karşı (ROC-AUC, GA).")
+    degerlendir.add_argument("--tekrar", type=int, default=None, help="Gün bazlı bootstrap tekrar sayısı")
     argumanlar = ayristirici.parse_args(argv)
-    sonuc = gunu_isle(argumanlar.tarih) if argumanlar.komut == "gun" else ozet_raporu()
+    if argumanlar.komut == "gun":
+        sonuc = gunu_isle(argumanlar.tarih)
+    elif argumanlar.komut == "degerlendir":
+        sonuc = nesnel_degerlendirme(tekrar=argumanlar.tekrar)
+    else:
+        sonuc = ozet_raporu()
     print(json.dumps(sonuc, ensure_ascii=False, indent=2, default=str))
 
 
