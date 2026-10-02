@@ -330,6 +330,33 @@ class SanalPirep(Base):
     olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class EdrOrnegi(Base):
+    """M1: MADIS uçak EDR gözlemi + ERA5 pencere deposundan özellikleri
+    (ml/edr_eslestirme.py). Nesnel türbülans etiketi; sertifikalı EDR'dir
+    (uçağın ölçümü) ama QC'siz ön veridir (MADIS 'Z')."""
+
+    __tablename__ = "edr_ornekleri"
+    __table_args__ = (
+        UniqueConstraint("gozlem_anahtari", name="uq_edr_ornekleri_gozlem_anahtari"),
+        Index("ix_edr_ornekleri_zaman", "zaman"),
+    )
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    gozlem_anahtari: Mapped[str] = mapped_column(String(96), nullable=False)
+    kaynak: Mapped[str] = mapped_column(String(16), nullable=False)
+    zaman: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    enlem: Mapped[float] = mapped_column(Float, nullable=False)
+    boylam: Mapped[float] = mapped_column(Float, nullable=False)
+    irtifa_ft: Mapped[float] = mapped_column(Float, nullable=False)
+    max_edr: Mapped[float] = mapped_column(Float, nullable=False)
+    med_edr: Mapped[float] = mapped_column(Float, nullable=False)
+    edr_sinifi: Mapped[int] = mapped_column(Integer, nullable=False)
+    kalite: Mapped[str | None] = mapped_column(String(4), nullable=True)
+    ml_ornek_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
+    ozellikler: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
+    olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 def kutu_ifadesi(model):
     """Satırın sınır kutusu, Postgres'in yerleşik `box` tipinde (PostGIS
     gerekmez). GiST indeksi bu ifadenin üzerine kurulur; sorgu da AYNI ifadeyi

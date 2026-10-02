@@ -14,6 +14,7 @@ yeniden kontrol edilmelidir. Bu belge hukuki görüş değildir.
 | ARCO-ERA5 (Google Cloud) | ERA5 yedek kaynağı | Veri: ERA5 ile aynı (CC BY 4.0); kod/tarifler: Apache-2.0 | ERA5 atfı | Evet (atıfla) | GitHub deposu |
 | NOAA GFS (UCAR THREDDS üzerinden) | Canlı rüzgar/sıcaklık | NOAA/NWS bilgisi kamu malı | Gerekmez; NWS içeriği ağırlıklı eserlerde kaynak belirtilmeli | Evet | NWS feragatnamesi; UCAR hizmet şartları ayrıca kontrol edilmedi |
 | NOAA AWC Data API | Canlı SIGMET | ABD hükümeti hizmeti; dakikada 100 istek sınırı | Gerekmez | Evet | AWC API sayfası |
+| NOAA MADIS (herkese açık arşiv) | Uçak EDR ölçümleri (M1, nesnel türbülans etiketi) | Herkese açık anonim erişim (kısıtlı veri başvurusu reddedildi, 2026-10-02); yeniden dağıtılmaz | NOAA MADIS | Doğrulanmadı | madis-data.ncep.noaa.gov |
 | Iowa Environmental Mesonet (IEM) | PIREP arşivi (ML etiketi) | Kamu malı, her yasal amaçla serbest | "Iowa Environmental Mesonet of Iowa State University" (rica) | Evet | IEM feragatnamesi |
 | openAIP | Kısıtlı hava sahaları (isteğe bağlı) | CC BY-NC 4.0 | openAIP | Kısıtlı² | openaip.net |
 | VATSIM vatspy-data-project | FIR sınırları (koordinatsız SIGMET) | CC BY-SA 4.0 | VATSIM / VAT-Spy Data Project | Evet (atıf + aynı lisansla paylaşım) | GitHub deposu |
@@ -41,6 +42,7 @@ Sağlayıcının yazılı sınırı ile sistemin kod seviyesinde uyguladığı s
 | ARCO-ERA5 (Google) | Herkese açık bucket; yazılı istek sınırı yok | Yalnızca CDS başarısız olursa; uçuş başına ≤ 12 saat; disk önbelleği ≤ 20 GB; gece işinde kullanılmaz | Düşük |
 | NOAA AWC | Dakikada 100 istek; yanıt başına ≤ 400 kayıt | 15 dakikada bir 2 istek (API süreci başına) | Sınırın çok altında |
 | NOAA GFS (UCAR THREDDS) | Paylaşımlı kamu sunucusu; yazılı sınır bulunamadı | Aynı anda en fazla 2 bölge indirmesi; aynı küp 6 saat yeniden kullanılır | Düşük |
+| NOAA MADIS | Yazılı hız sınırı bulunamadı; FTP Nisan 2026'da kapandı, HTTPS | Tek seferde tek indirme (dağıtık kilit); dosyalar arası 5 sn; gece başına en fazla 1 gün (24 saatlik dosya, ~65 MB); günde en fazla 48 dosya (veritabanı sayacı); ham dosya işlenip silinir, gün başına ~2 MB Parquet | Düşük |
 | IEM PIREP | Filtresiz istek ≤ 120 gün; yazılı hız sınırı yok | Gece başına ≤ 7 istek, her biri 1 gün; istekler arası 2 sn (`ML_IEM_ISTEKLER_ARASI_SANIYE`) | Düşük |
 | openAIP | API anahtarı başına (sınır belgelenmemiş) | İsteğe bağlı; günde bir ülke yenilemesi | Düşük |
 

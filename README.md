@@ -1080,6 +1080,19 @@ Yöntem, eşiklerin dayanağı ve bedeli: [docs/adr/0011](docs/adr/0011-sanal-pi
   sorgusu atar ve sonucu `opensky_onbellek/pirep_cevresi/` altına yazar.
 - Tek bir izi denemek: `turbulans-sanal-pirep iz opensky_onbellek/UCUS_TARIH.parquet`.
 
+## Nesnel türbülans etiketi: MADIS uçak EDR ölçümleri (M1)
+
+Pilot raporuna (PIREP) ek olarak, uçakların kendi ölçtüğü türbülans (EDR)
+NOAA MADIS'in herkese açık ACARS arşivinden alınır ve ERA5 pencere deposuyla
+eşleştirilir (CDS'e ek istek yok). Ayrıntı ve kısıtlar: [ADR 0012](docs/adr/0012-madis-edr-etiketi.md).
+
+- Gece işi, penceresi olan PIREP günlerinden gece başına en fazla birini
+  indirir (24 saatlik dosya, aralarında 5 sn; günde en fazla 48 dosya).
+- `turbulans-madis gun 2019-06-12` tek günü işler, `turbulans-madis ozet` EDR
+  sınıflarını ve PIREP-EDR karşılaştırmasını verir.
+- Şiddet sınıfları ICAO tepe EDR eşikleriyle: hafif 0,1, orta 0,4, şiddetli 0,7.
+- Public veri QC'siz ön veridir ('Z'); yeniden dağıtılmaz, depoya konmaz.
+
 ## SIGMET/AIRMET doğrulaması
 
 Bu depodaki örnek veri kümesi (Türkiye/Doğu Akdeniz, Ocak 2019) için gerçek

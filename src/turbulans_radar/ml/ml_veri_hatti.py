@@ -349,6 +349,14 @@ def ml_veri_hatti_calistir(iem_guncelle=True, maks_cds_istek=None, saglayici=Non
             _logger.error("ML veri hattı adımı başarısız (%s)", ad, exc_info=hata)
             ozet[f"{ad}_hata"] = f"{type(hata).__name__}: {hata}"[:300]
     ozet.update(eslestirme_calistir(maks_cds_istek, saglayici, motor, simdi))
+    if config.MADIS_GECE_ETKIN:
+        try:
+            from turbulans_radar.ml.madis_hatti import madis_adimi
+
+            ozet.update(madis_adimi(motor))
+        except Exception as hata:
+            _logger.error("MADIS EDR adımı başarısız", exc_info=hata)
+            ozet["madis_hata"] = f"{type(hata).__name__}: {hata}"[:300]
     return ozet
 
 

@@ -64,3 +64,5 @@ ekran_goruntuleri/
 ml_ozellik_deposu/
 # ATS yolu/FRA ağı: AIP verisinden türetilir, yeniden dağıtım izni doğrulanmadı.
 ats_verisi/
+# MADIS uçak EDR verisi (M1): büyük, depoya konmaz.
+madis_edr/

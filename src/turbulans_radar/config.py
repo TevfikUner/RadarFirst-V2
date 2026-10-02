@@ -103,6 +103,23 @@ ML_IEM_BASLANGIC = _ortam_str("ML_IEM_BASLANGIC", "2020-04-01")
 ML_IEM_GECELIK_MAKS_GUN = _ortam_sayi("ML_IEM_GECELIK_MAKS_GUN", 7, int)
 # IEM'in yazılı hız sınırı yok; günlük PIREP istekleri arasında nezaket beklemesi.
 ML_IEM_ISTEKLER_ARASI_SANIYE = _ortam_sayi("ML_IEM_ISTEKLER_ARASI_SANIYE", 2.0)
+# veri/madis_edr.py (M1): NOAA MADIS herkese açık ACARS arşivi, uçak EDR ölçümleri.
+# Saatlik dosya ~2-3 MB; gece işi en fazla MADIS_GECE_MAKS_GUN gün (24 dosya/gün)
+# indirir, dosyalar arası bekleme, günlük dosya tavanı (veritabanı sayacı).
+MADIS_ARSIV_URL = _ortam_str("MADIS_ARSIV_URL", "https://madis-data.ncep.noaa.gov/madisPublic1/data/archive")
+MADIS_EDR_KLASORU = _ortam_str("MADIS_EDR_KLASORU", "madis_edr")
+MADIS_ISTEKLER_ARASI_SANIYE = _ortam_sayi("MADIS_ISTEKLER_ARASI_SANIYE", 5.0)
+MADIS_GUNLUK_MAKS_DOSYA = _ortam_sayi("MADIS_GUNLUK_MAKS_DOSYA", 48, int)
+MADIS_GECE_ETKIN = _ortam_bool("MADIS_GECE_ETKIN", True)
+MADIS_GECE_MAKS_GUN = _ortam_sayi("MADIS_GECE_MAKS_GUN", 1, int)
+MADIS_MIN_IRTIFA_FT = _ortam_sayi("MADIS_MIN_IRTIFA_FT", ML_MIN_IRTIFA_FT)
+# Makullük üst sınırı (QC'siz 'Z' veride aşırı değerleri eler); ICAO şiddetli eşiğinin çok üstü.
+MADIS_EDR_MAKS = _ortam_sayi("MADIS_EDR_MAKS", 1.5)
+# ICAO Annex 3 §2.6 tepe EDR (m^(2/3) s^-1): hafif 0.1-0.4, orta 0.4-0.7, şiddetli > 0.7
+# (A41-WP/235). Aynı EDR farklı uçak tiplerinde farklı hissedilir; ayarlanabilir.
+EDR_ESIK_HAFIF = _ortam_sayi("EDR_ESIK_HAFIF", 0.1)
+EDR_ESIK_ORTA = _ortam_sayi("EDR_ESIK_ORTA", 0.4)
+EDR_ESIK_SIDDETLI = _ortam_sayi("EDR_ESIK_SIDDETLI", 0.7)
 ML_MIN_ORNEK = _ortam_sayi("ML_MIN_ORNEK", 300, int)
 ML_MIN_GUN = _ortam_sayi("ML_MIN_GUN", 60, int)
 ML_HOLDOUT_ORANI = _ortam_sayi("ML_HOLDOUT_ORANI", 0.2)

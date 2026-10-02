@@ -17,6 +17,8 @@ x-ortak-volumeler: &ortak_volumeler
   - ./opensky_onbellek:/app/opensky_onbellek
   # ML ERA5 pencere deposu (gece işi yazar; bkz. docs/adr/0002-era5-pencere-deposu.md).
   - ./ml_ozellik_deposu:/app/ml_ozellik_deposu
+  # MADIS uçak EDR gözlemleri (M1; günlük Parquet, ham dosyalar tutulmaz).
+  - ./madis_edr:/app/madis_edr
   # ATS yolu/FRA ağı (AIP'ten elle hazırlanır, depoya konmaz; bkz.
   # docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md). Yoksa ATS modu 400 döner.
   - ./ats_verisi:/app/ats_verisi:ro
