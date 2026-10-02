@@ -16,8 +16,9 @@ tarayıcı kuralları Türkçe değişken adlarını tanımaz.
   atamalarını ekler.
 - CI, Türkçe adlı sahte bir sırrın yakalandığını her çalıştırmada doğrular
   (yapılandırma bozulursa tarama sessizce "temiz" demesin diye).
-- Bilinen geçmiş bulgusu `.gitleaksignore`'da belgelenir. Şifre değiştirilmeli ve
-  depo herkese açılmadan geçmiş temizlenmelidir (force-push gerektirir; depo sahibinin kararı).
+- Geçmişteki OpenSky şifresi değiştirildi (2026-10-01) ve geçmiş temizlendi
+  (2026-10-02, `git filter-repo` + depo sahibinin onayıyla force-push).
+  `.gitleaksignore` yalnızca bilinen yanlış pozitifi tutar.
 - CI ayrıca `pip-audit` ve CycloneDX SBOM çalıştırır.
 
 ## Sonuçlar

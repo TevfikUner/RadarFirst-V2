@@ -69,9 +69,10 @@ Yeni davranış testle gelir. Hata düzeltmesine, hatayı yeniden üreten bir te
 
 ### Bilinen olay (2026-09-21)
 
-`20a7b31` commit'i OpenSky şifresini `kimlik_dogrulama.py`'ye düz metin yazdı,
-`b29f487` kaldırdı. Şifre geçmişte durmaktadır. Yapılması gerekenler: şifrenin
-değiştirilmesi ve depo herkese açılmadan önce geçmişin temizlenmesi. Olay,
+Bir commit OpenSky şifresini `kimlik_dogrulama.py`'ye düz metin yazdı, ertesi
+gün kaldırıldı. Şifre 2026-10-01'de değiştirildi; 2026-10-02'de yedek alınıp
+geçmiş `git filter-repo` ile temizlendi (değer `<kaldirildi>` yapıldı, commit
+kimlikleri değişti) ve depo sahibinin onayıyla force-push yapıldı. Olay,
 sır taramasının kişisel dikkate değil otomatik kontrole bağlanmasının gerekçesidir.
 
 ## Bağımlılıklar

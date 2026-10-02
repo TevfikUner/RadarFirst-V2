@@ -1,9 +1,5 @@
 # Bilinen geçmiş bulguları (commit:dosya:kural:satır). Yeni bulgu buraya EKLENMEZ;
 # sır koddan kaldırılır ve değiştirilir.
 
-# 2026-09-21 olayı: OpenSky şifresi düz metin yazıldı (20a7b31), b29f487'de kaldırıldı.
-# Şifre değiştirilmeli; depo herkese açılmadan önce geçmiş temizlenmeli (bkz. CONTRIBUTING.md).
-20a7b310b1e52f36aaccc96b4c7568572d3644b8:kimlik_dogrulama.py:turkce-sir-atamasi:7
-
 # Yanlış pozitif: URL kodlama testindeki sahte şifre (güncel ağaçta gitleaks:allow ile işaretli).
-4dfee1642e564e1e9f813338d7f861e2c4f38f26:tests/test_veritabani.py:turkce-sir-atamasi:96
+4be3d41d13143b45b5b44a583ce3c08a92466441:tests/test_veritabani.py:turkce-sir-atamasi:96
