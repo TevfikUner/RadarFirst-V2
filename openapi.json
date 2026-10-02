@@ -4099,6 +4099,17 @@
             "type": "integer",
             "title": "Riskli Nokta Sayisi"
           },
+          "iz_bulutu_nokta_sayisi": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iz Bulutu Nokta Sayisi"
+          },
           "maks_ti1": {
             "anyOf": [
               {
@@ -4423,6 +4434,17 @@
             "type": "integer",
             "title": "Riskli Nokta Sayisi",
             "default": 0
+          },
+          "iz_bulutu_nokta_sayisi": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Iz Bulutu Nokta Sayisi"
           },
           "sigmet_ihlali_sayisi": {
             "type": "integer",

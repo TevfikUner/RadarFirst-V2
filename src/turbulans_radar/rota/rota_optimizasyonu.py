@@ -83,6 +83,7 @@ from turbulans_radar.fizik.birim_donusumleri import (
     irtifa_metre_to_basinc_hpa,
 )
 from turbulans_radar.fizik.eslestirme import kapsam_disi_maskesi
+from turbulans_radar.fizik.iz_bulutu import duyarli_nokta_sayisi
 from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.rota import hava_yolu_agi
@@ -91,7 +92,7 @@ from turbulans_radar.rota.risk_katmanlari import (
     SigmetKisitKatmani,
     Ti1CezaKatmani,
     degerlendirmeleri_birlestir,
-    rota_ti1_degerleri,
+    rota_eslesmesi,
 )
 from turbulans_radar.veri.kisitli_saha_saglayici import ORNEK_KAYNAK, gecerli_kisitli_sahalari_getir
 from turbulans_radar.veri.sigmet_saglayici import (
@@ -998,11 +999,11 @@ def rota_simulasyonu_olustur(
             enlemler, boylamlar, aday_irtifa_m, zaman_iso, tas_ms, veri_kupu, ruzgarli_mi
         )
         if ruzgarli_mi:
-            maks_ti1, riskli_sayisi = _ti1_ozeti_cikar(
-                rota_ti1_degerleri(enlemler, boylamlar, aday_irtifa_m, zamanlar, veri_kupu)
-            )
+            eslesme = rota_eslesmesi(enlemler, boylamlar, aday_irtifa_m, zamanlar, veri_kupu)
+            maks_ti1, riskli_sayisi = _ti1_ozeti_cikar(eslesme["ti1_indeksi"].to_numpy(dtype=float))
+            iz_bulutu_sayisi = duyarli_nokta_sayisi(eslesme["iz_bulutu_duyarli"])
         else:
-            maks_ti1, riskli_sayisi = None, 0
+            maks_ti1, riskli_sayisi, iz_bulutu_sayisi = None, 0, None
         return {
             "strateji": strateji,
             "enlem": enlemler,
@@ -1014,6 +1015,7 @@ def rota_simulasyonu_olustur(
             "ekstra_yakit_kg": ekstra[1],
             "maks_ti1": maks_ti1,
             "riskli_sayisi": riskli_sayisi,
+            "iz_bulutu_sayisi": iz_bulutu_sayisi,
             "sigmet_ihlali": (
                 sigmet_katmani.rota_ihlal_sayisi(enlemler, boylamlar, zamanlar, aday_irtifa_m) if sigmet_katmani else 0
             ),
@@ -1234,6 +1236,7 @@ def pareto_secenekleri(adaylar, onerilen, normal, yakit_fonksiyonu) -> list[dict
             "tahmini_yakit_kg": yakit_fonksiyonu(a),
             "ek_yakit_yuzde": 100.0 * (yakit_fonksiyonu(a) - normal_yakit) / normal_yakit if normal_yakit else 0.0,
             "riskli_nokta_sayisi": int(a["riskli_sayisi"]),
+            "iz_bulutu_nokta_sayisi": a.get("iz_bulutu_sayisi"),
             "maks_ti1": a["maks_ti1"],
             "irtifa_ft": a["irtifa_m"] / 0.3048,
             "maks_yanal_sapma_km": a["yanal_sapma_km"],
@@ -1257,6 +1260,7 @@ def _rota_ozeti(aday, yakit_kg, toplam_saniye):
         "irtifa_ft": aday["irtifa_m"] / 0.3048,
         "maks_ti1": aday["maks_ti1"],
         "riskli_nokta_sayisi": aday["riskli_sayisi"],
+        "iz_bulutu_nokta_sayisi": aday["iz_bulutu_sayisi"],
         "sigmet_ihlali_sayisi": aday["sigmet_ihlali"],
         "kisitli_saha_ihlali_sayisi": aday["kisitli_saha_ihlali"],
     }

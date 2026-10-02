@@ -172,6 +172,9 @@ class RotaSonucuYaniti(BaseModel):
     irtifa_ft: float | None = None
     maks_ti1: float | None = None
     riskli_nokta_sayisi: int = 0
+    # Kalıcı iz bulutu duyarlı nokta sayısı (fizik/iz_bulutu.py); küpte ERA5
+    # nemi yoksa None. Gözlenmiş iz bulutu değil, duyarlılık göstergesidir.
+    iz_bulutu_nokta_sayisi: int | None = None
     sigmet_ihlali_sayisi: int = 0
     kisitli_saha_ihlali_sayisi: int = 0
 
@@ -306,6 +309,7 @@ class RotaSecenegiYaniti(BaseModel):
     tahmini_yakit_kg: float
     ek_yakit_yuzde: float
     riskli_nokta_sayisi: int
+    iz_bulutu_nokta_sayisi: int | None = None
     maks_ti1: float | None = None
     irtifa_ft: float
     maks_yanal_sapma_km: float = 0.0

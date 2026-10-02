@@ -71,12 +71,16 @@ def _utc(zaman) -> pd.Timestamp:
     return ts.tz_localize("UTC") if ts.tzinfo is None else ts.tz_convert("UTC")
 
 
-def rota_ti1_degerleri(enlemler, boylamlar, irtifa_m, zamanlar, veri_kupu) -> np.ndarray:
-    """Noktaların Ellrod TI1 değerleri -- projenin ANA analiz koduyla
+def rota_eslesmesi(enlemler, boylamlar, irtifa_m, zamanlar, veri_kupu) -> pd.DataFrame:
+    """Noktaların hava eşleşmesi -- projenin ANA analiz koduyla
     (eslestirme.rotayi_hava_durumuyla_eslestir), ayrı bir türbülans mantığı
     icat etmemek için."""
     rota_df = pd.DataFrame({"zaman": list(zamanlar), "enlem": enlemler, "boylam": boylamlar, "geo_irtifa_m": irtifa_m})
-    return rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu)["ti1_indeksi"].to_numpy(dtype=float)
+    return rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu)
+
+
+def rota_ti1_degerleri(enlemler, boylamlar, irtifa_m, zamanlar, veri_kupu) -> np.ndarray:
+    return rota_eslesmesi(enlemler, boylamlar, irtifa_m, zamanlar, veri_kupu)["ti1_indeksi"].to_numpy(dtype=float)
 
 
 class Ti1CezaKatmani:

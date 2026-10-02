@@ -360,7 +360,7 @@ class YedekliEra5Saglayici:
     izgara_derece = IZGARA_DERECE
 
     def __init__(self, birincil=None, yedek=None, durum_kaydedici=None):
-        self.birincil = birincil or CdsEra5Saglayici()
+        self.birincil = birincil or CdsEra5Saglayici(ek_degiskenler=config.ERA5_UCUS_EK_DEGISKENLER)
         self.yedek = yedek or ArcoEra5Saglayici()
         self._durum_kaydet = durum_kaydedici or _durum_kaydet
 

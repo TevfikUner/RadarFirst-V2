@@ -1070,6 +1070,21 @@ UTC'de tetikler; ağ hatasında 3 kez yeniden dener; 202/409 dışındaki yanıt
 "Stop and Error" ile çalıştırmayı hatalı bitirir — bildirim için n8n'de bir
 *Error Workflow* tanımla.
 
+## İz bulutu (contrail) duyarlılığı (M9)
+
+Hava küpünde ERA5 bağıl nemi (`r`) varsa her nokta için kalıcı iz bulutu
+duyarlılığı hesaplanır (`fizik/iz_bulutu.py`): T ≤ −40 °C ve buza göre bağıl
+nem ≥ %100. ERA5 bağıl nemi −23 °C'nin altında buza göre verilir (ECMWF ERA5
+belgeleri), bu yüzden dönüşüm gerekmez.
+
+- Uçuşa özel ERA5 dilimi nemi de indirir (`ERA5_UCUS_EK_DEGISKENLER`; istek sayısı
+  aynı, dosya ~%30 büyük). Eşleşmeye `buz_bagil_nem_yuzde` ve `iz_bulutu_duyarli`
+  sütunları, rota yanıtına ve seçeneklere `iz_bulutu_nokta_sayisi` eklenir.
+- Nem içermeyen küplerde (yerel arşiv küpleri, GFS) değer `null`'dır; GFS'nin nem
+  tanımı doğrulanmadığı için orada hesaplanmaz.
+- Yalnızca göstergedir, rota maliyetine girmez. ERA5 buzda aşırı doymayı az
+  gösterir (bkz. ACP 25, 157, 2025); sonuç gözlenmiş iz bulutu değildir.
+
 ## Sanal PIREP: ADS-B'den canlı türbülans olayı (M6)
 
 Türbülansın en doğrudan sensörü onu yaşayan uçaktır. Seyir fazındaki bir uçağın

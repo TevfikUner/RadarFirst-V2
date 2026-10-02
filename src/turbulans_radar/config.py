@@ -91,6 +91,11 @@ HAVA_DURUMU_DOSYASI = _ortam_str("HAVA_DURUMU_DOSYASI", "ocak_2019_turbulans.nc"
 EK_HAVA_DURUMU_KLASORU = _ortam_str("EK_HAVA_DURUMU_KLASORU", "era5_egitim_verisi")
 
 ERA5_UCUS_KLASORU = _ortam_str("ERA5_UCUS_KLASORU", "era5_ucus_verisi")
+# Uçuşa özel ERA5 dilimine eklenen değişkenler (CDS istek sayısı aynı, dosya
+# ~%30 büyür): bağıl nem iz bulutu duyarlılığı için (fizik/iz_bulutu.py).
+ERA5_UCUS_EK_DEGISKENLER = tuple(
+    d.strip() for d in _ortam_str("ERA5_UCUS_EK_DEGISKENLER", "relative_humidity").split(",") if d.strip()
+)
 ERA5_BASINC_SEVIYELERI_HPA = tuple(
     float(s) for s in _ortam_str("ERA5_BASINC_SEVIYELERI_HPA", "300,250,200").split(",") if s.strip()
 )

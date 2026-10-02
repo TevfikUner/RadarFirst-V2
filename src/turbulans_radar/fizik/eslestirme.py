@@ -44,6 +44,7 @@ from turbulans_radar.fizik.birim_donusumleri import (
     basinc_hpa_to_irtifa_metre,
     irtifa_metre_to_basinc_hpa,
 )
+from turbulans_radar.fizik.iz_bulutu import iz_bulutu_duyarli
 from turbulans_radar.fizik.turbulans_indeksleri import (
     DINAMIK_KARARSIZLIK_ESIGI,
     dusey_ruzgar_kaymasi_hesapla,
@@ -67,6 +68,8 @@ _SONUC_SUTUNLARI = [
     "yatay_diverjans",
     "ti2_indeksi",
     "irtifa_kaynagi",
+    "buz_bagil_nem_yuzde",
+    "iz_bulutu_duyarli",
 ]
 
 
@@ -233,6 +236,8 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
 
     Dönüş: rota_df'e 'basinc_hpa', 'ti1_indeksi', 'edr_proxy',
            'richardson_sayisi', 'dinamik_kararsizlik' sütunları eklenmiş hali.
+           Küpte ERA5 bağıl nemi ('r') varsa 'buz_bagil_nem_yuzde' ve
+           'iz_bulutu_duyarli' (fizik/iz_bulutu.py) da doldurulur; yoksa NaN/None.
     """
     if rota_df.empty:
         return pd.concat([rota_df, pd.DataFrame({s: [] for s in _SONUC_SUTUNLARI})], axis=1)
@@ -324,6 +329,16 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
     )
     dinamik_kararsizlik = richardson < DINAMIK_KARARSIZLIK_ESIGI
 
+    if "r" in veri_kupu.data_vars:
+        dilim_seviye = _seviye_dilimi_sec(en_yakin_seviyeler)
+        buz_bagil_nem = np.asarray(dilim_seviye["r"].values, dtype=float)
+        iz_bulutu = iz_bulutu_duyarli(dilim_seviye["t"].values, buz_bagil_nem)
+    else:
+        buz_bagil_nem = np.full(n, np.nan)
+        iz_bulutu = np.full(n, None, dtype=object)
+    buz_bagil_nem[kapsam_disi] = np.nan
+    iz_bulutu[kapsam_disi] = None
+
     basinc_hpa_sonuc = en_yakin_seviyeler.astype(float)
     vws = np.array(vws, dtype=float)
     for dizi in (basinc_hpa_sonuc, ti1, edr_proxy, richardson, vws, deformasyon, diverjans, ti2):
@@ -343,6 +358,8 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
             "yatay_diverjans": diverjans,
             "ti2_indeksi": ti2,
             "irtifa_kaynagi": irtifa_kaynagi,
+            "buz_bagil_nem_yuzde": buz_bagil_nem,
+            "iz_bulutu_duyarli": iz_bulutu,
         },
         index=rota_df.index,
     )

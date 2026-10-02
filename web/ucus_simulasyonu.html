@@ -128,6 +128,7 @@
     <tr><td>CO2 (tahmini)</td><td id="s-normal-co2"></td><td id="s-optimize-co2"></td></tr>
     <tr><td>Riskli türbülans</td><td id="s-normal-turbulans"></td><td id="s-optimize-turbulans"></td></tr>
     <tr><td>İrtifa</td><td id="s-normal-irtifa"></td><td id="s-optimize-irtifa"></td></tr>
+    <tr><td title="T ≤ -40 °C ve buza göre bağıl nem ≥ %100 (ERA5). Duyarlılık göstergesidir, gözlenmiş iz bulutu değildir.">İz bulutu duyarlı</td><td id="s-normal-iz"></td><td id="s-optimize-iz"></td></tr>
     <tr><td>SIGMET / kısıtlı saha ihlali</td><td id="s-normal-kisit"></td><td id="s-optimize-kisit"></td></tr>
   </table>
   <hr>
@@ -288,6 +289,10 @@ function sonucPanelDoldur(sonuc) {
   document.getElementById("s-optimize-turbulans").textContent = `${sonuc.optimize_rota.riskli_nokta_sayisi} nokta`;
   document.getElementById("s-normal-irtifa").textContent = sonuc.normal_rota.irtifa_ft.toFixed(0) + " ft";
   document.getElementById("s-optimize-irtifa").textContent = sonuc.optimize_rota.irtifa_ft.toFixed(0) + " ft";
+  for (const [id, rota] of [["s-normal-iz", sonuc.normal_rota], ["s-optimize-iz", sonuc.optimize_rota]]) {
+    document.getElementById(id).textContent =
+      rota.iz_bulutu_nokta_sayisi == null ? "nem verisi yok" : `${rota.iz_bulutu_nokta_sayisi} nokta`;
+  }
   for (const [id, rota] of [["s-normal-kisit", sonuc.normal_rota], ["s-optimize-kisit", sonuc.optimize_rota]]) {
     document.getElementById(id).textContent = `${rota.sigmet_ihlali_sayisi} / ${rota.kisitli_saha_ihlali_sayisi}`;
   }
