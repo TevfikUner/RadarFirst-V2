@@ -138,6 +138,9 @@ ML_IEM_BASLANGIC = _ortam_str("ML_IEM_BASLANGIC", "2020-04-01")
 ML_IEM_GECELIK_MAKS_GUN = _ortam_sayi("ML_IEM_GECELIK_MAKS_GUN", 7, int)
 # IEM'in yazılı hız sınırı yok; günlük PIREP istekleri arasında nezaket beklemesi.
 ML_IEM_ISTEKLER_ARASI_SANIYE = _ortam_sayi("ML_IEM_ISTEKLER_ARASI_SANIYE", 2.0)
+# Açılışta ağ/DNS hazır olmadan başlayan gece işi için: yalnızca istek sunucuya ulaşmadığında yeniden dener.
+ML_IEM_AG_DENEME = _ortam_sayi("ML_IEM_AG_DENEME", 3, int)
+ML_IEM_AG_BEKLEME_SANIYE = _ortam_sayi("ML_IEM_AG_BEKLEME_SANIYE", 60.0)
 # veri/madis_edr.py (M1): NOAA MADIS herkese açık ACARS arşivi, uçak EDR ölçümleri.
 # Saatlik dosya ~2-3 MB; gece işi en fazla MADIS_GECE_MAKS_GUN gün (24 dosya/gün)
 # indirir, dosyalar arası bekleme, günlük dosya tavanı (veritabanı sayacı).

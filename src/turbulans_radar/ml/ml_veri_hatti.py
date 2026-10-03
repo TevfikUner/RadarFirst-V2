@@ -13,6 +13,7 @@ import os
 import tempfile
 import time
 
+import httpx
 import numpy as np
 import pandas as pd
 import xarray as xr
@@ -122,6 +123,17 @@ def _son_yayin(simdi=None) -> pd.Timestamp:
     return (simdi - pd.Timedelta(days=config.ERA5_YAYIN_GECIKMESI_GUN)).floor("D")
 
 
+def _ag_hatasinda_yeniden_dene(getirici, baslangic, bitis):
+    for deneme in range(1, config.ML_IEM_AG_DENEME + 1):
+        try:
+            return getirici(baslangic, bitis)
+        except (httpx.TransportError, ConnectionError) as hata:
+            if deneme == config.ML_IEM_AG_DENEME:
+                raise
+            _logger.warning("IEM ağ hatası (%s), %d. deneme: %s", baslangic.date(), deneme, hata)
+            time.sleep(config.ML_IEM_AG_BEKLEME_SANIYE)
+
+
 def yeni_iem_pireplerini_cek(
     simdi=None, maks_gun=None, getirici=None, motor=None, durum_anahtari=IEM_DURUM_ANAHTARI, kaynak="iem"
 ) -> dict:
@@ -136,7 +148,7 @@ def yeni_iem_pireplerini_cek(
             time.sleep(config.ML_IEM_ISTEKLER_ARASI_SANIYE)
         bitis = imlec + pd.Timedelta(days=1)
         try:
-            gunluk = getirici(imlec, bitis)
+            gunluk = _ag_hatasinda_yeniden_dene(getirici, imlec, bitis)
         except Exception as hata:
             _logger.warning("IEM PIREP'leri alınamadı (%s): %s", imlec.date(), hata)
             kaynak_durumunu_kaydet(

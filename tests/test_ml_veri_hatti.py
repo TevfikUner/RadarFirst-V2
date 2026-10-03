@@ -163,7 +163,8 @@ def test_iem_gunluk_istekleri_arasinda_bekler(sahte_iem_deposu, monkeypatch):
     assert beklemeler == [2.0, 2.0]
 
 
-def test_iem_hatasinda_imlec_korunur_ve_hata_raporlanir(sahte_iem_deposu):
+def test_iem_hatasinda_imlec_korunur_ve_hata_raporlanir(sahte_iem_deposu, monkeypatch):
+    monkeypatch.setattr(mv.time, "sleep", lambda s: None)
     durum, _ = sahte_iem_deposu
     durum[mv.IEM_DURUM_ANAHTARI] = {"imlec": "2021-03-01T00:00:00+00:00"}
 
@@ -173,6 +174,34 @@ def test_iem_hatasinda_imlec_korunur_ve_hata_raporlanir(sahte_iem_deposu):
     ozet = mv.yeni_iem_pireplerini_cek(simdi="2026-09-30T10:00Z", getirici=getirici)
     assert ozet["iem_gun"] == 0 and "IEM kapalı" in ozet["iem_hata"]
     assert durum[mv.IEM_DURUM_ANAHTARI]["imlec"].startswith("2021-03-01")
+
+
+def test_iem_ag_hatasi_beklenip_yeniden_denenir(sahte_iem_deposu, monkeypatch):
+    beklemeler = []
+    monkeypatch.setattr(mv.time, "sleep", beklemeler.append)
+    cagrilar = []
+
+    def getirici(bas, bit):
+        cagrilar.append(bas)
+        if len(cagrilar) == 1:
+            raise mv.httpx.ConnectError("Temporary failure in name resolution")
+        return _pirepler([])
+
+    ozet = mv.yeni_iem_pireplerini_cek(simdi="2026-09-30T10:00Z", maks_gun=1, getirici=getirici)
+    assert ozet["iem_gun"] == 1 and "iem_hata" not in ozet
+    assert beklemeler == [mv.config.ML_IEM_AG_BEKLEME_SANIYE]
+
+
+def test_iem_http_hatasi_yeniden_denenmez(sahte_iem_deposu, monkeypatch):
+    monkeypatch.setattr(mv.time, "sleep", lambda s: None)
+    cagrilar = []
+
+    def getirici(bas, bit):
+        cagrilar.append(bas)
+        raise mv.httpx.HTTPStatusError("429", request=None, response=None)
+
+    ozet = mv.yeni_iem_pireplerini_cek(simdi="2026-09-30T10:00Z", getirici=getirici)
+    assert len(cagrilar) == 1 and "429" in ozet["iem_hata"]
 
 
 def test_veri_hatti_bir_adim_patlasa_da_eslestirmeye_devam_eder(monkeypatch):
