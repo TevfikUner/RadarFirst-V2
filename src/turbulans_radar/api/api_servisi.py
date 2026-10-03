@@ -826,6 +826,7 @@ class _BaglantiYoneticisi:
     def __init__(self):
         self._kuyruklar: dict[WebSocket, asyncio.Queue] = {}
         self._gondericiler: dict[WebSocket, asyncio.Task] = {}
+        self._dusurmeler: set[asyncio.Task] = set()
 
     @property
     def baglantilar(self) -> list[WebSocket]:
@@ -867,7 +868,9 @@ class _BaglantiYoneticisi:
                 kuyruk.put_nowait(mesaj)
             except asyncio.QueueFull:
                 _logger.warning("Yavaş WebSocket istemcisi düşürüldü (kuyruk dolu).")
-                asyncio.create_task(self._dusur(websocket))
+                gorev = asyncio.create_task(self._dusur(websocket))
+                self._dusurmeler.add(gorev)
+                gorev.add_done_callback(self._dusurmeler.discard)
 
 
 baglanti_yoneticisi = _BaglantiYoneticisi()
@@ -915,7 +918,7 @@ def _tarihi_dogrula(deger: str) -> str:
     try:
         date.fromisoformat(deger)
     except ValueError:
-        raise ValueError("tarih 'YYYY-MM-DD' formatında geçerli bir tarih olmalı.")
+        raise ValueError("tarih 'YYYY-MM-DD' formatında geçerli bir tarih olmalı.") from None
     return deger
 
 

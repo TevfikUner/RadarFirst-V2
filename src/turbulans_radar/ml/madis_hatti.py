@@ -82,7 +82,7 @@ def edr_orneklerini_kaydet(df: pd.DataFrame, motor) -> int:
         return 0
     satirlar = [
         {
-            "gozlem_anahtari": f"{pd.Timestamp(s.zaman):%Y%m%dT%H%M%S}|{s.enlem:.4f}|{s.boylam:.4f}|{int(round(s.irtifa_ft))}",
+            "gozlem_anahtari": f"{pd.Timestamp(s.zaman):%Y%m%dT%H%M%S}|{s.enlem:.4f}|{s.boylam:.4f}|{round(s.irtifa_ft)}",
             "kaynak": "madis_acars",
             "zaman": pd.Timestamp(s.zaman).to_pydatetime(),
             "enlem": float(s.enlem),
@@ -225,13 +225,13 @@ def nesnel_degerlendirme(df=None, motor=None, tekrar=None) -> dict:
     df = degerlendirme_verisi(motor) if df is None else df
     df = df.dropna(subset=["ti1_indeksi", "max_edr"]) if not df.empty else df
     if df.empty or df["gun"].nunique() < 2:
-        return {"durum": "yetersiz_veri", "ornek": int(len(df))}
+        return {"durum": "yetersiz_veri", "ornek": len(df)}
     y = (df["edr_sinifi"] >= 1).astype(int).to_numpy()
     ti1 = df["ti1_indeksi"].to_numpy(dtype=float)
     rapor = {
         "kaynak": "MADIS herkese açık ACARS maxEDR (QC 'Z': ön veri, kalite kontrolsüz)",
         "hedef": f"max EDR >= {config.EDR_ESIK_HAFIF} (hafif ve üstü)",
-        "ornek": int(len(df)),
+        "ornek": len(df),
         "gun": int(df["gun"].nunique()),
         "pozitif": int(y.sum()),
         "orta_ve_ustu": int((df["edr_sinifi"] >= 2).sum()),

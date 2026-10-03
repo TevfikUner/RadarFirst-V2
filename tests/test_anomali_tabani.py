@@ -1,6 +1,7 @@
 """Denetimsiz anomali tabanı. İzler ve PIREP'ler SENTETİKTİR."""
 
 import pandas as pd
+import pytest
 from test_sanal_pirep import BASLANGIC, _sentetik_iz
 
 from turbulans_radar.dogrulama import anomali_tabani as at
@@ -26,6 +27,7 @@ def test_ozellikler_yalniz_seyir_noktalarinda_ve_kural_orani_olayi_kapsar():
     assert 0 < oran < 0.2
 
 
+@pytest.mark.filterwarnings("ignore:Duplicate values are leading to incorrect results:UserWarning")
 def test_esit_alarm_butcesiyle_isaretler_ve_karsilastirma_raporu():
     noktalar = at.seyir_noktalari(_sentetik_iz(sapma=(600, 40, 300)))
     isaretler = at.anomali_isaretle(noktalar, 0.05)

@@ -73,10 +73,10 @@ def edr_kalibrasyonu_calistir(df=None, motor=None, tekrar=300, arama_araligi=(0.
         "test_mse_eski": _kayip_hesapla(eski, test_df["ti1_indeksi"].to_numpy(), test_df["pirep_edr"].to_numpy()),
         "test_mse_sabit_ortalama": float(np.mean((test_df["pirep_edr"] - egitim_df["pirep_edr"].mean()) ** 2)),
         "egitim_mse": egitim_mse,
-        "ornek": int(len(df)),
+        "ornek": len(df),
         "gun": int(df["gun"].nunique()),
-        "egitim_ornek": int(len(egitim_df)),
-        "test_ornek": int(len(test_df)),
+        "egitim_ornek": len(egitim_df),
+        "test_ornek": len(test_df),
         "test_gunleri": sorted(test_df["gun"].unique().tolist()),
     }
 

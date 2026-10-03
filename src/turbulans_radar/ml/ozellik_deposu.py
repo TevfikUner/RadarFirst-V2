@@ -60,7 +60,7 @@ def pencere_kes(kup: xr.Dataset, enlem, boylam, zaman, derece=None, saat=None) -
     göreli: saat_ofset, pressure_level, enlem_ofset, boylam_ofset."""
     derece = config.ML_DEPO_PENCERE_DERECE if derece is None else derece
     saat = config.ML_DEPO_PENCERE_SAAT if saat is None else saat
-    adim = int(round(derece / IZGARA_DERECE))
+    adim = round(derece / IZGARA_DERECE)
     ofset = np.arange(-adim, adim + 1) * IZGARA_DERECE
     saat_ofset = np.arange(-saat, saat + 1)
     merkez_enlem, merkez_boylam, merkez_zaman = _merkez(enlem, boylam, zaman)
@@ -224,7 +224,7 @@ def depo_dogrula(ornek_sayisi=200, motor=None, tolerans=1e-4) -> dict:
     goreli = np.where(np.isnan(kayitli.to_numpy()) & np.isnan(hesaplanan.to_numpy()), 0.0, goreli)
     uyumsuz = int((np.nan_to_num(goreli, nan=np.inf) > tolerans).any(axis=1).sum())
     return {
-        "kontrol_edilen": int(len(kayitli)),
+        "kontrol_edilen": len(kayitli),
         "uyumsuz": uyumsuz,
         "maks_goreli_fark": float(np.nanmax(goreli)) if goreli.size else None,
     }

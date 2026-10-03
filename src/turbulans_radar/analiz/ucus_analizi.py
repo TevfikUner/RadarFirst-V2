@@ -145,7 +145,11 @@ def _veri_kupunu_sec(rota_df):
 
 
 def calistir(
-    ucus_numarasi: str, tarih_str: str, cikti_dosyasi: str = None, kayit_zorunlu: bool = False, harita_uret: bool = True
+    ucus_numarasi: str,
+    tarih_str: str,
+    cikti_dosyasi: str | None = None,
+    kayit_zorunlu: bool = False,
+    harita_uret: bool = True,
 ):
     print(f"1. '{ucus_numarasi}' uçuşu {tarih_str} tarihi için OpenSky'da aranıyor...")
     rota_df = rota_onbellekten_oku(ucus_numarasi, tarih_str)
@@ -174,7 +178,7 @@ def rota_df_ile_calistir(
     rota_df,
     ucus_numarasi: str,
     tarih_str: str,
-    cikti_dosyasi: str = None,
+    cikti_dosyasi: str | None = None,
     kayit_zorunlu: bool = False,
     harita_uret: bool = True,
 ):

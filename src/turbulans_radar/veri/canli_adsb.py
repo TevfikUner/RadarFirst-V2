@@ -182,7 +182,7 @@ def canli_oturum(
         olay += int((ozet or {}).get("kaydedilen", 0) or 0)
     return {
         "istek": istek,
-        "nokta": int(len(izler)),
+        "nokta": len(izler),
         "ucak": int(izler["icao24"].nunique()),
         "olay": olay,
         "sure_dk": sure_dk,

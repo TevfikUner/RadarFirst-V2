@@ -34,7 +34,7 @@ def ikili_metrikler(y, skor, esik) -> dict:
     tn = int(np.sum(~tahmin & (y == 0)))
     pod, pofd = _oran(tp, tp + fn), _oran(fp, fp + tn)
     return {
-        "ornek": int(len(y)),
+        "ornek": len(y),
         "pozitif": int(y.sum()),
         "esik": float(esik),
         "roc_auc": float(roc_auc_score(y, skor)) if len(set(y.tolist())) > 1 else float("nan"),
@@ -123,7 +123,7 @@ def bootstrap_guven_araligi(y, skor, gunler, metrik="roc_auc", tekrar=None, tohu
         "alt": float(np.quantile(degerler, alfa)) if len(degerler) else float("nan"),
         "ust": float(np.quantile(degerler, 1 - alfa)) if len(degerler) else float("nan"),
         "guven": guven,
-        "gecerli_tekrar": int(len(degerler)),
+        "gecerli_tekrar": len(degerler),
         "gun_sayisi": len(_gun_bloklari(gunler)),
     }
 
@@ -149,7 +149,7 @@ def eslestirilmis_auc_farki(y, skor_a, skor_b, gunler, tekrar=None, tohum=0, guv
         "p_degeri": float(p),
         "anlamli": bool(p < 1 - guven),
         "guven": guven,
-        "gecerli_tekrar": int(len(farklar)),
+        "gecerli_tekrar": len(farklar),
     }
 
 

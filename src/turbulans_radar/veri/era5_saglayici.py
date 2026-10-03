@@ -338,7 +338,7 @@ class ArcoEra5Saglayici:
             )
         yollar = [self.saat_onbellek_yolu(saat) for saat in saatler]
         parcalar = []
-        for saat, yol in zip(saatler, yollar):
+        for saat, yol in zip(saatler, yollar, strict=True):
             with _yol_kilidi(yol):
                 if not os.path.exists(yol):
                     with dagitik_kilit(f"era5_arco:{os.path.basename(yol)}"):

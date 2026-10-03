@@ -30,6 +30,7 @@ POST /api/v1/sigmet/guncelle):
 """
 
 import hashlib
+import itertools
 import json
 import re
 from datetime import UTC, datetime, timedelta
@@ -175,7 +176,7 @@ def _poligon_kaydi(kaynak: str, ham: dict, alan: list) -> dict | None:
     taban_ft, tavan_ft = _irtifa_bandi(ham)
     hareket = _hareket(ham)
     boylamlar, enlemler = [k[0] for k in koseler], [k[1] for k in koseler]
-    antimeridyen = max(abs(b - a) for a, b in zip(boylamlar, boylamlar[1:])) > 180.0 or max(boylamlar) > 180.0
+    antimeridyen = max(abs(b - a) for a, b in itertools.pairwise(boylamlar)) > 180.0 or max(boylamlar) > 180.0
     if antimeridyen:
         koseler = [((b + 360.0) % 360.0, e) for b, e in koseler]
         boylam_min, boylam_maks = -180.0, 180.0

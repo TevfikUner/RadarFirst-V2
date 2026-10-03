@@ -153,7 +153,7 @@ class GfsThreddsSaglayici:
                 list(
                     havuz.map(
                         lambda s_y: self._seviye_indir(s_y[0], kutu, baslangic, bitis, s_y[1]),
-                        zip(self.basinc_seviyeleri_hpa, yollar),
+                        zip(self.basinc_seviyeleri_hpa, yollar, strict=True),
                     )
                 )
             parcalar = []

@@ -103,7 +103,9 @@ class Ti1CezaKatmani:
             self.veri_kupu,
         )
         return RiskDegerlendirmesi(
-            dugum_cezasi={d: self.ceza_saniye for d, t in zip(dugumler, ti1) if not np.isnan(t) and t >= self.esik}
+            dugum_cezasi={
+                d: self.ceza_saniye for d, t in zip(dugumler, ti1, strict=True) if not np.isnan(t) and t >= self.esik
+            }
         )
 
 
@@ -216,7 +218,7 @@ class PoligonKisitKatmani:
         yasak_dugum = np.zeros(len(dugumler), dtype=bool)
         yasak_kenar = np.zeros(len(kenarlar), dtype=bool)
         for kayit, poligon, sinir, kos_enlem in zip(
-            self.kayitlar, self._poligonlar, self._sinirlar, self._kos_enlemler
+            self.kayitlar, self._poligonlar, self._sinirlar, self._kos_enlemler, strict=True
         ):
             if not self._irtifada_mi(kayit, irtifa_ft):
                 continue
@@ -256,14 +258,16 @@ class PoligonKisitKatmani:
 
     def rota_ihlal_sayisi(self, enlemler, boylamlar, zamanlar, irtifa_m) -> int:
         """Bir rotanın aktif kısıta giren nokta + bacak sayısı (0 = kısıt sağlanıyor)."""
-        konumlar = {(i, 0): (float(e), float(b)) for i, (e, b) in enumerate(zip(enlemler, boylamlar))}
+        konumlar = {(i, 0): (float(e), float(b)) for i, (e, b) in enumerate(zip(enlemler, boylamlar, strict=True))}
         zaman_sozlugu = {(i, 0): z for i, z in enumerate(zamanlar)}
         kenarlar = [((i, 0), (i + 1, 0)) for i in range(len(konumlar) - 1)]
         sonuc = self.degerlendir(konumlar, zaman_sozlugu, kenarlar, irtifa_m)
         return len(sonuc.yasak_dugumler) + len(sonuc.yasak_kenarlar)
 
     def noktayi_iceren_kayitlar(self, enlem, boylam) -> list[dict]:
-        return [k for k, p in zip(self.kayitlar, self._poligonlar) if shapely.intersects_xy(p, boylam, enlem)]
+        return [
+            k for k, p in zip(self.kayitlar, self._poligonlar, strict=True) if shapely.intersects_xy(p, boylam, enlem)
+        ]
 
     def geometri(self, kayit) -> object:
         return self._poligonlar[next(i for i, k in enumerate(self.kayitlar) if k is kayit)]

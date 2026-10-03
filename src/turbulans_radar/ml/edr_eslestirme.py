@@ -67,7 +67,7 @@ def gun_eslestir(ornekler: pd.DataFrame, edr_df: pd.DataFrame) -> pd.DataFrame:
     birlesik = pd.concat(adaylar).sort_values("_uzaklik", kind="stable")
     birlesik = birlesik[~birlesik.index.duplicated(keep="first")]
     parcalar = []
-    for ml_ornek_id, grup in birlesik.groupby("ml_ornek_id"):
+    for _, grup in birlesik.groupby("ml_ornek_id"):
         kup = grup["_kup"].iloc[0]
         noktalar = grup.assign(irtifa_m=grup["irtifa_ft"] / METRE_FT)
         ozellikler = ozellikleri_cikar(noktalar, ozellik_kupu(kup))

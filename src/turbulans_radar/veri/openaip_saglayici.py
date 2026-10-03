@@ -70,7 +70,7 @@ def limit_ft(limit: dict | None, ust: bool) -> int | None:
         return None
     if limit.get("referenceDatum") == _GND and deger > 0 and ust:
         ft += config.OPENAIP_AGL_UST_PAYI_FT
-    ft = max(0, int(round(ft)))
+    ft = max(0, round(ft))
     return None if ust and ft > _MAKS_FT else min(ft, _MAKS_FT)
 
 

@@ -80,7 +80,7 @@ def anomali_isaretle(noktalar: pd.DataFrame, oran: float, tohum: int = 0) -> dic
     'oran' kadar noktayı işaretler."""
     oran = min(max(oran, MIN_ALARM_ORANI), 0.5)
     x = RobustScaler().fit_transform(noktalar[OZELLIKLER].fillna(0.0).to_numpy())
-    adet = max(1, int(round(oran * len(x))))
+    adet = max(1, round(oran * len(x)))
 
     def _en_ust(skor):
         isaret = np.zeros(len(skor), dtype=bool)
@@ -148,7 +148,7 @@ def karsilastir(pirep_izleri: list[tuple[dict, pd.DataFrame]], tohum: int = 0) -
     return {
         **sonuc,
         "degerlendirilebilir_pirep": len(df),
-        "seyir_noktasi": int(len(tum)),
+        "seyir_noktasi": len(tum),
         "alarm_orani": round(max(oran, MIN_ALARM_ORANI), 5),
         "kural_ile_ayni_sonuc": {
             y: round(float((df[y] == df["kural"]).mean()), 3) for y in ("isolation_forest", "lof")

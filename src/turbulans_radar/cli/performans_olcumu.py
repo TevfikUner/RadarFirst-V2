@@ -62,7 +62,7 @@ def ozet_istatistik(sureler_ms) -> dict:
     if not len(dizi):
         return {"adet": 0}
     return {
-        "adet": int(len(dizi)),
+        "adet": len(dizi),
         "p50_ms": round(float(np.percentile(dizi, 50)), 1),
         "p95_ms": round(float(np.percentile(dizi, 95)), 1),
         "p99_ms": round(float(np.percentile(dizi, 99)), 1),

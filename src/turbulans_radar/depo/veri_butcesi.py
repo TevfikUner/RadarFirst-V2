@@ -51,7 +51,7 @@ def etkin_mi() -> bool:
 
 def bayt_ekle(bayt: int, motor=None) -> float:
     """İndirilen baytı bugünün toplamına ekler; yeni toplamı MB döner."""
-    kb = max(0, int(round(bayt / 1024)))
+    kb = max(0, round(bayt / 1024))
     with _motor(motor).begin() as baglanti:
         return baglanti.execute(_EKLE, {"anahtar": ANAHTAR, "kb": kb}).scalar_one() / 1024
 

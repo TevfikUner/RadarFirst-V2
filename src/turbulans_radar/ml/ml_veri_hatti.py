@@ -49,7 +49,7 @@ _EKLEME_PARCASI = 5000
 
 
 def pirep_anahtari(zaman, enlem, boylam, irtifa_ft) -> str:
-    return f"{pd.Timestamp(zaman):%Y%m%dT%H%M}|{float(enlem):.4f}|{float(boylam):.4f}|{int(round(float(irtifa_ft)))}"
+    return f"{pd.Timestamp(zaman):%Y%m%dT%H%M}|{float(enlem):.4f}|{float(boylam):.4f}|{round(float(irtifa_ft))}"
 
 
 def seyir_pireplerini_sec(df: pd.DataFrame, maks_gunluk=None, tohum=0) -> pd.DataFrame:
@@ -257,7 +257,7 @@ def _ozellikleri_yaz(alt: pd.DataFrame, ozellikler: pd.DataFrame, motor, pencere
             "pencere_dosyasi": pencere_dosyasi if tamam else None,
             "son_hata": None,
         }
-        for i, (kimlik, tamam) in enumerate(zip(alt["id"], gecerli))
+        for i, (kimlik, tamam) in enumerate(zip(alt["id"], gecerli, strict=True))
     ]
     with Session(motor) as oturum:
         oturum.execute(update(MlOrnegi), guncellemeler)

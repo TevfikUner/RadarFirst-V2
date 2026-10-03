@@ -81,7 +81,7 @@ def riskli_noktalari_bildir(eslesmis_df, ucus_numarasi, tarih) -> None:
                 "tip": "turbulans_uyarisi",
                 "ucus_numarasi": ucus_numarasi,
                 "tarih": tarih,
-                "orta_siddetli_nokta_sayisi": int(len(riskli)),
+                "orta_siddetli_nokta_sayisi": len(riskli),
                 "maks_ti1": float(riskli["ti1_indeksi"].max()),
             }
         )

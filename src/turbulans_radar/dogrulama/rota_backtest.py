@@ -342,7 +342,7 @@ def _bagimsiz_kanit_ozeti(df):
         sutunlar = [f"{rota}_{metrik}" for rota in _ROTALAR]
         if not set(sutunlar) <= set(df.columns):
             continue
-        for rota, sutun in zip(_ROTALAR, sutunlar):
+        for rota, sutun in zip(_ROTALAR, sutunlar, strict=True):
             degerler = df[sutun].dropna()
             ozet[f"{rota}_toplam_{metrik}"] = int(degerler.sum()) if len(degerler) else None
         ikili = df[[f"gercek_{metrik}", f"optimize_{metrik}"]].dropna()

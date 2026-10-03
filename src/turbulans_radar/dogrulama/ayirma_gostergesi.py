@@ -211,7 +211,7 @@ def _kapsayan_onbellek(parametreler) -> pd.DataFrame | None:
 
 def _ozet(ihlaller: pd.DataFrame) -> dict:
     return {
-        "ihlal_eden_ucak": int(len(ihlaller)),
+        "ihlal_eden_ucak": len(ihlaller),
         "en_yakin_yatay_nm": None if ihlaller.empty else round(float(ihlaller["min_yatay_nm"].min()), 2),
         "en_yakin_dikey_ft": None if ihlaller.empty else round(float(ihlaller["min_dikey_ft"].min())),
         "ucaklar": ihlaller.astype({"ilk_zaman": str, "son_zaman": str}).to_dict(orient="records")

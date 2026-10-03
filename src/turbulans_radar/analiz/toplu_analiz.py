@@ -149,7 +149,7 @@ def ana():
     try:
         ucus_listesi_df = pd.read_csv(argumanlar.ucus_listesi_csv)
     except FileNotFoundError:
-        raise SystemExit(f"[Hata] '{argumanlar.ucus_listesi_csv}' bulunamadı.")
+        raise SystemExit(f"[Hata] '{argumanlar.ucus_listesi_csv}' bulunamadı.") from None
 
     for sutun in ("ucus_numarasi", "tarih"):
         if sutun not in ucus_listesi_df.columns:

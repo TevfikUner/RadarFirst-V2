@@ -393,7 +393,7 @@ def _a_yildiz_ile_rota_ara(
             [konumlar[d][1] for d in dugumler],
             [nominal_zamanlar[d[0]] for d in dugumler],
         )
-        dugumler = [d for d, disi in zip(dugumler, kapsam_disi) if not disi]
+        dugumler = [d for d, disi in zip(dugumler, kapsam_disi, strict=True) if not disi]
     konum_kumesi = set(dugumler)
     kenarlar = [(d, k) for d in dugumler for k in _komsu_dugumler(d, izgara) if k in konum_kumesi]
 
@@ -430,7 +430,7 @@ def _a_yildiz_ile_rota_ara(
             irtifa_metre_to_basinc_hpa(irtifa_m),
             [nominal_zamanlar[d[0]] for d in dugumler],
         )
-        ruzgar_sozluk = dict(zip(dugumler, zip(u_tum.tolist(), v_tum.tolist())))
+        ruzgar_sozluk = dict(zip(dugumler, zip(u_tum.tolist(), v_tum.tolist(), strict=True), strict=True))
     else:
         ruzgar_sozluk = dict.fromkeys(dugumler, (0.0, 0.0))
 
@@ -514,7 +514,7 @@ def _ats_ile_rota_ara(ag, bas, bit, irtifa_m, baslangic_zamani, tas_ms, veri_kup
             [konumlar[d][1] for d in dugumler],
             [zamanlar[d] for d in dugumler],
         )
-        dugumler = [d for d, x in zip(dugumler, disi) if not x]
+        dugumler = [d for d, x in zip(dugumler, disi, strict=True) if not x]
     gecerli = set(dugumler)
     kenarlar = [(a, b) for a, b in kenarlar if a in gecerli and b in gecerli]
     belirsizlik = {
@@ -540,7 +540,7 @@ def _ats_ile_rota_ara(ag, bas, bit, irtifa_m, baslangic_zamani, tas_ms, veri_kup
             irtifa_metre_to_basinc_hpa(irtifa_m),
             [zamanlar[d] for d in dugumler],
         )
-        ruzgar = dict(zip(dugumler, zip(u.tolist(), v.tolist())))
+        ruzgar = dict(zip(dugumler, zip(u.tolist(), v.tolist(), strict=True), strict=True))
     else:
         ruzgar = dict.fromkeys(dugumler, (0.0, 0.0))
 
@@ -689,7 +689,7 @@ def _ti1_ozeti_cikar(ti1_degerleri):
 def _noktalari_paketle(enlemler, boylamlar, irtifa_m, zamanlar):
     return [
         {"enlem": float(e), "boylam": float(b), "irtifa_m": float(irtifa_m), "zaman": z.isoformat()}
-        for e, b, z in zip(enlemler, boylamlar, zamanlar)
+        for e, b, z in zip(enlemler, boylamlar, zamanlar, strict=True)
     ]
 
 
@@ -1223,7 +1223,7 @@ def pareto_secenekleri(adaylar, onerilen, normal, yakit_fonksiyonu) -> list[dict
 
     def _baskilanir(a, b):
         oa, ob = olcutler[id(a)], olcutler[id(b)]
-        return all(y <= x for x, y in zip(oa, ob)) and ob != oa
+        return all(y <= x for x, y in zip(oa, ob, strict=True)) and ob != oa
 
     cephe = [a for a in tekil if not any(_baskilanir(a, b) for b in tekil if b is not a)]
     normal_saniye, normal_yakit = normal["saniye"] + normal["ekstra_saniye"], yakit_fonksiyonu(normal)

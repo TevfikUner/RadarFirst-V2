@@ -61,7 +61,7 @@ def kapsama_raporu(y, olasilik, esik, alfa) -> dict:
     return {
         "hedef_kapsama": 1 - alfa,
         "kapsama": float(kapsandi.mean()) if len(y) else float("nan"),
-        "ornek": int(len(y)),
+        "ornek": len(y),
         "belirsiz_orani": float(np.mean(durumlar == BELIRSIZ)) if len(y) else float("nan"),
         "yuksek_risk_orani": float(np.mean(durumlar == YUKSEK_RISK)) if len(y) else float("nan"),
         "dusuk_risk_orani": float(np.mean(durumlar == DUSUK_RISK)) if len(y) else float("nan"),

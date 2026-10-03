@@ -44,19 +44,19 @@ def pd_isna(x):
 
 
 def _lejant_ekle(harita):
-    lejant_html = """
+    lejant_html = f"""
     <div style="position: fixed; bottom: 30px; left: 30px; z-index: 9999;
                 background-color: rgba(30,30,30,0.85); color: white;
                 padding: 10px 14px; border-radius: 6px; font-size: 13px;">
         <b>Ellrod TI1 İndeksi (Türbülans Şiddeti)</b><br>
-        <span style="color:#2ecc71;">&#9679;</span> Sakin/Hafif altı (TI1 &lt; {hafif:.0e})<br>
-        <span style="color:#e67e22;">&#9679;</span> Hafif-Orta (TI1 {hafif:.0e} - {orta:.0e})<br>
-        <span style="color:#e74c3c;">&#9679;</span> Orta-Şiddetli (TI1 &gt; {orta:.0e})<br>
+        <span style="color:#2ecc71;">&#9679;</span> Sakin/Hafif altı (TI1 &lt; {config.TI1_ESIK_HAFIF:.0e})<br>
+        <span style="color:#e67e22;">&#9679;</span> Hafif-Orta (TI1 {config.TI1_ESIK_HAFIF:.0e} - {config.TI1_ESIK_ORTA_SIDDETLI:.0e})<br>
+        <span style="color:#e74c3c;">&#9679;</span> Orta-Şiddetli (TI1 &gt; {config.TI1_ESIK_ORTA_SIDDETLI:.0e})<br>
         <span style="color:#95a5a6;">&#9679;</span> Veri yok<br>
         <small>Not: Kaba çözünürlüklü reanaliz verisinden proxy tahmindir,<br>
         sertifikalı EDR değildir.</small>
     </div>
-    """.format(hafif=config.TI1_ESIK_HAFIF, orta=config.TI1_ESIK_ORTA_SIDDETLI)
+    """
     harita.get_root().html.add_child(folium.Element(lejant_html))
 
 
@@ -92,7 +92,7 @@ def zaman_kaydiricili_harita_olustur(
     )
 
     # --- Statik rota çizgisi (referans için) ---
-    koordinatlar = list(zip(rota_df["enlem"], rota_df["boylam"]))
+    koordinatlar = list(zip(rota_df["enlem"], rota_df["boylam"], strict=True))
     folium.PolyLine(koordinatlar, color="#3388ff", weight=2, opacity=0.5).add_to(harita)
 
     # --- Zamana bağlı animasyonlu noktalar (TimestampedGeoJson) ---

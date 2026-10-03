@@ -205,7 +205,7 @@ if __name__ == "__main__":
     try:
         df = ucus_olcumlerini_dataframe_olarak_getir(argumanlar.ucus_numarasi, argumanlar.tarih)
     except VeritabaniAyarlariEksikHatasi as hata:
-        raise SystemExit(f"[Hata] Veritabanına erişilemedi: {hata}")
+        raise SystemExit(f"[Hata] Veritabanına erişilemedi: {hata}") from hata
 
     if df is None:
         raise SystemExit(f"[Hata] '{argumanlar.ucus_numarasi}' / {argumanlar.tarih} için kayıt bulunamadı.")

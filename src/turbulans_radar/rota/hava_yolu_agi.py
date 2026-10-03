@@ -34,6 +34,7 @@ segmentin ortasındaki risk atlanmasın diye.
 from __future__ import annotations
 
 import heapq
+import itertools
 import json
 import math
 from dataclasses import dataclass, field
@@ -146,7 +147,7 @@ def agi_kur(veri: dict, ara_nokta_km: float | None = None) -> HavaYoluAgi:
             ag.noktalar[ara] = _ara_nokta(e1, b1, e2, b2, i / parca)
             zincir.append(ara)
         zincir.append(b)
-        for x, y in zip(zincir, zincir[1:]):
+        for x, y in itertools.pairwise(zincir):
             if "ileri" in yonler:
                 ag.kenar_ekle(x, y, yol, alt_fl, ust_fl, fra)
             if "geri" in yonler:
@@ -168,7 +169,7 @@ def agi_kur(veri: dict, ara_nokta_km: float | None = None) -> HavaYoluAgi:
         if bilinmeyen:
             raise AtsAgiHatasi(f"{konum} ({ad}): tanımsız nokta(lar): {', '.join(bilinmeyen)}")
         yonler = {"cift": ("ileri", "geri"), "ileri": ("ileri",), "geri": ("geri",)}[yon]
-        for a, b in zip(sirali, sirali[1:]):
+        for a, b in itertools.pairwise(sirali):
             segment_ekle(a, b, ad, alt_fl, ust_fl, yonler)
 
     fra = veri.get("fra")

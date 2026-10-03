@@ -203,6 +203,15 @@ def _cds_nezaket_beklemesi_kapali(monkeypatch):
     monkeypatch.setattr(config, "CDS_ISTEKLER_ARASI_SANIYE", 0.0)
 
 
+@pytest.fixture(autouse=True)
+def _model_versiyonlari_gecici_klasorde(monkeypatch, tmp_path):
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
+
+    klasor = tmp_path / "model_versiyonlari"
+    monkeypatch.setattr(tm, "MODEL_VERSIYONLARI_KLASORU", str(klasor))
+    monkeypatch.setattr(tm, "MODEL_VERSIYONLARI_MANIFEST_YOLU", str(klasor / "manifest.json"))
+
+
 @pytest.fixture
 def gorev_kuyrugunu_temizle():
     """Test sırasında kuyruğa eklenip bitmemiş (kuyrukta/calisiyor) görevleri siler."""
