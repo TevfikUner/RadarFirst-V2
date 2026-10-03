@@ -66,6 +66,21 @@ def test_iem_csv_satirlari_normalize_edilir():
     assert (df.loc[0, "irtifa_ft"], df.loc[0, "sinif"]) == (32000, 0)
 
 
+def test_konumu_bilinmeyen_pirep_atilir():
+    ham = pd.DataFrame(
+        {
+            "VALID": ["201901151200", "201901151200", "201901151200"],
+            "LAT": ["63.88", "63.32", "39.1"],
+            "LON": ["-160.79", "-161.88", "-94.6"],
+            "FL": ["34000", "34000", "35000"],
+            "TURBULENCE": ["MOD", "LGT", "MOD"],
+            "REPORT": ["UNK UA /OV UNK/TM 0003", "UNK UA /OV UNK221044/TM 0050", "MCI UA /OV MCI090020/TM 1200"],
+        }
+    )
+    df = bk.pirepleri_normalize_et(ham)
+    assert len(df) == 1 and df.loc[0, "enlem"] == 39.1
+
+
 def test_rotanin_turb_sigmet_ve_pirep_maruziyeti_sayilir():
     kanit = bk.BagimsizKanit(
         kaynaklar=["test"],

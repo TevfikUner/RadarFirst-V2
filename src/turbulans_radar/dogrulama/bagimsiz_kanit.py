@@ -43,6 +43,8 @@ TUP_YARICAPI_KM = 50.0
 TUP_IRTIFA_FARKI_FT = 2000.0
 TUP_ZAMAN_FARKI = pd.Timedelta(hours=1)
 _SIK_ORNEKLEME_KM = 20.0
+# "/OV UNK": konum bilinmiyor; IEM bunu UNK (Unalakleet, Alaska) istasyonuna yerleştiriyor.
+_KONUM_BILINMIYOR_DESENI = r"/OV\s*UNK"
 _DUNYA_YARICAPI_KM = 6371.0
 
 _yeniden_dene = gecici_hatada_yeniden_dene()
@@ -60,6 +62,8 @@ def pirep_siddet_sinifi(metin) -> int | None:
 
 
 def pirepleri_normalize_et(ham: pd.DataFrame) -> pd.DataFrame:
+    if "REPORT" in ham.columns:
+        ham = ham[~ham["REPORT"].fillna("").str.contains(_KONUM_BILINMIYOR_DESENI)]
     df = pd.DataFrame(
         {
             "zaman": pd.to_datetime(ham["VALID"], format="%Y%m%d%H%M", utc=True, errors="coerce"),
