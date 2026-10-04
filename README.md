@@ -1350,8 +1350,14 @@ yedek yoksa iki dosya üretir (depoya konmaz):
 
 - `db_yedekleri/turbulans_YYYYAAGG.dump`: `pg_dump -Fc`; `pg_restore -l` ile okunamazsa yerine konmaz.
 - `db_yedekleri/dosyalar_YYYYAAGG.tar.gz`: veritabanında olmayan, yeniden
-  indirmesi pahalı dosyalar (`ml_ozellik_deposu/`, `madis_edr/`, model
-  sürümleri volume'u); `tar -tz` ile okunamazsa yerine konmaz.
+  indirmesi pahalı dosyalar (`ml_ozellik_deposu/`, `madis_edr/`,
+  `opensky_onbellek/`, model sürümleri volume'u); `tar -tz` ile okunamazsa
+  yerine konmaz.
+- **Disk dışı kopya (isteğe bağlı):** `docker-compose.override.yml` (depoya
+  girmez) yedek servisine `/dis_yedek` bağlarsa, yeni yedekler oraya da
+  kopyalanır ve aynı saklama süresi uygulanır. Örnek: bir OneDrive klasörü
+  (`- /mnt/c/Users/<kullanici>/OneDrive/TurbulansRadar_Yedekleri:/dis_yedek`);
+  OneDrive'a giriş yapılmamışsa klasör buluta eşitlenmez.
 
 Başarısız deneme (ör. açılışta veritabanı henüz hazır değil)
 `YEDEK_YENIDEN_DENEME_SANIYE` (60) sonra tekrarlanır; eskiden bir saat

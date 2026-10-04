@@ -129,7 +129,10 @@ services:
       - ./otomasyon/db_yedekle.sh:/db_yedekle.sh:ro
       - ./ml_ozellik_deposu:/kaynak/ml_ozellik_deposu:ro
       - ./madis_edr:/kaynak/madis_edr:ro
+      - ./opensky_onbellek:/kaynak/opensky_onbellek:ro
       - turbulans_modeller:/kaynak/model_deposu:ro
+    # Disk dışı kopya için docker-compose.override.yml'de /dis_yedek bağlanır
+    # (makineye özgü yol, depoya girmez; bkz. README "Veritabanı yedeği").
     entrypoint: ["sh", "/db_yedekle.sh"]
 
   # Kimlik bilgisi gerektirmeyen demo (bkz. demo/README.md):

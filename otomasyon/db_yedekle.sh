@@ -1,7 +1,7 @@
 #!/bin/sh
 # Günlük yedek (docker-compose "yedek" servisi): veritabanı (pg_dump) ve
 # veritabanında olmayan, yeniden indirmesi pahalı dosyalar (ERA5 pencere deposu,
-# MADIS EDR, model sürümleri; /kaynak altına salt okunur bağlanır).
+# MADIS EDR, OpenSky rota önbelleği, model sürümleri; /kaynak altına salt okunur bağlanır).
 # Bugünün (UTC) yedeği eksikse alınır; başarısız olursa (ör. açılışta veritabanı
 # henüz hazır değil) YEDEK_YENIDEN_DENEME_SANIYE sonra yeniden denenir, böylece
 # bilgisayar kısa süre açık kalsa da yedek alınır. Yedek okunabildiği doğrulanmadan
@@ -45,9 +45,33 @@ dosya_yedegi() {
   return 1
 }
 
+# İsteğe bağlı disk dışı kopya: /dis_yedek bağlıysa (docker-compose.override.yml,
+# örn. OneDrive klasörü) yeni yedekler oraya da kopyalanır. Başarısızlık yerel
+# yedeği etkilemez; bir sonraki turda yeniden denenir.
+dis_kopyala() {
+  [ -d /dis_yedek ] || return 0
+  for kaynak in /yedekler/turbulans_*.dump /yedekler/dosyalar_*.tar.gz; do
+    [ -s "$kaynak" ] || continue
+    hedef="/dis_yedek/$(basename "$kaynak")"
+    if [ -s "$hedef" ] && cmp -s "$kaynak" "$hedef"; then
+      continue
+    fi
+    if cp "$kaynak" "$hedef.yaziliyor" && mv "$hedef.yaziliyor" "$hedef"; then
+      echo "$(date -u +%FT%TZ) dis kopya: $(basename "$hedef")"
+    else
+      rm -f "$hedef.yaziliyor"
+      echo "$(date -u +%FT%TZ) DIS KOPYA BASARISIZ: $(basename "$hedef")" >&2
+    fi
+  done
+  ls -1t /dis_yedek/turbulans_*.dump 2>/dev/null | tail -n +"$((SAKLA + 1))" | xargs -r rm -f
+  ls -1t /dis_yedek/dosyalar_*.tar.gz 2>/dev/null | tail -n +"$((SAKLA + 1))" | xargs -r rm -f
+}
+
 while true; do
   GUN="$(date -u +%Y%m%d)"
+  dis_kopyala
   if veritabani_yedegi "$GUN" && dosya_yedegi "$GUN"; then
+    dis_kopyala
     sleep 3600
   else
     sleep "$YENIDEN"
