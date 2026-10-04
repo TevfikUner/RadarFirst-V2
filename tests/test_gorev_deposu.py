@@ -71,6 +71,19 @@ async def test_eski_bitmis_gorev_silinir_yeni_ve_kuyruktaki_kalir():
     await gorev_deposu.gorev_guncelle(eski_calisan, durum="hata")
 
 
+@pytest.mark.parametrize("tur", gorev_deposu.KALICI_GOREV_TURLERI)
+async def test_gece_isi_kayitlari_saklama_suresinden_sonra_da_kalir(tur):
+    eski = await gorev_deposu.gorev_olustur(tur, parametreler={})
+    await gorev_deposu.gorev_guncelle(eski, durum="tamamlandi", ozet=[{"cds_istek": 30}])
+    await _yaslandir(eski, 30)
+    try:
+        await gorev_deposu.eski_gorevleri_temizle()
+        assert (await gorev_deposu.gorev_getir(eski))["ozet"] == [{"cds_istek": 30}]
+    finally:
+        with vt.motor_al().begin() as baglanti:
+            baglanti.execute(text("DELETE FROM analiz_gorevleri WHERE id = :i"), {"i": eski})
+
+
 async def test_kuyruktaki_gorev_bir_kez_alinir_ve_calisiyor_olur():
     gorev_id = await gorev_deposu.gorev_olustur(TEST_TURU, parametreler={"x": 1}, bildirim_webhook_url="http://a/b")
     gorev = gorev_deposu.siradaki_gorevi_al("isci-a", turler=(TEST_TURU,))

@@ -48,7 +48,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | Dışarıdan ADS-B izi | Aynı içerik, kullanıcının yüklediği | — | — | `POST /api/v1/analiz/rota` |
 | Copernicus ERA5 | u, v, t (200/250/300 hPa) | Reanaliz, ~5 gün gecikmeli; 0.25°, 1 saatlik | Yerel küpler: Türkiye (Ocak 2019), Kuzeydoğu ABD (2018-2020 seçili günler) | `veri/veri_yukleme.py` |
 | NOAA GFS (UCAR THREDDS) | u, v, t (200/250/300 hPa) | Tahmin; 0.25°, 3 saatlik adım, 6 saatlik döngü | Küresel; şimdi −48 sa / +120 sa | `veri/veri_saglayicilari.py` |
-| AWC SIGMET (`airsigmet`, `isigmet`) | Tehlike poligonu, irtifa bandı, geçerlilik | Canlı (API zamanlayıcısı ya da n8n ile yenilenir) | ABD + AWC'ye ulaşan uluslararası mesajlar (Ankara FIR dahil) | `veri/sigmet_saglayici.py` |
+| AWC SIGMET (`airsigmet`, `isigmet`) | Tehlike poligonu, irtifa bandı, geçerlilik | Canlı (API zamanlayıcısı 15 dakikada bir yeniler) | ABD + AWC'ye ulaşan uluslararası mesajlar (Ankara FIR dahil) | `veri/sigmet_saglayici.py` |
 | Kısıtlı hava sahaları (GeoJSON) | Çatışma bölgesi, P/R/D sahası, NOTAM'lı geçici kısıt: poligon, irtifa bandı, geçerlilik | Operatörün içe aktardığı kadar güncel | Paketle gelen örnek: Suriye ve Irak (Natural Earth ülke sınırı, resmi değil) | `veri/kisitli_saha_saglayici.py` |
 | IEM PIREP | Pilot türbülans raporları | Tarihsel | ABD | Yalnızca ML eğitimi ve kalibrasyon |
 | NOAA MADIS (public) | Uçağın ölçtüğü EDR (maks/medyan) | Tarihsel, QC'siz ön veri ('Z') | ABD ağırlıklı, küresel | Nesnel türbülans etiketi ve PIREP doğrulaması (ADR 0012) |
@@ -120,6 +120,16 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 **Fiziksel gösterge**
 - TI1'den türetilen EDR proxy sertifikalı bir EDR değeri değildir.
 - ERA5/GFS'nin ~25-30 km çözünürlüğü küçük ölçekli türbülansı çözemez.
+- Düşey rüzgar kayması ve Richardson sayısı, uçuş seviyesine en yakın basınç
+  seviyesinin bir üstü ile bir altı arasından hesaplanır (200/250/300 hPa
+  küpünde ~2,6 km'lik katman); daha ince kayma katmanları bu hesapta seyrelir.
+- Hava verisi zaman ve konumda en yakın ızgara noktasından okunur,
+  enterpolasyon yapılmaz: GFS'in 3 saatlik adımında 1,5 saate, 0,25°
+  ızgarada ~0,125°'ye kadar kayma olabilir.
+- Küp sınırının 1° dışına kadar (zamanda 3 saate kadar) noktalar kapsam içi
+  sayılır ve kenar değerini alır.
+- Bu tercihler bilinçli olarak değiştirilmedi: özellik hesabı değişirse
+  eşleşmiş ML örneklerinin ve modelin yeniden üretilmesi gerekir.
 - Seyir irtifasındaki 1600 PIREP'te (16 gün) TI1'in tek başına ayırt
   ediciliği orta düzeydedir (ROC-AUC 0.69; `TI1_ESIK_ORTA_SIDDETLI`'de POD
   0.31, POFD 0.10). Eski 0.44 değeri 300-400 feet'teki PIREP'leri seçen
@@ -209,7 +219,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 307 test. Kapsamı: birim testleri, gerçek PostgreSQL
+- **Otomatik testler:** 753 test (4 Ekim 2026; 2'si gerçek dış servise
+  istek attığı için varsayılan çalıştırmada hariç), kod kapsamı ~%84. Kapsamı: birim testleri, gerçek PostgreSQL
   üzerinde API, depo ve görev kuyruğu testleri (eşzamanlı işçiler, ölen işçi
   kurtarma, LISTEN/NOTIFY), gerçek ERA5 küpüyle eşleştirme ve rota testleri,
   Playwright ile iki web önyüzünün tarayıcı testleri. Ağa çıkan bileşenler

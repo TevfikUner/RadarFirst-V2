@@ -17,6 +17,7 @@ M1 gece adımı (ml_veri_hatti'nın CDS eşleştirmesinden sonra):
 
 import argparse
 import json
+import math
 import os
 
 import numpy as np
@@ -52,6 +53,7 @@ def _bakilan_pencereler(gun) -> set[int]:
 
 def _bakilanlara_ekle(gun, idler) -> None:
     hepsi = sorted(_bakilan_pencereler(gun) | {int(i) for i in idler})
+    os.makedirs(os.path.dirname(_pencere_kaydi_yolu(gun)), exist_ok=True)
     with open(_pencere_kaydi_yolu(gun), "w", encoding="utf-8") as dosya:
         json.dump(hepsi, dosya)
 
@@ -318,7 +320,7 @@ def eksik_ozellikleri_tamamla(motor=None, tolerans=1e-4) -> dict:
             for satir, hesap in zip(alt.itertuples(index=False), yeni.itertuples(index=False), strict=True):
                 kayitli = satir.ozellikler or {}
                 ortak = [k for k in kayitli if k in gerekli and kayitli[k] is not None]
-                if not all(abs(getattr(hesap, k) - kayitli[k]) <= tolerans * max(1.0, abs(kayitli[k])) for k in ortak):
+                if not all(math.isclose(getattr(hesap, k), kayitli[k], rel_tol=tolerans, abs_tol=1e-15) for k in ortak):
                     ozet["uyusmayan"] += 1
                     continue
                 guncellemeler.append(

@@ -133,7 +133,7 @@ OGC API – EDR ve IWXXM.
 
 ## Yedek slaytlar
 
-- Test ve CI: 597 test (birim, PostgreSQL, gerçek veri, Playwright); CI'da 5 iş
+- Test ve CI: 753 test (birim, PostgreSQL, gerçek veri, Playwright); CI'da 5 iş
   (lint, güvenlik, test, tarayıcı, docker); sır taraması ve SBOM.
 - Veri lisansları ve sağlayıcı sınırları (`docs/VERI_KAYNAKLARI_VE_LISANSLAR.md`).
 - Konformal yöntemin özeti (ADR 0010) ve PIREP irtifa hatasının hikâyesi.

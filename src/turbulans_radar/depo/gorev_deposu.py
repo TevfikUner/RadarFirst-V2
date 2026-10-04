@@ -26,6 +26,9 @@ from turbulans_radar.depo.veritabani import async_oturum_al, motor_al
 AKTIF_DURUMLAR = ("kuyrukta", "calisiyor")
 BITMIS_DURUMLAR = ("tamamlandi", "hata", "basarisiz", "yarida_kaldi")
 GOREV_SAKLAMA_SURESI = timedelta(days=7)
+# Gece işi ve eğitim kayıtları (gecelik CDS/MB/eşleşme özeti, eğitim kararı) raporun
+# kanıtıdır ve gecede bir-iki satırdır: süre dolunca silinmez.
+KALICI_GOREV_TURLERI = ("ml_veri", "ml_egitim")
 
 _DISARI_VERILEN_ALANLAR = (
     "durum",
@@ -126,11 +129,16 @@ async def gorev_durumlari(tur: str, sonra: datetime) -> list[str]:
 
 
 async def eski_gorevleri_temizle(saklama_suresi: timedelta = GOREV_SAKLAMA_SURESI) -> int:
-    """Saklama süresinden eski BİTMİŞ görevleri siler (kuyruktaki/çalışanlara dokunmaz)."""
+    """Saklama süresinden eski BİTMİŞ görevleri siler (kuyruktaki/çalışanlara ve
+    KALICI_GOREV_TURLERI'ne dokunmaz)."""
     sinir = datetime.now(UTC) - saklama_suresi
     async with async_oturum_al() as oturum:
         sonuc = await oturum.execute(
-            delete(AnalizGorevi).where(AnalizGorevi.durum.in_(BITMIS_DURUMLAR), AnalizGorevi.olusturulma_zamani < sinir)
+            delete(AnalizGorevi).where(
+                AnalizGorevi.durum.in_(BITMIS_DURUMLAR),
+                AnalizGorevi.olusturulma_zamani < sinir,
+                AnalizGorevi.tur.not_in(KALICI_GOREV_TURLERI),
+            )
         )
         await oturum.commit()
         return sonuc.rowcount

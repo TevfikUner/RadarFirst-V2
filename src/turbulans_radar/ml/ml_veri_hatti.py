@@ -487,3 +487,59 @@ def ml_durum_ozeti(motor=None) -> dict:
             "penceresiz_eslesmis_ornek": int(penceresiz),
         },
     }
+
+
+GECE_GECMISI_ALANLARI = (
+    "baslangic_utc",
+    "durum",
+    "sure_dk",
+    "cds_istek",
+    "veri_mb",
+    "eslesti",
+    "kapsam_disi",
+    "hata",
+    "durdurma",
+    "iem_eklenen",
+    "iem_atlandi",
+    "madis_eklenen",
+    "egitim_karari",
+    "secilen_model",
+    "egitim_ornek",
+    "aday_roc_auc",
+    "ti1_roc_auc",
+)
+
+
+def gece_isi_gecmisi(motor=None) -> list[dict]:
+    """Her ml_veri çalıştırması için bir satır: veri özeti ve zincirlenen eğitimin kararı
+    (rapor/sunum için; kayıtlar silinmez, bkz. gorev_deposu.KALICI_GOREV_TURLERI)."""
+    with Session(motor or motor_al()) as oturum:
+        gorevler = oturum.execute(
+            select(AnalizGorevi)
+            .where(AnalizGorevi.tur.in_(("ml_veri", "ml_egitim")))
+            .order_by(AnalizGorevi.olusturulma_zamani)
+        ).scalars()
+        gorevler = list(gorevler)
+    egitimler = {g.id: (g.ozet or [{}])[0] for g in gorevler if g.tur == "ml_egitim"}
+    satirlar = []
+    for g in (g for g in gorevler if g.tur == "ml_veri"):
+        veri = (g.ozet or [{}])[0]
+        egitim = egitimler.get(veri.get("egitim_gorev_id"), {})
+        sure = (g.bitis_zamani - g.baslama_zamani).total_seconds() / 60 if g.bitis_zamani and g.baslama_zamani else None
+        satirlar.append(
+            {
+                "baslangic_utc": g.olusturulma_zamani.strftime("%Y-%m-%d %H:%M"),
+                "durum": g.durum,
+                "sure_dk": round(sure, 1) if sure is not None else None,
+                **{a: veri.get(a) for a in ("cds_istek", "veri_mb", "eslesti", "kapsam_disi", "hata", "durdurma")},
+                "iem_eklenen": veri.get("iem_eklenen"),
+                "iem_atlandi": veri.get("iem_atlandi"),
+                "madis_eklenen": veri.get("madis_eklenen"),
+                "egitim_karari": egitim.get("karar"),
+                "secilen_model": egitim.get("secilen_model"),
+                "egitim_ornek": egitim.get("ornek_sayisi"),
+                "aday_roc_auc": (egitim.get("aday_holdout") or {}).get("roc_auc"),
+                "ti1_roc_auc": (egitim.get("ti1_referansi_holdout") or {}).get("roc_auc"),
+            }
+        )
+    return satirlar

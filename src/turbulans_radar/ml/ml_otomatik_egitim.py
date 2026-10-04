@@ -271,7 +271,20 @@ def ana(argv=None):
     grup = ayristirici.add_mutually_exclusive_group()
     grup.add_argument("--listele", action="store_true", help="Kayıtlı model sürümlerini listeler")
     grup.add_argument("--geri-al", metavar="VERSIYON_ID", help="Verilen sürümü aktif model yapar")
+    grup.add_argument(
+        "--gece-gecmisi", action="store_true", help="Her gece işinin veri özeti ve eğitim kararı (CSV, stdout)"
+    )
     argumanlar = ayristirici.parse_args(argv)
+    if argumanlar.gece_gecmisi:
+        import csv
+        import sys
+
+        from turbulans_radar.ml.ml_veri_hatti import GECE_GECMISI_ALANLARI, gece_isi_gecmisi
+
+        yazici = csv.DictWriter(sys.stdout, fieldnames=GECE_GECMISI_ALANLARI)
+        yazici.writeheader()
+        yazici.writerows(gece_isi_gecmisi())
+        return
     if argumanlar.listele:
         for surum in model_versiyonlarini_listele():
             durum = "aktif edildi" if surum.get("aktiflestirildi", True) else "saklandı"

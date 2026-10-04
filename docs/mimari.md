@@ -16,7 +16,7 @@ flowchart LR
     DIS(["Dispeçer / uçuş harekât"])
     PIL(["Pilot (EFB, salt pilot rolü)"])
     OPR(["Operatör / yönetici"])
-    N8N(["n8n zamanlayıcı"])
+    N8N(["Dış zamanlayıcı<br/>(n8n/cron, isteğe bağlı)"])
 
     TR["<b>Türbülans Radar</b><br/>Rota-hava eşleştirme, türbülans göstergeleri,<br/>SIGMET/kısıtlı saha kısıtlı A* rota,<br/>ML risk olasılığı"]
 
@@ -148,10 +148,10 @@ flowchart LR
 flowchart LR
     P1["IEM PIREP arşivi<br/>+ artımlı IEM"] --> P2["Seyir irtifası filtresi<br/>28–42 bin ft (feet)"]
     P2 --> P3[("ml_ornekleri<br/>durum: bekliyor")]
-    N["n8n → POST /ml/gece-isi"] --> W["işçi: ml_veri"]
+    N["API zamanlayıcısı (ML_GECE_ISI_SAATI)<br/>ya da POST /ml/gece-isi"] --> W["işçi: ml_veri"]
     P3 --> W
     W --> G["Gün/bölge gruplama<br/>(hücre-saat sınırı)"]
-    G --> CDS["CDS dilimi, 7 seviye + bağıl nem<br/>gecelik 60, günlük 150 istek"]
+    G --> CDS["CDS dilimi, 7 seviye + bağıl nem<br/>gecelik 30, günlük 150 istek, 500 MB/gün"]
     CDS --> OZ["Özellik çıkarımı<br/>(300/250/200 hPa, analizle aynı kod)"]
     CDS --> DEP[("Pencere deposu<br/>±1°, ±1 sa, NetCDF")]
     OZ --> P4[("ml_ornekleri<br/>eslesti + özellikler<br/>+ pencere_dosyasi")]

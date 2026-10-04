@@ -4,6 +4,22 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Proje denetimi: düşük öncelikli maddeler
+
+- **Gece işi geçmişi kalıcı:** `ml_veri` ve `ml_egitim` görevleri 7 günlük
+  temizlikte silinmez (gecelik CDS/MB/eşleşme özeti ve eğitim kararı rapor
+  kanıtıdır). `turbulans-ml --gece-gecmisi` hepsini CSV olarak verir.
+- **Belgeler:** test sayıları (753), n8n'in isteğe bağlı olduğu ve bu
+  kurulumda zamanlayıcıların API içinde çalıştığı, sistem kartına
+  meteorolojik sınırlar (iki seviyelik kayma katmanı, en yakın nokta
+  okuması, 1°/3 sa kapsam toleransı).
+- **MADIS testleri:** `gunu_isle` ve `ozellik-tamamla` için veritabanlı
+  uçtan uca testler. Bulunan iki hata düzeltildi: günün klasörü yoksa
+  işlenen pencere kaydı yazılamıyordu; özellik tamamlamadaki uyuşmazlık
+  kontrolü mutlak toleranslıydı ve 1e-7 mertebesindeki TI1 farklarını
+  göremiyordu (artık göreli; canlıdaki 8.280 örnek yeniden doğrulandı, 0
+  uyuşmazlık).
+
 ## Proje denetimi: orta öncelikli maddeler
 
 - **İşçi kapanışı:** `stop_grace_period: 300s`; işçi çalışan görevi

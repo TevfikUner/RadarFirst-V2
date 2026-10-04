@@ -326,7 +326,7 @@ görüntü (snapshot) kolaylığı sağlar.
 | POST | `/api/v1/veri/canli/hazirla` | Bir bölge/zaman için canlı GFS küpünü arka planda hazırlar (katalogda tazesi varsa onu kullanır), 202 + `gorev_id` döner |
 | GET | `/api/v1/veri/kupler` | Hava durumu küpü kataloğu (kaynak, model çalıştırması, kapsam, seviyeler) |
 | POST | `/api/v1/backtest/ucuslar/{ucus_numarasi}/{tarih}` | Bir uçuşun gerçek izini büyük daire ve A* rotasıyla karşılaştırıp kaydeder |
-| POST | `/api/v1/backtest/toplu` | Backtest'i olmayan uçuşları arka planda karşılaştırır (n8n gece tetiklemesi), `gorev_id` döner |
+| POST | `/api/v1/backtest/toplu` | Backtest'i olmayan uçuşları arka planda karşılaştırır (ör. gecelik bir zamanlayıcıdan), `gorev_id` döner |
 | GET | `/api/v1/backtest` | Tüm backtest sonuçları + filo geneli özet |
 | POST | `/api/v1/turbulans/tahmin` | Tek nokta için fizik (TI1) + gerçek PIREP verisiyle eğitilmiş ML tahminini karşılaştırmalı döner |
 | GET | `/api/v1/turbulans/model-bilgisi` | ML modelinin seçim gerekçesi/metrikleri (recall, F1, ROC-AUC vb.) + eğitim tarihini döner; model henüz eğitilmediyse dürüstçe `egitildi_mi: false` |
@@ -1094,12 +1094,15 @@ görsel bir ölçektir.
 
 **Ek özellikler:** eşleştirme her nokta için düşey rüzgar kayması, yatay
 deformasyon, yatay diverjans ve Ellrod-Knox TI2'yi (VWS × (DEF + yakınsama))
-da üretir; bunlar `ml_ornekleri`'ne kaydedilir (model şimdilik 4 özellik
-kullanır). Dağ dalgası ve konveksiyon özellikleri için ERA5'ten ek alanlar
+da üretir; bunlar `ml_ornekleri`'ne kaydedilir ve modelde kullanılır (bkz.
+yukarıdaki 4. adım). Dağ dalgası ve konveksiyon özellikleri için ERA5'ten ek alanlar
 gerekir: yüzey jeopotansiyeli (`geopotential`, tek seviye; arazi) ve CAPE
 (`convective_available_potential_energy`, tek seviye).
 
-**n8n kurulumu:** `otomasyon/n8n_gece_isi.json`'ı n8n'de *Import from file*
+**n8n kurulumu (isteğe bağlı):** Bu projenin kendi kurulumunda n8n
+kullanılmıyor; gece işini API'nin zamanlayıcısı (`ML_GECE_ISI_SAATI`)
+tetikliyor. n8n tercih edilirse zamanlayıcıyı kapatın (`ML_GECE_ISI_SAATI=`)
+ve `otomasyon/n8n_gece_isi.json`'ı n8n'de *Import from file*
 ile içe aktar. Bir *Header Auth* kimlik bilgisi oluştur (Name: `X-API-Key`,
 Value: yönetici anahtarı) ve "Gece işini tetikle" düğümüne bağla. API adresi
 `TURBULANS_API_URL` ortam değişkeninden okunur (yoksa `http://localhost:8000`;
@@ -1275,6 +1278,13 @@ yeniden kodlar (`veri/iwxxm.py`; yapı WMO'nun resmi örneği wmo-im/iwxxm
   harita boş kalmaz.
 
 ## n8n ile periyodik otomasyon
+
+**İsteğe bağlıdır; bu projenin kendi kurulumunda n8n çalışmıyor.** Docker
+yığını iki düzenli işi kendisi yürütür: canlı SIGMET yenilemesi
+(`SIGMET_OTOMATIK_GUNCELLEME_DAKIKA`, 15 dk) ve ML gece işi
+(`ML_GECE_ISI_SAATI`, o saatten sonraki ilk açılışta). Aşağıdaki tablo, bu
+işleri ya da diğerlerini dış bir zamanlayıcıdan (n8n, cron) tetiklemek
+isteyenler içindir; aynı iş için iki zamanlayıcıyı birlikte açmayın.
 
 Otomasyon tarafı projenin Python iç yapısını bilmez; her iş, n8n'de bir
 **Schedule Trigger** + **HTTP Request** node çiftidir. Tüm isteklere

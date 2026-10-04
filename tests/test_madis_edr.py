@@ -312,3 +312,113 @@ def test_nesnel_degerlendirme_eski_orneklerde_model_ozelligi_yoksa_nedenini_soyl
     monkeypatch.setattr(tm, "ozelliklerden_risk_tahmin_et", lambda df: np.full(len(df), np.nan))
     rapor = mh.nesnel_degerlendirme(_degerlendirme_df(6), tekrar=10)
     assert rapor["model"]["durum"] == "degerlendirilmedi" and "ozellik-tamamla" in rapor["model"]["neden"]
+
+
+@pytest.fixture
+def pencereli_db_ornegi(motor):
+    """Veritabanında pencere dosyalı tek bir eşleşmiş PIREP (THY322 demo küpünden)."""
+    from sqlalchemy import text
+    from sqlalchemy.orm import Session
+    from test_ozellik_deposu import _thy322_seyir_noktalari
+
+    from turbulans_radar.depo.models import MlOrnegi
+
+    nokta = _thy322_seyir_noktalari().iloc[[5]].reset_index(drop=True)
+    p = nokta.iloc[0]
+    with Session(motor) as oturum:
+        satir = MlOrnegi(
+            pirep_anahtari="madis-test-pencere",
+            kaynak="madis_test",
+            zaman=pd.Timestamp(p.zaman).to_pydatetime(),
+            enlem=float(p.enlem),
+            boylam=float(p.boylam),
+            irtifa_ft=float(p.irtifa_ft),
+            sinif=1,
+            durum="eslesti",
+        )
+        oturum.add(satir)
+        oturum.commit()
+        ornek_id = satir.id
+    with xr.open_dataset(demo.demo_dosyalari()["era5"]) as kup:
+        goreli = od.grup_penceresini_yaz(nokta.assign(id=ornek_id), kup.load())
+    with motor.begin() as baglanti:
+        baglanti.execute(
+            text("UPDATE ml_ornekleri SET pencere_dosyasi = :d WHERE id = :i"), {"d": goreli, "i": ornek_id}
+        )
+    yield ornek_id, p
+    with motor.begin() as baglanti:
+        baglanti.execute(text("DELETE FROM edr_ornekleri WHERE ml_ornek_id = :i"), {"i": ornek_id})
+        baglanti.execute(text("DELETE FROM ml_ornekleri WHERE id = :i"), {"i": ornek_id})
+
+
+def _yakin_edr(p, max_edr=0.15):
+    return pd.DataFrame(
+        {
+            "zaman": [pd.Timestamp(p.zaman)],
+            "enlem": [p.enlem + 0.1],
+            "boylam": [p.boylam - 0.1],
+            "irtifa_ft": [p.irtifa_ft],
+            "max_edr": [max_edr],
+            "med_edr": [0.05],
+            "kalite": ["Z"],
+        }
+    )
+
+
+def _edr_ozellikleri(motor, ornek_id):
+    from sqlalchemy import text
+
+    with motor.connect() as baglanti:
+        return baglanti.execute(
+            text("SELECT ozellikler FROM edr_ornekleri WHERE ml_ornek_id = :i"), {"i": ornek_id}
+        ).scalar_one()
+
+
+def test_gunu_isle_eslesen_edr_yi_kaydeder_ve_bakilan_pencereyi_tekrar_islemez(motor, pencereli_db_ornegi):
+    ornek_id, p = pencereli_db_ornegi
+    gun = pd.Timestamp(p.zaman).tz_convert(None).normalize()
+    getirici = lambda g: _yakin_edr(p)  # noqa: E731
+    ilk = mh.gunu_isle(gun, motor, getirici)
+    assert (ilk["gozlem"], ilk["eklenen"]) == (1, 1) and ilk["yeni_pencere"] >= 1
+    assert ornek_id in mh._bakilan_pencereler(gun)
+    ikinci = mh.gunu_isle(gun, motor, getirici)
+    assert (ikinci["yeni_pencere"], ikinci["eklenen"]) == (0, 0)
+    ozellikler = _edr_ozellikleri(motor, ornek_id)
+    assert set(ozellikler) == set(mh_ozellik_sutunlari()) and np.isfinite(ozellikler["ti1_indeksi"])
+
+
+def mh_ozellik_sutunlari():
+    from turbulans_radar.ml.turbulans_ml_modeli import MODEL_OZELLIK_SUTUNLARI
+
+    return MODEL_OZELLIK_SUTUNLARI
+
+
+def test_eksik_ozellik_tamamlama_ayni_degerleri_uretir_uyusmayani_dokunmadan_sayar(motor, pencereli_db_ornegi):
+    import json
+
+    from sqlalchemy import text
+
+    from turbulans_radar.ml.turbulans_ml_modeli import EK_OZELLIK_SUTUNLARI, OZELLIK_SUTUNLARI
+
+    ornek_id, p = pencereli_db_ornegi
+    gun = pd.Timestamp(p.zaman).tz_convert(None).normalize()
+    mh.gunu_isle(gun, motor, lambda g: _yakin_edr(p))
+    tam = _edr_ozellikleri(motor, ornek_id)
+
+    def _yaz(ozellikler):
+        with motor.begin() as baglanti:
+            baglanti.execute(
+                text("UPDATE edr_ornekleri SET ozellikler = CAST(:o AS jsonb) WHERE ml_ornek_id = :i"),
+                {"o": json.dumps(ozellikler), "i": ornek_id},
+            )
+
+    _yaz({k: tam[k] for k in OZELLIK_SUTUNLARI})
+    ozet = mh.eksik_ozellikleri_tamamla(motor)
+    assert ozet["tamamlanan"] >= 1 and ozet["uyusmayan"] == 0
+    assert _edr_ozellikleri(motor, ornek_id) == pytest.approx(tam)
+
+    bozuk = {k: tam[k] for k in OZELLIK_SUTUNLARI} | {"ti1_indeksi": tam["ti1_indeksi"] * 2 + 1e-6}
+    _yaz(bozuk)
+    assert mh.eksik_ozellikleri_tamamla(motor)["uyusmayan"] >= 1
+    kalan = _edr_ozellikleri(motor, ornek_id)
+    assert kalan == pytest.approx(bozuk) and not set(EK_OZELLIK_SUTUNLARI) & set(kalan)

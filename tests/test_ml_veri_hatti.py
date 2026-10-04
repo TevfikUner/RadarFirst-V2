@@ -471,3 +471,48 @@ def test_veri_butcesi_yerken_eslestirme_surer_ve_harcanani_raporlar(motor, veri_
     saglayici = _SahteCds()
     ozet = mv.eslestirme_calistir(maks_cds_istek=5, saglayici=saglayici, motor=motor, kaynaklar=[_KAYNAK])
     assert len(saglayici.cagrilar) == 1 and ozet["durdurma"] is None and ozet["veri_mb"] == 0.0
+
+
+def test_gece_isi_gecmisi_veri_ozetini_egitim_karariyla_birlestirir(motor):
+    from datetime import UTC, datetime, timedelta
+
+    from sqlalchemy.orm import Session
+
+    from turbulans_radar.depo.models import AnalizGorevi
+
+    bas = datetime(2001, 1, 1, 3, 0, tzinfo=UTC)
+    egitim = AnalizGorevi(
+        id="gecmis-egitim",
+        tur="ml_egitim",
+        durum="tamamlandi",
+        olusturulma_zamani=bas + timedelta(hours=1),
+        ozet=[
+            {
+                "karar": "saklandi",
+                "secilen_model": "Random Forest",
+                "ornek_sayisi": 100,
+                "aday_holdout": {"roc_auc": 0.66},
+                "ti1_referansi_holdout": {"roc_auc": 0.64},
+            }
+        ],
+    )
+    veri = AnalizGorevi(
+        id="gecmis-veri",
+        tur="ml_veri",
+        durum="tamamlandi",
+        olusturulma_zamani=bas,
+        baslama_zamani=bas,
+        bitis_zamani=bas + timedelta(minutes=45),
+        ozet=[{"cds_istek": 30, "veri_mb": 390.5, "eslesti": 800, "egitim_gorev_id": "gecmis-egitim"}],
+    )
+    with Session(motor) as oturum:
+        oturum.add_all([veri, egitim])
+        oturum.commit()
+    try:
+        satir = next(s for s in mv.gece_isi_gecmisi(motor) if s["baslangic_utc"] == "2001-01-01 03:00")
+        assert (satir["sure_dk"], satir["cds_istek"], satir["veri_mb"], satir["eslesti"]) == (45.0, 30, 390.5, 800)
+        assert (satir["egitim_karari"], satir["aday_roc_auc"], satir["ti1_roc_auc"]) == ("saklandi", 0.66, 0.64)
+        assert set(satir) == set(mv.GECE_GECMISI_ALANLARI)
+    finally:
+        with motor.begin() as baglanti:
+            baglanti.execute(text("DELETE FROM analiz_gorevleri WHERE id IN ('gecmis-veri', 'gecmis-egitim')"))
