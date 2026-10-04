@@ -128,7 +128,7 @@ class Sigmet(Base):
     fir_kodu: Mapped[str | None] = mapped_column(String(16), nullable=True)
     seri_no: Mapped[str | None] = mapped_column(String(16), nullable=True)
     tehlike: Mapped[str] = mapped_column(String(16), nullable=False)
-    niteleyici: Mapped[str | None] = mapped_column(String(16), nullable=True)
+    niteleyici: Mapped[str | None] = mapped_column(String(128), nullable=True)
     gecerlilik_baslangic: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
     gecerlilik_bitis: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
     taban_ft: Mapped[int | None] = mapped_column(Integer, nullable=True)

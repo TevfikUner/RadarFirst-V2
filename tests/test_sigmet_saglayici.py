@@ -115,6 +115,15 @@ def test_guncelleme_upsert_eder_ve_akistan_dusen_sigmeti_sonlandirir(test_verita
     assert [s["tehlike"] for s in aktif] == ["TURB"]
 
 
+def test_yanardag_adli_uzun_niteleyici_kaydedilir(test_veritabani):
+    va = {**ULUSLARARASI_ORNEK, "seriesId": "V01", "hazard": "VA", "qualifier": "ERUPTION MT LEWOTOLOK"}
+    ozet = ss.sigmetleri_guncelle(getirici=lambda k: [ULUSLARARASI_ORNEK, va], kaynaklar=("test",))
+    assert ozet["kaydedilen"] == 2
+    simdi = datetime.now(UTC)
+    kayitlar = [s for s in ss.gecerli_sigmetleri_getir(simdi, simdi) if s["kaynak"] == "test"]
+    assert "ERUPTION MT LEWOTOLOK" in [s["niteleyici"] for s in kayitlar]
+
+
 def test_basarisiz_kaynak_mevcut_kayitlara_dokunmaz(test_veritabani):
     ss.sigmetleri_guncelle(getirici=lambda k: [ULUSLARARASI_ORNEK], kaynaklar=("test",))
 
