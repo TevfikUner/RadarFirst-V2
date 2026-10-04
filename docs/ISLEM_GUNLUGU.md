@@ -5,7 +5,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 ## 2026-10-04
 
 - ✅ Git kuralları: master'a doğrudan push yasak (.githooks/pre-push), iş claude/<konu> dalında, birleştirme PR ile.
-- ⚠️ `alembic downgrade` "önce sor"a eklendi; deny'dan çıkarılması kullanıcıda (izin sistemi Claude'un kendi yetkisini gevşetmesini engelledi).
+- ✅ `alembic downgrade` (Bash) artık yasak değil, "önce sor"da; PowerShell karşılığını yasaktan çıkarmak kullanıcıda.
 
 - ⚠️ Disk dışı yedek: yedekler OneDrive\TurbulansRadar_Yedekleri'ne de kopyalanıyor; OneDrive'a giriş yapılana dek buluta gitmez.
 - ✅ OpenSky önbelleği günlük dosya arşivine eklendi.
