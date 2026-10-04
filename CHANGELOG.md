@@ -6,6 +6,12 @@ gruplanmıştır, en yeni en üstte.
 
 ## Proje denetimi: düşük öncelikli maddeler
 
+- **Docker giriş betiği:** `USER` yerine `otomasyon/konteyner_giris.sh`:
+  yazılabilir bağlı klasörleri ve model volume'unu uid 1000'e sahiplendirip
+  yetkiyi `setpriv` ile düşürür. Linux'ta Docker eksik klasörleri root
+  oluşturduğu için root olmayan süreç `canli_veri/` gibi klasörlere
+  yazamıyordu (Windows diskinde görünmüyordu).
+
 - **Gece işi geçmişi kalıcı:** `ml_veri` ve `ml_egitim` görevleri 7 günlük
   temizlikte silinmez (gecelik CDS/MB/eşleşme özeti ve eğitim kararı rapor
   kanıtıdır). `turbulans-ml --gece-gecmisi` hepsini CSV olarak verir.

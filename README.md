@@ -191,12 +191,12 @@ AWC SIGMET'lerini 15 dakikada bir kendisi yeniler
 indirir (`canli_veri/` volume'unda saklanır). PostgreSQL ve API portları
 yalnızca `127.0.0.1`'e açıktır; ağdaki bir cihaz API'ye erişecekse `.env`'de
 `API_YAYIN_ADRESI=0.0.0.0` (anahtarlar düz HTTP'den geçer, yalnızca güvenilen
-ağda). Konteynerler root olmayan `turbulans` (uid 1000) kullanıcısıyla çalışır.
-Root çalışan eski bir sürümden geçerken model volume'u bir kez sahiplendirilir:
-
-```bash
-docker compose run --rm --no-deps --user root api chown -R 1000:1000 /app/model_deposu
-```
+ağda). Uygulama süreçleri root olmayan `turbulans` (uid 1000) kullanıcısıyla
+çalışır: giriş betiği (`otomasyon/konteyner_giris.sh`) yazılabilir bağlı
+klasörleri ve model volume'unu bu kullanıcıya sahiplendirip yetkiyi düşürür
+(Linux'ta Docker eksik klasörleri root olarak oluşturur). `docker compose exec`
+ile açılan komutlar giriş betiğinden geçmez ve root çalışır; dosya yazan bir
+komutu `docker compose exec --user turbulans ...` ile çalıştırın.
 
 İşçi durdurulunca (`docker compose stop/up` dahil) çalışan görevi
 `GOREV_DURDURMA_BEKLEME_SANIYE` (240) bekler; ML gece işi süren CDS isteğini
