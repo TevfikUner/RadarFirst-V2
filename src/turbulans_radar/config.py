@@ -136,6 +136,8 @@ ML_GECE_ISI_SAATI = _ortam_str("ML_GECE_ISI_SAATI", "").strip()
 ML_GECE_GUNLUK_MAKS_DENEME = _ortam_sayi("ML_GECE_GUNLUK_MAKS_DENEME", 3, int)
 ML_IEM_BASLANGIC = _ortam_str("ML_IEM_BASLANGIC", "2020-04-01")
 ML_IEM_GECELIK_MAKS_GUN = _ortam_sayi("ML_IEM_GECELIK_MAKS_GUN", 7, int)
+# Eşleşme bekleyen PIREP bu sayıyı aşınca IEM'den yeni gün çekilmez (gece ~300-800 eşleşme yapılıyor). 0 = sınırsız.
+ML_IEM_MAKS_BEKLEYEN = _ortam_sayi("ML_IEM_MAKS_BEKLEYEN", 5000, int)
 # IEM'in yazılı hız sınırı yok; günlük PIREP istekleri arasında nezaket beklemesi.
 ML_IEM_ISTEKLER_ARASI_SANIYE = _ortam_sayi("ML_IEM_ISTEKLER_ARASI_SANIYE", 2.0)
 # Açılışta ağ/DNS hazır olmadan başlayan gece işi için: yalnızca istek sunucuya ulaşmadığında yeniden dener.

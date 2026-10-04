@@ -295,6 +295,24 @@ def test_eski_hatla_egitilmis_model_kullanilmaz_ve_nedeni_soylenir(monkeypatch):
     assert tm.model_kullanilabilir_mi({"secilen_model": "RF"}, model_var_mi=True)[0] is True
 
 
+def test_tahmin_modelin_egitildigi_sutunlari_kullanir_eksik_sutunlu_satir_nan_olur(monkeypatch):
+    from sklearn.linear_model import LogisticRegression
+
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
+
+    rng = np.random.default_rng(0)
+    egitim = pd.DataFrame(rng.normal(size=(40, len(tm.MODEL_OZELLIK_SUTUNLARI))), columns=tm.MODEL_OZELLIK_SUTUNLARI)
+    model = LogisticRegression().fit(egitim, np.r_[np.zeros(20), np.ones(20)])
+    monkeypatch.setattr(tm, "model_kullanilabilir_mi", lambda *a, **k: (True, None))
+    monkeypatch.setattr(tm, "_modeli_yukle", lambda: model)
+    assert tm.modelin_ozellik_sutunlari(model) == tm.MODEL_OZELLIK_SUTUNLARI
+    ozellikler = egitim.iloc[:2].copy()
+    ozellikler.loc[1, "ti2_indeksi"] = np.nan
+    olasilik = tm.ozelliklerden_risk_tahmin_et(ozellikler)
+    assert np.isfinite(olasilik[0]) and np.isnan(olasilik[1])
+    assert np.isnan(tm.ozelliklerden_risk_tahmin_et(egitim[OZELLIK_SUTUNLARI].iloc[:1])).all()
+
+
 def test_eski_model_icin_tahmin_uretilmez(monkeypatch):
     from turbulans_radar.ml import turbulans_ml_modeli as tm
 

@@ -113,9 +113,13 @@ services:
       PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
       PGDATABASE: ${POSTGRES_DB:-Turbulence-db}
       DB_YEDEK_SAKLA_GUN: ${DB_YEDEK_SAKLA_GUN:-7}
+      YEDEK_YENIDEN_DENEME_SANIYE: ${YEDEK_YENIDEN_DENEME_SANIYE:-60}
     volumes:
       - ./db_yedekleri:/yedekler
       - ./otomasyon/db_yedekle.sh:/db_yedekle.sh:ro
+      - ./ml_ozellik_deposu:/kaynak/ml_ozellik_deposu:ro
+      - ./madis_edr:/kaynak/madis_edr:ro
+      - turbulans_modeller:/kaynak/model_deposu:ro
     entrypoint: ["sh", "/db_yedekle.sh"]
 
   # Kimlik bilgisi gerektirmeyen demo (bkz. demo/README.md):

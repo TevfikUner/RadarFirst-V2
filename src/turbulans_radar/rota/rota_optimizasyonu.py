@@ -124,21 +124,15 @@ UCAK_PROFILLERI = {
 # kg CO2 / kg yakıt) -- uçak modeline göre DEĞİŞMEZ, uydurma bir katsayı DEĞİLDİR.
 CO2_KG_PER_KG_YAKIT = 3.16
 
-# İrtifa değişimi (tırmanma/alçalma) maliyet modeli -- türbülanstan kaçınmanın
-# YANAL sapma dışında ikinci bir GERÇEK stratejisi: bazı CAT katmanları
-# irtifaya bağlıdır, bir üst/alt basınç seviyesine geçmek türbülansı
-# tamamen atlatabilir. Tırmanma/alçalma KENDİ İÇİNDE de bir yakıt/süre
-# maliyeti taşır -- bu yüzden "çok faktörlü" bir karşılaştırma: yanal A*
-# yolu ile irtifa değişimi arasından TOPLAM maliyeti (temel seyir yakıtı +
-# tırmanma/alçalma bedeli) en düşük, güvenliği sağlayan seçenek seçilir.
-# Katsayılar YAKLAŞIKTIR (halka açık, tipik jet performansı mertebeleri) --
-# resmi uçak performans verisi DEĞİLDİR:
-#   - Tırmanma sırasında motor gücü seyirden yüksektir -> yakıt akışı seyrin
-#     ÜZERİNDE (+%50 tipik mertebe).
-#   - Alçalma genelde ridle-yakın güçle yapılır -> yakıt akışı seyrin
-#     ALTINDA (-%30 tipik mertebe) -- yani alçalarak kaçınma bazen hem
-#     güvenli HEM ucuz olabilir.
-#   - Dikey hız ~1500 ft/dk -- yüksek irtifada tipik tırmanma/alçalma hızı.
+# İrtifa değişimi (tırmanma/alçalma) maliyet modeli: bir üst/alt basınç
+# seviyesine geçmek irtifaya bağlı bir CAT katmanını atlatabilir. Seyir başı ve
+# sonu planlanan seviyede olduğu için (ToC/ToD, bkz. kapsam) geçici seviyeye
+# gidiş ve planlanan seviyeye dönüş BİRLİKTE maliyetlenir: tırmanma ve alçalma
+# simetriktir, hiçbiri yakıt "tasarrufu" göstermez. Katsayılar YAKLAŞIKTIR
+# (halka açık tipik jet mertebeleri, resmi performans verisi DEĞİL); seviyeye
+# bağlı seyir yakıt akışı ve TAS modellenmez.
+#   - Tırmanmada yakıt akışı seyrin ~%50 üstü, alçalmada ~%30 altı.
+#   - Dikey hız ~1500 ft/dk; uçak bu sürede ilerlediği için ek süre sayılmaz.
 TIRMANMA_EK_YAKIT_ORANI = 0.5
 ALCALMA_YAKIT_TASARRUFU_ORANI = 0.3
 DIKEY_HIZ_FT_DK = 1500.0
@@ -694,18 +688,15 @@ def _noktalari_paketle(enlemler, boylamlar, irtifa_m, zamanlar):
 
 
 def _irtifa_degisimi_maliyeti(eski_irtifa_m, yeni_irtifa_m, yakit_akisi_kg_saat):
-    """İki irtifa arasında geçişin EKSTRA maliyetini hesaplar (normal
-    seyire göre FARK olarak): (ekstra_saniye, ekstra_yakit_kg). Tırmanma
-    pozitif, alçalma NEGATİF (yakıt tasarrufu) ekstra_yakit_kg döndürebilir
-    -- bkz. modül başındaki TIRMANMA_EK_YAKIT_ORANI/ALCALMA_YAKIT_TASARRUFU_
-    ORANI notu."""
-    fark_ft = (yeni_irtifa_m - eski_irtifa_m) / 0.3048
+    """Geçici seviyeye gidiş + planlanan seviyeye dönüşün seyre göre ek
+    maliyeti: (ekstra_saniye, ekstra_yakit_kg). Bir tırmanma ve bir alçalma
+    içerdiği için yön fark etmez (bkz. modül başındaki not)."""
+    fark_ft = abs(yeni_irtifa_m - eski_irtifa_m) / 0.3048
     if fark_ft == 0:
         return 0.0, 0.0
-    sure_saat = abs(fark_ft) / DIKEY_HIZ_FT_DK / 60.0
-    oran = TIRMANMA_EK_YAKIT_ORANI if fark_ft > 0 else -ALCALMA_YAKIT_TASARRUFU_ORANI
-    ekstra_yakit_kg = yakit_akisi_kg_saat * sure_saat * oran
-    return sure_saat * 3600.0, ekstra_yakit_kg
+    tek_yon_saat = fark_ft / DIKEY_HIZ_FT_DK / 60.0
+    ekstra_yakit_kg = yakit_akisi_kg_saat * tek_yon_saat * (TIRMANMA_EK_YAKIT_ORANI - ALCALMA_YAKIT_TASARRUFU_ORANI)
+    return 0.0, ekstra_yakit_kg
 
 
 def _en_yakin_komsu_basinc_seviyeleri(veri_kupu, irtifa_m):
@@ -1128,9 +1119,7 @@ def rota_simulasyonu_olustur(
             en_iyi, guvenli_rota_bulundu_mu = normal, False
 
     normal_yakit_kg = _aday_toplam_yakit_kg(normal)
-    # İrtifa değişiminde toplam süre tırmanma/alçalmayı da içerir, ama o süre
-    # boyunca yakıt akışı SEYİR hızında DEĞİLDİR -- yakıt, seyir süresinden +
-    # ayrıca hesaplanan ek yakıttan hesaplanır (bkz. _irtifa_degisimi_maliyeti).
+    # Yakıt = seyir süresi x yakıt akışı + seviye geçişlerinin ek yakıtı (bkz. _irtifa_degisimi_maliyeti).
     optimize_yakit_kg = _aday_toplam_yakit_kg(en_iyi)
     optimize_saniye = en_iyi["saniye"] + en_iyi["ekstra_saniye"]
     secenekler = pareto_secenekleri(
@@ -1264,6 +1253,12 @@ def _rota_ozeti(aday, yakit_kg, toplam_saniye):
         "sigmet_ihlali_sayisi": aday["sigmet_ihlali"],
         "kisitli_saha_ihlali_sayisi": aday["kisitli_saha_ihlali"],
     }
+
+
+_SEVIYE_MALIYET_NOTU = (
+    " Yakıt farkı yalnızca geçici seviyeye gidip planlanan seviyeye dönmenin yaklaşık bedelidir; seviyeye bağlı "
+    "seyir yakıt akışı modellenmez."
+)
 
 
 def _bulgu(kod, seviye, metin, **parametreler):
@@ -1441,8 +1436,8 @@ def _bulgulari_olustur(
                     "kacinma_tam_guvenli",
                     "bilgi",
                     "ÇOK FAKTÖRLÜ karşılaştırmada (yanal A* araması vs bir üst/alt basınç seviyesine geçiş, her "
-                    "biri gerçek yakıt/süre maliyetiyle) en ucuz TAM güvenli seçenek olarak "
-                    f"{strateji_aciklamasi} bulundu.",
+                    "biri yaklaşık yakıt/süre maliyetiyle) en ucuz TAM güvenli seçenek olarak "
+                    f"{strateji_aciklamasi} bulundu." + (_SEVIYE_MALIYET_NOTU if strateji.startswith("irtifa") else ""),
                     **kacinma,
                 )
             )
@@ -1453,7 +1448,8 @@ def _bulgulari_olustur(
                     "uyari",
                     "Denenen adaylar TI1 riskini TAMAMEN ortadan kaldıramadı (türbülans alanı geniş olabilir) -- "
                     f"sert kısıtlara uyan seçenekler arasından {strateji_aciklamasi} seçildi "
-                    f"({en_iyi['riskli_sayisi']} riskli nokta, normal rotadaki {normal['riskli_sayisi']}'e karşı).",
+                    f"({en_iyi['riskli_sayisi']} riskli nokta, normal rotadaki {normal['riskli_sayisi']}'e karşı)."
+                    + (_SEVIYE_MALIYET_NOTU if strateji.startswith("irtifa") else ""),
                     riskli_nokta_sayisi=en_iyi["riskli_sayisi"],
                     normal_riskli_nokta_sayisi=normal["riskli_sayisi"],
                     **kacinma,

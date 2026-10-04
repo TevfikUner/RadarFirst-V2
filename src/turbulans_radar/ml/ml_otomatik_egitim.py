@@ -31,9 +31,10 @@ from turbulans_radar.ml.ml_egitimi import _tahmin_metrikleri, modelleri_egit_ve_
 from turbulans_radar.ml.turbulans_ml_modeli import (
     MODEL_BILGI_DOSYA_YOLU,
     MODEL_DOSYA_YOLU,
-    OZELLIK_SUTUNLARI,
+    MODEL_OZELLIK_SUTUNLARI,
     model_kullanilabilir_mi,
     model_versiyonlarini_listele,
+    modelin_ozellik_sutunlari,
     ozellikleri_temizle,
     versiyon_kaydet,
     versiyona_geri_don,
@@ -59,15 +60,15 @@ def veritabanindan_veri_hazirla(motor=None):
     with Session(motor or motor_al()) as oturum:
         satirlar = oturum.execute(sorgu).all()
     if not satirlar:
-        return pd.DataFrame(columns=OZELLIK_SUTUNLARI), pd.Series(dtype=int), pd.Series(dtype=str)
-    ozellikler = pd.DataFrame([s.ozellikler for s in satirlar]).reindex(columns=OZELLIK_SUTUNLARI)
+        return pd.DataFrame(columns=MODEL_OZELLIK_SUTUNLARI), pd.Series(dtype=int), pd.Series(dtype=str)
+    ozellikler = pd.DataFrame([s.ozellikler for s in satirlar]).reindex(columns=MODEL_OZELLIK_SUTUNLARI)
     etiketler = pd.DataFrame(
         {
             "ikili_etiket": [int(s.sinif >= 1) for s in satirlar],
             "gun": [pd.Timestamp(s.zaman).strftime("%Y-%m-%d") for s in satirlar],
         }
     )
-    X, etiketler = ozellikleri_temizle(ozellikler, etiketler)
+    X, etiketler = ozellikleri_temizle(ozellikler, etiketler, sutunlar=MODEL_OZELLIK_SUTUNLARI)
     return X, etiketler["ikili_etiket"], etiketler["gun"]
 
 
@@ -79,16 +80,29 @@ def zamansal_holdout(gunler: pd.Series, oran=None) -> pd.Series:
 
 
 def terfi_karari(
-    aday: dict, sampiyon: dict | None, y_holdout: pd.Series, ti1_referansi: dict | None = None
+    aday: dict,
+    sampiyon: dict | None,
+    y_holdout: pd.Series,
+    ti1_referansi: dict | None = None,
+    ti1_farki: dict | None = None,
 ) -> tuple[bool, str]:
+    """ti1_farki: holdout'ta aday - TI1 ROC-AUC farkının gün bazlı eşleştirilmiş
+    bootstrap aralığı (degerlendirme.eslestirilmis_auc_farki). Holdout her gece
+    yeni adaylarla yeniden kullanıldığı için nokta farkı yetmez; aralığın alt
+    sınırı da 0'ın üstünde olmalıdır."""
     pozitif = int(y_holdout.sum())
     if len(y_holdout) < config.ML_MIN_HOLDOUT_ORNEK or pozitif < 5 or len(y_holdout) - pozitif < 5:
         return False, f"Holdout yetersiz ({len(y_holdout)} örnek, {pozitif} pozitif); aktif model korunur."
-    if ti1_referansi is not None and not (aday["roc_auc"] >= ti1_referansi["roc_auc"] + config.ML_TI1_AUC_USTUNLUGU):
-        return False, (
-            f"Aday tek başına TI1 referansını geçemedi (holdout ROC-AUC {aday['roc_auc']:.3f} vs TI1 "
-            f"{ti1_referansi['roc_auc']:.3f}); yalnızca versiyon olarak saklandı."
-        )
+    if ti1_referansi is not None:
+        alt = (ti1_farki or {}).get("alt")
+        aralik = f", fark %95 GA [{alt:.3f}, {ti1_farki['ust']:.3f}]" if alt is not None else ""
+        if not (aday["roc_auc"] >= ti1_referansi["roc_auc"] + config.ML_TI1_AUC_USTUNLUGU) or (
+            ti1_farki is not None and not (alt is not None and alt > 0)
+        ):
+            return False, (
+                f"Aday tek başına TI1 referansını geçemedi (holdout ROC-AUC {aday['roc_auc']:.3f} vs TI1 "
+                f"{ti1_referansi['roc_auc']:.3f}{aralik}); yalnızca versiyon olarak saklandı."
+            )
     if sampiyon is None:
         return True, "Aktif model yok; aday TI1 referansını geçti ve aktifleştirildi."
     f1_farki = aday["f1"] - sampiyon["f1"]
@@ -116,12 +130,17 @@ def kat_disi_olasiliklar(model, X, y, gunler, kat_sayisi=5) -> np.ndarray:
     bolucu = StratifiedGroupKFold(n_splits=kat, shuffle=True, random_state=1)
     for egitim_i, test_i in bolucu.split(X, y, gunler):
         kalibre = olasilik_kalibre_et(model, X.iloc[egitim_i], y.iloc[egitim_i], gunler.iloc[egitim_i], kat_sayisi)
-        olasilik[test_i] = kalibre.predict_proba(X.iloc[test_i][OZELLIK_SUTUNLARI])[:, 1]
+        olasilik[test_i] = kalibre.predict_proba(X.iloc[test_i])[:, 1]
     return olasilik
 
 
+def _olasilik(model, X) -> np.ndarray:
+    sutunlar = modelin_ozellik_sutunlari(model) if hasattr(model, "feature_names_in_") else list(X.columns)
+    return model.predict_proba(X[sutunlar])[:, 1]
+
+
 def _holdout_metrikleri(model, X, y) -> dict:
-    olasilik = model.predict_proba(X[OZELLIK_SUTUNLARI])[:, 1]
+    olasilik = _olasilik(model, X)
     return {**_tahmin_metrikleri(y, olasilik), **olasilik_metrikleri(y, olasilik)}
 
 
@@ -177,13 +196,13 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
     sonuclar, _ = modelleri_egit_ve_karsilastir(
         X[egitim], y[egitim], gunler[egitim], kat_sayisi=kat_sayisi, tekrar_sayisi=tekrar_sayisi
     )
-    isim = max(sonuclar, key=lambda ad: (sonuclar[ad][1]["recall"], sonuclar[ad][1]["f1"]))
+    isim = max(sonuclar, key=lambda ad: sonuclar[ad][1]["roc_auc"])
     aday_model, cv_metrikleri, _ = sonuclar[isim]
     aday_model = olasilik_kalibre_et(aday_model, X[egitim], y[egitim], gunler[egitim], kat_sayisi)
 
     aday_holdout = _holdout_metrikleri(aday_model, X[holdout], y[holdout])
     ti1_holdout = ti1_referansi(y[holdout], X[holdout]["ti1_indeksi"])
-    aday_olasilik = aday_model.predict_proba(X[holdout][OZELLIK_SUTUNLARI])[:, 1]
+    aday_olasilik = _olasilik(aday_model, X[holdout])
     holdout_guven = guven_araliklari(y[holdout], X[holdout]["ti1_indeksi"], gunler[holdout], aday_olasilik)
     alfa = config.ML_KONFORMAL_ALFA
     aday_esik = konformal_esik(
@@ -192,15 +211,18 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
     holdout_kapsama = kapsama_raporu(y[holdout], aday_olasilik, aday_esik, alfa)
     sampiyon = (sampiyon_yukleyici or _aktif_modeli_yukle)()
     sampiyon_holdout = _holdout_metrikleri(sampiyon, X[holdout], y[holdout]) if sampiyon is not None else None
-    terfi, gerekce = terfi_karari(aday_holdout, sampiyon_holdout, y[holdout], ti1_holdout)
+    terfi, gerekce = terfi_karari(
+        aday_holdout, sampiyon_holdout, y[holdout], ti1_holdout, holdout_guven.get("model_eksi_ti1_roc_auc")
+    )
 
     nihai_model = olasilik_kalibre_et(sonuclar[isim][0], X, y, gunler, kat_sayisi)
     nihai_esik = konformal_esik(y, kat_disi_olasiliklar(sonuclar[isim][0], X, y, gunler, kat_sayisi), alfa)
     bilgi = _json_guvenli(
         {
             "secilen_model": isim,
+            "secim_olcutu": "gün gruplu CV ROC-AUC",
             "metrikler": cv_metrikleri,
-            "ozellik_sutunlari": OZELLIK_SUTUNLARI,
+            "ozellik_sutunlari": list(X.columns),
             "egitim_orneklem_sayisi": len(X),
             "test_orneklem_sayisi": int(holdout.sum()),
             "egitim_zamani": datetime.now(UTC).isoformat(),

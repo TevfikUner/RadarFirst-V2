@@ -64,8 +64,9 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
     daire yönüne göre açısı en fazla 30°, toplam sapma en fazla 400 km, ızgara
     aralığı en fazla 20 km (kısa rotada açı sınırına göre daralır). Sapma
     uçlarda kendiliğinden kademeli sınırlanır.
-  - Bir üst ya da bir alt basınç seviyesine geçiş: tırmanma ve alçalmanın
-    yaklaşık yakıt ve süre bedeli hesaba katılır.
+  - Bir üst ya da bir alt basınç seviyesine geçiş: geçici seviyeye gidiş ve
+    planlanan seviyeye dönüşün yaklaşık yakıt bedeli hesaba katılır (tırmanma
+    ve alçalma simetrik; seviyeye bağlı seyir yakıt akışı modellenmez).
 - **Öncelik sırası:**
   1. Aktif SIGMET'e ve kısıtlı/yasak hava sahasına **girmemek** (sert
      kısıtlar). Kısıt dört boyutludur: poligon, irtifa bandı, uçağın o
@@ -136,6 +137,11 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Aktif model hâlâ eski 167 örneklik veriyle (hatalı irtifa filtresi) eğitilmiştir;
   yeni veriyle aday model en az 60 farklı gün eşleşince gece işinde eğitilir ve
   yalnızca holdout'ta TI1 referansını ve aktif modeli geçerse aktifleşir.
+  TI1'i geçmek için ROC-AUC farkı hem `ML_TI1_AUC_USTUNLUGU`'nu aşmalı hem de
+  gün bazlı eşleştirilmiş bootstrap aralığının alt sınırı 0'ın üstünde
+  olmalıdır (holdout her gece yeniden kullanılır). Aday, gün gruplu CV
+  ROC-AUC'siyle seçilir; özellikler TI1, Richardson, rüzgar hızı, basınç,
+  düşey kayma, deformasyon, diverjans ve TI2'dir.
 - Yalnızca ABD verisiyle doğrulanmıştır. `ml_riski_var_mi` için olasılık eşiği
   `ML_KARAR_ESIGI` (varsayılan 0.5) ile yapılandırılır.
 - Konformal belirsizlik: yeni veri hattıyla eğitilen her model bir konformal

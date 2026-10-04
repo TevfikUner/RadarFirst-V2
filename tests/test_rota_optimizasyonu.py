@@ -132,16 +132,32 @@ def test_gercek_era5_turbulans_varsa_tamamen_atlatilir(veri_kupu_mevcut_mu):
         assert sonuc["optimize_rota"]["irtifa_ft"] != sonuc["normal_rota"]["irtifa_ft"]
 
 
-def test_irtifa_degisimi_maliyeti_tirmanma_pahali_alcalma_ucuz():
+def test_irtifa_degisimi_gidis_donus_maliyetlenir_ve_yone_gore_simetriktir():
     from turbulans_radar.rota.rota_optimizasyonu import _irtifa_degisimi_maliyeti
 
-    tirmanma_saniye, tirmanma_ek_yakit = _irtifa_degisimi_maliyeti(9000.0, 10000.0, 2400.0)
-    alcalma_saniye, alcalma_ek_yakit = _irtifa_degisimi_maliyeti(10000.0, 9000.0, 2400.0)
+    tirmanma = _irtifa_degisimi_maliyeti(9000.0, 10000.0, 2400.0)
+    alcalma = _irtifa_degisimi_maliyeti(10000.0, 9000.0, 2400.0)
 
-    assert tirmanma_saniye > 0 and alcalma_saniye > 0
-    assert tirmanma_ek_yakit > 0  # tırmanma EKSTRA yakıt gerektirir
-    assert alcalma_ek_yakit < 0  # alçalma yakıt TASARRUFU sağlar
+    assert tirmanma == pytest.approx(alcalma)
+    assert tirmanma[0] == 0.0 and tirmanma[1] > 0
+    assert _irtifa_degisimi_maliyeti(9000.0, 9500.0, 2400.0)[1] == pytest.approx(tirmanma[1] / 2)
     assert _irtifa_degisimi_maliyeti(9000.0, 9000.0, 2400.0) == (0.0, 0.0)
+
+
+def test_seviye_degisimi_secenekleri_yakit_tasarrufu_gostermez(veri_kupu_mevcut_mu):
+    if not veri_kupu_mevcut_mu:
+        pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı, gerçek veri gerektiren test atlanıyor.")
+    sonuc = rota_simulasyonu_olustur(
+        41.0, 28.9, 36.9, 30.7, 28000, "2019-01-05T12:00:00", "A320", sigmetler=[], kisitli_sahalar=[]
+    )
+    for secenek in sonuc["secenekler"]:
+        seyir_yakiti = 2400.0 * secenek["toplam_sure_dk"] / 60.0
+        if secenek["strateji"].startswith("irtifa"):
+            assert secenek["tahmini_yakit_kg"] > seyir_yakiti
+        else:
+            assert secenek["tahmini_yakit_kg"] == pytest.approx(seyir_yakiti)
+    if sonuc["kacinma_stratejisi"].startswith("irtifa"):
+        assert "seviyeye bağlı seyir yakıt akışı modellenmez" in sonuc["aciklama"]
 
 
 def test_gercek_era5_kismi_atlatma_durustce_raporlanir(veri_kupu_mevcut_mu):

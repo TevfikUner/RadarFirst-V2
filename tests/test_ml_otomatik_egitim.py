@@ -19,8 +19,9 @@ def _veri(gun_sayisi=80, gunluk=6, ayrim=2.0, tohum=0, ti1_ayrimi=0.3):
             "richardson_sayisi": rng.normal(2, 1, n) - ayrim * y,
             "ruzgar_hizi_ms": rng.normal(30, 5, n),
             "basinc_hpa": rng.choice([200.0, 250.0, 300.0], n),
+            **{s: rng.normal(0, 1, n) for s in tm.EK_OZELLIK_SUTUNLARI},
         }
-    )[tm.OZELLIK_SUTUNLARI]
+    )[tm.MODEL_OZELLIK_SUTUNLARI]
     gunler = pd.Series(np.repeat(pd.date_range("2019-01-01", periods=gun_sayisi).strftime("%Y-%m-%d"), gunluk))
     return X, y, gunler
 
@@ -133,6 +134,37 @@ def test_terfi_ti1_referansina_gore_kapilidir(aday_auc, beklenen):
     y = pd.Series([1] * 40 + [0] * 40)
     aday = {"f1": 0.7, "recall": 0.7, "roc_auc": aday_auc}
     assert me.terfi_karari(aday, None, y, {"roc_auc": 0.71})[0] is beklenen
+
+
+@pytest.mark.parametrize(
+    "fark,beklenen", [({"alt": 0.01, "ust": 0.05}, True), ({"alt": -0.01, "ust": 0.07}, False), ({}, False)]
+)
+def test_terfi_ti1_farkinin_guven_araligina_gore_kapilidir(fark, beklenen):
+    y = pd.Series([1] * 40 + [0] * 40)
+    aday = {"f1": 0.7, "recall": 0.7, "roc_auc": 0.74}
+    terfi, gerekce = me.terfi_karari(aday, None, y, {"roc_auc": 0.71}, fark)
+    assert terfi is beklenen
+    if not beklenen:
+        assert "TI1 referansını geçemedi" in gerekce
+
+
+def test_aday_cv_roc_auc_ile_secilir_ve_tum_ozellikleri_kullanir(monkeypatch, gecici_model_klasoru):
+    X, y, gunler = _veri()
+    monkeypatch.setattr(me, "veritabanindan_veri_hazirla", lambda motor=None: (X, y, gunler))
+    yakalanan = {}
+    gercek = me.modelleri_egit_ve_karsilastir
+
+    def _kayitli(*args, **kwargs):
+        sonuclar, degerlendirme = gercek(*args, **kwargs)
+        yakalanan.update({ad: m["roc_auc"] for ad, (_, m, _) in sonuclar.items()})
+        return sonuclar, degerlendirme
+
+    monkeypatch.setattr(me, "modelleri_egit_ve_karsilastir", _kayitli)
+    sonuc = me.otomatik_egitim_calistir(sampiyon_yukleyici=lambda: None, kat_sayisi=3, tekrar_sayisi=1)
+    assert sonuc["secilen_model"] == max(yakalanan, key=yakalanan.get)
+    surum = tm.model_versiyonlarini_listele()[0]
+    assert surum["ozellik_sutunlari"] == tm.MODEL_OZELLIK_SUTUNLARI
+    assert surum["secim_olcutu"] == "gün gruplu CV ROC-AUC"
 
 
 def test_cli_surumleri_listeler_ve_geri_alir(monkeypatch, gecici_model_klasoru, capsys):

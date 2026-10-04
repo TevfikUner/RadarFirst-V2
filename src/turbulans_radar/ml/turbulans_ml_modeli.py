@@ -47,6 +47,7 @@ from turbulans_radar.rota.rota_optimizasyonu import ruzgar_bilesenlerini_toplu_a
 
 OZELLIK_SUTUNLARI = ["ti1_indeksi", "richardson_sayisi", "ruzgar_hizi_ms", "basinc_hpa"]
 EK_OZELLIK_SUTUNLARI = ["dusey_ruzgar_kaymasi", "yatay_deformasyon", "yatay_diverjans", "ti2_indeksi"]
+MODEL_OZELLIK_SUTUNLARI = OZELLIK_SUTUNLARI + EK_OZELLIK_SUTUNLARI
 ESKI_MODEL_UYARISI = (
     "Aktif ML modeli eski veri hattıyla (300-400 feet'teki PIREP'leri seçen hatalı irtifa filtresi) "
     "eğitildiği için kullanılmıyor; doğru irtifalı veriyle eğitilen model gece işiyle aktifleşince "
@@ -134,12 +135,14 @@ def ozellikleri_cikar(nokta_df: pd.DataFrame, veri_kupu) -> pd.DataFrame:
     )
 
 
-def ozellikleri_temizle(ozellik_df: pd.DataFrame, etiketler: pd.Series | None = None):
-    """NaN/sonsuz içeren satırları eler (kapsam dışı nokta, sıfıra bölme
-    vb. -- bkz. turbulans_indeksleri.py'nin Richardson notu). Dönüş:
-    (temiz_ozellik_df, temiz_etiketler ya da None)."""
-    temiz_maske = np.isfinite(ozellik_df[OZELLIK_SUTUNLARI].to_numpy()).all(axis=1)
-    temiz_ozellikler = ozellik_df.loc[temiz_maske, OZELLIK_SUTUNLARI].reset_index(drop=True)
+def ozellikleri_temizle(ozellik_df: pd.DataFrame, etiketler: pd.Series | None = None, sutunlar=None):
+    """NaN/sonsuz içeren (ya da sütunu hiç olmayan) satırları eler (kapsam dışı
+    nokta, sıfıra bölme vb. -- bkz. turbulans_indeksleri.py'nin Richardson
+    notu). Dönüş: (temiz_ozellik_df, temiz_etiketler ya da None)."""
+    sutunlar = list(sutunlar or OZELLIK_SUTUNLARI)
+    secili = ozellik_df.reindex(columns=sutunlar)
+    temiz_maske = np.isfinite(secili.to_numpy(dtype=float)).all(axis=1)
+    temiz_ozellikler = secili.loc[temiz_maske].reset_index(drop=True)
     if etiketler is None:
         return temiz_ozellikler, None
     return temiz_ozellikler, etiketler.loc[temiz_maske].reset_index(drop=True)
@@ -219,12 +222,21 @@ def ozelliklerden_risk_tahmin_et(ozellikler: pd.DataFrame):
     model = _modeli_yukle()
     if model is None:
         return None
+    sutunlar = modelin_ozellik_sutunlari(model)
     tum_tahminler = np.full(len(ozellikler), np.nan)
-    gecerli_maske = np.isfinite(ozellikler[OZELLIK_SUTUNLARI].to_numpy()).all(axis=1)
+    gecerli_maske = np.isfinite(ozellikler.reindex(columns=sutunlar).to_numpy(dtype=float)).all(axis=1)
     if gecerli_maske.any():
-        temiz_ozellikler, _ = ozellikleri_temizle(ozellikler)
+        temiz_ozellikler, _ = ozellikleri_temizle(ozellikler, sutunlar=sutunlar)
         tum_tahminler[gecerli_maske] = model.predict_proba(temiz_ozellikler)[:, 1]
     return tum_tahminler
+
+
+def modelin_ozellik_sutunlari(model) -> list[str]:
+    """Modelin eğitildiği sütunlar. Model dosyasından okunur (bilgi JSON'u
+    modelden ayrı yazıldığı için yayın anında bir an eski kalabilir); adları
+    taşımayan eski modeller için OZELLIK_SUTUNLARI."""
+    isimler = getattr(model, "feature_names_in_", None)
+    return [str(i) for i in isimler] if isimler is not None else list(OZELLIK_SUTUNLARI)
 
 
 def risk_durumlarini_hesapla(olasiliklar, bilgi=None):

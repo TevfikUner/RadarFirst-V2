@@ -47,7 +47,7 @@ def gun_eslestir(ornekler: pd.DataFrame, edr_df: pd.DataFrame) -> pd.DataFrame:
     """ornekler: o güne ait pencereli ml_ornekleri (id, zaman, enlem, boylam,
     pencere_dosyasi). Dönüş: eşleşen EDR gözlemleri + ERA5 özellikleri +
     ml_ornek_id (penceresi kullanılan PIREP)."""
-    from turbulans_radar.ml.turbulans_ml_modeli import OZELLIK_SUTUNLARI, ozellikleri_cikar
+    from turbulans_radar.ml.turbulans_ml_modeli import MODEL_OZELLIK_SUTUNLARI, OZELLIK_SUTUNLARI, ozellikleri_cikar
 
     if ornekler.empty or edr_df.empty:
         return pd.DataFrame()
@@ -72,7 +72,7 @@ def gun_eslestir(ornekler: pd.DataFrame, edr_df: pd.DataFrame) -> pd.DataFrame:
         noktalar = grup.assign(irtifa_m=grup["irtifa_ft"] / METRE_FT)
         ozellikler = ozellikleri_cikar(noktalar, ozellik_kupu(kup))
         parcalar.append(
-            grup.drop(columns=["_kup", "_uzaklik"]).reset_index(drop=True).join(ozellikler[OZELLIK_SUTUNLARI])
+            grup.drop(columns=["_kup", "_uzaklik"]).reset_index(drop=True).join(ozellikler[MODEL_OZELLIK_SUTUNLARI])
         )
     sonuc = pd.concat(parcalar, ignore_index=True)
     sonuc = sonuc.dropna(subset=OZELLIK_SUTUNLARI)

@@ -12,6 +12,7 @@ M1 gece adımı (ml_veri_hatti'nın CDS eşleştirmesinden sonra):
     turbulans-madis gun 2019-06-12      (tek gün: indir + eşleştir + kaydet)
     turbulans-madis ozet                (sayılar ve PIREP-EDR karşılaştırması)
     turbulans-madis degerlendir         (TI1 ve aktif model, ölçülen EDR'ye karşı)
+    turbulans-madis ozellik-tamamla     (eski EDR örneklerine eksik model özellikleri)
 """
 
 import argparse
@@ -20,7 +21,7 @@ import os
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -75,8 +76,12 @@ def gunun_pencereli_ornekleri(gun, motor) -> pd.DataFrame:
         return pd.DataFrame(oturum.execute(sorgu).all(), columns=[c.name for c in sorgu.selected_columns])
 
 
+def _ozellik_sozlugu(satir, sutunlar) -> dict:
+    return {k: (float(v) if np.isfinite(v) else None) for k in sutunlar if (v := getattr(satir, k, None)) is not None}
+
+
 def edr_orneklerini_kaydet(df: pd.DataFrame, motor) -> int:
-    from turbulans_radar.ml.turbulans_ml_modeli import OZELLIK_SUTUNLARI
+    from turbulans_radar.ml.turbulans_ml_modeli import MODEL_OZELLIK_SUTUNLARI
 
     if df.empty:
         return 0
@@ -93,7 +98,7 @@ def edr_orneklerini_kaydet(df: pd.DataFrame, motor) -> int:
             "edr_sinifi": int(s.edr_sinifi),
             "kalite": s.kalite if isinstance(s.kalite, str) else None,
             "ml_ornek_id": int(s.ml_ornek_id),
-            "ozellikler": {k: float(getattr(s, k)) for k in OZELLIK_SUTUNLARI},
+            "ozellikler": _ozellik_sozlugu(s, MODEL_OZELLIK_SUTUNLARI),
         }
         for s in df.itertuples(index=False)
     ]
@@ -216,7 +221,6 @@ def nesnel_degerlendirme(df=None, motor=None, tekrar=None) -> dict:
         olasilik_metrikleri,
     )
     from turbulans_radar.ml.turbulans_ml_modeli import (
-        OZELLIK_SUTUNLARI,
         model_bilgisini_yukle,
         model_kullanilabilir_mi,
         ozelliklerden_risk_tahmin_et,
@@ -251,11 +255,18 @@ def nesnel_degerlendirme(df=None, motor=None, tekrar=None) -> dict:
         else {"durum": "on_sonuc", "neden": f"Gün bazlı güven aralığı için en az {GA_MIN_GUN} gün gerekli."}
     )
     kullanilabilir, uyari = model_kullanilabilir_mi()
-    olasilik = ozelliklerden_risk_tahmin_et(df[OZELLIK_SUTUNLARI]) if kullanilabilir else None
+    olasilik = ozelliklerden_risk_tahmin_et(df) if kullanilabilir else None
     if olasilik is None:
         rapor["model"] = {"durum": "degerlendirilmedi", "neden": uyari or "Aktif model yüklenemedi."}
         return rapor
     gecerli = np.isfinite(olasilik)
+    if not gecerli.any():
+        rapor["model"] = {
+            "durum": "degerlendirilmedi",
+            "neden": "EDR örneklerinde aktif modelin özellikleri yok; 'turbulans-madis ozellik-tamamla' çalıştırın.",
+        }
+        return rapor
+    rapor["model_ornek"] = int(gecerli.sum())
     bilgi = model_bilgisini_yukle() or {}
     rapor["model"] = {
         "egitim_zamani": bilgi.get("egitim_zamani"),
@@ -270,6 +281,56 @@ def nesnel_degerlendirme(df=None, motor=None, tekrar=None) -> dict:
     return rapor
 
 
+def eksik_ozellikleri_tamamla(motor=None, tolerans=1e-4) -> dict:
+    """MODEL_OZELLIK_SUTUNLARI'ndan önce kaydedilmiş EDR örneklerinin eksik
+    özelliklerini PIREP'in ERA5 penceresinden aynı kodla hesaplar. Kayıtlı
+    özellikler değiştirilmez; yeniden hesaplananla uyuşmayanlar sayılır."""
+    from turbulans_radar.ml.ozellik_deposu import ozellik_kupu, pencere_dosyasini_ac, pencereden_kup
+    from turbulans_radar.ml.turbulans_ml_modeli import MODEL_OZELLIK_SUTUNLARI, ozellikleri_cikar
+    from turbulans_radar.veri.madis_edr import METRE_FT
+
+    motor = motor or motor_al()
+    sorgu = (
+        select(
+            EdrOrnegi.id,
+            EdrOrnegi.zaman,
+            EdrOrnegi.enlem,
+            EdrOrnegi.boylam,
+            EdrOrnegi.irtifa_ft,
+            EdrOrnegi.ozellikler,
+            EdrOrnegi.ml_ornek_id,
+            MlOrnegi.pencere_dosyasi,
+        )
+        .join(MlOrnegi, MlOrnegi.id == EdrOrnegi.ml_ornek_id)
+        .where(MlOrnegi.pencere_dosyasi.is_not(None))
+    )
+    with Session(motor) as oturum:
+        df = pd.DataFrame(oturum.execute(sorgu).all(), columns=[c.name for c in sorgu.selected_columns])
+    gerekli = set(MODEL_OZELLIK_SUTUNLARI)
+    eksik = df[[not gerekli <= set(o or {}) for o in df["ozellikler"]]] if not df.empty else df
+    ozet = {"eksik": len(eksik), "tamamlanan": 0, "uyusmayan": 0}
+    guncellemeler = []
+    for goreli_yol, grup in eksik.groupby("pencere_dosyasi", sort=False):
+        pencereler = pencere_dosyasini_ac(goreli_yol)
+        for ml_id, alt in grup.groupby("ml_ornek_id"):
+            noktalar = alt.assign(zaman=pd.to_datetime(alt["zaman"], utc=True), irtifa_m=alt["irtifa_ft"] / METRE_FT)
+            yeni = ozellikleri_cikar(noktalar, ozellik_kupu(pencereden_kup(pencereler, int(ml_id))))
+            for satir, hesap in zip(alt.itertuples(index=False), yeni.itertuples(index=False), strict=True):
+                kayitli = satir.ozellikler or {}
+                ortak = [k for k in kayitli if k in gerekli and kayitli[k] is not None]
+                if not all(abs(getattr(hesap, k) - kayitli[k]) <= tolerans * max(1.0, abs(kayitli[k])) for k in ortak):
+                    ozet["uyusmayan"] += 1
+                    continue
+                guncellemeler.append(
+                    {"id": int(satir.id), "ozellikler": {**_ozellik_sozlugu(hesap, MODEL_OZELLIK_SUTUNLARI), **kayitli}}
+                )
+    if guncellemeler:
+        with Session(motor) as oturum, oturum.begin():
+            oturum.execute(update(EdrOrnegi), guncellemeler)
+    ozet["tamamlanan"] = len(guncellemeler)
+    return ozet
+
+
 def ana(argv=None):
     ayristirici = argparse.ArgumentParser(
         description="MADIS uçak EDR (M1): indir, ERA5 pencereleriyle eşleştir, raporla."
@@ -280,9 +341,12 @@ def ana(argv=None):
     alt.add_parser("ozet", help="Kayıtlı EDR örnekleri ve PIREP-EDR karşılaştırması.")
     degerlendir = alt.add_parser("degerlendir", help="TI1 ve aktif model, ölçülen EDR'ye karşı (ROC-AUC, GA).")
     degerlendir.add_argument("--tekrar", type=int, default=None, help="Gün bazlı bootstrap tekrar sayısı")
+    alt.add_parser("ozellik-tamamla", help="Eski EDR örneklerinin eksik model özelliklerini pencereden hesaplar.")
     argumanlar = ayristirici.parse_args(argv)
     if argumanlar.komut == "gun":
         sonuc = gunu_isle(argumanlar.tarih)
+    elif argumanlar.komut == "ozellik-tamamla":
+        sonuc = eksik_ozellikleri_tamamla()
     elif argumanlar.komut == "degerlendir":
         sonuc = nesnel_degerlendirme(tekrar=argumanlar.tekrar)
     else:

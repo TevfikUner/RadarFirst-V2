@@ -359,12 +359,20 @@ def eslestirme_calistir(
     return ozet
 
 
+def _iem_adimi(simdi, motor) -> dict:
+    sinir = config.ML_IEM_MAKS_BEKLEYEN
+    if sinir > 0 and (bekleyen := bekleyen_sayisi(motor)) >= sinir:
+        _logger.info("IEM çekimi atlandı: %d PIREP eşleşme bekliyor (sınır %d).", bekleyen, sinir)
+        return {"iem_atlandi": "bekleyen_kuyruk_dolu", "iem_bekleyen": bekleyen}
+    return yeni_iem_pireplerini_cek(simdi=simdi, motor=motor)
+
+
 def ml_veri_hatti_calistir(iem_guncelle=True, maks_cds_istek=None, saglayici=None, motor=None, simdi=None) -> dict:
     motor = motor or motor_al()
     ozet = {}
     for ad, adim in (
         ("arsiv", lambda: arsivi_ice_aktar(motor=motor)),
-        ("iem", (lambda: yeni_iem_pireplerini_cek(simdi=simdi, motor=motor)) if iem_guncelle else None),
+        ("iem", (lambda: _iem_adimi(simdi, motor)) if iem_guncelle else None),
     ):
         if adim is None:
             continue

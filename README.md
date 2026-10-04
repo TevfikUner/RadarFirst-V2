@@ -801,14 +801,18 @@ irtifa, tarih-saat ve uçak modelini girip "Simüle Et"e basınca:
 - **Çok faktörlü karşılaştırma -- irtifa değişimi (tırmanma/alçalma):**
   Riskli türbülanstan kaçınmanın YANAL sapma dışında ikinci bir GERÇEK
   stratejisi daha var: aynı yatay rotada kalıp bir üst/alt basınç seviyesine
-  geçmek (bazı CAT katmanları irtifaya bağlıdır). Tırmanma/alçalma KENDİ
-  İÇİNDE de bir yakıt/süre maliyeti taşır (tırmanma seyrin ÜZERİNDE, alçalma
-  ALTINDA bir yakıt akışıyla modellenir -- bkz. `_irtifa_degisimi_maliyeti`,
-  halka açık tipik jet performansı mertebeleri, resmi performans verisi
-  DEĞİL). `rota_simulasyonu_olustur`, yanal A* yolu ile irtifa değişimi
-  adayları arasından TOPLAM maliyeti (temel seyir yakıtı + tırmanma/alçalma
-  bedeli) en düşük, güvenliği sağlayan seçeneği seçer -- bazen irtifa
-  değiştirmek yanal sapmadan hem daha güvenli HEM daha ucuz çıkar. Seçilen
+  geçmek (bazı CAT katmanları irtifaya bağlıdır). Seyir başı ve sonu
+  planlanan seviyede olduğu için geçici seviyeye gidiş ve planlanan seviyeye
+  dönüş birlikte maliyetlenir (bir tırmanma + bir alçalma; tırmanmada yakıt
+  akışı seyrin ~%50 üstü, alçalmada ~%30 altı, 1500 ft/dk -- bkz.
+  `_irtifa_degisimi_maliyeti`, halka açık tipik jet mertebeleri, resmi
+  performans verisi DEĞİL). Bu yüzden tırmanma ile alçalma simetriktir ve
+  hiçbiri yakıt "tasarrufu" göstermez; eskiden yalnızca gidiş sayıldığı için
+  alçalma sistematik olarak ucuz görünüyordu. Seviyeye bağlı seyir yakıt
+  akışı ve TAS modellenmez; yanıt bunu açıklamada söyler.
+  `rota_simulasyonu_olustur`, yanal A* yolu ile irtifa değişimi adayları
+  arasından TOPLAM maliyeti (seyir yakıtı + seviye geçiş bedeli) en düşük,
+  güvenliği sağlayan seçeneği seçer. Seçilen
   strateji (`kacinma_stratejisi`: "yanal"/"irtifa_yukari"/"irtifa_asagi") ve
   optimize rotanın kendi irtifası (`irtifa_ft`) yanıtta ayrı alanlar olarak
   döner; sonuç panelinde de gösterilir.
@@ -975,7 +979,9 @@ Eğitim verisi artık `ml_ornekleri` tablosunda tutulur (`ml/ml_veri_hatti.py`):
    `veri_kaynagi_durumlari`'ndaki `ml_iem_pirep` kaydı) başlayarak gün gün,
    gece başına en fazla `ML_IEM_GECELIK_MAKS_GUN` gün, ERA5'in yayınlandığı
    güne kadar çekilir. Hata olursa imleç ilerlemez, sonraki gece aynı günden
-   devam edilir.
+   devam edilir. Eşleşme bekleyen PIREP `ML_IEM_MAKS_BEKLEYEN`'i (5000; 0 =
+   sınırsız) aşarsa o gece IEM'e hiç gidilmez: gece ~300-800 eşleşme
+   yapılırken kuyruğu büyütmek yalnızca gereksiz dış istek olur.
 3. **Eşleştirme:** bekleyen PIREP'ler gün ve boylama göre hacim sınırlı
    (`ML_GRUP_MAKS_HUCRE_SAAT`) gruplara ayrılır; her grup için CDS'ten tek
    saatlik bir ERA5 dilimi indirilip özellikler çıkarılır. Maliyet PIREP
@@ -999,11 +1005,23 @@ Eğitim verisi artık `ml_ornekleri` tablosunda tutulur (`ml/ml_veri_hatti.py`):
    ```
 4. **Eğitim (champion/challenger, `ml/ml_otomatik_egitim.py`):** en az
    `ML_MIN_ORNEK` örnek ve `ML_MIN_GUN` farklı gün varsa, en son günlerden
-   `ML_HOLDOUT_ORANI` kadarı ayrılır; aday kalan günlerle gün bazlı gruplu CV
-   ile seçilir. Aday, holdout'ta F1'i en az `ML_MIN_F1_IYILESME` artırır ve
-   recall'ı `ML_RECALL_TOLERANSI`'ndan fazla düşürmezse aktifleştirilir;
-   aksi halde yalnızca versiyon olarak (`aktiflestirildi: false`, karar
-   gerekçesiyle) saklanır ve elle `/aktiflestir` ile açılabilir.
+   `ML_HOLDOUT_ORANI` kadarı ayrılır; aday kalan günlerde gün bazlı gruplu
+   CV ROC-AUC'si en yüksek model olarak seçilir (eskiden recall'a göre
+   seçiliyordu; 0,5 eşiğindeki recall her şeye "pozitif" diyen modeli
+   ödüllendirebiliyordu). Özellikler: `ti1_indeksi`, `richardson_sayisi`,
+   `ruzgar_hizi_ms`, `basinc_hpa` ve tahmin anında aynı küpten hesaplanan
+   `dusey_ruzgar_kaymasi`, `yatay_deformasyon`, `yatay_diverjans`,
+   `ti2_indeksi`. Kapı iki aşamalıdır: (1) holdout'ta ROC-AUC tek başına
+   TI1'i en az `ML_TI1_AUC_USTUNLUGU` geçmeli **ve** gün bazlı eşleştirilmiş
+   bootstrap ile farkın %95 güven aralığının alt sınırı 0'ın üstünde olmalı
+   (holdout her gece yeni adaylarla yeniden kullanıldığı için nokta farkı
+   şansla geçilebilirdi); (2) aktif model varsa F1'i en az
+   `ML_MIN_F1_IYILESME` artırmalı ve recall'ı `ML_RECALL_TOLERANSI`'ndan fazla
+   düşürmemeli. Aksi halde yalnızca versiyon olarak (`aktiflestirildi:
+   false`, karar gerekçesiyle) saklanır ve elle `/aktiflestir` ile açılabilir.
+   Ek özelliklerden önce kaydedilen MADIS EDR örnekleri için
+   `turbulans-madis ozellik-tamamla` eksik özellikleri pencere deposundan
+   hesaplar (kayıtlı değerler değişmez).
 
 **CDS kotası kod seviyesinde:** her gerçek CDS isteğinden önce
 `hiz_siniri_sayaclari` üzerinden süreçler arası günlük sayaç artırılır;
@@ -1287,11 +1305,20 @@ Bağlantı bilgisi `alembic.ini`'ye yazılmaz; `migrations/env.py`, tıpkı
 
 ### Veritabanı yedeği
 
-Docker yığınındaki `yedek` servisi (`otomasyon/db_yedekle.sh`) saatte bir
-bakar ve o UTC günü yedek yoksa `pg_dump -Fc` alır: `db_yedekleri/turbulans_YYYYAAGG.dump`
-(depoya konmaz). Dosya `pg_restore -l` ile okunamazsa yerine konmaz; en yeni
-`DB_YEDEK_SAKLA_GUN` (7) yedek tutulur. Durum: `docker compose logs yedek`.
-Bilgisayar arızasına karşı arada bir dosyayı başka bir diske/buluta kopyalayın.
+Docker yığınındaki `yedek` servisi (`otomasyon/db_yedekle.sh`) o UTC günü
+yedek yoksa iki dosya üretir (depoya konmaz):
+
+- `db_yedekleri/turbulans_YYYYAAGG.dump`: `pg_dump -Fc`; `pg_restore -l` ile okunamazsa yerine konmaz.
+- `db_yedekleri/dosyalar_YYYYAAGG.tar.gz`: veritabanında olmayan, yeniden
+  indirmesi pahalı dosyalar (`ml_ozellik_deposu/`, `madis_edr/`, model
+  sürümleri volume'u); `tar -tz` ile okunamazsa yerine konmaz.
+
+Başarısız deneme (ör. açılışta veritabanı henüz hazır değil)
+`YEDEK_YENIDEN_DENEME_SANIYE` (60) sonra tekrarlanır; eskiden bir saat
+bekleniyordu ve kısa açık kalan günlerde yedek hiç alınmıyordu. Başarıdan
+sonra saatte bir bakılır; her türden en yeni `DB_YEDEK_SAKLA_GUN` (7) dosya
+tutulur. Durum: `docker compose logs yedek`. Yedekler aynı diskte durduğu
+için bilgisayar arızasına karşı arada bir başka bir diske/buluta kopyalayın.
 
 Geri yükleme (önce API ve işçiyi durdurun; mevcut tablolar silinip yedekle değiştirilir):
 

@@ -195,6 +195,33 @@ def test_edr_ornekleri_kaydi_tekrarlanmaz(motor):
     assert mh.edr_orneklerini_kaydet(df, motor) == 0
 
 
+def test_edr_ornegi_ek_ozellikleri_saklar_nan_null_olur(motor):
+    from sqlalchemy import select
+
+    from turbulans_radar.depo.models import EdrOrnegi
+    from turbulans_radar.ml.turbulans_ml_modeli import MODEL_OZELLIK_SUTUNLARI
+
+    satir = {
+        "zaman": ZAMAN + pd.Timedelta(minutes=7),
+        "enlem": 41.0,
+        "boylam": -101.0,
+        "irtifa_ft": 36000.0,
+        "max_edr": 0.3,
+        "med_edr": 0.1,
+        "kalite": "Z",
+        "edr_sinifi": 1,
+        "ml_ornek_id": -1,
+        **dict.fromkeys(MODEL_OZELLIK_SUTUNLARI, 2.0),
+        "ti2_indeksi": np.nan,
+    }
+    assert mh.edr_orneklerini_kaydet(pd.DataFrame([satir]), motor) == 1
+    with motor.connect() as baglanti:
+        kayit = baglanti.execute(
+            select(EdrOrnegi.ozellikler).where(EdrOrnegi.ml_ornek_id == -1, EdrOrnegi.enlem == 41.0)
+        ).scalar_one()
+    assert set(kayit) == set(MODEL_OZELLIK_SUTUNLARI) and kayit["ti2_indeksi"] is None
+
+
 def test_gunluk_edr_kesintiden_sonra_kaldigi_saatten_devam_eder(tmp_path):
     icerik, istenen = _gz(tmp_path), []
 
@@ -276,3 +303,12 @@ def test_nesnel_degerlendirme_az_gunde_ga_vermez_ve_modeli_degerlendirir(monkeyp
     assert rapor["ti1_roc_auc_ga"]["durum"] == "on_sonuc"
     assert rapor["model"]["veri_kaynagi"] == "iem" and rapor["model"]["guven_araliklari"]["durum"] == "on_sonuc"
     assert 0 <= rapor["model"]["metrikler"]["roc_auc"] <= 1
+
+
+def test_nesnel_degerlendirme_eski_orneklerde_model_ozelligi_yoksa_nedenini_soyler(monkeypatch):
+    from turbulans_radar.ml import turbulans_ml_modeli as tm
+
+    monkeypatch.setattr(tm, "model_kullanilabilir_mi", lambda: (True, None))
+    monkeypatch.setattr(tm, "ozelliklerden_risk_tahmin_et", lambda df: np.full(len(df), np.nan))
+    rapor = mh.nesnel_degerlendirme(_degerlendirme_df(6), tekrar=10)
+    assert rapor["model"]["durum"] == "degerlendirilmedi" and "ozellik-tamamla" in rapor["model"]["neden"]

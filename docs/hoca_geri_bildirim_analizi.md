@@ -83,7 +83,7 @@ enlem/boylam ızgarası ya da hava yolu ağı değildir (`_YanalIzgara`,
 | Boyut | Durum | Kanıt |
 |---|---|---|
 | Yatay | A* 2B koridor grafında arar | `_a_yildiz_ile_rota_ara` |
-| İrtifa | A* sabit irtifada arar. Dikey alternatif, **tüm rotanın** bir üst ya da bir alt basınç seviyesine taşınmasıdır; tırmanma ve alçalma için kaba bir yakıt/süre bedeli eklenir (1500 ft/dk, tırmanmada +%50, alçalmada −%30 yakıt). Rota içinde kademeli seviye değişimi yoktur. Seviyeler hava küpündeki basınç seviyelerinden gelir (ör. 250 hPa ≈ 34.000 ft); yasal uçuş seviyesi tablosu ve yarım daire kuralı kullanılmaz. | `_en_yakin_komsu_basinc_seviyeleri`, `_irtifa_degisimi_maliyeti` |
+| İrtifa | A* sabit irtifada arar. Dikey alternatif, **tüm rotanın** bir üst ya da bir alt basınç seviyesine taşınmasıdır; geçici seviyeye gidiş ve planlanan seviyeye dönüş için kaba bir yakıt bedeli eklenir (1500 ft/dk, tırmanmada +%50, alçalmada −%30 yakıt; gidiş-dönüş olduğu için iki yön simetrik). Seviyeye bağlı seyir yakıt akışı modellenmez. Rota içinde kademeli seviye değişimi yoktur. Seviyeler hava küpündeki basınç seviyelerinden gelir (ör. 250 hPa ≈ 34.000 ft); yasal uçuş seviyesi tablosu ve yarım daire kuralı kullanılmaz. | `_en_yakin_komsu_basinc_seviyeleri`, `_irtifa_degisimi_maliyeti` |
 | Zaman | Her düğüme rüzgarsız TAS ile nominal varış zamanı atanır. Hava verisi ve kısıtların geçerliliği bu zamana göre okunur. Zaman belirsizliği payı, geçen sürenin %30'u + 5 dk'dır. Seçilen rota rüzgarla yeniden zamanlanır; çıktı, zaman damgalı nokta listesidir (basit bir 4D yörünge). | `_a_yildiz_ile_rota_ara`, `_rotayi_zamanla`, `ROTA_ZAMAN_BELIRSIZLIK_*` |
 
 ### 1.4 Maliyet fonksiyonu

@@ -4,6 +4,26 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Proje denetimi: yedek, irtifa maliyeti, ML kapısı, veri kuyruğu
+
+- **Yedek:** başarısız deneme bir saat yerine `YEDEK_YENIDEN_DENEME_SANIYE`
+  (60) sonra tekrarlanır (açılışta veritabanı hazır olmadan deneniyor, kısa
+  açık kalan günlerde yedek hiç alınmıyordu). Veritabanına ek olarak
+  `ml_ozellik_deposu/`, `madis_edr/` ve model sürümleri günlük
+  `dosyalar_YYYYAAGG.tar.gz` olarak yedeklenir.
+- **İrtifa değişimi maliyeti:** geçici seviyeye gidiş ve planlanan seviyeye
+  dönüş birlikte maliyetlenir; tırmanma ve alçalma simetrik. Eskiden yalnızca
+  gidiş sayıldığı için alçalma yakıt "tasarrufu" gösteriyor ve eşit riskte
+  sistematik olarak seçiliyordu. Dikey manevra süresi ek süre sayılmaz.
+- **ML aday seçimi ve kapısı:** aday gün gruplu CV ROC-AUC ile seçilir
+  (recall ile değil). TI1 kapısı, ROC-AUC farkının eşleştirilmiş bootstrap
+  aralığının alt sınırının 0'ın üstünde olmasını da ister. Model düşey
+  kayma, deformasyon, diverjans ve TI2'yi de kullanır; tahmin sütunları model
+  dosyasından okunur. Eski MADIS EDR örnekleri için
+  `turbulans-madis ozellik-tamamla`.
+- **Veri kuyruğu:** eşleşme bekleyen PIREP `ML_IEM_MAKS_BEKLEYEN`'i (5000)
+  aşarsa IEM'den yeni gün çekilmez.
+
 ## Sanal PIREP (M6) ve sunum paketi (E8)
 
 - **Sanal PIREP:** ADS-B izinden seyir fazı irtifa sapması olayları

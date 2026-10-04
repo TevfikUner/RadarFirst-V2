@@ -210,9 +210,25 @@ def test_veri_hatti_bir_adim_patlasa_da_eslestirmeye_devam_eder(monkeypatch):
 
     monkeypatch.setattr(mv, "arsivi_ice_aktar", _patla)
     monkeypatch.setattr(mv, "yeni_iem_pireplerini_cek", lambda **k: {"iem_gun": 1})
+    monkeypatch.setattr(mv, "bekleyen_sayisi", lambda motor: 0)
     monkeypatch.setattr(mv, "eslestirme_calistir", lambda *a, **k: {"eslesti": 7})
     ozet = mv.ml_veri_hatti_calistir(motor=object())
     assert ozet["eslesti"] == 7 and ozet["iem_gun"] == 1 and "arşiv okunamadı" in ozet["arsiv_hata"]
+
+
+@pytest.mark.parametrize("bekleyen,sinir,cekildi", [(5000, 5000, False), (4999, 5000, True), (10**6, 0, True)])
+def test_iem_bekleyen_kuyruk_sinirdayken_cekilmez(monkeypatch, bekleyen, sinir, cekildi):
+    monkeypatch.setattr(mv.config, "ML_IEM_MAKS_BEKLEYEN", sinir)
+    monkeypatch.setattr(mv, "arsivi_ice_aktar", lambda **k: {})
+    monkeypatch.setattr(mv, "bekleyen_sayisi", lambda motor: bekleyen)
+    monkeypatch.setattr(mv, "yeni_iem_pireplerini_cek", lambda **k: {"iem_gun": 7})
+    monkeypatch.setattr(mv, "eslestirme_calistir", lambda *a, **k: {})
+    monkeypatch.setattr(mv.config, "MADIS_GECE_ETKIN", False)
+    ozet = mv.ml_veri_hatti_calistir(motor=object())
+    if cekildi:
+        assert ozet["iem_gun"] == 7 and "iem_atlandi" not in ozet
+    else:
+        assert ozet == {"iem_atlandi": "bekleyen_kuyruk_dolu", "iem_bekleyen": bekleyen}
 
 
 @pytest.fixture
