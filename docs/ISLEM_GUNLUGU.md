@@ -6,7 +6,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 - ✅ Güvenlik: `.claude/settings.json` deny listesi (rm -rf, docker compose down -v, DROP/TRUNCATE, force-push); test edildi, engelliyor.
 - ✅ CLAUDE.md: dal `master`, mobil izleme kuralları eklendi.
-- ⚠️ V1 (RadarFirst) şifre temizliği: dosya düzeltildi, commit yeniden yazma + force-push kullanıcıya bırakıldı (izin sistemi engelledi).
+- ✅ V1 (RadarFirst) şifre temizliği: commit yeniden yazıldı (5decb4a), kullanıcı force-push etti; GitHub'da eski commit'e işaret eden dal/PR yok.
 - ✅ Yedek: günlük pg_dump + dosya arşivi zaten çalışıyor (`db_yedekleri/`).
 - ✅ API yalnızca 127.0.0.1:8000; DB yalnızca localhost.
 - ✅ Docker giriş betiği: süreçler uid 1000, Linux'ta yazma izni sorunu çözüldü (ca393f8).
