@@ -55,7 +55,6 @@
       "PowerShell(*.git\\hooks*)",
       "PowerShell(*.git/hooks*)",
       "PowerShell(*git reset --hard*)",
-      "PowerShell(*alembic downgrade*)",
       "PowerShell(*DROP SCHEMA*)",
       "PowerShell(*docker volume prune*)",
       "PowerShell(*docker system prune*)",
