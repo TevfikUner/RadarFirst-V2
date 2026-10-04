@@ -1,0 +1,37 @@
+{
+  "permissions": {
+    "deny": [
+      "Bash(rm -rf *)",
+      "Bash(rm -fr *)",
+      "Bash(* rm -rf *)",
+      "Bash(* rm -fr *)",
+      "Bash(*docker compose down -v*)",
+      "Bash(*docker compose down --volumes*)",
+      "Bash(*docker-compose down -v*)",
+      "Bash(*docker volume rm *)",
+      "Bash(*docker volume prune*)",
+      "Bash(*docker system prune*)",
+      "Bash(*git push --force*)",
+      "Bash(*git push -f*)",
+      "Bash(*git push * --force*)",
+      "Bash(*git push * -f *)",
+      "Bash(*DROP TABLE*)",
+      "Bash(*DROP DATABASE*)",
+      "Bash(*DROP SCHEMA*)",
+      "Bash(*drop table*)",
+      "Bash(*drop database*)",
+      "Bash(*TRUNCATE *)",
+      "Bash(*truncate table*)",
+      "Bash(*dropdb *)",
+      "PowerShell(*Remove-Item * -Recurse*)",
+      "PowerShell(*docker compose down -v*)",
+      "PowerShell(*docker compose down --volumes*)",
+      "PowerShell(*docker volume rm *)",
+      "PowerShell(*git push --force*)",
+      "PowerShell(*git push -f*)",
+      "PowerShell(*DROP TABLE*)",
+      "PowerShell(*DROP DATABASE*)",
+      "PowerShell(*TRUNCATE *)"
+    ]
+  }
+}

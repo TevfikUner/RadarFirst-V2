@@ -4,9 +4,16 @@
 
 ## İzin Verilen İşlemler (Allowlist)
 - Dosya okuma: Her zaman OK
-- Git commit: OK (main branch'e direkt push atma)
+- Git: Varsayılan dal `master`. Commit ve `master`'a push OK; force-push ve geçmişi yeniden yazma (amend, rebase, filter-repo) yasak/önce sor.
 - Dosya silme: Sadece kendi oluşturduğun dosyaları sil
+- Tehlikeli komutlar `.claude/settings.json` deny listesiyle teknik olarak engellenir (rm -rf, docker compose down -v, docker volume rm, DROP/TRUNCATE, force-push).
 - Diğer her şey için: Önce sor
+
+## Mobil İzleme (telefondan takip)
+- Her adım bitince tek satırlık özet ver: `✅/⚠️/❌ <adım>: <sonuç>` (en fazla ~120 karakter, önce sonuç).
+- Uzun çıktı, log ve tabloyu sohbete dökme; dosyaya yaz, özette dosya yolunu ver.
+- Her oturumun yaptıklarını `docs/ISLEM_GUNLUGU.md` başına tarihli kısa satırlarla ekle (en yeni üstte); pushlanınca GitHub mobil uygulamasından okunur.
+- Gece işi özeti için: `turbulans-ml --gece-gecmisi` (CSV).
 
 ## Kodlama Kararları
 | Durum | Karar |

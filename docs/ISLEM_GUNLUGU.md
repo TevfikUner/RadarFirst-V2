@@ -1,0 +1,14 @@
+# İşlem Günlüğü
+
+Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
+
+## 2026-10-04
+
+- ✅ Güvenlik: `.claude/settings.json` deny listesi (rm -rf, docker compose down -v, DROP/TRUNCATE, force-push); test edildi, engelliyor.
+- ✅ CLAUDE.md: dal `master`, mobil izleme kuralları eklendi.
+- ⚠️ V1 (RadarFirst) şifre temizliği: dosya düzeltildi, commit yeniden yazma + force-push kullanıcıya bırakıldı (izin sistemi engelledi).
+- ✅ Yedek: günlük pg_dump + dosya arşivi zaten çalışıyor (`db_yedekleri/`).
+- ✅ API yalnızca 127.0.0.1:8000; DB yalnızca localhost.
+- ✅ Docker giriş betiği: süreçler uid 1000, Linux'ta yazma izni sorunu çözüldü (ca393f8).
+- ✅ Denetim: yüksek/orta/düşük öncelikli maddeler kapandı; 750 test geçti.
+- ✅ DB şifresi döndürüldü (43 karakter), MCP salt okunur rolle Docker DB'yi okuyor.
