@@ -42,7 +42,6 @@
       "Bash(*git reset --hard*)",
       "Bash(*git clean -f*)",
       "Bash(*git branch -D master*)",
-      "Bash(*alembic downgrade*)",
       "Bash(*drop schema*)",
       "Bash(*DROP OWNED*)",
       "Edit(.git/hooks/**)",
