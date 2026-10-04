@@ -1,0 +1,14 @@
+#!/bin/sh
+# master/main dallarına doğrudan push'u engeller. Birleştirme GitHub PR ile yapılır.
+# Bilinçli istisna (sadece Tevfik): git push --no-verify
+korunan="refs/heads/master refs/heads/main"
+while read -r yerel_ref yerel_sha uzak_ref uzak_sha; do
+  for dal in $korunan; do
+    if [ "$uzak_ref" = "$dal" ]; then
+      echo "ENGELLENDI: '${dal#refs/heads/}' dalina dogrudan push yasak." >&2
+      echo "Kendi dalina push et (orn. claude/<konu>) ve GitHub'da PR ac." >&2
+      exit 1
+    fi
+  done
+done
+exit 0
