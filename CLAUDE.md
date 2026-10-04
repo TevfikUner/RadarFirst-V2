@@ -4,7 +4,9 @@
 
 ## İzin Verilen İşlemler (Allowlist)
 - Dosya okuma: Her zaman OK
-- Git: Varsayılan dal `master`. Commit ve `master`'a push OK; force-push ve geçmişi yeniden yazma (amend, rebase, filter-repo) yasak/önce sor.
+- Git: Varsayılan dal `master`. `master`'a doğrudan push YASAK (`.githooks/pre-push` engeller, `core.hooksPath=.githooks`; `--no-verify` deny listesinde); `master` üzerinde commit atma.
+  Her iş `claude/<konu>` dalında, küçük commit'lerle; push sadece kendi dalına. `master`'a birleştirme yalnızca Tevfik'in onayıyla (GitHub PR).
+  Force-push ve geçmişi yeniden yazma (amend, rebase, filter-repo) yasak/önce sor.
 - Dosya silme: Sadece kendi oluşturduğun dosyaları sil
 - Tehlikeli komutlar `.claude/settings.json` deny listesiyle teknik olarak engellenir (rm -rf, docker compose down -v, docker volume rm, DROP/TRUNCATE, force-push).
 - Diğer her şey için: Önce sor
@@ -14,6 +16,10 @@
 - Uzun çıktı, log ve tabloyu sohbete dökme; dosyaya yaz, özette dosya yolunu ver.
 - Her oturumun yaptıklarını `docs/ISLEM_GUNLUGU.md` başına tarihli kısa satırlarla ekle (en yeni üstte); pushlanınca GitHub mobil uygulamasından okunur.
 - Gece işi özeti için: `turbulans-ml --gece-gecmisi` (CSV).
+- Onay gerekince tek satır: `ONAY? <işlem> · etki · geri alınabilir mi (E/H)`; cevap gelene kadar o işi bekletip başka işe geçme.
+- Uzun iş (>10 dk ya da >5 dosya) öncesi 3 satırlık plan + tahmini süre ver, onay al; bitince tek satır özet.
+- Veritabanını etkileyen iş (migration, toplu yazma/silme) öncesi günün yedeği `db_yedekleri/` içinde var mı kontrol et; yoksa önce sor.
+- Migration'lar önce `-test` veritabanında `upgrade` + `downgrade` ile denenir; geliştirme veritabanına uygulamak onaylıdır.
 
 ## Kodlama Kararları
 | Durum | Karar |
