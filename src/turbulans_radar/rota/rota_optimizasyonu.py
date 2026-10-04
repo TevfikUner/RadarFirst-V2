@@ -487,6 +487,14 @@ class AtsAgiKullanilamazHatasi(ValueError):
     """ATS modu istendi ama ağ yok ya da ToC/ToD ağa bağlanamıyor."""
 
 
+class AntimeridyenHatasi(ValueError):
+    """Rota 180° boylamını kesiyor (desteklenmez, bkz. SISTEM_KARTI)."""
+
+
+def antimeridyeni_kesiyor_mu(boylamlar) -> bool:
+    return bool(np.any(np.abs(np.diff(np.asarray(boylamlar, dtype=float))) > 180.0))
+
+
 def _ats_ile_rota_ara(ag, bas, bit, irtifa_m, baslangic_zamani, tas_ms, veri_kupu, risk_katmanlari=()):
     """hava_yolu_agi grafında, ızgara aramasıyla AYNI maliyet (rüzgarlı süre +
     TI1 cezası) ve AYNI risk katmanlarıyla A*. Düğüm zamanı: ToC'den büyük daire
@@ -967,6 +975,11 @@ def rota_simulasyonu_olustur(
     enlemler_gc, boylamlar_gc = buyuk_daire_rotasi_olustur(
         baslangic_enlem, baslangic_boylam, bitis_enlem, bitis_boylam, config.ROTA_SIMULASYONU_NOKTA_SAYISI
     )
+    if antimeridyeni_kesiyor_mu(boylamlar_gc):
+        raise AntimeridyenHatasi(
+            "Büyük daire rotası 180° boylamını kesiyor (ör. Pasifik geçişi); bu rotalar desteklenmez. "
+            "Kısıt ve risk geometrisi -180..180 düzleminde hesaplandığı için sonuç güvence sayılamazdı."
+        )
 
     veri_durumu = {}
     veri_kupu = veri_kupune_eris(
@@ -1330,8 +1343,7 @@ def _bulgulari_olustur(
             _bulgu(
                 "ruzgar_hesaba_katilamadi",
                 "uyari",
-                "Seçilen bölge/tarih/irtifa için ne projenin ERA5 veri küpleri (ana küp: "
-                f"'{config.HAVA_DURUMU_DOSYASI}', ek küpler: '{config.EK_HAVA_DURUMU_KLASORU}/') ne de canlı GFS "
+                "Seçilen bölge/tarih/irtifa için ne sunucudaki ERA5 arşiv küpleri ne de canlı GFS "
                 f"verisi (şimdi -{config.CANLI_GECMIS_SAAT} sa / +{config.CANLI_TAHMIN_UFKU_SAAT} sa aralığı için) "
                 "rotanın TAMAMINI kapsıyor -- rüzgar ve türbülans (TI1) hesaba katılamadı, rotalar sadece uçağın "
                 "hava hızıyla (TAS) zamanlandı; gerçek bir yakıt tasarrufu/türbülans kaçınması iddia edilmiyor.",

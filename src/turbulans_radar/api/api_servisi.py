@@ -45,6 +45,7 @@ BİLİNÇLİ OLARAK EKLENMEDİ:
 """
 
 import asyncio
+import glob
 import hashlib
 import hmac
 import inspect
@@ -125,12 +126,14 @@ from turbulans_radar.cli.statik_indir import yerel_kutuphane_durumu
 from turbulans_radar.depo.dagitik_kilit import LiderKilidi
 from turbulans_radar.depo.denetim import denetim_kaydet, denetim_kayitlarini_listele
 from turbulans_radar.depo.gorev_deposu import (
+    AKTIF_DURUMLAR,
     aktif_gorev_var_mi,
     eski_gorevleri_temizle,
     gorev_durumlari,
     gorev_getir,
     gorev_olustur,
     kuyruk_durumu,
+    son_gorevler,
 )
 from turbulans_radar.depo.hiz_siniri import istegi_say
 from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir
@@ -165,6 +168,7 @@ from turbulans_radar.rota.hava_yolu_agi import AtsAgiHatasi
 from turbulans_radar.rota.rota_optimizasyonu import (
     CANLI_VERI_HAZIRLANIYOR,
     UCAK_PROFILLERI,
+    AntimeridyenHatasi,
     AtsAgiKullanilamazHatasi,
     rota_simulasyonu_olustur,
     simulasyonu_czml_e_cevir,
@@ -793,12 +797,25 @@ async def veritabani_baglanti_hatasi_isle(request: Request, hata: SQLAlchemyErro
     )
 
 
+_PAKET_KLASORU = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) + os.sep
+
+
+def _uygulama_hatasi_mi(hata: BaseException) -> bool:
+    """Hata bu paketin kodunda mı fırlatıldı (son çerçeve)? Uygulama, kullanıcı
+    girdisi için ValueError'ı bilerek ve güvenli bir mesajla fırlatır (örn.
+    "'ucuslar' listesi boş olamaz"); kütüphane içinden gelen ValueError ise iç
+    ayrıntı taşıyabilir ve bir doğrulama açığına işaret eder."""
+    son = hata.__traceback__
+    while son is not None and son.tb_next is not None:
+        son = son.tb_next
+    return son is not None and os.path.abspath(son.tb_frame.f_code.co_filename).startswith(_PAKET_KLASORU)
+
+
 @app.exception_handler(ValueError)
 async def deger_hatasi_isle(request: Request, hata: ValueError):
-    # ValueError burada neredeyse hep uygulamanın KENDİSİ tarafından, bilerek
-    # ve güvenli bir mesajla fırlatılıyor (örn. "'ucuslar' listesi boş
-    # olamaz") -- bu yüzden mesajı doğrudan göstermek güvenli.
-    return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(hata)})
+    if _uygulama_hatasi_mi(hata):
+        return JSONResponse(status_code=status.HTTP_400_BAD_REQUEST, content={"detail": str(hata)})
+    return await genel_hata_isle(request, hata)
 
 
 @app.exception_handler(Exception)
@@ -1072,7 +1089,7 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
                 canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
                 arama_uzayi=istek.arama_uzayi,
             )
-        except (AtsAgiKullanilamazHatasi, AtsAgiHatasi) as hata:
+        except (AtsAgiKullanilamazHatasi, AtsAgiHatasi, AntimeridyenHatasi) as hata:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(hata)) from None
         metrikler.ROTA_HESABI_SURESI.observe(time.monotonic() - hesap_baslangici)
     sonuc["czml"] = simulasyonu_czml_e_cevir(sonuc)
@@ -1817,9 +1834,8 @@ app.include_router(v1)
 # ---------------------------------------------------------------------------
 
 _SAGLIKSIZ_DURUMLAR = {"bayat", "hata", "birikiyor"}
-_UYARI_DURUMLARI = {"cdn_yedegi", "ornek_veri", "veri_yok"}
+_UYARI_DURUMLARI = {"cdn_yedegi", "ornek_veri", "veri_yok", "son_deneme_basarisiz", "gecikmis", "yok", "eski"}
 _KUYRUK_BIRIKME_ESIGI_SANIYE = 120
-_AYRINTI_ALANLARI = ("son_hata", "kaynaklar")
 
 
 def _sigmet_kontrolu():
@@ -1853,9 +1869,18 @@ def _canli_gfs_kontrolu():
     if not kayitlar:
         return {"durum": "kullanilmadi", "indirmeler": indirmeler}
     kayit = kayitlar[0]
+    son_basari = kayit["son_basari_zamani"]
+    yas_saat = (datetime.now(UTC) - son_basari).total_seconds() / 3600 if son_basari else None
+    if kayit["ardisik_hata_sayisi"]:
+        durum = "hata"
+    elif yas_saat is None or yas_saat > config.SAGLIK_GFS_BOSTA_SAAT:
+        durum = "bosta"
+    else:
+        durum = "tamam"
     return {
-        "durum": "hata" if kayit["ardisik_hata_sayisi"] else "tamam",
-        "son_basarili_indirme": kayit["son_basari_zamani"],
+        "durum": durum,
+        "son_basari_yas_saat": round(yas_saat, 1) if yas_saat is not None else None,
+        "son_basarili_indirme": son_basari,
         "son_deneme": kayit["son_deneme_zamani"],
         "ardisik_hata_sayisi": kayit["ardisik_hata_sayisi"],
         "son_hata": kayit["son_hata"],
@@ -1883,6 +1908,49 @@ def _kisitli_saha_kontrolu():
     return {"durum": durum, **sonuc}
 
 
+async def _ml_gece_isi_kontrolu():
+    """Gece işi karar destek çıktısını etkilemez; sorunları 'uyarilar'a düşer."""
+    if not config.ML_GECE_ISI_SAATI:
+        return {"durum": "kapali"}
+    gorevler = await son_gorevler("ml_veri")
+    son_bitmis = next((g for g in gorevler if g["durum"] not in AKTIF_DURUMLAR), None)
+    son_basarili = next((g["bitis_zamani"] for g in gorevler if g["durum"] == "tamamlandi"), None)
+    aktif = any(g["durum"] in AKTIF_DURUMLAR for g in gorevler)
+    if son_bitmis is not None and son_bitmis["durum"] != "tamamlandi" and not aktif:
+        durum = "son_deneme_basarisiz"
+    elif not aktif and (
+        son_basarili is None or datetime.now(UTC) - son_basarili > timedelta(hours=config.SAGLIK_ML_GECE_MAKS_YAS_SAAT)
+    ):
+        durum = "gecikmis"
+    else:
+        durum = "tamam"
+    return {
+        "durum": durum,
+        "calisiyor": aktif,
+        "son_deneme_durumu": son_bitmis["durum"] if son_bitmis else None,
+        "son_basarili_bitis": son_basarili,
+    }
+
+
+def _yedek_kontrolu():
+    """docker-compose'un 'yedek' servisinin dosyaları (API'ye salt okunur bağlı)."""
+    if not os.path.isdir(config.YEDEK_KLASORU):
+        return {"durum": "kapali"}
+    simdi = time.time()
+    sonuc, durum = {}, "tamam"
+    for ad, desen in (("veritabani", "turbulans_*.dump"), ("dosyalar", "dosyalar_*.tar.gz")):
+        dosyalar = glob.glob(os.path.join(config.YEDEK_KLASORU, desen))
+        if not dosyalar:
+            sonuc[f"{ad}_yas_saat"] = None
+            durum = "yok"
+            continue
+        yas = (simdi - max(os.path.getmtime(d) for d in dosyalar)) / 3600
+        sonuc[f"{ad}_yas_saat"] = round(yas, 1)
+        if yas > config.SAGLIK_YEDEK_MAKS_YAS_SAAT and durum == "tamam":
+            durum = "eski"
+    return {"durum": durum, **sonuc}
+
+
 async def _gorev_kuyrugu_kontrolu():
     kuyruk = await kuyruk_durumu()
     birikiyor = kuyruk["kuyrukta"] > 0 and (kuyruk["en_eski_bekleme_saniye"] or 0) > _KUYRUK_BIRIKME_ESIGI_SANIYE
@@ -1901,19 +1969,22 @@ async def _saglik_raporu(ayrintili: bool) -> dict:
     """EFB'nin güvendiği her dış bağımlılığın durumu. Operasyonel sorunlar
     (bayat SIGMET, veri kaynağı hatası, biriken kuyruk) genel durumu 'bozulmus'
     yapar; yapılandırma eksikleri (CDN'e düşen kütüphaneler, sadece örnek
-    kısıtlı saha) 'uyarilar'da listelenir. Ham hata metinleri sadece ayrıntılı
-    (API anahtarlı) raporda yer alır."""
+    kısıtlı saha) 'uyarilar'da listelenir. Anahtarsız raporda kontrol başına
+    yalnızca durum vardır; zamanlar, sayılar, sürümler ve hata metinleri sadece
+    ayrıntılı (API anahtarlı) raporda yer alır."""
     kontroller = {
         "sigmet": await _kontrol_et(_sigmet_kontrolu),
         "canli_gfs": await _kontrol_et(_canli_gfs_kontrolu),
         "gorev_kuyrugu": await _kontrol_et(_gorev_kuyrugu_kontrolu),
         "kisitli_sahalar": await _kontrol_et(_kisitli_saha_kontrolu),
+        "ml_gece_isi": await _kontrol_et(_ml_gece_isi_kontrolu),
+        "yedek": await _kontrol_et(_yedek_kontrolu),
         "kup_onbellegi": {"durum": "tamam", **onbellek_durumu()},
         "statik_dosyalar": yerel_kutuphane_durumu(),
         "fir_sinirlari": {"durum": "tamam" if await asyncio.to_thread(fir_verisi_var_mi) else "veri_yok"},
     }
     if not ayrintili:
-        kontroller = {ad: {k: v for k, v in k_.items() if k not in _AYRINTI_ALANLARI} for ad, k_ in kontroller.items()}
+        kontroller = {ad: {"durum": k["durum"]} for ad, k in kontroller.items()}
     return {
         "durum": "bozulmus" if any(k["durum"] in _SAGLIKSIZ_DURUMLAR for k in kontroller.values()) else "ayakta",
         "veritabani": "erisilebilir",
@@ -2036,7 +2107,7 @@ async def _derin_saglik_onbellekli():
         if await _veritabani_erisilebilir_mi():
             sonuc = (200, await _saglik_raporu(ayrintili=False))
         else:
-            sonuc = (503, {"durum": "ayakta", "veritabani": "erisilemiyor"})
+            sonuc = (503, {"durum": "bozulmus", "veritabani": "erisilemiyor"})
         if sure > 0:
             _saglik_onbellegi.update(zaman=time.monotonic(), sonuc=sonuc)
         return sonuc

@@ -22,6 +22,8 @@ x-ortak-volumeler: &ortak_volumeler
   # ATS yolu/FRA ağı (AIP'ten elle hazırlanır, depoya konmaz; bkz.
   # docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md). Yoksa ATS modu 400 döner.
   - ./ats_verisi:/app/ats_verisi:ro
+  # Sağlık raporu yedeğin tazeliğini okur (yazmaz).
+  - ./db_yedekleri:/app/db_yedekleri:ro
   - ${YEREL_VERI_KOKU:-.}:/veri:ro
   - turbulans_modeller:/app/model_deposu
 
@@ -38,6 +40,9 @@ services:
     ports:
       # Sadece bu makineden erişilebilir -- varsayılan şifreyle dış ağa açılmasın.
       - "127.0.0.1:5432:5432"
+      # Windows'ta yerel bir PostgreSQL 5432'yi tutuyorsa Windows araçları (MCP
+      # sunucusu) Docker veritabanına buradan ulaşır (MCP_POSTGRES_PORT=5433).
+      - "127.0.0.1:5433:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 5s
@@ -71,8 +76,10 @@ services:
       # Uzun işler (analiz, backtest, canlı veri) ayrı 'worker' servisinde çalışır.
       GOREV_GOMULU_ISCI: "false"
       <<: *veri_ortami
+    # Varsayılan yalnızca bu makine; ağdaki bir cihaz (ör. EFB tableti) erişecekse
+    # .env'de API_YAYIN_ADRESI=0.0.0.0 (anahtarlar herkese açık ağda düz HTTP'den geçer).
     ports:
-      - "8000:8000"
+      - "${API_YAYIN_ADRESI:-127.0.0.1}:8000:8000"
     volumes: *ortak_volumeler
     secrets: [cdsapirc]
     healthcheck:
@@ -85,6 +92,9 @@ services:
     build: .
     restart: unless-stopped
     command: ["python", "-m", "turbulans_radar.isci.gorev_iscisi"]
+    # İşçi çalışan görevi GOREV_DURDURMA_BEKLEME_SANIYE (240) bekler; Docker'ın
+    # varsayılan 10 sn'si süren CDS indirmesini SIGKILL ile yarıda kesiyordu.
+    stop_grace_period: 300s
     depends_on:
       # API açılışta şemayı (alembic upgrade head) günceller; işçi ondan sonra başlar.
       api:

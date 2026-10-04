@@ -374,27 +374,21 @@ function sonucPanelDoldur(sonuc) {
   kabinBildirimiGoster(sonuc);
 }
 
-// Kabin içi otomasyon ÇERÇEVELEMESİ: mevcut /ws/uyarilar WebSocket'inin
-// (bkz. api_servisi.py) zaten yaptığı "TI1 eşiği aşıldı -> anlık uyarı yayınla"
-// mantığının SİMÜLASYON sayfasındaki karşılığı -- GERÇEK tespit edilen TI1
-// şiddetine bağlı, illüstratif bir operasyonel bildirim. Uydurma bir "canlı
-// filo" sistemi DEĞİLDİR -- sadece zaten hesaplanan gerçek veriyi kokpit
-// dışına, kabin ekibine iletilecek bir mesaj biçiminde çerçeveler.
+// Kabin ekibi için BİLGİ çerçevelemesi (illüstratif): hesaplanan TI1 sayısını
+// kabine iletilecek bir not biçiminde gösterir. Talimat vermez -- TI1 tek başına
+// kanıtlanmış bir türbülans göstergesi değildir; kemer ikazı ve servis kararı kaptanındır.
 function kabinBildirimiGoster(sonuc) {
   const el = document.getElementById("kabin-bildirimi");
   if (sonuc.normal_rota.riskli_nokta_sayisi === 0) { el.style.display = "none"; return; }
 
-  if (sonuc.optimize_rota.riskli_nokta_sayisi === 0) {
-    el.innerHTML =
-      `🔔 <b>Kabin ekibine bildirim (illüstratif):</b> Normal rotada ${sonuc.normal_rota.riskli_nokta_sayisi} ` +
-      `noktada riskli türbülans tespit edildi, kaçınma rotası uygulandı -- "Önlem amaçlı kemer ikaz lambası ` +
-      `kısa süreliğine yakılacak." Bu mesaj gerçek TI1 verisine dayanır, arayüz çerçevelemesi illüstratiftir.`;
-  } else {
-    el.innerHTML =
-      `🔔 <b>Kabin ekibine bildirim (illüstratif):</b> Rota üzerinde ${sonuc.optimize_rota.riskli_nokta_sayisi} ` +
-      `noktada riskli türbülans (TI1 ≥ eşik) TAMAMEN atlatılamadı -- "Kemer ikaz lambasını yakın, sıcak içecek ` +
-      `servisini durdurun." Bu mesaj gerçek TI1 verisine dayanır, arayüz çerçevelemesi illüstratiftir.`;
-  }
+  const durum = sonuc.optimize_rota.riskli_nokta_sayisi === 0
+    ? `Planlanan rotada ${sonuc.normal_rota.riskli_nokta_sayisi} noktada TI1 göstergesi eşiği aşıyor; ` +
+      `önerilen rota bu noktalardan geçmiyor.`
+    : `Önerilen rotada da ${sonuc.optimize_rota.riskli_nokta_sayisi} noktada TI1 göstergesi eşiği aşıyor ` +
+      `(planlanan rotada ${sonuc.normal_rota.riskli_nokta_sayisi}).`;
+  el.innerHTML =
+    `🔔 <b>Kabin ekibi için bilgi (illüstratif):</b> ${durum} TI1 tek başına kanıtlanmış bir türbülans ` +
+    `göstergesi değildir; kemer ikazı ve servis kararı kaptana aittir. Karar destek amaçlıdır.`;
   el.style.display = "block";
 }
 

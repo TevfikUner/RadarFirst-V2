@@ -101,6 +101,18 @@ async def son_gorev_zamani(tur: str) -> datetime | None:
         ).scalar_one_or_none()
 
 
+async def son_gorevler(tur: str, limit: int = 10) -> list[dict]:
+    """Bu türdeki en yeni görevlerin durumu ve zamanları (en yeni önce)."""
+    async with async_oturum_al() as oturum:
+        satirlar = await oturum.execute(
+            select(AnalizGorevi.durum, AnalizGorevi.olusturulma_zamani, AnalizGorevi.bitis_zamani)
+            .where(AnalizGorevi.tur == tur)
+            .order_by(AnalizGorevi.olusturulma_zamani.desc())
+            .limit(limit)
+        )
+        return [dict(s._mapping) for s in satirlar]
+
+
 async def gorev_durumlari(tur: str, sonra: datetime) -> list[str]:
     """Bu türden `sonra`dan sonra oluşturulmuş görevlerin durumları."""
     async with async_oturum_al() as oturum:

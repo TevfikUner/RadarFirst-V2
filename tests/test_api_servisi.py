@@ -18,6 +18,7 @@ Gerçek bir PostgreSQL bağlantısı gerektirir; bağlanılamazsa atlanır (skip
 
 import asyncio
 import os
+from datetime import UTC, datetime, timedelta
 
 import httpx
 import pandas as pd
@@ -653,7 +654,7 @@ async def test_saglik_derin_db_erisilemezse_503(istemci, monkeypatch):
     monkeypatch.setattr(api_servisi, "async_motor_al", lambda: bozuk_motor)
     yanit = await istemci.get("/saglik?derin=true")
     assert yanit.status_code == 503
-    assert yanit.json()["veritabani"] == "erisilemiyor"
+    assert yanit.json()["veritabani"] == "erisilemiyor" and yanit.json()["durum"] == "bozulmus"
     await bozuk_motor.dispose()
 
 
@@ -991,6 +992,8 @@ _KONTROLLER = {
     "kup_onbellegi",
     "statik_dosyalar",
     "fir_sinirlari",
+    "ml_gece_isi",
+    "yedek",
 }
 
 
@@ -1000,7 +1003,7 @@ async def test_derin_saglik_tum_bagimliliklari_raporlar_ham_hata_sizdirmaz(istem
     govde = yanit.json()
     assert govde["durum"] in ("ayakta", "bozulmus") and govde["veritabani"] == "erisilebilir"
     assert set(govde["kontroller"]) == _KONTROLLER
-    assert all("durum" in k and "son_hata" not in k and "kaynaklar" not in k for k in govde["kontroller"].values())
+    assert all(set(k) == {"durum"} for k in govde["kontroller"].values())
     assert isinstance(govde["uyarilar"], list)
 
 
@@ -1705,3 +1708,99 @@ async def test_sigmet_iwxxm_disa_aktarilir_bilinmeyende_404(istemci, api_anahtar
         with vt.motor_al().begin() as baglanti:
             baglanti.execute(text("DELETE FROM sigmetler WHERE kaynak = 'test'"))
             baglanti.execute(text("DELETE FROM veri_kaynagi_durumlari WHERE kaynak = 'sigmet:test'"))
+
+
+async def test_antimeridyeni_kesen_rota_400_ile_reddedilir(istemci, api_anahtari):
+    yanit = await istemci.post(
+        "/api/v1/simulasyon/rota",
+        json={
+            "baslangic_enlem": 35.5,
+            "baslangic_boylam": 139.8,
+            "bitis_enlem": 33.9,
+            "bitis_boylam": -118.4,
+            "irtifa_ft": 37000,
+            "zaman": "2019-01-15T10:00:00",
+            "ucak_modeli": "B77W",
+        },
+        headers={"X-API-Key": api_anahtari},
+    )
+    assert yanit.status_code == 400
+    assert "180°" in yanit.json()["detail"]
+
+
+async def test_kutuphane_kaynakli_valueerror_ic_ayrinti_sizdirmadan_500_doner(istemci, api_anahtari, monkeypatch):
+    from turbulans_radar.ml import ml_veri_hatti
+
+    def _kutuphane_hatasi():
+        raise ValueError("iç ayrıntı: /gizli/yol/dosya.nc")
+
+    monkeypatch.setattr(ml_veri_hatti, "ml_durum_ozeti", _kutuphane_hatasi)
+    yanit = await istemci.get("/api/v1/ml/durum", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 500 and "/gizli/yol" not in yanit.text
+
+
+async def test_uygulamanin_kendi_valueerror_mesaji_400_ile_doner(istemci, api_anahtari, monkeypatch):
+    from turbulans_radar.ml import ml_veri_hatti
+    from turbulans_radar.rota.rota_optimizasyonu import buyuk_daire_rotasi_olustur
+
+    monkeypatch.setattr(ml_veri_hatti, "ml_durum_ozeti", lambda: buyuk_daire_rotasi_olustur(41, 29, 41, 29, 5))
+    yanit = await istemci.get("/api/v1/ml/durum", headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 400 and "çok yakın" in yanit.json()["detail"]
+
+
+def _gorev(durum, saat_once):
+    zaman = datetime.now(UTC) - timedelta(hours=saat_once)
+    return {"durum": durum, "olusturulma_zamani": zaman, "bitis_zamani": zaman}
+
+
+@pytest.mark.parametrize(
+    "gorevler,beklenen",
+    [
+        ([_gorev("tamamlandi", 5)], "tamam"),
+        ([_gorev("hata", 1), _gorev("tamamlandi", 20)], "son_deneme_basarisiz"),
+        ([_gorev("calisiyor", 0), _gorev("hata", 1)], "tamam"),
+        ([_gorev("tamamlandi", 72)], "gecikmis"),
+        ([], "gecikmis"),
+    ],
+)
+async def test_ml_gece_isi_saglik_kontrolu(monkeypatch, gorevler, beklenen):
+    monkeypatch.setattr(config, "ML_GECE_ISI_SAATI", "03:00")
+
+    async def _son(tur, limit=10):
+        return gorevler
+
+    monkeypatch.setattr(api_servisi, "son_gorevler", _son)
+    assert (await api_servisi._ml_gece_isi_kontrolu())["durum"] == beklenen
+    assert beklenen == "tamam" or beklenen in api_servisi._UYARI_DURUMLARI
+
+
+def test_yedek_saglik_kontrolu_yas_ve_eksikligi_raporlar(monkeypatch, tmp_path):
+    import time
+
+    monkeypatch.setattr(config, "YEDEK_KLASORU", str(tmp_path / "yok"))
+    assert api_servisi._yedek_kontrolu() == {"durum": "kapali"}
+    monkeypatch.setattr(config, "YEDEK_KLASORU", str(tmp_path))
+    (tmp_path / "turbulans_20261004.dump").write_bytes(b"x")
+    assert api_servisi._yedek_kontrolu()["durum"] == "yok"
+    arsiv = tmp_path / "dosyalar_20261004.tar.gz"
+    arsiv.write_bytes(b"x")
+    assert api_servisi._yedek_kontrolu()["durum"] == "tamam"
+    eski = time.time() - 3 * 86400
+    os.utime(arsiv, (eski, eski))
+    sonuc = api_servisi._yedek_kontrolu()
+    assert sonuc["durum"] == "eski" and sonuc["dosyalar_yas_saat"] > 70
+
+
+def test_canli_gfs_uzun_suredir_kullanilmadiysa_bosta_hata_degil(monkeypatch):
+    monkeypatch.setattr(config, "CANLI_HAVA_VERISI_ETKIN", True)
+    kayit = {
+        "son_basari_zamani": datetime.now(UTC) - timedelta(days=4),
+        "son_deneme_zamani": datetime.now(UTC) - timedelta(days=4),
+        "ardisik_hata_sayisi": 0,
+        "son_hata": None,
+    }
+    monkeypatch.setattr(api_servisi, "kaynak_durumlarini_getir", lambda anahtarlar: [kayit])
+    sonuc = api_servisi._canli_gfs_kontrolu()
+    assert sonuc["durum"] == "bosta" and sonuc["son_basari_yas_saat"] > 90
+    kayit["ardisik_hata_sayisi"] = 2
+    assert api_servisi._canli_gfs_kontrolu()["durum"] == "hata"

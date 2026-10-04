@@ -39,6 +39,12 @@ RUN mkdir -p model_deposu \
          if [ -e "$f" ]; then cp -r "$f" model_deposu/; fi; \
        done
 
+# Root olmayan kullanıcı: kod imajda salt okunur kalır; yazılan her şey
+# docker-compose'un bağladığı klasörlerde ve model volume'undadır. Root'la
+# oluşturulmuş eski bir model volume'u bir kez sahiplendirilir (README "Docker").
+RUN useradd --create-home --uid 1000 turbulans && chown -R turbulans:turbulans model_deposu
+USER turbulans
+
 EXPOSE 8000
 
 # Önce şemayı kur/güncelle (alembic upgrade head -- veritabanı zaten

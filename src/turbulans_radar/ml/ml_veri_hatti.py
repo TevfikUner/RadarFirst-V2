@@ -307,9 +307,14 @@ def _pencereleri_yaz(alt, kup) -> str | None:
         return None
 
 
+ISCI_DURDURULUYOR = "isci_durduruluyor"
+
+
 def eslestirme_calistir(
-    maks_cds_istek=None, saglayici=None, motor=None, simdi=None, gun_siniri=None, kaynaklar=None
+    maks_cds_istek=None, saglayici=None, motor=None, simdi=None, gun_siniri=None, kaynaklar=None, durdur=None
 ) -> dict:
+    """durdur: True dönerse (işçi kapanıyor) yeni CDS isteği başlatılmaz; süren
+    istek bitirilip yazıldıktan sonra durulur."""
     motor = motor or motor_al()
     maks_cds_istek = min(maks_cds_istek or config.ML_GECE_MAKS_CDS_ISTEK, config.ML_GECE_MAKS_CDS_ISTEK)
     saglayici = saglayici or ml_saglayicisi()
@@ -324,6 +329,9 @@ def eslestirme_calistir(
             kutu, baslangic, bitis = grup_istegi(alt)
             baslangic, bitis = _depo_zaman_payi(baslangic, bitis)
             istek_sayisi = len(cds_istekleri_olustur(kutu, baslangic, bitis, config.ERA5_BASINC_SEVIYELERI_HPA))
+            if durdur is not None and durdur():
+                ozet["durdurma"] = ISCI_DURDURULUYOR
+                break
             if ozet["cds_istek"] + istek_sayisi > maks_cds_istek:
                 ozet["durdurma"] = "gecelik_cds_siniri"
                 break
@@ -367,22 +375,27 @@ def _iem_adimi(simdi, motor) -> dict:
     return yeni_iem_pireplerini_cek(simdi=simdi, motor=motor)
 
 
-def ml_veri_hatti_calistir(iem_guncelle=True, maks_cds_istek=None, saglayici=None, motor=None, simdi=None) -> dict:
+def ml_veri_hatti_calistir(
+    iem_guncelle=True, maks_cds_istek=None, saglayici=None, motor=None, simdi=None, durdur=None
+) -> dict:
     motor = motor or motor_al()
+    durdur = durdur or (lambda: False)
     ozet = {}
     for ad, adim in (
         ("arsiv", lambda: arsivi_ice_aktar(motor=motor)),
         ("iem", (lambda: _iem_adimi(simdi, motor)) if iem_guncelle else None),
     ):
-        if adim is None:
+        if adim is None or durdur():
             continue
         try:
             ozet.update(adim())
         except Exception as hata:
             _logger.error("ML veri hattı adımı başarısız (%s)", ad, exc_info=hata)
             ozet[f"{ad}_hata"] = f"{type(hata).__name__}: {hata}"[:300]
-    ozet.update(eslestirme_calistir(maks_cds_istek, saglayici, motor, simdi))
-    if config.MADIS_GECE_ETKIN:
+    ozet.update(eslestirme_calistir(maks_cds_istek, saglayici, motor, simdi, durdur=durdur))
+    if durdur():
+        ozet["durdurma"] = ISCI_DURDURULUYOR
+    elif config.MADIS_GECE_ETKIN:
         try:
             from turbulans_radar.ml.madis_hatti import madis_adimi
 

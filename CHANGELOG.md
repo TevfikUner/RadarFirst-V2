@@ -4,6 +4,30 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Proje denetimi: orta öncelikli maddeler
+
+- **İşçi kapanışı:** `stop_grace_period: 300s`; işçi çalışan görevi
+  `GOREV_DURDURMA_BEKLEME_SANIYE` (240) bekler ve bu sürede kalp atışı sürer.
+  ML gece işi yeni CDS isteği başlatmadan durur, `yarida_kaldi` olur, eğitim
+  zincirlenmez; zamanlayıcı aynı gün yeniden dener. Eskiden Docker 10 sn sonra
+  SIGKILL atıyor, süren CDS indirmesi veri bütçesinden yeniyordu.
+- **Güvenlik:** API portu varsayılan `127.0.0.1` (`API_YAYIN_ADRESI`);
+  konteynerler root olmayan `turbulans` kullanıcısıyla çalışır; anahtarsız
+  `/saglik?derin=true` yalnızca kontrol başına durum verir.
+- **Antimeridyen:** 180° boylamını kesen rota isteği 400 ile reddedilir
+  (eskiden düzlemsel kısıt geometrisiyle hesaplanıp "güvenli" dönüyordu).
+- **MCP:** `MCP_POSTGRES_*` ile ayrı bağlantı; Docker veritabanı
+  `127.0.0.1:5433`'e de açılır (Windows'taki yerel PostgreSQL 5432'yi
+  tutuyordu, MCP eski bir veritabanını okuyordu); salt okunur rol; testler.
+- **Hata yanıtları:** yalnızca uygulamanın kendi fırlattığı `ValueError`
+  mesajıyla 400 döner; kütüphane kaynaklı olanlar loglanıp genel 500 olur.
+  Kapsam dışı rota açıklamasında sunucu dosya yolları yok.
+- **Sağlık raporu:** `ml_gece_isi` ve `yedek` kontrolleri (uyarı düzeyi);
+  uzun süredir kullanılmayan canlı GFS `bosta`; veritabanına ulaşılamazken
+  `durum: bozulmus`.
+- **Kabin bildirimi:** emir kipi yerine bilgi notu; TI1'in kanıtlanmamış
+  olduğu ve kararın kaptana ait olduğu yazılır.
+
 ## Proje denetimi: yedek, irtifa maliyeti, ML kapısı, veri kuyruğu
 
 - **Yedek:** başarısız deneme bir saat yerine `YEDEK_YENIDEN_DENEME_SANIYE`

@@ -553,3 +553,13 @@ def test_pareto_secenekleri_baskilananlari_ve_sert_kisit_ihlalini_eler():
     assert [s["strateji"] for s in secenekler] == ["yanal", "irtifa_yukari", "yok"]
     assert secenekler[0]["onerilen"] and not secenekler[2]["onerilen"]
     assert round(secenekler[0]["ek_sure_dk"], 2) == round(100 / 60, 2) and secenekler[2]["ek_sure_dk"] == 0.0
+
+
+def test_antimeridyen_kesisimi_tespit_edilir_ve_rota_reddedilir():
+    from turbulans_radar.rota.rota_optimizasyonu import AntimeridyenHatasi, antimeridyeni_kesiyor_mu
+
+    _, tokyo_la = buyuk_daire_rotasi_olustur(35.5, 139.8, 33.9, -118.4, 41)
+    _, istanbul_ny = buyuk_daire_rotasi_olustur(41.0, 28.9, 40.7, -74.0, 41)
+    assert antimeridyeni_kesiyor_mu(tokyo_la) and not antimeridyeni_kesiyor_mu(istanbul_ny)
+    with pytest.raises(AntimeridyenHatasi):
+        rota_simulasyonu_olustur(35.5, 139.8, 33.9, -118.4, 37000, "2019-01-15T10:00:00", "B77W", sigmetler=[])

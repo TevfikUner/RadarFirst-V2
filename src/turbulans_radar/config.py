@@ -336,6 +336,9 @@ GOREV_KUYRUK_BEKLEME_SANIYE = _ortam_sayi("GOREV_KUYRUK_BEKLEME_SANIYE", 1.0)
 GOREV_KALP_ATISI_SANIYE = _ortam_sayi("GOREV_KALP_ATISI_SANIYE", 15.0)
 GOREV_BAYAT_SANIYE = _ortam_sayi("GOREV_BAYAT_SANIYE", 120.0)
 GOREV_MAKS_DENEME = _ortam_sayi("GOREV_MAKS_DENEME", 2, int)
+# Ayrı işçi SIGTERM alınca çalışan görevi bu kadar bekler (ML işi süren CDS isteğini bitirip durur);
+# docker-compose'daki stop_grace_period bundan uzun olmalı, yoksa Docker SIGKILL atar.
+GOREV_DURDURMA_BEKLEME_SANIYE = _ortam_sayi("GOREV_DURDURMA_BEKLEME_SANIYE", 240.0)
 # Boş değilse işçi sadece bu türlerdeki görevleri alır (virgülle: ucus,rota,toplu,backtest,canli_veri).
 GOREV_ISCI_TURLERI = tuple(t.strip() for t in _ortam_str("GOREV_ISCI_TURLERI", "").split(",") if t.strip())
 
@@ -487,6 +490,13 @@ DENETIM_SAKLAMA_GUN = _ortam_sayi("DENETIM_SAKLAMA_GUN", 180, int)
 # Anahtarsız /saglik?derin=true yanıtı bu kadar saniye önbellekte tutulur
 # (0 = kapalı); yönetici /api/v1/sistem/durum her zaman taze hesaplanır.
 SAGLIK_ONBELLEK_SANIYE = _ortam_sayi("SAGLIK_ONBELLEK_SANIYE", 15.0)
+# Sağlık raporunda uyarı eşikleri: son başarılı ML gece işi ve son yedek bundan eskiyse.
+# Bilgisayar günlerce kapalı kaldıysa uyarı beklenen ve doğru bir durumdur.
+SAGLIK_ML_GECE_MAKS_YAS_SAAT = _ortam_sayi("SAGLIK_ML_GECE_MAKS_YAS_SAAT", 48.0)
+YEDEK_KLASORU = _ortam_str("YEDEK_KLASORU", "db_yedekleri")
+SAGLIK_YEDEK_MAKS_YAS_SAAT = _ortam_sayi("SAGLIK_YEDEK_MAKS_YAS_SAAT", 36.0)
+# Canlı GFS isteğe bağlı indirilir: bu süredir başarılı indirme yoksa ve hata da yoksa durum 'bosta'.
+SAGLIK_GFS_BOSTA_SAAT = _ortam_sayi("SAGLIK_GFS_BOSTA_SAAT", 24.0)
 
 # turbulans_ml_modeli.py -- aktif model, bilgi JSON'u ve model_versiyonlari/
 # bu klasörde tutulur. Docker'da kalıcı bir volume'a işaret eder (bkz.

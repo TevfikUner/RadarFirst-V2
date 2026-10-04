@@ -299,6 +299,22 @@ def test_eslestirme_gecelik_cds_sinirinda_durur(motor):
     assert (len(saglayici.cagrilar), ozet["durdurma"], ozet["kalan_bekleyen"]) == (2, "gecelik_cds_siniri", 1)
 
 
+def test_isci_durdurulunca_yeni_cds_istegi_baslatilmaz(motor):
+    mv.pirepleri_kaydet(
+        _pirepler([(f"2019-01-{g:02d}T12:00", 40.0 + g / 10, -80.0, 35000, 1) for g in (10, 11, 12)]), _KAYNAK, motor
+    )
+    saglayici = _SahteCds()
+    ozet = mv.eslestirme_calistir(
+        maks_cds_istek=5,
+        saglayici=saglayici,
+        motor=motor,
+        kaynaklar=[_KAYNAK],
+        durdur=lambda: len(saglayici.cagrilar) >= 1,
+    )
+    assert (len(saglayici.cagrilar), ozet["eslesti"], ozet["durdurma"]) == (1, 1, mv.ISCI_DURDURULUYOR)
+    assert ozet["kalan_bekleyen"] == 2
+
+
 def test_gunluk_cds_kotasi_dolunca_satirlar_bekliyor_kalir(motor):
     mv.pirepleri_kaydet(_pirepler([("2019-01-10T12:00", 40.0, -80.0, 35000, 1)]), _KAYNAK, motor)
     saglayici = _SahteCds(hata=es.CdsKotaAsildiHatasi("doldu"))

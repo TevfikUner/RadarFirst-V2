@@ -165,7 +165,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 **SIGMET**
 - 180° boylamını (antimeridyen) kesen poligonlar -180..180 aralığında
   ikiye bölünerek uygulanır; kendini kesen (geçersiz) halkalar onarılır.
-  Rotanın kendisi 180° boylamını kesiyorsa (Pasifik geçişleri) desteklenmez.
+  Rotanın kendisi 180° boylamını kesiyorsa (Pasifik geçişleri) desteklenmez;
+  istek 400 ile reddedilir (sonuç güvence sayılamayacağı için hesaplanmaz).
 - Hareketli SIGMET'ler bildirilen yön/hızla doğrusal kaydırılır (şekil
   değişimi, "INTSF/WKN" yoğunlaşma/zayıflama modellenmez); hızı bilinmeyenler
   0-30 kt aralığında süpürülür. 3D sahne alanı yayın anındaki konumunda çizer.
@@ -192,7 +193,13 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   çalıştığının gösterimidir.
 
 **İşletim**
-- Hız sınırı bellekte ve süreç başına tutulur.
+- Hız sınırı sayaçları PostgreSQL'dedir (tüm API süreçleri paylaşır);
+  veritabanına ulaşılamazsa sınır atlanır (fail-open).
+- Anahtarsız `/saglik?derin=true` yalnızca kontrol başına durumu verir;
+  ayrıntı (zamanlar, hata metinleri) `GET /api/v1/sistem/durum`'dadır.
+  Gece işi ve yedek tazeliği uyarı düzeyinde raporlanır.
+- İşçi durdurulunca çalışan görevi 240 sn bekler; ML gece işi süren CDS
+  isteğini bitirip `yarida_kaldi` olarak durur.
 - Görev kuyruğu PostgreSQL'dedir; işçiler 1 sn aralıkla yoklar (kuyruğa
   giriş ile başlama arasında ~1 sn gecikme).
 - API/kuyruk üzerinden tetiklenen analizler (`/analiz/ucus`, `/analiz/rota`,

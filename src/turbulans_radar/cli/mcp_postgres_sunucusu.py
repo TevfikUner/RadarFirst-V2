@@ -15,10 +15,17 @@ Claude Code'a bağlamak için proje kökündeki .mcp.json zaten bu dosyayı
 işaret ediyor -- ayrıca bir şey yapmana gerek yok, ilk bağlantıda Claude
 Code onay isteyecek.
 
+Bağlantı: '.env'de MCP_POSTGRES_HOST/PORT/USER/PASSWORD verilirse POSTGRES_*
+yerine bunlar kullanılır. Windows'ta yerel bir PostgreSQL 5432'yi tutuyorsa
+Docker veritabanı 127.0.0.1:5433'ten okunur (MCP_POSTGRES_PORT=5433); salt
+okunur rol (MCP_POSTGRES_USER) yazmayı veritabanı düzeyinde de engeller
+(README "Claude Code'dan veritabanına MCP ile bağlanmak").
+
 Elle çalıştırmak/test etmek için:
     turbulans-mcp
 """
 
+import os
 import re
 
 from mcp.server.mcpserver import MCPServer
@@ -96,7 +103,27 @@ def salt_okunur_sorgu_calistir(sql: str, limit: int = 200) -> list[dict]:
         return [dict(satir._mapping) for satir in sonuc]
 
 
+_MCP_ORTAM_ESLEMESI = {
+    "MCP_POSTGRES_HOST": "POSTGRES_HOST",
+    "MCP_POSTGRES_PORT": "POSTGRES_PORT",
+    "MCP_POSTGRES_USER": "POSTGRES_USER",
+    "MCP_POSTGRES_PASSWORD": "POSTGRES_PASSWORD",
+}
+
+
+def mcp_baglanti_ayarlarini_uygula(ortam=None) -> list[str]:
+    """Dolu MCP_POSTGRES_* değerlerini POSTGRES_* üzerine yazar; uygulananları döner."""
+    ortam = os.environ if ortam is None else ortam
+    uygulanan = []
+    for kaynak, hedef in _MCP_ORTAM_ESLEMESI.items():
+        if ortam.get(kaynak):
+            ortam[hedef] = ortam[kaynak]
+            uygulanan.append(hedef)
+    return uygulanan
+
+
 def ana():
+    mcp_baglanti_ayarlarini_uygula()
     sunucu.run()
 
 

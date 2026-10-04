@@ -32,8 +32,22 @@ def test_ml_veri_gorevi_parametreleri_iletir_ve_egitimi_zincirler(monkeypatch, s
         {"id": "g1", "tur": "ml_veri", "parametreler": {"iem_guncelle": False, "maks_cds_istek": 5}}
     )
     assert sonuc == {"durum": "tamamlandi", "ozet": [{"eslesti": 3, "egitim_gorev_id": "g2"}]}
-    assert cagrilar == [{"iem_guncelle": False, "maks_cds_istek": 5}]
+    assert cagrilar == [{"iem_guncelle": False, "maks_cds_istek": 5, "durdur": None}]
     assert eklenen == ["ml_egitim"] and serbest_kilit == ["ml_veri_hatti"]
+
+
+def test_isci_durdurulursa_ml_veri_gorevi_yarida_kalir_ve_egitim_zincirlemez(monkeypatch, serbest_kilit):
+    gelen = []
+
+    def _hat(**k):
+        gelen.append(k["durdur"]())
+        return {"eslesti": 2, "durdurma": ml_veri_hatti.ISCI_DURDURULUYOR}
+
+    monkeypatch.setattr(ml_veri_hatti, "ml_veri_hatti_calistir", _hat)
+    monkeypatch.setattr(gorev_iscisi, "gorev_olustur_senkron", lambda *a, **k: pytest.fail("zincirlenmemeli"))
+    sonuc = gorev_iscisi.gorevi_yurut({"id": "g1", "tur": "ml_veri", "parametreler": {}, "_durdur": lambda: True})
+    assert gelen == [True]
+    assert (sonuc["durum"], sonuc["aciklama"]) == ("yarida_kaldi", gorev_iscisi.ML_DURDURULDU_MESAJI)
 
 
 def test_ml_veri_gorevi_egitim_istenmezse_zincirlemez(monkeypatch, serbest_kilit):

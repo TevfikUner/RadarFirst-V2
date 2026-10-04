@@ -188,8 +188,20 @@ servis adına (`db`) çevrilir. API `http://localhost:8000`'de, Swagger
 `http://localhost:8000/docs`'ta olur. Konteyner **otonom** çalışır: canlı
 AWC SIGMET'lerini 15 dakikada bir kendisi yeniler
 (`SIGMET_OTOMATIK_GUNCELLEME_DAKIKA`), anlık rotalar için canlı GFS verisini
-indirir (`canli_veri/` volume'unda saklanır). PostgreSQL portu yalnızca
-`127.0.0.1`'e açıktır.
+indirir (`canli_veri/` volume'unda saklanır). PostgreSQL ve API portları
+yalnızca `127.0.0.1`'e açıktır; ağdaki bir cihaz API'ye erişecekse `.env`'de
+`API_YAYIN_ADRESI=0.0.0.0` (anahtarlar düz HTTP'den geçer, yalnızca güvenilen
+ağda). Konteynerler root olmayan `turbulans` (uid 1000) kullanıcısıyla çalışır.
+Root çalışan eski bir sürümden geçerken model volume'u bir kez sahiplendirilir:
+
+```bash
+docker compose run --rm --no-deps --user root api chown -R 1000:1000 /app/model_deposu
+```
+
+İşçi durdurulunca (`docker compose stop/up` dahil) çalışan görevi
+`GOREV_DURDURMA_BEKLEME_SANIYE` (240) bekler; ML gece işi süren CDS isteğini
+bitirip `yarida_kaldi` olarak durur ve zamanlayıcı aynı gün yeniden dener.
+Bu yüzden işçinin durması 5 dakikaya kadar sürebilir (`stop_grace_period`).
 
 - **ERA5 arşiv küpleri** imaja dahil değildir (boyut); proje kökü API ve
   işçiye `/veri` olarak **salt okunur** bağlanır, `ocak_2019_turbulans.nc` ve
@@ -1290,7 +1302,25 @@ tanıtır (ilk kullanımda onay istenir). Sunucu **salt okunur** -- sadece
 `tablolari_listele`, `ucuslar_listesi`, `ucus_detayi` ve
 `salt_okunur_sorgu_calistir` (sadece tek bir `SELECT`, yazma ifadeleri
 reddedilir) araçlarını sunar. Bağlantı bilgileri `.mcp.json`'da DEĞİL,
-`.env`'de tutulur.
+`.env`'de tutulur; `MCP_POSTGRES_HOST/PORT/USER/PASSWORD` verilirse
+`POSTGRES_*` yerine onlar kullanılır.
+
+Claude Code Windows'ta çalışıp veritabanı Docker'da (WSL) ise: Windows'ta
+yerel bir PostgreSQL 5432'yi tutuyorsa `localhost:5432` o sunucuya gider ve
+MCP eski/başka bir veritabanını okur. Docker veritabanı bu yüzden
+`127.0.0.1:5433`'e de açılır. Kelime filtresinin yanında veritabanı düzeyinde
+de yazmayı engellemek için salt okunur bir rol kullanın (bir kez):
+
+```bash
+docker compose exec db psql -U postgres -d Turbulence-db \
+  -c "CREATE ROLE turbulans_okuyucu LOGIN PASSWORD '<güçlü şifre>'" \
+  -c "GRANT pg_read_all_data TO turbulans_okuyucu" \
+  -c "ALTER ROLE turbulans_okuyucu SET default_transaction_read_only = on"
+```
+
+`.env`: `MCP_POSTGRES_PORT=5433`, `MCP_POSTGRES_USER=turbulans_okuyucu`,
+`MCP_POSTGRES_PASSWORD=<aynı şifre>`. Değişiklikten sonra Claude Code'u
+yeniden başlatın.
 
 ## Veritabanı şeması (Alembic)
 

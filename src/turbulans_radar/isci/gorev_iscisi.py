@@ -187,19 +187,26 @@ def _canli_adsb_gorevi(gorev):
 
 
 ML_ATLANDI_MESAJI = "Aynı türde bir ML işi başka bir işçide sürüyor; bu tetikleme atlandı."
+ML_DURDURULDU_MESAJI = (
+    "İşçi durduruldu; eşleştirme iki CDS isteği arasında kesildi (yazılanlar korunur). "
+    "Gece işi zamanlayıcısı aynı gün yeniden dener."
+)
 
 
 def _ml_veri_gorevi(gorev):
-    from turbulans_radar.ml.ml_veri_hatti import ml_veri_hatti_calistir
+    from turbulans_radar.ml.ml_veri_hatti import ISCI_DURDURULUYOR, ml_veri_hatti_calistir
 
     p = gorev["parametreler"] or {}
+    durdur = gorev.get("_durdur")
     try:
         with dagitik_kilit("ml_veri_hatti", zaman_asimi_saniye=0):
             ozet = ml_veri_hatti_calistir(
-                iem_guncelle=p.get("iem_guncelle", True), maks_cds_istek=p.get("maks_cds_istek")
+                iem_guncelle=p.get("iem_guncelle", True), maks_cds_istek=p.get("maks_cds_istek"), durdur=durdur
             )
     except KilitZamanAsimiHatasi:
         return {"durum": "tamamlandi", "aciklama": ML_ATLANDI_MESAJI}
+    if ozet.get("durdurma") == ISCI_DURDURULUYOR:
+        return {"durum": "yarida_kaldi", "aciklama": ML_DURDURULDU_MESAJI, "ozet": [ozet]}
     if p.get("ardindan_egitim", True):
         ozet["egitim_gorev_id"] = gorev_olustur_senkron("ml_egitim", parametreler={})
     return {"durum": "tamamlandi", "ozet": [ozet]}
@@ -266,6 +273,7 @@ class GorevIscisi:
         self.bekleme_saniye = config.GOREV_KUYRUK_BEKLEME_SANIYE if bekleme_saniye is None else bekleme_saniye
         self.ad = ad or f"{socket.gethostname()}:{os.getpid()}:{uuid.uuid4().hex[:6]}"
         self._dur = threading.Event()
+        self._bakim_dur = threading.Event()
         self._kilit = threading.Lock()
         self._calisanlar: set[str] = set()
         self._is_parcaciklari: list[threading.Thread] = []
@@ -281,11 +289,15 @@ class GorevIscisi:
 
     def durdur(self, zaman_asimi=10.0):
         """Yeni görev almayı keser; çalışan görevin bitmesini zaman_asimi kadar
-        bekler (bitmeyen görev kalp atışı kesilince başka işçiye geçer)."""
+        bekler (uzun görevler '_durdur' ile güvenli bir noktada kendisi durur;
+        bitmeyen görev kalp atışı kesilince başka işçiye geçer). Bekleme
+        boyunca kalp atışı sürer."""
         self._dur.set()
         son_an = time.monotonic() + zaman_asimi
         for is_parcacigi in self._is_parcaciklari:
-            is_parcacigi.join(max(0.0, son_an - time.monotonic()))
+            if is_parcacigi.name != "gorev-bakim":
+                is_parcacigi.join(max(0.0, son_an - time.monotonic()))
+        self._bakim_dur.set()
 
     def _dongu(self):
         while not self._dur.is_set():
@@ -304,7 +316,7 @@ class GorevIscisi:
         with self._kilit:
             self._calisanlar.add(gorev["id"])
         try:
-            alanlar = gorevi_yurut(gorev)
+            alanlar = gorevi_yurut({**gorev, "_durdur": self._dur.is_set})
         finally:
             with self._kilit:
                 self._calisanlar.discard(gorev["id"])
@@ -318,7 +330,7 @@ class GorevIscisi:
 
     def _bakim_dongusu(self):
         bayat_sure = timedelta(seconds=config.GOREV_BAYAT_SANIYE)
-        while not self._dur.wait(config.GOREV_KALP_ATISI_SANIYE):
+        while not self._bakim_dur.wait(config.GOREV_KALP_ATISI_SANIYE):
             with self._kilit:
                 calisanlar = list(self._calisanlar)
             try:
@@ -343,7 +355,7 @@ def ana():
     while not dur.wait(1.0):
         pass
     _logger.info("İşçi durduruluyor (%s), çalışan görev bekleniyor...", datetime.now(UTC).isoformat())
-    isci.durdur(zaman_asimi=60.0)
+    isci.durdur(zaman_asimi=config.GOREV_DURDURMA_BEKLEME_SANIYE)
 
 
 if __name__ == "__main__":
