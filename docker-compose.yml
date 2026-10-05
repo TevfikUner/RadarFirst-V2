@@ -9,6 +9,18 @@ x-veri-ortami: &veri_ortami
   CDSAPI_RC: /run/secrets/cdsapirc
   ML_PIREP_ARSIV_KLASORU: /veri/${ML_PIREP_ARSIV_KLASOR_ADI:-pirep_ham}
 
+# API/işçi/demo süper kullanıcıyla değil, yalnızca kendi veritabanının sahibi olan
+# rolle bağlanır (otomasyon/uygulama_rolu_olustur.sh); UYGULAMA_* yoksa eski davranış.
+# env_file tüm .env'yi konteynere taşır: bu servislerin kullanmadığı sırlar boşaltılır
+# (environment, env_file'ı ezer). Süper kullanıcı şifresi yalnızca db ve yedek'te kalır.
+x-uygulama-db: &uygulama_db
+  POSTGRES_HOST: db
+  POSTGRES_USER: ${UYGULAMA_POSTGRES_USER:-${POSTGRES_USER:-postgres}}
+  POSTGRES_PASSWORD: ${UYGULAMA_POSTGRES_PASSWORD:-${POSTGRES_PASSWORD:-postgres}}
+  UYGULAMA_POSTGRES_PASSWORD: ""
+  MCP_POSTGRES_USER: ""
+  MCP_POSTGRES_PASSWORD: ""
+
 x-ortak-volumeler: &ortak_volumeler
   - ./ciktilar:/app/ciktilar
   - ./canli_veri:/app/canli_veri
@@ -61,8 +73,7 @@ services:
       # .env'deki POSTGRES_HOST genelde 'localhost'tur (host makineden
       # doğrudan bağlanmak için) -- konteynerler arasında bu, compose'un
       # servis adı ('db') olmalı. env_file'dan SONRA geldiği için bu değer
-      # üstün gelir.
-      POSTGRES_HOST: db
+      # üstün gelir (x-uygulama-db).
       # Otonom backend: API, canlı AWC SIGMET'lerini kendi içinde periyodik yeniler.
       SIGMET_OTOMATIK_GUNCELLEME_DAKIKA: ${SIGMET_OTOMATIK_GUNCELLEME_DAKIKA:-15}
       # ML gece işi (IEM PIREP + CDS eşleştirme + eğitim) her gün bu saatte (UTC;
@@ -75,7 +86,9 @@ services:
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
       # Uzun işler (analiz, backtest, canlı veri) ayrı 'worker' servisinde çalışır.
       GOREV_GOMULU_ISCI: "false"
-      <<: *veri_ortami
+      # Ağa açılınca (/docs, /openapi.json) kendiliğinden kapanır; bkz. API_BELGELERI_ACIK.
+      API_YAYIN_ADRESI: ${API_YAYIN_ADRESI:-127.0.0.1}
+      <<: [*veri_ortami, *uygulama_db]
     # Varsayılan yalnızca bu makine; ağdaki bir cihaz (ör. EFB tableti) erişecekse
     # .env'de API_YAYIN_ADRESI=0.0.0.0 (anahtarlar herkese açık ağda düz HTTP'den geçer).
     ports:
@@ -102,9 +115,8 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_HOST: db
       GOREV_ISCI_SAYISI: ${GOREV_ISCI_SAYISI:-2}
-      <<: *veri_ortami
+      <<: [*veri_ortami, *uygulama_db]
     volumes: *ortak_volumeler
     secrets: [cdsapirc]
 
@@ -133,6 +145,8 @@ services:
       - turbulans_modeller:/kaynak/model_deposu:ro
     # Disk dışı kopya için docker-compose.override.yml'de /dis_yedek bağlanır
     # (makineye özgü yol, depoya girmez; bkz. README "Veritabanı yedeği").
+    # Doluysa disk dışı kopya gpg ile şifrelenir (.env: YEDEK_PAROLA_DOSYASI).
+    secrets: [yedek_parolasi]
     entrypoint: ["sh", "/db_yedekle.sh"]
 
   # Kimlik bilgisi gerektirmeyen demo (bkz. demo/README.md):
@@ -150,13 +164,15 @@ services:
     env_file:
       - .env
     environment:
-      POSTGRES_HOST: db
+      <<: *uygulama_db
     volumes:
       - ./ciktilar:/app/ciktilar
 
 secrets:
   cdsapirc:
     file: ${CDSAPI_RC_DOSYASI:-/dev/null}
+  yedek_parolasi:
+    file: ${YEDEK_PAROLA_DOSYASI:-/dev/null}
 
 volumes:
   turbulans_pgdata:
