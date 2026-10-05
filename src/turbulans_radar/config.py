@@ -258,15 +258,17 @@ TI1_ESIK_ORTA_SIDDETLI = _ortam_sayi("TI1_ESIK_ORTA_SIDDETLI", 8e-7)
 RISKLI_BOLUM_MIN_NM = _ortam_sayi("RISKLI_BOLUM_MIN_NM", 0.0)
 
 # turbulans_indeksleri.ti1_den_edr_proxy_olcegine_cevir()'in kullandığı
-# ölçeklendirme katsayısı. 2026-10-01 sürümü: ml_ornekleri'ndeki seyir
-# irtifası IEM PIREP'leri (ABD, 1600 örnek, 16 gün) + saatlik ERA5 ile
-# yeniden kalibre edildi (turbulans-edr-kalibrasyon): 0.40, gün bazlı
-# bootstrap %95 GA [0.35, 0.44]; zamansal test (son 4 gün) MSE 0.085 (eski
-# 0.23: 0.093). Tanh ölçeği sabit ortalama tahmininden (MSE 0.071) daha kötü
-# tahmin eder: görselleştirme ölçeğidir, risk için ML olasılığı kullanılmalı.
+# ölçeklendirme katsayısı. 2026-10-05 sürümü (Madde 2 fiziği: çevreleyen
+# katman, metrik terimler, hipsometrik kalınlık): ml_ornekleri'ndeki seyir
+# irtifası IEM PIREP'leri (ABD, 6218 örnek, 64 gün) + saatlik ERA5 ile
+# yeniden kalibre edildi (turbulans-edr-kalibrasyon): 0.27, gün bazlı
+# bootstrap %95 GA [0.25, 0.28]; zamansal test (son 13 gün, 1151 örnek) MSE
+# 0.076 (önceki 0.40: 0.082, eski 0.23: 0.076). Tanh ölçeği sabit ortalama
+# tahmininden (MSE 0.067) daha kötü tahmin eder: görselleştirme ölçeğidir,
+# risk için ML olasılığı kullanılmalı. 0.40 (2026-10-01) eski fizikle uyduruldu.
 # Eski 0.23, 300-400 FEET'teki PIREP'lerle (hatalı irtifa filtresi) uyduruldu.
 # Proxy sertifikalı EDR değildir; katsayı bölgeden bağımsız bir ilişkiye dayanır.
-EDR_OLCEKLENDIRME_KATSAYISI = _ortam_sayi("EDR_OLCEKLENDIRME_KATSAYISI", 0.40)
+EDR_OLCEKLENDIRME_KATSAYISI = _ortam_sayi("EDR_OLCEKLENDIRME_KATSAYISI", 0.27)
 EDR_OLCEKLENDIRME_KATSAYISI_ESKI = 0.23
 EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI = _ortam_bool("EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI", True)
 
