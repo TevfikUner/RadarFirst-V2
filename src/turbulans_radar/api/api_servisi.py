@@ -12,7 +12,7 @@ bırakıldı (yaygın pratik: yük dengeleyici/monitoring health-check'i).
 Sürümleme: tüm veri/analiz uç noktaları /api/v1 altında (bkz. Kurumsal API
 dokümantasyonu isteği) -- ileride /api/v2 eklenirse mevcut istemciler
 bozulmaz. İnteraktif Swagger dokümantasyonu FastAPI'nin ürettiği /docs
-adresinde otomatik olarak hazır.
+adresindedir; API ağa açılınca kapanır (bkz. api_belgeleri_acik_mi).
 
 Asenkron: okuma uç noktaları (GET) veritabani.py'nin asyncpg tabanlı async
 fonksiyonlarını kullanır (event loop'u bloklamaz). Uzun işler (POST
@@ -379,11 +379,30 @@ async def _sigmet_zamanlayicisi(aralik_saniye):
         await asyncio.sleep(aralik_saniye)
 
 
+def _yalnizca_yerel_yayin_mi() -> bool:
+    return os.environ.get("API_YAYIN_ADRESI", "").strip() in ("", "127.0.0.1", "localhost", "::1")
+
+
+def api_belgeleri_acik_mi() -> bool:
+    """/docs, /redoc, /openapi.json: API_BELGELERI_ACIK açıkça verilmediyse
+    yalnızca API bu makineye bağlıyken (API_YAYIN_ADRESI yerel/boş) açıktır;
+    ağa açılınca uç nokta listesi anahtarsız görünmesin."""
+    acik = os.environ.get("API_BELGELERI_ACIK", "").strip().lower()
+    if acik:
+        return acik in ("1", "true", "evet", "acik")
+    return _yalnizca_yerel_yayin_mi()
+
+
+_BELGELER_ACIK = api_belgeleri_acik_mi()
+
 app = FastAPI(
     title="Türbülans Radar API",
     description="Ellrod TI1 + Richardson tabanlı türbülans eşleştirme sonuçlarını JSON olarak sunar.",
     version="1.0.0",
     lifespan=_yasam_dongusu,
+    docs_url="/docs" if _BELGELER_ACIK else None,
+    redoc_url="/redoc" if _BELGELER_ACIK else None,
+    openapi_url="/openapi.json" if _BELGELER_ACIK else None,
 )
 
 
@@ -519,6 +538,12 @@ def _anahtar_ayarlarini_denetle():
         _logger.warning(
             "API_ANAHTARLARI'nda %d geçersiz girdi atlandı ('kimlik:rol:anahtar', rol: %s).", len(gecersiz), _ROLLER
         )
+    if not _yalnizca_yerel_yayin_mi():
+        _logger.warning(
+            "API ağa açık (API_YAYIN_ADRESI=%s): TLS yok, anahtarlar düz HTTP'den gider -- "
+            "güvenilmeyen ağda TLS sonlandıran bir ters vekil kullan (README 'Güvenlik').",
+            os.environ["API_YAYIN_ADRESI"],
+        )
 
 
 def _gecerli_anahtar_girdisi(girdi: str) -> bool:
@@ -571,10 +596,17 @@ def _bilet_imzasi(govde: str) -> str:
 
 
 def ws_bileti_uret(rol: str, simdi: float | None = None) -> str:
-    """WebSocket için kısa ömürlü, sunucu anahtarıyla imzalı bilet: anahtarın
-    kendisi URL'ye (proxy/erişim loglarına) yazılmasın diye."""
-    govde = f"{int((simdi if simdi is not None else time.time()) + _BILET_SURESI_SANIYE)}.{rol}"
+    """WebSocket için kısa ömürlü, sunucu anahtarıyla imzalı, tek kullanımlık
+    bilet: anahtarın kendisi URL'ye (proxy/erişim loglarına) yazılmasın diye.
+    Rastgele ek, aynı saniyede üretilen biletlerin birbirinden ayrılmasını sağlar."""
+    bitis = int((simdi if simdi is not None else time.time()) + _BILET_SURESI_SANIYE)
+    govde = f"{bitis}.{rol}.{secrets.token_urlsafe(12)}"
     return f"{govde}.{_bilet_imzasi(govde)}"
+
+
+# Kullanılmış biletler (imza -> bitiş): süreç başınadır; WEB_CONCURRENCY>1 iken bir
+# bilet en fazla süreç sayısı kadar, yine de yalnızca 60 sn içinde kullanılabilir.
+_kullanilmis_biletler: dict[str, int] = {}
 
 
 def ws_bileti_gecerli_mi(bilet: str | None) -> bool:
@@ -582,11 +614,26 @@ def ws_bileti_gecerli_mi(bilet: str | None) -> bool:
         return False
     parcalar = bilet.split(".")
     # isascii: '²'.isdigit() True ama int('²') ValueError atar.
-    if len(parcalar) != 3 or not (parcalar[0].isascii() and parcalar[0].isdigit()):
+    if len(parcalar) != 4 or not (parcalar[0].isascii() and parcalar[0].isdigit()):
         return False
-    bitis, rol, imza = parcalar
-    beklenen = _bilet_imzasi(f"{bitis}.{rol}")
+    bitis, rol, ek, imza = parcalar
+    beklenen = _bilet_imzasi(f"{bitis}.{rol}.{ek}")
     return secrets.compare_digest(imza.encode(), beklenen.encode()) and int(bitis) >= time.time()
+
+
+def ws_biletini_kullan(bilet: str | None) -> bool:
+    """Geçerli ve daha önce kullanılmamışsa bileti tüketir."""
+    if not ws_bileti_gecerli_mi(bilet):
+        return False
+    simdi = time.time()
+    for imza, bitis in list(_kullanilmis_biletler.items()):
+        if bitis < simdi:
+            del _kullanilmis_biletler[imza]
+    bitis, _, _, imza = bilet.split(".")
+    if imza in _kullanilmis_biletler:
+        return False
+    _kullanilmis_biletler[imza] = int(bitis)
+    return True
 
 
 # ---------------------------------------------------------------------------
@@ -596,20 +643,34 @@ def ws_bileti_gecerli_mi(bilet: str | None) -> bool:
 
 _ANALIZ_PENCERE_SANIYE = 60
 _ANALIZ_PENCERE_BASINA_MAKS_ISTEK = 5
+_yerel_sayaclar: dict[tuple[str, int], tuple[int, int]] = {}
+
+
+def _yerel_istegi_say(anahtar: str, pencere_saniye: int) -> int:
+    """Veritabanı yokken yedek sabit pencere sayacı (süreç başına)."""
+    simdi = int(time.time())
+    for (k, sure), (p, _) in list(_yerel_sayaclar.items()):
+        if p != simdi // sure:
+            del _yerel_sayaclar[(k, sure)]
+    _, sayi = _yerel_sayaclar.get((anahtar, pencere_saniye), (0, 0))
+    _yerel_sayaclar[(anahtar, pencere_saniye)] = (simdi // pencere_saniye, sayi + 1)
+    return sayi + 1
 
 
 async def _hiz_sinirini_kontrol_et(
     anahtar: str, maks: int = _ANALIZ_PENCERE_BASINA_MAKS_ISTEK, pencere_saniye: int = _ANALIZ_PENCERE_SANIYE
 ):
     """Sayaç PostgreSQL'de (bkz. depo/hiz_siniri.py): tüm API süreçleri aynı
-    sınırı paylaşır. Veritabanına ulaşılamazsa sınır ATLANIR (fail-open):
-    rota hesabı gibi uçlar veritabanı olmadan da çalışabildiği için sayaç
-    arızası pilotun rota almasını engellememeli."""
+    sınırı paylaşır. Veritabanına ulaşılamazsa istek reddedilmez, sayaç süreç
+    belleğine düşer: rota hesabı gibi uçlar veritabanı olmadan da çalışabildiği
+    için sayaç arızası pilotun rota almasını engellememeli, ama sınır da kalkmamalı."""
     try:
         sayi = await istegi_say(anahtar, pencere_saniye)
     except (SQLAlchemyError, OSError, VeritabaniAyarlariEksikHatasi) as hata:
-        _logger.warning("Hız sınırı sayacına ulaşılamadı, sınır atlandı (%s): %s", anahtar, dostane_hata_mesaji(hata))
-        return
+        _logger.warning(
+            "Hız sınırı sayacına ulaşılamadı, süreç içi sayaç kullanılıyor (%s): %s", anahtar, dostane_hata_mesaji(hata)
+        )
+        sayi = _yerel_istegi_say(anahtar, pencere_saniye)
     if sayi > maks:
         metrikler.HIZ_SINIRI_REDDI.labels(anahtar.split(":", 1)[0]).inc()
         raise HTTPException(
@@ -894,12 +955,10 @@ baglanti_yoneticisi = _BaglantiYoneticisi()
 
 
 @app.websocket("/ws/uyarilar")
-async def uyarilar_websocket(websocket: WebSocket, bilet: str | None = None, api_key: str | None = None):
-    """Kimlik: POST /api/v1/ws-bileti'den alınan 60 sn'lik bilet. Eski
-    istemciler için ?api_key= hâlâ kabul edilir ama önerilmez (anahtar URL'de
-    loglanır)."""
-    yonetici = os.environ.get("API_ANAHTARI")
-    if not yonetici or not (ws_bileti_gecerli_mi(bilet) or _anahtari_coz(api_key) is not None):
+async def uyarilar_websocket(websocket: WebSocket, bilet: str | None = None):
+    """Kimlik: POST /api/v1/ws-bileti'den alınan 60 sn'lik, tek kullanımlık
+    bilet. ?api_key= kabul edilmez (anahtar URL'de/loglarda kalırdı)."""
+    if not os.environ.get("API_ANAHTARI") or not ws_biletini_kullan(bilet):
         await websocket.close(code=4401)
         return
     await baglanti_yoneticisi.baglan(websocket)
