@@ -123,15 +123,18 @@ def zaman_kaydiricili_harita_olustur(
             kalkis = html.escape(str(satir.get("kalkis_havaalani", "?")))
             varis = html.escape(str(satir.get("varis_havaalani", "?")))
             aciklama_parcalari.append(f"<b>Rota:</b> {kalkis} → {varis}")
+        irtifa_m = satir.get("baro_irtifa_m", satir.get("geo_irtifa_m", float("nan")))
+        if not pd_isna(irtifa_m):
+            aciklama_parcalari.append(f"<b>Seviye:</b> FL{round(float(irtifa_m) / 0.3048 / 100):03d}")
         if "basinc_hpa" in satir and not pd_isna(satir.get("basinc_hpa")):
-            aciklama_parcalari.append(f"<b>Basınç Seviyesi:</b> {satir['basinc_hpa']:.0f} hPa")
+            aciklama_parcalari.append(f"<b>Hesap seviyesi:</b> {satir['basinc_hpa']:.0f} hPa")
         aciklama_parcalari.append(
             f"<b>TI1 İndeksi:</b> {ti1_degeri:.2e} s^-2" if not pd_isna(ti1_degeri) else "<b>TI1 İndeksi:</b> veri yok"
         )
         aciklama_parcalari.append(
-            f"<b>EDR Proxy (0-1):</b> {edr_degeri:.3f}"
+            f"<b>EDR tahmini (sertifikalı değil):</b> {edr_degeri:.3f}"
             if not pd_isna(edr_degeri)
-            else "<b>EDR Proxy (0-1):</b> veri yok"
+            else "<b>EDR tahmini:</b> veri yok"
         )
         richardson_degeri = satir.get("richardson_sayisi", float("nan"))
         if not pd_isna(richardson_degeri):

@@ -122,18 +122,26 @@
   <div id="aciklama" style="margin-top:6px; color:#ccc; font-size:11px;"></div>
   <table>
     <tr><td></td><td><b>Normal</b></td><td><b>Optimize</b></td></tr>
-    <tr><td>Süre</td><td id="s-normal-sure"></td><td id="s-optimize-sure"></td></tr>
+    <tr><td>Süre (h:mm)</td><td id="s-normal-sure"></td><td id="s-optimize-sure"></td></tr>
     <tr><td>Mesafe</td><td id="s-normal-mesafe"></td><td id="s-optimize-mesafe"></td></tr>
-    <tr><td>Yakıt (tahmini)</td><td id="s-normal-yakit"></td><td id="s-optimize-yakit"></td></tr>
+    <tr><td title="Yer hızı − TAS">Ort. rüzgâr bileşeni</td><td id="s-normal-ruzgar"></td><td id="s-optimize-ruzgar"></td></tr>
+    <tr><td>Seyir yakıtı (ToC–ToD; kalkış/iniş/rezerv hariç)</td><td id="s-normal-yakit"></td><td id="s-optimize-yakit"></td></tr>
     <tr><td>CO2 (tahmini)</td><td id="s-normal-co2"></td><td id="s-optimize-co2"></td></tr>
     <tr><td>Riskli türbülans</td><td id="s-normal-turbulans"></td><td id="s-optimize-turbulans"></td></tr>
-    <tr><td>İrtifa</td><td id="s-normal-irtifa"></td><td id="s-optimize-irtifa"></td></tr>
+    <tr><td>Seviye</td><td id="s-normal-irtifa"></td><td id="s-optimize-irtifa"></td></tr>
     <tr><td title="T ≤ -40 °C ve buza göre bağıl nem ≥ %100 (ERA5). Duyarlılık göstergesidir, gözlenmiş iz bulutu değildir.">İz bulutu duyarlı</td><td id="s-normal-iz"></td><td id="s-optimize-iz"></td></tr>
     <tr><td>SIGMET / kısıtlı saha ihlali</td><td id="s-normal-kisit"></td><td id="s-optimize-kisit"></td></tr>
   </table>
   <hr>
   <div id="strateji-satiri" style="font-size:11px; color:#9fd6ff; margin-bottom:4px;"></div>
   <div id="tasarruf-satiri"></div>
+  <div id="riskli-bolumler-kutusu" style="display:none; margin-top:6px; font-size:11px;">
+    <b>Riskli bölümler (önerilen rota)</b>
+    <table id="riskli-bolumler-tablosu">
+      <tr><td>Zaman (UTC)</td><td>FL</td><td>NM</td><td>dk</td><td>Şiddet</td></tr>
+    </table>
+    <div style="color:#999; font-size:10px;">Risk TI1 eşiğine, şiddet birleşik EDR tahminine dayanır; sertifikalı EDR değildir.</div>
+  </div>
   <div style="margin-top:6px; font-size:11px;">
     <b>Seviye bandı</b> (SIGMET / kısıtlı saha) FL
     <input id="hacim-fl-min" type="number" min="0" max="600" step="10" value="0" style="width:48px">
@@ -144,7 +152,7 @@
   <div id="secenekler-kutusu" style="display:none; margin-top:6px; font-size:11px;">
     <b>Seçenekler (süre ↔ risk)</b>
     <table id="secenekler-tablosu">
-      <tr><td></td><td>Ek süre</td><td>Ek yakıt</td><td>Riskli nokta</td></tr>
+      <tr><td></td><td>Ek süre</td><td>Ek seyir yakıtı</td><td>Riskli nokta</td></tr>
     </table>
     <div style="color:#999; font-size:10px;">Sert kısıtlara uyan, birbirinden üstün olmayan rotalar; seçim dispeçerindir. Risk TI1 eşiğine dayanır, sertifikalı EDR değildir.</div>
   </div>
@@ -154,6 +162,7 @@
 <div id="lejant" class="panel">
   <div><span class="cizgi" style="background:#3388ff"></span> Normal rota (büyük daire)</div>
   <div><span class="cizgi" style="background:#2ecc71"></span> Optimize rota (önce güvenlik, sonra yakıt)</div>
+  <div><span class="cizgi" style="background:#e74c3c; height:5px"></span> Riskli bölüm (TI1 eşiği aşılıyor)</div>
   <div><span class="hacim" style="background:rgba(231,76,60,0.3); border-color:#e74c3c"></span> Aktif SIGMET (sert kısıt)</div>
   <div><span class="hacim" style="background:rgba(142,68,173,0.3); border-color:#8e44ad"></span> Kısıtlı/yasak hava sahası (sert kısıt)</div>
   <div style="font-size:11px; color:#999; margin-top:6px; border-top:1px solid #444; padding-top:6px;">
@@ -251,9 +260,39 @@ async function ucakProfilleriniYukle() {
 }
 
 function saniyeyiDkSaatOlarakYaz(dk) {
-  const saat = Math.floor(dk / 60);
-  const kalanDk = Math.round(dk % 60);
-  return saat > 0 ? `${saat}s ${kalanDk}dk` : `${kalanDk}dk`;
+  const toplam = Math.round(dk);
+  return `${Math.floor(toplam / 60)}:${String(toplam % 60).padStart(2, "0")}`;
+}
+
+const NM_KM = 1.852;
+const nmMetni = (km) => `${(km / NM_KM).toFixed(0)} NM (${km.toFixed(0)} km)`;
+const flMetni = (rota) => `FL${String(rota.fl ?? Math.round(rota.irtifa_ft / 100)).padStart(3, "0")}`;
+const ruzgarMetni = (kt) => kt == null ? "–" : `${kt >= 0 ? "P" : "M"}${Math.abs(kt).toFixed(0).padStart(2, "0")} kt`;
+const utcSaat = (iso) => iso.slice(11, 16) + "Z";
+
+// "Hesaplanmadı" 0 risk değildir: kapsam dışı / veri yoksa sayı gösterilmez.
+function riskMetni(rota) {
+  if (rota.riskli_nokta_sayisi == null) return "hesaplanmadı";
+  if (!rota.riskli_bolumler || rota.riskli_bolumler.length === 0) return "yok";
+  return `~${rota.riskli_mesafe_nm.toFixed(0)} NM / ~${rota.riskli_sure_dk.toFixed(0)} dk`;
+}
+
+function riskliBolumleriGoster(rota) {
+  const kutu = document.getElementById("riskli-bolumler-kutusu");
+  const tablo = document.getElementById("riskli-bolumler-tablosu");
+  while (tablo.rows.length > 1) tablo.deleteRow(1);
+  const bolumler = rota.riskli_bolumler || [];
+  kutu.style.display = bolumler.length ? "block" : "none";
+  for (const b of bolumler) {
+    const satir = tablo.insertRow();
+    for (const metin of [
+      `${utcSaat(b.baslangic_utc)}–${utcSaat(b.bitis_utc)}`,
+      `FL${String(b.fl).padStart(3, "0")}`,
+      b.uzunluk_nm.toFixed(0),
+      b.sure_dk.toFixed(0),
+      b.beklenen_siddet || "–",
+    ]) satir.insertCell().textContent = metin;
+  }
 }
 
 function sonucPanelDoldur(sonuc) {
@@ -287,16 +326,19 @@ function sonucPanelDoldur(sonuc) {
 
   document.getElementById("s-normal-sure").textContent = saniyeyiDkSaatOlarakYaz(sonuc.normal_rota.toplam_sure_dk);
   document.getElementById("s-optimize-sure").textContent = saniyeyiDkSaatOlarakYaz(sonuc.optimize_rota.toplam_sure_dk);
-  document.getElementById("s-normal-mesafe").textContent = sonuc.normal_rota.mesafe_km.toFixed(0) + " km";
-  document.getElementById("s-optimize-mesafe").textContent = sonuc.optimize_rota.mesafe_km.toFixed(0) + " km";
+  document.getElementById("s-normal-mesafe").textContent = nmMetni(sonuc.normal_rota.mesafe_km);
+  document.getElementById("s-optimize-mesafe").textContent = nmMetni(sonuc.optimize_rota.mesafe_km);
+  document.getElementById("s-normal-ruzgar").textContent = ruzgarMetni(sonuc.normal_rota.ortalama_ruzgar_bileseni_kt);
+  document.getElementById("s-optimize-ruzgar").textContent = ruzgarMetni(sonuc.optimize_rota.ortalama_ruzgar_bileseni_kt);
   document.getElementById("s-normal-yakit").textContent = sonuc.normal_rota.tahmini_yakit_kg.toFixed(0) + " kg";
   document.getElementById("s-optimize-yakit").textContent = sonuc.optimize_rota.tahmini_yakit_kg.toFixed(0) + " kg";
   document.getElementById("s-normal-co2").textContent = sonuc.normal_rota.tahmini_co2_kg.toFixed(0) + " kg";
   document.getElementById("s-optimize-co2").textContent = sonuc.optimize_rota.tahmini_co2_kg.toFixed(0) + " kg";
-  document.getElementById("s-normal-turbulans").textContent = `${sonuc.normal_rota.riskli_nokta_sayisi} nokta`;
-  document.getElementById("s-optimize-turbulans").textContent = `${sonuc.optimize_rota.riskli_nokta_sayisi} nokta`;
-  document.getElementById("s-normal-irtifa").textContent = sonuc.normal_rota.irtifa_ft.toFixed(0) + " ft";
-  document.getElementById("s-optimize-irtifa").textContent = sonuc.optimize_rota.irtifa_ft.toFixed(0) + " ft";
+  document.getElementById("s-normal-turbulans").textContent = riskMetni(sonuc.normal_rota);
+  document.getElementById("s-optimize-turbulans").textContent = riskMetni(sonuc.optimize_rota);
+  document.getElementById("s-normal-irtifa").textContent = flMetni(sonuc.normal_rota);
+  document.getElementById("s-optimize-irtifa").textContent = flMetni(sonuc.optimize_rota);
+  riskliBolumleriGoster(sonuc.optimize_rota);
   for (const [id, rota] of [["s-normal-iz", sonuc.normal_rota], ["s-optimize-iz", sonuc.optimize_rota]]) {
     document.getElementById(id).textContent =
       rota.iz_bulutu_nokta_sayisi == null ? "nem verisi yok" : `${rota.iz_bulutu_nokta_sayisi} nokta`;
@@ -315,8 +357,10 @@ function sonucPanelDoldur(sonuc) {
   const atsMetni = (noktalar) => noktalar
     .map((n) => (n.yol ? `${n.yol} ` : "") + n.nokta.replace("<ToC>", "ToC").replace("<ToD>", "ToD"))
     .join(" ");
+  const sapmaNm = (sonuc.optimize_rota.maks_yanal_sapma_km || 0) / NM_KM;
   document.getElementById("strateji-satiri").textContent =
     (stratejiEtiketleri[sonuc.kacinma_stratejisi] || "") +
+    (sonuc.kacinma_stratejisi === "yanal" ? ` (rotadan en çok ${sapmaNm.toFixed(0)} NM)` : "") +
     (sonuc.ats ? ` · ATS: ${atsMetni(sonuc.ats.optimize_rota)} (${sonuc.ats.kaynak})` : "");
 
   // Önce GÜVENLİK durumu, sonra yakıt etkisi ayrı ayrı gösterilir -- ikisini
@@ -341,9 +385,9 @@ function sonucPanelDoldur(sonuc) {
   } else if (n.riskli_nokta_sayisi === 0) {
     tasarrufEl.innerHTML = `<span class="tasarruf-yok">Rotada riskli türbülans tespit edilmedi -- iki rota aynı, ${yakitCumlesi}.</span>`;
   } else if (sonuc.optimize_rota.riskli_nokta_sayisi === 0) {
-    tasarrufEl.innerHTML = `<span class="tasarruf-iyi">✓ Türbülanstan TAMAMEN kaçınıldı</span> (${sonuc.normal_rota.riskli_nokta_sayisi} riskli nokta atlatıldı), ${yakitCumlesi}.`;
+    tasarrufEl.innerHTML = `<span class="tasarruf-iyi">✓ Türbülanstan TAMAMEN kaçınıldı</span> (${riskMetni(n)} riskli bölüm atlatıldı), ${yakitCumlesi}.`;
   } else if (sonuc.turbulanstan_kacinildi_mi) {
-    tasarrufEl.innerHTML = `<span class="tasarruf-yok">Kısmi kaçınma: ${sonuc.normal_rota.riskli_nokta_sayisi} → ${sonuc.optimize_rota.riskli_nokta_sayisi} riskli nokta (tamamen atlatılamadı)</span>, ${yakitCumlesi}.`;
+    tasarrufEl.innerHTML = `<span class="tasarruf-yok">Kısmi kaçınma: ${riskMetni(n)} → ${riskMetni(o)} (tamamen atlatılamadı)</span>, ${yakitCumlesi}.`;
   } else {
     tasarrufEl.innerHTML = `<span class="tasarruf-yok">Türbülans verisi/rüzgar değerlendirilemedi.</span>`;
   }
@@ -359,7 +403,7 @@ function sonucPanelDoldur(sonuc) {
       (s.strateji.startsWith("irtifa_asagi") && "Alçalma") || (s.strateji.startsWith("ats") && "ATS alternatif") ||
       "Yanal sapma") + ` (FL${Math.round(s.irtifa_ft / 100)})` + (s.onerilen ? " ✓" : "");
     const isaretli = (deger, basamak) => (deger > 0 ? "+" : "") + deger.toFixed(basamak);
-    for (const metin of [ad, `${isaretli(s.ek_sure_dk, 1)} dk`, `%${isaretli(s.ek_yakit_yuzde, 1)}`, String(s.riskli_nokta_sayisi)]) {
+    for (const metin of [ad, `${isaretli(s.ek_sure_dk, 1)} dk`, `%${isaretli(s.ek_yakit_yuzde, 1)}`, s.riskli_nokta_sayisi == null ? "hesaplanmadı" : String(s.riskli_nokta_sayisi)]) {
       satir.insertCell().textContent = metin;
     }
   }
@@ -374,21 +418,12 @@ function sonucPanelDoldur(sonuc) {
   kabinBildirimiGoster(sonuc);
 }
 
-// Kabin ekibi için BİLGİ çerçevelemesi (illüstratif): hesaplanan TI1 sayısını
-// kabine iletilecek bir not biçiminde gösterir. Talimat vermez -- TI1 tek başına
-// kanıtlanmış bir türbülans göstergesi değildir; kemer ikazı ve servis kararı kaptanındır.
+// Kabin önerisi yalnızca ÖNERİLEN rotada kalan risk varsa çıkar (metin sunucudan,
+// rota_optimizasyonu.kabin_onerisi). Karar kaptanındır; sertifikalı EDR değildir.
 function kabinBildirimiGoster(sonuc) {
   const el = document.getElementById("kabin-bildirimi");
-  if (sonuc.normal_rota.riskli_nokta_sayisi === 0) { el.style.display = "none"; return; }
-
-  const durum = sonuc.optimize_rota.riskli_nokta_sayisi === 0
-    ? `Planlanan rotada ${sonuc.normal_rota.riskli_nokta_sayisi} noktada TI1 göstergesi eşiği aşıyor; ` +
-      `önerilen rota bu noktalardan geçmiyor.`
-    : `Önerilen rotada da ${sonuc.optimize_rota.riskli_nokta_sayisi} noktada TI1 göstergesi eşiği aşıyor ` +
-      `(planlanan rotada ${sonuc.normal_rota.riskli_nokta_sayisi}).`;
-  el.innerHTML =
-    `🔔 <b>Kabin ekibi için bilgi (illüstratif):</b> ${durum} TI1 tek başına kanıtlanmış bir türbülans ` +
-    `göstergesi değildir; kemer ikazı ve servis kararı kaptana aittir. Karar destek amaçlıdır.`;
+  if (!sonuc.kabin_onerisi) { el.style.display = "none"; el.textContent = ""; return; }
+  el.textContent = `🔔 ${sonuc.kabin_onerisi.metin} Karar destek amaçlıdır.`;
   el.style.display = "block";
 }
 

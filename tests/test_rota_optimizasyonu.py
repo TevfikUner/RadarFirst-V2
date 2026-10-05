@@ -71,6 +71,9 @@ def test_kapsam_disi_bolge_durustce_ruzgarsiz_sonuc_doner():
     assert sonuc["yakit_tasarrufu_yuzde"] == 0.0
     assert sonuc["optimize_rota"]["toplam_sure_dk"] == sonuc["normal_rota"]["toplam_sure_dk"]
     assert sonuc["normal_rota"]["mesafe_km"] > 8000  # İstanbul-New York büyük daire mesafesi ~8065 km
+    assert sonuc["normal_rota"]["riskli_nokta_sayisi"] is None
+    assert sonuc["normal_rota"]["riskli_bolumler"] is None and sonuc["kabin_onerisi"] is None
+    assert all(n["riskli"] is None for n in sonuc["normal_rota"]["noktalar"])
 
 
 def test_ti1_guvenilirlik_notu_her_yanitta_bulunur():
@@ -106,6 +109,7 @@ def test_gercek_era5_turbulans_yoksa_optimize_normalle_birebir_ayni(veri_kupu_me
     assert sonuc["turbulanstan_kacinildi_mi"] is False
     assert sonuc["optimize_rota"]["noktalar"] == sonuc["normal_rota"]["noktalar"]
     assert sonuc["yakit_tasarrufu_yuzde"] == 0.0
+    assert sonuc["optimize_rota"]["riskli_bolumler"] == [] and sonuc["kabin_onerisi"] is None
 
 
 def test_gercek_era5_turbulans_varsa_tamamen_atlatilir(veri_kupu_mevcut_mu):
@@ -174,6 +178,14 @@ def test_gercek_era5_kismi_atlatma_durustce_raporlanir(veri_kupu_mevcut_mu):
     assert 0 < sonuc["optimize_rota"]["riskli_nokta_sayisi"] < sonuc["normal_rota"]["riskli_nokta_sayisi"]
     assert sonuc["turbulanstan_kacinildi_mi"] is True
 
+    bolumler = sonuc["optimize_rota"]["riskli_bolumler"]
+    assert bolumler and all(b["fl"] == 300 and b["uzunluk_nm"] > 0 and b["sure_dk"] > 0 for b in bolumler)
+    assert pd.Timestamp(bolumler[0]["baslangic_utc"]) < pd.Timestamp(bolumler[0]["bitis_utc"])
+    assert sonuc["optimize_rota"]["riskli_mesafe_nm"] == pytest.approx(sum(b["uzunluk_nm"] for b in bolumler))
+    oneri = sonuc["kabin_onerisi"]
+    assert oneri["servis_durdur"] is True
+    assert oneri["metin"].startswith("Öneri (karar kaptanındır)") and "FL300" in oneri["metin"]
+
 
 def test_gercek_era5_ile_czml_yapisi_gecerli(veri_kupu_mevcut_mu):
     if not veri_kupu_mevcut_mu:
@@ -186,7 +198,7 @@ def test_gercek_era5_ile_czml_yapisi_gecerli(veri_kupu_mevcut_mu):
     assert "clock" in czml[0]
 
     ucak_varliklari = [v for v in czml[1:] if "model" in v]
-    on_izleme_varliklari = [v for v in czml[1:] if "polyline" in v]
+    on_izleme_varliklari = [v for v in czml[1:] if v["id"].endswith("-on-izleme")]
     assert len(ucak_varliklari) == 2
     assert len(on_izleme_varliklari) == 2
 
@@ -563,3 +575,32 @@ def test_antimeridyen_kesisimi_tespit_edilir_ve_rota_reddedilir():
     assert antimeridyeni_kesiyor_mu(tokyo_la) and not antimeridyeni_kesiyor_mu(istanbul_ny)
     with pytest.raises(AntimeridyenHatasi):
         rota_simulasyonu_olustur(35.5, 139.8, 33.9, -118.4, 37000, "2019-01-15T10:00:00", "B77W", sigmetler=[])
+
+
+def _sentetik_aday(ti1):
+    from turbulans_radar.rota.rota_optimizasyonu import buyuk_daire_rotasi_olustur
+
+    n = len(ti1)
+    enlemler, boylamlar = buyuk_daire_rotasi_olustur(41.0, 29.0, 41.0, 39.0, n)
+    zamanlar = list(pd.date_range("2026-01-01T10:00Z", periods=n, freq="5min"))
+    return {"enlem": enlemler, "boylam": boylamlar, "irtifa_m": 11277.6, "zamanlar": zamanlar, "ti1": ti1}
+
+
+def test_riskli_bolumler_ardisik_noktalari_birlestirir_ve_min_nm_ile_suzer(monkeypatch):
+    import numpy as np
+
+    from turbulans_radar.rota.rota_optimizasyonu import kabin_onerisi, riskli_bolumler
+
+    yuksek, dusuk = config.TI1_ESIK_ORTA_SIDDETLI * 2, 0.0
+    aday = _sentetik_aday(np.array([dusuk, yuksek, yuksek, dusuk, np.nan, yuksek, dusuk, dusuk, dusuk, dusuk]))
+    bolumler = riskli_bolumler(aday)
+    assert len(bolumler) == 2
+    assert bolumler[0]["fl"] == 370 and bolumler[0]["sure_dk"] == pytest.approx(10.0)
+    assert bolumler[0]["uzunluk_nm"] > bolumler[1]["uzunluk_nm"] > 0
+    assert bolumler[0]["baslangic_utc"].startswith("2026-01-01T10:02:30")
+    assert "~10:02Z" in kabin_onerisi(bolumler)["metin"] and "FL370" in kabin_onerisi(bolumler)["metin"]
+
+    monkeypatch.setattr(config, "RISKLI_BOLUM_MIN_NM", bolumler[1]["uzunluk_nm"] + 1)
+    assert len(riskli_bolumler(aday)) == 1
+    assert riskli_bolumler(_sentetik_aday(np.full(10, np.nan))) is None
+    assert kabin_onerisi([]) is None

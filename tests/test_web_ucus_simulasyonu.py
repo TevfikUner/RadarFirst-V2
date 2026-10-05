@@ -75,3 +75,51 @@ def test_kisitli_sahadan_kacinma_ozeti_dogru_yazilir(canli_sunucu, tarayici_sayf
     ozet = sayfa.inner_text("#tasarruf-satiri")
     assert "Sert kısıttan kaçınıldı" in ozet
     assert "iki rota aynı" not in ozet
+
+
+def _simule_et(canli_sunucu, sayfa, alanlar, zaman=None):
+    sayfa.goto(f"{canli_sunucu['taban_url']}/harita/ucus_simulasyonu.html")
+    sayfa.wait_for_selector("#kontrol-paneli")
+    sayfa.fill("#giris-anahtar", canli_sunucu["api_anahtari"])
+    sayfa.locator("#giris-anahtar").press("Tab")
+    sayfa.wait_for_function("document.querySelectorAll('#ucak-modeli option[value=\"A320\"]').length > 0")
+    sayfa.select_option("#ucak-modeli", "A320")
+    for kimlik, deger in alanlar.items():
+        sayfa.fill(kimlik, deger)
+    if zaman:
+        sayfa.fill("#zaman", zaman)
+    sayfa.click("#simule-et-buton")
+    sayfa.wait_for_selector("#s-normal-turbulans:not(:empty)", timeout=60000)
+
+
+def test_kapsam_disinda_risk_hesaplanmadi_yazar_kabin_bildirimi_cikmaz(canli_sunucu, tarayici_sayfasi):
+    sayfa = tarayici_sayfasi["sayfa"]
+    _simule_et(canli_sunucu, sayfa, {"#bitis-enlem": "40.70", "#bitis-boylam": "-74.00", "#irtifa-ft": "34000"})
+    assert sayfa.inner_text("#s-normal-turbulans").strip() == "hesaplanmadı"
+    assert "0 nokta" not in sayfa.inner_text("#sonuc-paneli")
+    assert not sayfa.is_visible("#kabin-bildirimi")
+    assert "NM" in sayfa.inner_text("#s-normal-mesafe")
+
+
+def test_kalan_risk_yoksa_kabin_bildirimi_cikmaz(canli_sunucu, tarayici_sayfasi):
+    sayfa = tarayici_sayfasi["sayfa"]
+    _simule_et(
+        canli_sunucu,
+        sayfa,
+        {"#baslangic-enlem": "38.40", "#baslangic-boylam": "27.10", "#bitis-enlem": "38.50", "#bitis-boylam": "43.40"},
+        "2019-01-31T00:00",
+    )
+    assert not sayfa.is_visible("#kabin-bildirimi")
+    assert not sayfa.is_visible("#riskli-bolumler-kutusu")
+
+
+def test_kalan_riskte_bolumler_ve_kabin_onerisi_dispecer_dilinde(canli_sunucu, tarayici_sayfasi):
+    sayfa = tarayici_sayfasi["sayfa"]
+    _simule_et(canli_sunucu, sayfa, {"#irtifa-ft": "30000"}, "2019-01-01T06:00")
+    if sayfa.inner_text("#s-optimize-turbulans").strip() in ("hesaplanmadı", "yok"):
+        return
+    oneri = sayfa.inner_text("#kabin-bildirimi")
+    assert "Öneri (karar kaptanındır)" in oneri and "FL300" in oneri
+    assert sayfa.locator("#riskli-bolumler-tablosu tr").count() > 1
+    assert "FL300" in sayfa.inner_text("#s-optimize-irtifa")
+    assert ":" in sayfa.inner_text("#s-optimize-sure")

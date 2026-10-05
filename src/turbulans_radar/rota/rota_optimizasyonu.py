@@ -688,11 +688,140 @@ def _ti1_ozeti_cikar(ti1_degerleri):
     return maks_ti1, riskli_sayisi
 
 
-def _noktalari_paketle(enlemler, boylamlar, irtifa_m, zamanlar):
+NM_KM = 1.852
+
+
+def _ucus_seviyesi(irtifa_m) -> int:
+    return int(round(float(irtifa_m) / 0.3048 / 100.0))
+
+
+def _riskli_maskesi(ti1):
+    """Nokta başına True/False; TI1 hesaplanamayan (kapsam dışı) nokta None."""
+    if ti1 is None:
+        return None
+    ti1 = np.asarray(ti1, dtype=float)
+    with np.errstate(invalid="ignore"):
+        return [None if np.isnan(t) else bool(t >= config.TI1_ESIK_ORTA_SIDDETLI) for t in ti1]
+
+
+def _sonlu(deger):
+    return None if deger is None or not np.isfinite(deger) else float(deger)
+
+
+def _noktalari_paketle(enlemler, boylamlar, irtifa_m, zamanlar, ti1=None, birlesik_edr=None):
+    riskli = _riskli_maskesi(ti1) or [None] * len(enlemler)
+    ti1 = [None] * len(enlemler) if ti1 is None else ti1
+    birlesik_edr = [None] * len(enlemler) if birlesik_edr is None else birlesik_edr
+    fl = _ucus_seviyesi(irtifa_m)
     return [
-        {"enlem": float(e), "boylam": float(b), "irtifa_m": float(irtifa_m), "zaman": z.isoformat()}
-        for e, b, z in zip(enlemler, boylamlar, zamanlar, strict=True)
+        {
+            "enlem": float(e),
+            "boylam": float(b),
+            "irtifa_m": float(irtifa_m),
+            "fl": fl,
+            "zaman": z.isoformat(),
+            "ti1": _sonlu(t),
+            "birlesik_edr": _sonlu(d),
+            "riskli": r,
+        }
+        for e, b, z, t, d, r in zip(enlemler, boylamlar, zamanlar, ti1, birlesik_edr, riskli, strict=True)
     ]
+
+
+def _nokta_hucre_uzunluklari_km(enlemler, boylamlar):
+    """Her noktanın temsil ettiği rota uzunluğu: komşu bacakların yarıları."""
+    bacak = np.array(
+        [
+            buyuk_daire_mesafesi_km(enlemler[i], boylamlar[i], enlemler[i + 1], boylamlar[i + 1])
+            for i in range(len(enlemler) - 1)
+        ]
+    )
+    hucre = np.zeros(len(enlemler))
+    hucre[:-1] += bacak / 2
+    hucre[1:] += bacak / 2
+    return hucre
+
+
+def _edr_siddeti(edr):
+    if edr is None or not np.isfinite(edr):
+        return None
+    if edr >= config.EDR_ESIK_SIDDETLI:
+        return "şiddetli"
+    if edr >= config.EDR_ESIK_ORTA:
+        return "orta"
+    if edr >= config.EDR_ESIK_HAFIF:
+        return "hafif"
+    return "hafif altı"
+
+
+def riskli_bolumler(aday) -> list[dict] | None:
+    """Ardışık riskli noktalar tek bölüm: başlangıç/bitiş UTC, FL, NM, dakika,
+    en yüksek TI1 ve birleşik EDR. RISKLI_BOLUM_MIN_NM'den kısa bölümler
+    atılır (varsayılan 0: kalibre edilmedi, mevcut davranış). Risk hesaplanmadıysa None."""
+    maske = _riskli_maskesi(aday.get("ti1"))
+    if maske is None or all(m is None for m in maske):
+        return None
+    hucre_km = _nokta_hucre_uzunluklari_km(aday["enlem"], aday["boylam"])
+    zamanlar = list(aday["zamanlar"])
+    ti1 = np.asarray(aday["ti1"], dtype=float)
+    birlesik = np.asarray(
+        aday.get("birlesik_edr") if aday.get("birlesik_edr") is not None else np.full(len(ti1), np.nan)
+    )
+    bolumler, i = [], 0
+    while i < len(maske):
+        if not maske[i]:
+            i += 1
+            continue
+        j = i
+        while j + 1 < len(maske) and maske[j + 1]:
+            j += 1
+        uzunluk_nm = float(hucre_km[i : j + 1].sum()) / NM_KM
+        if uzunluk_nm >= config.RISKLI_BOLUM_MIN_NM:
+            baslangic = zamanlar[max(i - 1, 0)] + (zamanlar[i] - zamanlar[max(i - 1, 0)]) / 2
+            bitis = zamanlar[j] + (zamanlar[min(j + 1, len(zamanlar) - 1)] - zamanlar[j]) / 2
+            maks_edr = float(np.nanmax(birlesik[i : j + 1])) if np.isfinite(birlesik[i : j + 1]).any() else None
+            bolumler.append(
+                {
+                    "baslangic_utc": pd.Timestamp(baslangic).isoformat(),
+                    "bitis_utc": pd.Timestamp(bitis).isoformat(),
+                    "fl": _ucus_seviyesi(aday["irtifa_m"]),
+                    "uzunluk_nm": uzunluk_nm,
+                    "sure_dk": (pd.Timestamp(bitis) - pd.Timestamp(baslangic)).total_seconds() / 60.0,
+                    "baslangic_enlem": float(aday["enlem"][i]),
+                    "baslangic_boylam": float(aday["boylam"][i]),
+                    "bitis_enlem": float(aday["enlem"][j]),
+                    "bitis_boylam": float(aday["boylam"][j]),
+                    "maks_ti1": float(np.nanmax(ti1[i : j + 1])),
+                    "maks_birlesik_edr": maks_edr,
+                    "beklenen_siddet": _edr_siddeti(maks_edr),
+                }
+            )
+        i = j + 1
+    return bolumler
+
+
+def kabin_onerisi(bolumler) -> dict | None:
+    """Yalnızca önerilen rotada kalan risk varsa: ilk bölüm için dispeçer/kabin
+    dilinde öneri. Karar kaptanındır; sertifikalı EDR değildir."""
+    if not bolumler:
+        return None
+    ilk = bolumler[0]
+    toplam_dk = sum(b["sure_dk"] for b in bolumler)
+    baslangic = pd.Timestamp(ilk["baslangic_utc"])
+    metin = (
+        f"Öneri (karar kaptanındır): ~{baslangic:%H:%M}Z'den itibaren ~{ilk['sure_dk']:.0f} dk, "
+        f"FL{ilk['fl']:03d}'te olası türbülans. Kabin servisini bu saatten önce durdurun, emniyet kemeri "
+        "işaretini açın."
+    )
+    if len(bolumler) > 1:
+        metin += f" Rotada toplam {len(bolumler)} bölüm, ~{toplam_dk:.0f} dk."
+    return {
+        "metin": metin,
+        "servis_durdur": True,
+        "ilk_bolum_baslangic_utc": ilk["baslangic_utc"],
+        "bolum_sayisi": len(bolumler),
+        "toplam_sure_dk": toplam_dk,
+    }
 
 
 def _irtifa_degisimi_maliyeti(eski_irtifa_m, yeni_irtifa_m, yakit_akisi_kg_saat):
@@ -1011,9 +1140,16 @@ def rota_simulasyonu_olustur(
         )
         if ruzgarli_mi:
             eslesme = rota_eslesmesi(enlemler, boylamlar, aday_irtifa_m, zamanlar, veri_kupu)
-            maks_ti1, riskli_sayisi = _ti1_ozeti_cikar(eslesme["ti1_indeksi"].to_numpy(dtype=float))
+            ti1 = eslesme["ti1_indeksi"].to_numpy(dtype=float)
+            birlesik = (
+                eslesme["birlesik_edr"].to_numpy(dtype=float)
+                if "birlesik_edr" in eslesme
+                else np.full(len(ti1), np.nan)
+            )
+            maks_ti1, riskli_sayisi = _ti1_ozeti_cikar(ti1)
             iz_bulutu_sayisi = duyarli_nokta_sayisi(eslesme["iz_bulutu_duyarli"])
         else:
+            ti1 = birlesik = None
             maks_ti1, riskli_sayisi, iz_bulutu_sayisi = None, 0, None
         return {
             "strateji": strateji,
@@ -1026,6 +1162,8 @@ def rota_simulasyonu_olustur(
             "ekstra_yakit_kg": ekstra[1],
             "maks_ti1": maks_ti1,
             "riskli_sayisi": riskli_sayisi,
+            "ti1": ti1,
+            "birlesik_edr": birlesik,
             "iz_bulutu_sayisi": iz_bulutu_sayisi,
             "sigmet_ihlali": (
                 sigmet_katmani.rota_ihlal_sayisi(enlemler, boylamlar, zamanlar, aday_irtifa_m) if sigmet_katmani else 0
@@ -1181,11 +1319,18 @@ def rota_simulasyonu_olustur(
         "kacinma_stratejisi": _temel_strateji(en_iyi["strateji"]),
         "sigmet_kontrolu": sigmet_kontrolu,
         "kisitli_saha_kontrolu": kisitli_saha_kontrolu,
-        "normal_rota": _rota_ozeti(normal, normal_yakit_kg, normal["saniye"]),
-        "optimize_rota": {
-            **_rota_ozeti(en_iyi, optimize_yakit_kg, optimize_saniye),
-            "maks_yanal_sapma_km": en_iyi["yanal_sapma_km"],
+        "normal_rota": {
+            **_rota_ozeti(normal, normal_yakit_kg, normal["saniye"]),
+            "ortalama_ruzgar_bileseni_kt": _ortalama_ruzgar_bileseni_kt(normal, tas_ms),
         },
+        "optimize_rota": (
+            optimize_ozeti := {
+                **_rota_ozeti(en_iyi, optimize_yakit_kg, optimize_saniye),
+                "maks_yanal_sapma_km": en_iyi["yanal_sapma_km"],
+                "ortalama_ruzgar_bileseni_kt": _ortalama_ruzgar_bileseni_kt(en_iyi, tas_ms),
+            }
+        ),
+        "kabin_onerisi": kabin_onerisi(optimize_ozeti["riskli_bolumler"]),
         "sure_tasarrufu_dk": (normal["saniye"] - optimize_saniye) / 60.0,
         "yakit_tasarrufu_yuzde": (
             100.0 * (normal_yakit_kg - optimize_yakit_kg) / normal_yakit_kg if normal_yakit_kg > 0 else 0.0
@@ -1244,21 +1389,51 @@ def pareto_secenekleri(adaylar, onerilen, normal, yakit_fonksiyonu) -> list[dict
             "ek_sure_dk": (a["saniye"] + a["ekstra_saniye"] - normal_saniye) / 60.0,
             "tahmini_yakit_kg": yakit_fonksiyonu(a),
             "ek_yakit_yuzde": 100.0 * (yakit_fonksiyonu(a) - normal_yakit) / normal_yakit if normal_yakit else 0.0,
-            "riskli_nokta_sayisi": int(a["riskli_sayisi"]),
+            "riskli_nokta_sayisi": _riskli_nokta_sayisi(a),
             "iz_bulutu_nokta_sayisi": a.get("iz_bulutu_sayisi"),
             "maks_ti1": a["maks_ti1"],
             "irtifa_ft": a["irtifa_m"] / 0.3048,
             "maks_yanal_sapma_km": a["yanal_sapma_km"],
-            "noktalar": _noktalari_paketle(a["enlem"], a["boylam"], a["irtifa_m"], a["zamanlar"]),
+            "noktalar": _noktalari_paketle(
+                a["enlem"], a["boylam"], a["irtifa_m"], a["zamanlar"], a.get("ti1"), a.get("birlesik_edr")
+            ),
         }
         for a in sorted(cephe, key=lambda a: (a["riskli_sayisi"], olcutler[id(a)][0]))
     ]
 
 
+def _ortalama_ruzgar_bileseni_kt(aday, tas_ms):
+    """Yer hızı − TAS (kt): + kuyruk (P), − baş rüzgârı (M). Seviye geçiş süresi hariç."""
+    if not aday["saniye"]:
+        return None
+    mesafe_nm = _nokta_hucre_uzunluklari_km(aday["enlem"], aday["boylam"]).sum() / NM_KM
+    return float(mesafe_nm / (aday["saniye"] / 3600.0) - tas_ms * 3600.0 / (NM_KM * 1000.0))
+
+
+def _risk_hesaplandi_mi(aday) -> bool:
+    return aday.get("ti1") is not None and not np.all(np.isnan(np.asarray(aday["ti1"], dtype=float)))
+
+
+def _riskli_nokta_sayisi(aday):
+    """Risk hesaplanamadıysa (kapsam dışı / veri yok) None: 'hesaplanmadı' 0 risk değildir."""
+    return int(aday["riskli_sayisi"]) if _risk_hesaplandi_mi(aday) else None
+
+
 def _rota_ozeti(aday, yakit_kg, toplam_saniye):
     enlemler, boylamlar = aday["enlem"], aday["boylam"]
+    bolumler = riskli_bolumler(aday)
+    ti1 = aday.get("ti1")
     return {
-        "noktalar": _noktalari_paketle(enlemler, boylamlar, aday["irtifa_m"], aday["zamanlar"]),
+        "noktalar": _noktalari_paketle(
+            enlemler, boylamlar, aday["irtifa_m"], aday["zamanlar"], ti1, aday.get("birlesik_edr")
+        ),
+        "fl": _ucus_seviyesi(aday["irtifa_m"]),
+        "riskli_bolumler": bolumler,
+        "riskli_mesafe_nm": None if bolumler is None else sum(b["uzunluk_nm"] for b in bolumler),
+        "riskli_sure_dk": None if bolumler is None else sum(b["sure_dk"] for b in bolumler),
+        "kapsam_disi_nokta_sayisi": (
+            len(enlemler) if ti1 is None else int(np.isnan(np.asarray(ti1, dtype=float)).sum())
+        ),
         "toplam_sure_dk": toplam_saniye / 60.0,
         "mesafe_km": sum(
             buyuk_daire_mesafesi_km(enlemler[i], boylamlar[i], enlemler[i + 1], boylamlar[i + 1])
@@ -1268,7 +1443,7 @@ def _rota_ozeti(aday, yakit_kg, toplam_saniye):
         "tahmini_co2_kg": yakit_kg * CO2_KG_PER_KG_YAKIT,
         "irtifa_ft": aday["irtifa_m"] / 0.3048,
         "maks_ti1": aday["maks_ti1"],
-        "riskli_nokta_sayisi": aday["riskli_sayisi"],
+        "riskli_nokta_sayisi": _riskli_nokta_sayisi(aday),
         "iz_bulutu_nokta_sayisi": aday["iz_bulutu_sayisi"],
         "sigmet_ihlali_sayisi": aday["sigmet_ihlali"],
         "kisitli_saha_ihlali_sayisi": aday["kisitli_saha_ihlali"],
@@ -1314,7 +1489,17 @@ def _bulgulari_olustur(
     elif ruzgarli_mi:
         bulgular.append(_bulgu("veri_era5", "bilgi", f"Gerçek ERA5 verisiyle hesaplandı ('{kup_adi}').", kup=kup_adi))
     if ruzgarli_mi:
-        if normal["riskli_sayisi"] == 0:
+        normal_bolumler = riskli_bolumler(normal)
+        if normal_bolumler is None:
+            bulgular.append(
+                _bulgu(
+                    "ti1_hesaplanmadi",
+                    "uyari",
+                    "Normal rota için TI1 hesaplanamadı (rota veri küpünün kapsamı dışında); bu, risk OLMADIĞI "
+                    "anlamına gelmez.",
+                )
+            )
+        elif normal["riskli_sayisi"] == 0:
             bulgular.append(
                 _bulgu(
                     "ti1_risk_yok",
@@ -1329,7 +1514,9 @@ def _bulgulari_olustur(
                 _bulgu(
                     "ti1_risk_var",
                     "uyari",
-                    f"Normal rota üzerinde {normal['riskli_sayisi']} noktada riskli türbülans tespit edildi.",
+                    f"Normal rota üzerinde {normal['riskli_sayisi']} noktada (~"
+                    f"{sum(b['uzunluk_nm'] for b in normal_bolumler):.0f} NM, ~"
+                    f"{sum(b['sure_dk'] for b in normal_bolumler):.0f} dk) riskli türbülans tespit edildi.",
                     riskli_nokta_sayisi=normal["riskli_sayisi"],
                     esik=config.TI1_ESIK_ORTA_SIDDETLI,
                 )
@@ -1581,6 +1768,34 @@ def _rotayi_czml_varligina_cevir(rota, id_, isim, rgba):
     return ucak_varligi, on_izleme_cizgisi
 
 
+def _riskli_bolum_czml_varliklari(rota, id_on_eki):
+    """Riskli bölümler rota üzerinde kırmızı kalın çizgi (nokta 'riskli' alanından)."""
+    noktalar = rota["noktalar"]
+    varliklar, bolum = [], []
+    for n in [*noktalar, None]:
+        if n is not None and n.get("riskli"):
+            bolum.append(n)
+            continue
+        if bolum:
+            koordinatlar = [
+                d for p in (bolum if len(bolum) > 1 else bolum * 2) for d in (p["boylam"], p["enlem"], p["irtifa_m"])
+            ]
+            varliklar.append(
+                {
+                    "id": f"{id_on_eki}-riskli-{len(varliklar)}",
+                    "name": f"Riskli bölüm FL{bolum[0]['fl']:03d} {bolum[0]['zaman'][11:16]}Z",
+                    "polyline": {
+                        "positions": {"cartographicDegrees": koordinatlar},
+                        "material": {"solidColor": {"color": {"rgba": [231, 76, 60, 255]}}},
+                        "width": 6,
+                        "clampToGround": False,
+                    },
+                }
+            )
+            bolum = []
+    return varliklar
+
+
 def simulasyonu_czml_e_cevir(sonuc):
     """rota_simulasyonu_olustur(...) çıktısını, CesiumJS CzmlDataSource'un
     doğrudan yükleyebileceği bir CZML paket listesine çevirir."""
@@ -1622,6 +1837,8 @@ def simulasyonu_czml_e_cevir(sonuc):
         *sigmet_varliklari,
         normal_on_izleme,
         optimize_on_izleme,
+        *_riskli_bolum_czml_varliklari(sonuc["normal_rota"], "normal-rota"),
+        *_riskli_bolum_czml_varliklari(sonuc["optimize_rota"], "optimize-rota"),
         normal_ucak,
         optimize_ucak,
     ]

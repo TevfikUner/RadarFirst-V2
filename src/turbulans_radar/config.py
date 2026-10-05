@@ -253,6 +253,9 @@ DIKEY_KAPSAM_TOLERANSI_HPA = _ortam_sayi("DIKEY_KAPSAM_TOLERANSI_HPA", 50.0)
 # edilmesi önerilir, "kesin" bir eşik değildir.
 TI1_ESIK_HAFIF = _ortam_sayi("TI1_ESIK_HAFIF", 4e-7)
 TI1_ESIK_ORTA_SIDDETLI = _ortam_sayi("TI1_ESIK_ORTA_SIDDETLI", 8e-7)
+# Dispeç ekranında bundan kısa riskli bölümler listelenmez. 0 = her riskli nokta
+# (mevcut davranış); eşik kalibre edilmedi.
+RISKLI_BOLUM_MIN_NM = _ortam_sayi("RISKLI_BOLUM_MIN_NM", 0.0)
 
 # turbulans_indeksleri.ti1_den_edr_proxy_olcegine_cevir()'in kullandığı
 # ölçeklendirme katsayısı. 2026-10-01 sürümü: ml_ornekleri'ndeki seyir
