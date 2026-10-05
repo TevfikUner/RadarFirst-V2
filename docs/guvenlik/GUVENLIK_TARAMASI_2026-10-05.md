@@ -5,7 +5,7 @@ Dış rapordaki 11 madde projeye karşı doğrulandı; hepsi geçerliydi. Durum:
 | Risk | Madde | Durum |
 |---|---|---|
 | 🟠 | API/işçi `postgres` süper kullanıcısıyla bağlanıyor | ✅ `turbulans_uygulama` (süper değil, yalnızca kendi DB'sinin sahibi); `pg_read_file` reddediliyor |
-| 🟠 | Windows'ta eski PostgreSQL 17 (Özel ağ duvar kuralı açık) | ⏳ `otomasyon/windows_eski_postgresql_kapat.ps1` — yönetici PowerShell'de kullanıcı çalıştıracak |
+| 🟠 | Windows'ta eski PostgreSQL 17 (Özel ağ duvar kuralı açık) | ✅ `otomasyon/windows_eski_postgresql_kapat.ps1` çalıştırıldı: servis Devre dışı, 6 duvar kuralı silindi |
 | 🟠 | Yedekler şifresiz, aynı diskte | ✅ OneDrive kopyası gpg AES256 (`*.gpg`), şifresiz kopyalar silindi, çözme doğrulandı. Yerel kopya bilinçli olarak şifresiz; disk için Cihaz Şifrelemesi önerilir |
 | 🟠 | Eski OpenSky şifresi bundle'larda ve PR #1'de | ⏳ Şifre geçersiz. Bundle'lar kullanıcı kararıyla kaldı; depo herkese açılmadan önce aşağıdaki Destek talebi |
 | 🟡 | `/docs`, `/openapi.json` anahtarsız | ✅ API ağa açılınca (`API_YAYIN_ADRESI` yerel değilse) kapanır; `API_BELGELERI_ACIK` ile zorlanır. `/harita` statik, veri anahtarla gelir |
@@ -22,10 +22,10 @@ Değişiklik öncesi yedek: `db_yedekleri/turbulans_20261005_rol_oncesi.dump`.
 
 ## Kullanıcının yapacakları
 
-1. Yönetici PowerShell: `powershell -ExecutionPolicy Bypass -File otomasyon\windows_eski_postgresql_kapat.ps1`
-2. Yedek parolası `C:\Users\VICTUS\.turbulans_yedek_parolasi` içinde: bir parola yöneticisine kaydet.
-3. Ayarlar > Gizlilik ve güvenlik > Cihaz şifrelemesi: açık mı kontrol et (yerel yedekler için).
-4. RadarFirst-V2 herkese açılacaksa önce aşağıdaki talebi gönder.
+1. Yedek parolası `C:\Users\VICTUS\.turbulans_yedek_parolasi` içinde: bir parola yöneticisine kaydet.
+2. C: sürücüsü şifresiz (`manage-bde -status`: Fully Decrypted, 2026-10-05). Ayarlar > Gizlilik ve
+   güvenlik > Cihaz şifrelemesi açılmalı; kurtarma anahtarı Microsoft hesabına kaydedilir.
+3. RadarFirst-V2 şu an gizli (2026-10-05). Herkese açılacaksa önce aşağıdaki talebi gönder.
 
 ## GitHub Destek talebi (PR #1)
 

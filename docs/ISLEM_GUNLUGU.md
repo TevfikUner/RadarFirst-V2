@@ -9,7 +9,8 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ✅ OneDrive yedekleri gpg AES256 şifreli; şifresizler silindi, çözme bayt bayt doğrulandı.
 - ✅ WS ?api_key= kapandı, bilet tek kullanımlık; /docs ağa açılınca kapanır; pilot anahtarı üretildi.
 - ✅ Konteynerlere süper kullanıcı/MCP şifresi gitmiyor; hız sınırı DB yokken süreç içi sayaca düşer.
-- ⚠️ Kullanıcıda: PG17 kapatma betiği (yönetici), yedek parolasını kaydetme, GitHub Destek (PR #1).
+- ✅ Windows PG17: servis devre dışı, 6 güvenlik duvarı kuralı silindi; PR #6 açıldı.
+- ⚠️ Kullanıcıda: yedek parolasını kaydetme, C: şifresiz (Cihaz şifrelemesi), GitHub Destek (depo gizli, acil değil).
 
 ## 2026-10-05 (dal `claude/fizik-cekirdegi`)
 
