@@ -9,12 +9,14 @@ gerçekten tıklar, bu yüzden canlı demodan önce prova olarak da kullanılır
         --taban-url http://localhost:8000 --klasor docs/sunum/ekranlar
 
 Ön koşul: THY322 / 2019-01-15 veritabanında (turbulans-demo ya da
-`docker compose --profile demo up`). API anahtarı komut satırından değil
+`docker compose --profile demo up`). --agsiz ile tarayıcı localhost dışındaki
+her isteği keser ve denenen dış adresleri raporlar (ağsız prova). API anahtarı komut satırından değil
 TURBULANS_API_ANAHTARI (yoksa API_ANAHTARI) ortam değişkeninden okunur.
 """
 
 import argparse
 import os
+from urllib.parse import urlparse
 
 from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
 
@@ -36,6 +38,22 @@ SENARYOLAR = {
         "zaman": "2019-01-15T20:00",
     },
 }
+
+
+YEREL_ADRESLER = {"localhost", "127.0.0.1", "::1"}
+
+
+def ag_engelleyici(engellenenler: list):
+    """Playwright route işleyicisi: yerel olmayan istekleri keser ve kaydeder."""
+
+    def _isle(rota):
+        adres = urlparse(rota.request.url)
+        if adres.scheme in ("data", "blob") or adres.hostname in YEREL_ADRESLER:
+            return rota.continue_()
+        engellenenler.append(adres.hostname)
+        return rota.abort("internetdisconnected")
+
+    return _isle
 
 
 def _anahtar() -> str:
@@ -91,6 +109,7 @@ def ana(argv=None):
     ayristirici.add_argument("--klasor", default=os.path.join("docs", "sunum", "ekranlar"))
     ayristirici.add_argument("--genislik", type=int, default=1920)
     ayristirici.add_argument("--yukseklik", type=int, default=1080)
+    ayristirici.add_argument("--agsiz", action="store_true", help="localhost dışındaki istekleri kes (ağsız prova)")
     argumanlar = ayristirici.parse_args(argv)
     anahtar = _anahtar()
 
@@ -101,8 +120,10 @@ def ana(argv=None):
         tarayici = p.chromium.launch(args=["--use-angle=swiftshader", "--enable-unsafe-swiftshader"])
         sayfa = tarayici.new_page(viewport={"width": argumanlar.genislik, "height": argumanlar.yukseklik})
         sayfa.set_default_navigation_timeout(120_000)
-        hatalar = []
+        hatalar, engellenenler = [], []
         sayfa.on("pageerror", lambda hata: hatalar.append(str(hata)))
+        if argumanlar.agsiz:
+            sayfa.route("**/*", ag_engelleyici(engellenenler))
 
         yol = os.path.join(argumanlar.klasor, "01_harita3d_THY322.jpg")
         print(f"{yol}: {harita3d(sayfa, argumanlar.taban_url, anahtar, yol)}")
@@ -110,6 +131,8 @@ def ana(argv=None):
             yol = os.path.join(argumanlar.klasor, f"{ad}.jpg")
             print(f"{yol}: {simulasyon(sayfa, argumanlar.taban_url, anahtar, senaryo, yol)}")
         tarayici.close()
+    if argumanlar.agsiz:
+        print("Kesilen dış istekler (adres: sayı):", {h: engellenenler.count(h) for h in sorted(set(engellenenler))})
     if hatalar:
         print("Sayfa hataları:", *hatalar, sep="\n  ")
         raise SystemExit(1)

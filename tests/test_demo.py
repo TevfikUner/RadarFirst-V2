@@ -45,3 +45,33 @@ def test_demo_klasoru_bossa_acik_hata(monkeypatch):
     monkeypatch.setattr(config, "DEMO_VERI_KLASORU", "")
     with pytest.raises(SystemExit, match="devre dışı"):
         demo.demo_calistir()
+
+
+def test_agsiz_provada_yerel_olmayan_istek_kesilir():
+    from turbulans_radar.cli.demo_ekranlari import ag_engelleyici
+
+    class _Rota:
+        def __init__(self, url):
+            self.request = type("I", (), {"url": url})()
+            self.sonuc = None
+
+        def continue_(self):
+            self.sonuc = "devam"
+
+        def abort(self, neden):
+            self.sonuc = neden
+
+    engellenenler = []
+    isle = ag_engelleyici(engellenenler)
+    rotalar = [
+        _Rota(u)
+        for u in (
+            "http://localhost:8000/harita/x.js",
+            "data:image/png;base64,AA",
+            "https://server.arcgisonline.com/t/1",
+        )
+    ]
+    for rota in rotalar:
+        isle(rota)
+    assert [r.sonuc for r in rotalar] == ["devam", "devam", "internetdisconnected"]
+    assert engellenenler == ["server.arcgisonline.com"]
