@@ -25,6 +25,8 @@ import pandas as pd
 from turbulans_radar import config
 from turbulans_radar.fizik.edr_esleme import RI_TABANI, birlesik_edr
 
+GA_MIN_GUN = 5
+
 SKORLAR = {
     "TI1": lambda d: d["ti1_indeksi"],
     "TI2": lambda d: d["ti2_indeksi"],
@@ -47,6 +49,12 @@ def skorlari_degerlendir(y, skorlar: pd.DataFrame, gunler, tekrar=None) -> dict:
     sonuc = {"ornek": int(len(y)), "pozitif": int(y.sum()), "gun": int(len(set(gunler))), "skorlar": {}}
     if len(set(y.tolist())) < 2 or sonuc["gun"] < 2:
         sonuc["durum"] = "yetersiz_veri"
+        return sonuc
+    if sonuc["gun"] < GA_MIN_GUN:
+        from sklearn.metrics import roc_auc_score
+
+        sonuc["not"] = f"Gün bazlı GA için en az {GA_MIN_GUN} gün gerekli; yalnız nokta değerler (ön sonuç)."
+        sonuc["skorlar"] = {ad: {"roc_auc": float(roc_auc_score(y, skorlar[ad]))} for ad in skorlar.columns}
         return sonuc
     for ad in skorlar.columns:
         ga = bootstrap_guven_araligi(y, skorlar[ad], gunler, tekrar=tekrar)
@@ -88,7 +96,15 @@ def _ml_siniflari(motor, idler) -> pd.Series:
     return pd.Series({int(i): int(s) for i, s in satirlar})
 
 
-def calistir(motor=None, tekrar=None) -> dict:
+def _onceki_ozellikler(onceki_dosyasi) -> pd.DataFrame:
+    """turbulans-ml-depo --yeniden-hesapla'nın yazdığı eski (önceki fizik) değerler."""
+    eski = pd.read_parquet(onceki_dosyasi).query("tablo == 'ml_ornekleri'")
+    return pd.DataFrame([json.loads(o) for o in eski["ozellikler"]], index=eski["id"].astype(int).to_numpy())
+
+
+def calistir(motor=None, tekrar=None, onceki_dosyasi=None) -> dict:
+    """onceki_dosyasi verilmezse 'eski' karşılaştırma DB'deki değerlerle yapılır
+    (DB yeniden hesaplanmadan önce anlamlıdır)."""
     from turbulans_radar.depo.veritabani import motor_al
     from turbulans_radar.ml.ml_otomatik_egitim import zamansal_holdout
     from turbulans_radar.ml.ozellik_deposu import _edr_ornekleri_oku, _ornekleri_oku, depodan_tum_ozellikler
@@ -104,7 +120,11 @@ def calistir(motor=None, tekrar=None) -> dict:
     y_pirep = (_ml_siniflari(motor, ml.index).reindex(ml.index) >= 1).astype(int)
     holdout = zamansal_holdout(gun).to_numpy()
     skor = skor_tablosu(ml_oz)
-    eski = pd.DataFrame(list(ml["ozellikler"]), index=ml.index)
+    eski = (
+        _onceki_ozellikler(onceki_dosyasi).reindex(ml.index)
+        if onceki_dosyasi
+        else pd.DataFrame(list(ml["ozellikler"]), index=ml.index)
+    )
 
     edr = edr.set_index("id").loc[edr_oz.index] if not edr_oz.empty else edr.set_index("id")
     rapor = {
@@ -117,6 +137,7 @@ def calistir(motor=None, tekrar=None) -> dict:
         },
         "seviye_ti1_esik_orani": seviye_esik_tablosu(eski, ml_oz),
     }
+    rapor["eski_kaynak"] = onceki_dosyasi or "veritabanı"
     if "ti1_indeksi" in eski:
         eski_ti1 = pd.to_numeric(eski["ti1_indeksi"], errors="coerce")
         rapor["pirep_orta_ve_ustu"]["eski_fizik_ti1"] = skorlari_degerlendir(
@@ -141,8 +162,9 @@ def ana(argv=None):
     ayristirici = argparse.ArgumentParser(description="Gösterge ve birleşik EDR ayırt ediciliği (TI1'e karşı).")
     ayristirici.add_argument("--cikti", default=os.path.join(config.CIKTI_KLASORU, "gosterge_degerlendirme.json"))
     ayristirici.add_argument("--tekrar", type=int, default=None)
+    ayristirici.add_argument("--onceki", default=None, help="Önceki fizik değerleri (ozellikler_onceki_*.parquet)")
     argumanlar = ayristirici.parse_args(argv)
-    rapor = calistir(tekrar=argumanlar.tekrar)
+    rapor = calistir(tekrar=argumanlar.tekrar, onceki_dosyasi=argumanlar.onceki)
     _yaz_json(rapor, argumanlar.cikti)
     print(f"Yazıldı: {argumanlar.cikti}")
 

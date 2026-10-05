@@ -96,8 +96,8 @@ Bulgu: tek süreçte GIL darboğazı; 4 süreçle aynı donanımda verim ~3 kat.
 
 ## 8. Sonuçlar: doğruluk ve ML
 
-- **TI1'in bağımsız becerisi sınırlı:** Seyir irtifasındaki 1600 PIREP'te ROC-AUC 0,69;
-  config eşiğinde yakalama 0,31, yanlış alarm 0,10. Gerçek bir uçuşta (PUE502) aktif
+- **TI1'in bağımsız becerisi sınırlı:** Seyir irtifasındaki 6141 PIREP'te ROC-AUC 0,67
+  (holdout 0,71); config eşiğinde yakalama 0,49, yanlış alarm 0,16. Gerçek bir uçuşta (PUE502) aktif
   TURB SIGMET'in işaret ettiği türbülansı TI1 yakalamadı. Bu yüzden güvenlik garantisi
   SIGMET sert kısıtından gelir; TI1 yumuşak göstergedir.
 - **Backtest (15 Ocak 2019):** Riskli nokta oranı gerçek uçuşlarda 0,28, önerilen

@@ -35,6 +35,7 @@ turbulans-canli-adsb = "turbulans_radar.veri.canli_adsb:ana"
 turbulans-anomali-tabani = "turbulans_radar.dogrulama.anomali_tabani:ana"
 turbulans-edr-esleme = "turbulans_radar.fizik.edr_esleme:ana"
 turbulans-gosterge-degerlendirme = "turbulans_radar.ml.gosterge_degerlendirme:ana"
+turbulans-sonuc-paketi = "turbulans_radar.ml.sonuc_paketi:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }

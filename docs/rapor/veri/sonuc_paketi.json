@@ -1,0 +1,287 @@
+{
+  "model_turu": "Random Forest",
+  "egitim": {
+    "ornek": 5067,
+    "gun": 51
+  },
+  "pirep_holdout_orta_ve_ustu": {
+    "ornek": 1151,
+    "pozitif": 609,
+    "taban_oran": 0.529105125977411,
+    "gun": 13,
+    "skorlar": {
+      "Model": {
+        "roc_auc": 0.7300350220250971,
+        "alt": 0.6842692057099542,
+        "ust": 0.7736411483630288,
+        "ti1_farki": {
+          "fark": 0.022812789704251712,
+          "alt": 0.0021862777599403384,
+          "ust": 0.044298778071231906,
+          "p_degeri": 0.042,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      },
+      "TI1": {
+        "roc_auc": 0.7072222323208454,
+        "alt": 0.6568519479511616,
+        "ust": 0.7547010204306988
+      },
+      "Birleşik EDR": {
+        "roc_auc": 0.7194617635831531,
+        "alt": 0.6710871326237644,
+        "ust": 0.7664533390035215,
+        "ti1_farki": {
+          "fark": 0.012239531262307701,
+          "alt": 0.0032313662000991905,
+          "ust": 0.021338202579887576,
+          "p_degeri": 0.012,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      }
+    },
+    "model": {
+      "metrikler": {
+        "ornek": 1151,
+        "pozitif": 609,
+        "esik": 0.5,
+        "roc_auc": 0.7300350220250971,
+        "pod": 0.7011494252873564,
+        "pofd": 0.35424354243542433,
+        "far": 0.31017770597738287,
+        "csi": 0.533083645443196,
+        "peirce": 0.346905882851932,
+        "dogru_pozitif": 427,
+        "yanlis_pozitif": 192,
+        "yanlis_negatif": 182,
+        "dogru_negatif": 350,
+        "brier": 0.20999988022131252,
+        "brier_becerisi": 0.15714451942548413,
+        "ortalama_olasilik": 0.5329081898369015,
+        "gozlenen_oran": 0.529105125977411
+      },
+      "guvenilirlik": [
+        {
+          "aralik": [
+            0.2,
+            0.3
+          ],
+          "adet": 91,
+          "ortalama_tahmin": 0.2835422616010896,
+          "gozlenen_oran": 0.23076923076923078
+        },
+        {
+          "aralik": [
+            0.3,
+            0.4
+          ],
+          "adet": 228,
+          "ortalama_tahmin": 0.34854530151829705,
+          "gozlenen_oran": 0.35964912280701755
+        },
+        {
+          "aralik": [
+            0.4,
+            0.5
+          ],
+          "adet": 213,
+          "ortalama_tahmin": 0.4502818021522612,
+          "gozlenen_oran": 0.37089201877934275
+        },
+        {
+          "aralik": [
+            0.5,
+            0.6
+          ],
+          "adet": 202,
+          "ortalama_tahmin": 0.548992905570961,
+          "gozlenen_oran": 0.5445544554455446
+        },
+        {
+          "aralik": [
+            0.6,
+            0.7
+          ],
+          "adet": 186,
+          "ortalama_tahmin": 0.6442377298961685,
+          "gozlenen_oran": 0.6559139784946236
+        },
+        {
+          "aralik": [
+            0.7,
+            0.8
+          ],
+          "adet": 143,
+          "ortalama_tahmin": 0.7448321427432102,
+          "gozlenen_oran": 0.8181818181818182
+        },
+        {
+          "aralik": [
+            0.8,
+            0.9
+          ],
+          "adet": 87,
+          "ortalama_tahmin": 0.8512497525837688,
+          "gozlenen_oran": 0.8850574712643678
+        },
+        {
+          "aralik": [
+            0.9,
+            1.0
+          ],
+          "adet": 1,
+          "ortalama_tahmin": 0.9021185188826394,
+          "gozlenen_oran": 1.0
+        }
+      ],
+      "brier_ga": {
+        "metrik": "brier",
+        "deger": 0.20999988022131252,
+        "alt": 0.19587601324659945,
+        "ust": 0.22249312226951287,
+        "guven": 0.95,
+        "gecerli_tekrar": 1000,
+        "gun_sayisi": 13
+      }
+    },
+    "holdout_gunleri": [
+      "2020-03-01",
+      "2020-04-01",
+      "2020-04-24",
+      "2020-05-12",
+      "2020-05-13",
+      "2020-05-24",
+      "2020-06-03",
+      "2020-06-04",
+      "2020-06-05",
+      "2020-06-06",
+      "2020-06-07",
+      "2020-06-08",
+      "2020-06-09"
+    ]
+  },
+  "pirep_tum_pozitif_oran": 0.5226761016403988,
+  "madis_hafif_ve_ustu": {
+    "ornek": 12232,
+    "pozitif": 372,
+    "taban_oran": 0.030412034009156312,
+    "gun": 4,
+    "not": "Gün bazlı GA için en az 5 gün gerekli; yalnız nokta değerler (ön sonuç).",
+    "skorlar": {
+      "Model": {
+        "roc_auc": 0.794142346189414
+      },
+      "TI1": {
+        "roc_auc": 0.7354601851348166
+      },
+      "Birleşik EDR": {
+        "roc_auc": 0.773031582621625
+      }
+    },
+    "model": {
+      "metrikler": {
+        "ornek": 12232,
+        "pozitif": 372,
+        "esik": 0.5,
+        "roc_auc": 0.794142346189414,
+        "pod": 0.8548387096774194,
+        "pofd": 0.40084317032040473,
+        "far": 0.9373028391167192,
+        "csi": 0.06203667577058135,
+        "peirce": 0.45399553935701464,
+        "dogru_pozitif": 318,
+        "yanlis_pozitif": 4754,
+        "yanlis_negatif": 54,
+        "dogru_negatif": 7106,
+        "brier": 0.24704407432451994,
+        "brier_becerisi": -7.378027028782535,
+        "ortalama_olasilik": 0.48465617270487027,
+        "gozlenen_oran": 0.030412034009156312
+      },
+      "guvenilirlik": [
+        {
+          "aralik": [
+            0.2,
+            0.3
+          ],
+          "adet": 975,
+          "ortalama_tahmin": 0.2879224563320159,
+          "gozlenen_oran": 0.0
+        },
+        {
+          "aralik": [
+            0.3,
+            0.4
+          ],
+          "adet": 3243,
+          "ortalama_tahmin": 0.34720609903288224,
+          "gozlenen_oran": 0.008325624421831638
+        },
+        {
+          "aralik": [
+            0.4,
+            0.5
+          ],
+          "adet": 2942,
+          "ortalama_tahmin": 0.4492784124583416,
+          "gozlenen_oran": 0.009177430319510536
+        },
+        {
+          "aralik": [
+            0.5,
+            0.6
+          ],
+          "adet": 2223,
+          "ortalama_tahmin": 0.5501112714418287,
+          "gozlenen_oran": 0.03553756185335133
+        },
+        {
+          "aralik": [
+            0.6,
+            0.7
+          ],
+          "adet": 1688,
+          "ortalama_tahmin": 0.6457183900568331,
+          "gozlenen_oran": 0.0533175355450237
+        },
+        {
+          "aralik": [
+            0.7,
+            0.8
+          ],
+          "adet": 911,
+          "ortalama_tahmin": 0.7428380454932125,
+          "gozlenen_oran": 0.10098792535675083
+        },
+        {
+          "aralik": [
+            0.8,
+            0.9
+          ],
+          "adet": 247,
+          "ortalama_tahmin": 0.8401197183045304,
+          "gozlenen_oran": 0.22267206477732793
+        },
+        {
+          "aralik": [
+            0.9,
+            1.0
+          ],
+          "adet": 3,
+          "ortalama_tahmin": 0.9061374298413366,
+          "gozlenen_oran": 0.6666666666666666
+        }
+      ]
+    },
+    "egitim_gunleriyle_cakisan_gun": [
+      "2018-01-16",
+      "2018-01-24",
+      "2018-03-10",
+      "2019-06-12"
+    ]
+  }
+}

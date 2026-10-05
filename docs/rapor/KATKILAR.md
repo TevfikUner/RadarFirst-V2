@@ -59,8 +59,8 @@ durumuna çevrilir (hedef kapsama %90); gerçekleşen kapsama zamansal holdout't
 - Kanıt: `ml/belirsizlik.py`, ADR 0010.
 
 **K6. Fizik göstergesinin sınırının ölçülmesi ve ürüne yansıtılması.**
-TI1'in bağımsız becerisi seyir PIREP'lerinde ölçüldü (ROC-AUC 0,69; eşikte yakalama
-0,31, yanlış alarm 0,10) ve gerçek bir uçuşta (PUE502) aktif TURB SIGMET'i
+TI1'in bağımsız becerisi seyir PIREP'lerinde ölçüldü (6141 PIREP, ROC-AUC 0,67; holdout
+0,71, eşikte yakalama 0,49, yanlış alarm 0,16) ve gerçek bir uçuşta (PUE502) aktif TURB SIGMET'i
 yakalamadığı gösterildi. Sonuç, her rota yanıtında ve arayüzde gösterilen bir
 güvenilirlik notuna ve güvenliğin SIGMET sert kısıtına dayandırılmasına dönüştü.
 - Kanıt: `fizik/turbulans_indeksleri.py` (`TI1_GUVENILIRLIK_NOTU`),

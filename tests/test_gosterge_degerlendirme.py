@@ -47,3 +47,10 @@ def test_seviye_esik_tablosu_eski_ve_yeni_oranlari():
     satir = gd.seviye_esik_tablosu(eski, yeni)[0]
     assert satir["yeni_oran_orta_siddetli"] == 0.5 and satir["eski_oran_hafif"] == 0.0
     assert satir["eski_seviyeler"] == [200.0, 250.0]
+
+
+def test_bes_gunden_azda_yalniz_nokta_deger_verir():
+    oz = _ozellikler(60)
+    y = (oz["ti1_indeksi"] > np.median(oz["ti1_indeksi"])).astype(int).to_numpy()
+    sonuc = gd.skorlari_degerlendir(y, gd.skor_tablosu(oz), np.repeat(["a", "b", "c"], 20))
+    assert "not" in sonuc and set(sonuc["skorlar"]["TI1"]) == {"roc_auc"}
