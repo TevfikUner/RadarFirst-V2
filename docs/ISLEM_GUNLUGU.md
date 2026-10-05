@@ -10,7 +10,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ✅ WS ?api_key= kapandı, bilet tek kullanımlık; /docs ağa açılınca kapanır; pilot anahtarı üretildi.
 - ✅ Konteynerlere süper kullanıcı/MCP şifresi gitmiyor; hız sınırı DB yokken süreç içi sayaca düşer.
 - ✅ Windows PG17: servis devre dışı, 6 güvenlik duvarı kuralı silindi; PR #6 açıldı.
-- ⚠️ Kullanıcıda: yedek parolasını kaydetme, C: şifresiz (Cihaz şifrelemesi), GitHub Destek (depo gizli, acil değil).
+- ⚠️ Kullanıcıda: yedek parolasını PC dışına kaydetme, GitHub Destek (depo gizli, acil değil). Disk şifrelemesi: istenmedi.
 
 ## 2026-10-05 (dal `claude/fizik-cekirdegi`)
 

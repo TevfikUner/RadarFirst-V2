@@ -23,8 +23,8 @@ Değişiklik öncesi yedek: `db_yedekleri/turbulans_20261005_rol_oncesi.dump`.
 ## Kullanıcının yapacakları
 
 1. Yedek parolası `C:\Users\VICTUS\.turbulans_yedek_parolasi` içinde: bir parola yöneticisine kaydet.
-2. C: sürücüsü şifresiz (`manage-bde -status`: Fully Decrypted, 2026-10-05). Ayarlar > Gizlilik ve
-   güvenlik > Cihaz şifrelemesi açılmalı; kurtarma anahtarı Microsoft hesabına kaydedilir.
+2. C: sürücüsü şifresiz (`manage-bde -status`: Fully Decrypted, 2026-10-05). Kullanıcı kararı:
+   hırsızlık riski kabul edildi, öncelik veri kaybı; disk şifrelemesi yapılmayacak.
 3. RadarFirst-V2 şu an gizli (2026-10-05). Herkese açılacaksa önce aşağıdaki talebi gönder.
 
 ## GitHub Destek talebi (PR #1)
