@@ -63,6 +63,11 @@ def test_edr_sinifi_icao_esikleri():
     assert list(me.edr_sinifi([0.0, 0.09, 0.1, 0.39, 0.4, 0.69, 0.7, 1.0])) == [0, 0, 1, 1, 2, 2, 3, 3]
 
 
+def test_edr_sinifi_float32_esik_degerlerini_kaybetmez():
+    edr = np.array([0.09999999, 0.39999998, 0.69999999], dtype=np.float32)
+    assert list(me.edr_sinifi(edr)) == [1, 2, 3]
+
+
 def _gz(tmp_path):
     _acars_nc(tmp_path / "s.nc", SATIRLAR)
     return gzip.compress((tmp_path / "s.nc").read_bytes())
@@ -422,3 +427,44 @@ def test_eksik_ozellik_tamamlama_ayni_degerleri_uretir_uyusmayani_dokunmadan_say
     assert mh.eksik_ozellikleri_tamamla(motor)["uyusmayan"] >= 1
     kalan = _edr_ozellikleri(motor, ornek_id)
     assert kalan == pytest.approx(bozuk) and not set(EK_OZELLIK_SUTUNLARI) & set(kalan)
+
+
+def test_ozellikleri_yeniden_hesapla_ml_ve_edr_orneklerini_gunceller(motor, pencereli_db_ornegi, tmp_path):
+    import json
+
+    from sqlalchemy import text
+
+    ornek_id, p = pencereli_db_ornegi
+    gun = pd.Timestamp(p.zaman).tz_convert(None).normalize()
+    mh.gunu_isle(gun, motor, lambda g: _yakin_edr(p, max_edr=np.float32(0.39999998)))
+    dogru = _edr_ozellikleri(motor, ornek_id)
+    with motor.begin() as baglanti:
+        baglanti.execute(
+            text("UPDATE edr_ornekleri SET ozellikler = CAST(:o AS jsonb), edr_sinifi = 1 WHERE ml_ornek_id = :i"),
+            {"o": json.dumps({**dogru, "ti1_indeksi": 1.0}), "i": ornek_id},
+        )
+        baglanti.execute(
+            text("UPDATE ml_ornekleri SET ozellikler = CAST(:o AS jsonb) WHERE id = :i"),
+            {"o": json.dumps({"ti1_indeksi": 1.0, "sinif_notu": "korunur"}), "i": ornek_id},
+        )
+
+    onceki = tmp_path / "onceki.parquet"
+    ozet = od.ozellikleri_yeniden_hesapla(motor, onceki_dosyasi=str(onceki))
+
+    assert ozet["ml_ornekleri"] >= 1 and ozet["edr_ornekleri"] >= 1 and ozet["edr_sinifi_degisen"] >= 1
+    assert _edr_ozellikleri(motor, ornek_id) == pytest.approx(dogru)
+    with motor.connect() as baglanti:
+        ml_ozellik, sinif = baglanti.execute(
+            text(
+                "SELECT m.ozellikler, e.edr_sinifi FROM ml_ornekleri m JOIN edr_ornekleri e ON e.ml_ornek_id = m.id "
+                "WHERE m.id = :i"
+            ),
+            {"i": ornek_id},
+        ).one()
+    assert ml_ozellik["sinif_notu"] == "korunur" and ml_ozellik["ti1_indeksi"] == pytest.approx(dogru["ti1_indeksi"])
+    assert sinif == 2
+    eski = pd.read_parquet(onceki)
+    assert (
+        json.loads(eski.query("tablo == 'ml_ornekleri' and id == @ornek_id")["ozellikler"].iloc[0])["ti1_indeksi"]
+        == 1.0
+    )

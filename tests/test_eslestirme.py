@@ -19,7 +19,6 @@ xr = pytest.importorskip("xarray")
 
 from turbulans_radar import config
 from turbulans_radar.fizik.birim_donusumleri import (
-    basinc_hpa_to_irtifa_metre,
     en_yakin_basinc_seviyesi,
     irtifa_metre_to_basinc_hpa,
 )
@@ -27,6 +26,7 @@ from turbulans_radar.fizik.eslestirme import rotayi_hava_durumuyla_eslestir
 from turbulans_radar.fizik.turbulans_indeksleri import (
     DINAMIK_KARARSIZLIK_ESIGI,
     dusey_ruzgar_kaymasi_hesapla,
+    hipsometrik_kalinlik_m,
     potansiyel_sicaklik_hesapla,
     richardson_sayisi_hesapla,
     ti1_den_edr_proxy_olcegine_cevir,
@@ -53,9 +53,10 @@ def _referans_nokta_nokta_hesapla(rota_df, veri_kupu):
     for _, satir in rota_df.iterrows():
         basinc_hpa = irtifa_metre_to_basinc_hpa(satir["geo_irtifa_m"])
         en_yakin_seviye = en_yakin_basinc_seviyesi(basinc_hpa, basinc_seviyeleri_sirali)
-        seviye_indeksi = int(np.where(basinc_seviyeleri_sirali == en_yakin_seviye)[0][0])
-        alt_seviye = basinc_seviyeleri_sirali[max(seviye_indeksi - 1, 0)]
-        ust_seviye = basinc_seviyeleri_sirali[min(seviye_indeksi + 1, len(basinc_seviyeleri_sirali) - 1)]
+        ust_seviye, alt_seviye = basinc_seviyeleri_sirali[0], basinc_seviyeleri_sirali[1]
+        for i in range(1, len(basinc_seviyeleri_sirali)):
+            if basinc_hpa > basinc_seviyeleri_sirali[i - 1]:
+                ust_seviye, alt_seviye = basinc_seviyeleri_sirali[i - 1], basinc_seviyeleri_sirali[i]
 
         zaman_ts = pd.Timestamp(satir["zaman"]).tz_convert("UTC").tz_localize(None)
         ortak = dict(valid_time=zaman_ts, latitude=satir["enlem"], longitude=satir["boylam"], method="nearest")
@@ -68,7 +69,9 @@ def _referans_nokta_nokta_hesapla(rota_df, veri_kupu):
             deformasyon_alani.sel(latitude=satir["enlem"], longitude=satir["boylam"], method="nearest").values
         )
 
-        yukseklik_farki_m = float(basinc_hpa_to_irtifa_metre(ust_seviye) - basinc_hpa_to_irtifa_metre(alt_seviye))
+        yukseklik_farki_m = float(
+            hipsometrik_kalinlik_m(ust_seviye, alt_seviye, float(dilim_ust["t"].values), float(dilim_alt["t"].values))
+        )
         vws = dusey_ruzgar_kaymasi_hesapla(
             u_ust=float(dilim_ust["u"].values),
             v_ust=float(dilim_ust["v"].values),
@@ -192,3 +195,65 @@ def test_zaman_boslugundaki_nokta_uzak_bir_saatle_eslestirilmez(veri_kupu):
     sonuc = rotayi_hava_durumuyla_eslestir(rota_df, aralikli_kup)
 
     assert sonuc["ti1_indeksi"].notna().tolist() == [True, False, True]
+
+
+def _jet_kupu(seviyeler, u_profili, t_profili):
+    lat = np.arange(42.0, 37.75, -0.25)
+    lon = np.arange(28.0, 32.25, 0.25)
+    zaman = pd.to_datetime(["2026-01-01T12:00"])
+    sekil = (1, len(seviyeler), len(lat), len(lon))
+    u = np.broadcast_to(np.asarray(u_profili, dtype=float)[None, :, None, None], sekil).copy()
+    t = np.broadcast_to(np.asarray(t_profili, dtype=float)[None, :, None, None], sekil).copy()
+    boyutlar = ["valid_time", "pressure_level", "latitude", "longitude"]
+    return xr.Dataset(
+        {"u": (boyutlar, u), "v": (boyutlar, np.zeros(sekil)), "t": (boyutlar, t)},
+        coords={
+            "valid_time": zaman,
+            "pressure_level": np.asarray(seviyeler, dtype=float),
+            "latitude": lat,
+            "longitude": lon,
+        },
+    )
+
+
+def _tek_nokta(basinc_hpa):
+    from turbulans_radar.fizik.birim_donusumleri import basinc_hpa_to_irtifa_metre
+
+    return pd.DataFrame(
+        {
+            "zaman": [pd.Timestamp("2026-01-01T12:00", tz="UTC")],
+            "enlem": [40.0],
+            "boylam": [30.0],
+            "baro_irtifa_m": [float(basinc_hpa_to_irtifa_metre(basinc_hpa))],
+        }
+    )
+
+
+def test_jet_profilinde_kayma_cevreleyen_katmandan_alinir():
+    seviyeler = [350.0, 300.0, 250.0, 225.0, 200.0, 175.0, 150.0]
+    u_profili = [20.0, 35.0, 55.0, 60.0, 50.0, 35.0, 25.0]
+    t_profili = [227.0, 229.0, 221.0, 218.0, 217.0, 216.0, 216.0]
+    sonuc = rotayi_hava_durumuyla_eslestir(_tek_nokta(240.0), _jet_kupu(seviyeler, u_profili, t_profili)).iloc[0]
+
+    beklenen = abs(60.0 - 55.0) / float(hipsometrik_kalinlik_m(225.0, 250.0, 218.0, 221.0))
+    assert sonuc["dusey_ruzgar_kaymasi"] == pytest.approx(beklenen, rel=1e-9)
+
+
+def test_kup_kenarindaki_nokta_en_yakin_iki_seviyeyi_kullanir():
+    kup = _jet_kupu([300.0, 250.0, 200.0], [30.0, 50.0, 40.0], [229.0, 221.0, 217.0])
+    for basinc, (u_ust, u_alt, t_ust, t_alt, p_ust, p_alt) in {
+        195.0: (40.0, 50.0, 217.0, 221.0, 200.0, 250.0),
+        305.0: (50.0, 30.0, 221.0, 229.0, 250.0, 300.0),
+    }.items():
+        sonuc = rotayi_hava_durumuyla_eslestir(_tek_nokta(basinc), kup).iloc[0]
+        beklenen = abs(u_ust - u_alt) / float(hipsometrik_kalinlik_m(p_ust, p_alt, t_ust, t_alt))
+        assert sonuc["dusey_ruzgar_kaymasi"] == pytest.approx(beklenen, rel=1e-9)
+
+
+def test_ince_katmanda_richardson_esigin_altina_dusebilir():
+    seviyeler = [350.0, 300.0, 250.0, 225.0, 200.0, 175.0, 150.0]
+    u_profili = [20.0, 30.0, 40.0, 58.0, 45.0, 35.0, 25.0]
+    t_profili = [227.0, 229.0, 221.0, 214.6, 217.0, 216.0, 216.0]
+    sonuc = rotayi_hava_durumuyla_eslestir(_tek_nokta(240.0), _jet_kupu(seviyeler, u_profili, t_profili)).iloc[0]
+    assert sonuc["richardson_sayisi"] < DINAMIK_KARARSIZLIK_ESIGI
+    assert bool(sonuc["dinamik_kararsizlik"]) is True

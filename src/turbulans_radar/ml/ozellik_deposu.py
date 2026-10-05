@@ -12,6 +12,7 @@ indirmeden depodan hesaplanır.
     turbulans-ml-depo --ozet
     turbulans-ml-depo --dogrula 200          # depodan yeniden hesapla, DB ile kıyasla
     turbulans-ml-depo --eksikleri-kuyruga-al # penceresiz eşleşmiş örnekleri yeniden indir
+    turbulans-ml-depo --yeniden-hesapla      # fizik değişince DB özelliklerini depodan yenile
 """
 
 import argparse
@@ -35,8 +36,8 @@ _TEMEL_DEGISKENLER = ("u", "v", "t")
 
 
 def ozellik_kupu(kup: xr.Dataset) -> xr.Dataset:
-    """Kalibrasyonun (EDR katsayısı, TI1 eşikleri) yapıldığı seviye ve değişken
-    alt kümesi: depo için fazladan indirilen seviyeler mevcut özellikleri değiştirmez."""
+    """Özelliklerin hesaplandığı seviye (config.ERA5_BASINC_SEVIYELERI_HPA) ve
+    değişken alt kümesi; varsayılanda depodaki 7 seviyenin tamamı."""
     seviyeler = [float(s) for s in config.ERA5_BASINC_SEVIYELERI_HPA]
     mevcut = set(kup[config.BASINC_BOYUTU].values.astype(float))
     if set(seviyeler) <= mevcut and len(mevcut) > len(seviyeler):
@@ -278,6 +279,119 @@ def eksikleri_kuyruga_al(motor=None) -> int:
     return int(sonuc.rowcount or 0)
 
 
+def _sozluk(satir, sutunlar) -> dict:
+    return {k: (float(v) if np.isfinite(v) else None) for k in sutunlar if (v := getattr(satir, k, None)) is not None}
+
+
+def _edr_ornekleri_oku(motor) -> pd.DataFrame:
+    from sqlalchemy import select
+    from sqlalchemy.orm import Session
+
+    from turbulans_radar.depo.models import EdrOrnegi, MlOrnegi
+
+    sorgu = (
+        select(
+            EdrOrnegi.id,
+            EdrOrnegi.zaman,
+            EdrOrnegi.enlem,
+            EdrOrnegi.boylam,
+            EdrOrnegi.irtifa_ft,
+            EdrOrnegi.max_edr,
+            EdrOrnegi.edr_sinifi,
+            EdrOrnegi.ozellikler,
+            EdrOrnegi.ml_ornek_id,
+            MlOrnegi.pencere_dosyasi,
+        )
+        .join(MlOrnegi, MlOrnegi.id == EdrOrnegi.ml_ornek_id)
+        .where(MlOrnegi.pencere_dosyasi.is_not(None))
+    )
+    with Session(motor) as oturum:
+        return pd.DataFrame(oturum.execute(sorgu).all(), columns=[c.name for c in sorgu.selected_columns])
+
+
+def ozellikleri_yeniden_hesapla(motor=None, onceki_dosyasi=None) -> dict:
+    """Pencereli ml_ornekleri ve onlara bağlı edr_ornekleri özelliklerini güncel
+    fizik koduyla depodan yeniden hesaplayıp yazar (CDS'e gidilmez); EDR sınıfı da
+    güncel edr_sinifi ile yenilenir. Eski değerler onceki_dosyasi'na (Parquet) yazılır.
+    Pencere dosyası açılamayan örneklere dokunulmaz, sayısı raporlanır."""
+    from sqlalchemy import update
+    from sqlalchemy.orm import Session
+
+    from turbulans_radar.depo.models import EdrOrnegi, MlOrnegi
+    from turbulans_radar.depo.veritabani import motor_al
+    from turbulans_radar.ml.turbulans_ml_modeli import MODEL_OZELLIK_SUTUNLARI, ozellikleri_cikar
+    from turbulans_radar.veri.madis_edr import METRE_FT, edr_sinifi
+
+    motor = motor or motor_al()
+    ml = _ornekleri_oku(motor)
+    edr = _edr_ornekleri_oku(motor)
+    if onceki_dosyasi:
+        os.makedirs(os.path.dirname(onceki_dosyasi) or ".", exist_ok=True)
+        pd.concat(
+            [
+                ml[["id", "ozellikler"]].assign(tablo="ml_ornekleri", edr_sinifi=np.nan),
+                edr[["id", "ozellikler", "edr_sinifi"]].assign(tablo="edr_ornekleri"),
+            ],
+            ignore_index=True,
+        ).assign(ozellikler=lambda d: d["ozellikler"].map(lambda o: json.dumps(o or {}))).to_parquet(
+            onceki_dosyasi, index=False
+        )
+
+    dosyalar = set(ml["pencere_dosyasi"]) | set(edr["pencere_dosyasi"])
+    ml_guncelleme, edr_guncelleme, acilamayan = [], [], []
+    for goreli_yol in sorted(dosyalar):
+        try:
+            pencereler = pencere_dosyasini_ac(goreli_yol)
+        except (OSError, ValueError) as hata:
+            _logger.warning("Pencere dosyası açılamadı, örnekleri atlanıyor: %s (%s)", goreli_yol, hata)
+            acilamayan.append(goreli_yol)
+            continue
+        for satir in ml[ml["pencere_dosyasi"] == goreli_yol].itertuples(index=False):
+            nokta = pd.DataFrame(
+                {
+                    "zaman": [pd.Timestamp(satir.zaman)],
+                    "enlem": [satir.enlem],
+                    "boylam": [satir.boylam],
+                    "irtifa_m": [satir.irtifa_ft * 0.3048],
+                }
+            )
+            hesap = next(ozellikleri_cikar(nokta, ozellik_kupu(pencereden_kup(pencereler, satir.id))).itertuples())
+            ml_guncelleme.append(
+                {
+                    "id": int(satir.id),
+                    "ozellikler": {**(satir.ozellikler or {}), **_sozluk(hesap, MODEL_OZELLIK_SUTUNLARI)},
+                }
+            )
+        for ml_id, alt in edr[edr["pencere_dosyasi"] == goreli_yol].groupby("ml_ornek_id"):
+            noktalar = alt.assign(zaman=pd.to_datetime(alt["zaman"], utc=True), irtifa_m=alt["irtifa_ft"] / METRE_FT)
+            yeni = ozellikleri_cikar(noktalar, ozellik_kupu(pencereden_kup(pencereler, int(ml_id))))
+            siniflar = edr_sinifi(alt["max_edr"].to_numpy(dtype=float))
+            for satir, hesap, sinif in zip(
+                alt.itertuples(index=False), yeni.itertuples(index=False), siniflar, strict=True
+            ):
+                edr_guncelleme.append(
+                    {
+                        "id": int(satir.id),
+                        "edr_sinifi": int(sinif),
+                        "ozellikler": {**(satir.ozellikler or {}), **_sozluk(hesap, MODEL_OZELLIK_SUTUNLARI)},
+                    }
+                )
+
+    with Session(motor) as oturum, oturum.begin():
+        if ml_guncelleme:
+            oturum.execute(update(MlOrnegi), ml_guncelleme)
+        if edr_guncelleme:
+            oturum.execute(update(EdrOrnegi), edr_guncelleme)
+    eski_sinif = dict(zip(edr["id"].astype(int), edr["edr_sinifi"].astype(int), strict=True))
+    return {
+        "ml_ornekleri": len(ml_guncelleme),
+        "edr_ornekleri": len(edr_guncelleme),
+        "edr_sinifi_degisen": sum(1 for g in edr_guncelleme if g["edr_sinifi"] != eski_sinif[g["id"]]),
+        "acilamayan_pencere_dosyasi": len(acilamayan),
+        "onceki_dosyasi": onceki_dosyasi,
+    }
+
+
 def ana(argv=None):
     ayristirici = argparse.ArgumentParser(description="ML ERA5 pencere deposu: özet, doğrulama, eksik doldurma.")
     grup = ayristirici.add_mutually_exclusive_group()
@@ -288,12 +402,23 @@ def ana(argv=None):
     grup.add_argument(
         "--eksikleri-kuyruga-al", action="store_true", help="Penceresiz eşleşmiş örnekleri gece işine geri ver"
     )
+    grup.add_argument(
+        "--yeniden-hesapla",
+        action="store_true",
+        help="Pencereli örneklerin özelliklerini güncel fizikle depodan yeniden yaz (eskiler ciktilar/'a)",
+    )
     argumanlar = ayristirici.parse_args(argv)
     if argumanlar.dogrula:
         sonuc = depo_dogrula(argumanlar.dogrula)
         print(json.dumps(sonuc, ensure_ascii=False, indent=2))
         if sonuc["uyumsuz"]:
             raise SystemExit(1)
+        return
+    if argumanlar.yeniden_hesapla:
+        onceki = os.path.join(
+            config.CIKTI_KLASORU, f"ozellikler_onceki_{pd.Timestamp.now(tz='UTC'):%Y%m%dT%H%M}.parquet"
+        )
+        print(json.dumps(ozellikleri_yeniden_hesapla(onceki_dosyasi=onceki), ensure_ascii=False, indent=2))
         return
     if argumanlar.eksikleri_kuyruga_al:
         print(f"{eksikleri_kuyruga_al()} örnek yeniden kuyruğa alındı (gece işi depo ayarlarıyla indirecek).")

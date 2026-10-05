@@ -27,11 +27,14 @@ olurdu. İkisi ayrı sütunlar olarak raporlanır, yorum kullanıcıya bırakıl
 
 import numpy as np
 
-# Enlem/boylam derecesini yaklaşık metreye çeviren sabitler
-METRE_PER_DERECE_ENLEM = 110_540.0
+DUNYA_YARICAPI_M = 6_371_000.0
+METRE_PER_DERECE_ENLEM = DUNYA_YARICAPI_M * np.pi / 180.0
 
 # Potansiyel sıcaklık formülü için kuru hava sabiti (R/cp, Poisson bağıntısı).
 R_CP_KURU_HAVA = 0.286
+
+# Kuru havanın gaz sabiti (J kg^-1 K^-1).
+R_KURU_HAVA = 287.05
 
 # Yerçekimi ivmesi (m/s^2).
 YERCEKIMI_IVMESI = 9.80665
@@ -43,34 +46,54 @@ DINAMIK_KARARSIZLIK_ESIGI = 0.25
 
 
 def _metre_per_derece_boylam(enlem_derece):
-    return 111_320.0 * np.cos(np.deg2rad(enlem_derece))
+    return METRE_PER_DERECE_ENLEM * np.cos(np.deg2rad(enlem_derece))
+
+
+def _kuresel_turevler(u, v, enlem_boyutu, boylam_boyutu):
+    enlem = u[enlem_boyutu]
+    dx = _metre_per_derece_boylam(enlem)
+    metrik = np.tan(np.deg2rad(enlem)) / DUNYA_YARICAPI_M
+    return (
+        u.differentiate(boylam_boyutu) / dx,
+        u.differentiate(enlem_boyutu) / METRE_PER_DERECE_ENLEM,
+        v.differentiate(boylam_boyutu) / dx,
+        v.differentiate(enlem_boyutu) / METRE_PER_DERECE_ENLEM,
+        metrik,
+    )
 
 
 def yatay_deformasyon_hesapla(u, v, enlem_boyutu="latitude", boylam_boyutu="longitude"):
     """
     Tek bir basınç seviyesindeki u, v rüzgar bileşenlerinden (xarray.DataArray,
-    2 boyutlu: enlem x boylam) yatay deformasyonu hesaplar.
+    2 boyutlu: enlem x boylam) küresel metrik terimleriyle yatay deformasyonu hesaplar.
 
-    DEF = sqrt(gerilme_terimi^2 + kayma_terimi^2)
-      gerilme_terimi (stretching) = du/dx - dv/dy
-      kayma_terimi   (shearing)   = dv/dx + du/dy
+    DEF = sqrt(gerilme^2 + kayma^2)
+      gerilme (stretching) = du/dx - dv/dy - v·tanφ/a
+      kayma   (shearing)   = dv/dx + du/dy + u·tanφ/a
+    Katı cisim dönmesinde DEF = 0 olur.
     """
-    dx = _metre_per_derece_boylam(u[enlem_boyutu])
-    dy = METRE_PER_DERECE_ENLEM
-
-    dudx = u.differentiate(boylam_boyutu) / dx
-    dudy = u.differentiate(enlem_boyutu) / dy
-    dvdx = v.differentiate(boylam_boyutu) / dx
-    dvdy = v.differentiate(enlem_boyutu) / dy
-
-    gerilme = dudx - dvdy
-    kayma = dvdx + dudy
+    dudx, dudy, dvdx, dvdy, metrik = _kuresel_turevler(u, v, enlem_boyutu, boylam_boyutu)
+    gerilme = dudx - dvdy - v * metrik
+    kayma = dvdx + dudy + u * metrik
     return np.sqrt(gerilme**2 + kayma**2)
 
 
 def yatay_diverjans_hesapla(u, v, enlem_boyutu="latitude", boylam_boyutu="longitude"):
-    dx = _metre_per_derece_boylam(u[enlem_boyutu])
-    return u.differentiate(boylam_boyutu) / dx + v.differentiate(enlem_boyutu) / METRE_PER_DERECE_ENLEM
+    """DIV = du/dx + dv/dy - v·tanφ/a (küresel)."""
+    dudx, _, _, dvdy, metrik = _kuresel_turevler(u, v, enlem_boyutu, boylam_boyutu)
+    return dudx + dvdy - v * metrik
+
+
+def hipsometrik_kalinlik_m(basinc_ust_hpa, basinc_alt_hpa, sicaklik_ust_k, sicaklik_alt_k):
+    """Δz = R_d·T̄/g·ln(p_alt/p_ust); T̄ iki seviyenin ortalama sıcaklığı."""
+    ortalama_t = (np.asarray(sicaklik_ust_k, dtype=float) + np.asarray(sicaklik_alt_k, dtype=float)) / 2
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return (
+            R_KURU_HAVA
+            * ortalama_t
+            / YERCEKIMI_IVMESI
+            * np.log(np.asarray(basinc_alt_hpa, dtype=float) / np.asarray(basinc_ust_hpa, dtype=float))
+        )
 
 
 def ti2_indeksi_hesapla(vws, deformasyon, diverjans):

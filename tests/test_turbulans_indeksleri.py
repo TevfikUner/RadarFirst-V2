@@ -73,6 +73,7 @@ def test_edr_proxy_artan_ti1_ile_artar():
 
 def test_diverjans_ve_deformasyon_dogrusal_alanda_analitik_degere_esittir():
     from turbulans_radar.fizik.turbulans_indeksleri import (
+        DUNYA_YARICAPI_M,
         METRE_PER_DERECE_ENLEM,
         _metre_per_derece_boylam,
         yatay_diverjans_hesapla,
@@ -81,9 +82,14 @@ def test_diverjans_ve_deformasyon_dogrusal_alanda_analitik_degere_esittir():
     u, v = _dogrusal_ruzgar_alani()
     dudx = 2.0 / _metre_per_derece_boylam(u["latitude"])
     dvdy = 3.0 / METRE_PER_DERECE_ENLEM
-    np.testing.assert_allclose(yatay_diverjans_hesapla(u, v).values, (dudx + dvdy).broadcast_like(u).values, rtol=1e-9)
+    metrik = np.tan(np.deg2rad(u["latitude"])) / DUNYA_YARICAPI_M
+    gerilme = dudx - dvdy - v * metrik
+    kayma = u * metrik
     np.testing.assert_allclose(
-        yatay_deformasyon_hesapla(u, v).values, np.abs(dudx - dvdy).broadcast_like(u).values, rtol=1e-9
+        yatay_diverjans_hesapla(u, v).values, (dudx + dvdy - v * metrik).broadcast_like(u).values, rtol=1e-9
+    )
+    np.testing.assert_allclose(
+        yatay_deformasyon_hesapla(u, v).values, np.sqrt(gerilme**2 + kayma**2).broadcast_like(u).values, rtol=1e-9
     )
 
 
@@ -93,3 +99,67 @@ def test_ti2_diverjans_sifirken_ti1e_esit_yakinsamada_buyuk_olur():
     vws, deformasyon = np.array([0.01, 0.01]), np.array([2e-5, 2e-5])
     ti2 = ti2_indeksi_hesapla(vws, deformasyon, np.array([0.0, -1e-5]))
     np.testing.assert_allclose(ti2, [ti1_indeksi_hesapla(0.01, 2e-5), 0.01 * 3e-5])
+
+
+def _kuresel_alan(enlem_min, enlem_maks, boylam_min, boylam_maks, u_fonk, v_fonk):
+    lat = np.arange(enlem_maks, enlem_min - 1e-9, -0.25)
+    lon = np.arange(boylam_min, boylam_maks + 1e-9, 0.25)
+    lam, phi = np.meshgrid(np.deg2rad(lon), np.deg2rad(lat))
+    koordinat = {"latitude": lat, "longitude": lon}
+    boyut = ["latitude", "longitude"]
+    return (
+        xr.DataArray(u_fonk(phi, lam), coords=koordinat, dims=boyut),
+        xr.DataArray(v_fonk(phi, lam), coords=koordinat, dims=boyut),
+    )
+
+
+def _ic(alan):
+    return alan.isel(latitude=slice(1, -1), longitude=slice(1, -1))
+
+
+def test_kati_cisim_donmesinde_deformasyon_ve_diverjans_sifirdir():
+    from turbulans_radar.fizik.turbulans_indeksleri import DUNYA_YARICAPI_M, yatay_diverjans_hesapla
+
+    omega = 50.0 / DUNYA_YARICAPI_M
+    for u_fonk, v_fonk in [
+        (lambda phi, lam: omega * DUNYA_YARICAPI_M * np.cos(phi), lambda phi, lam: 0.0 * phi),
+        (
+            lambda phi, lam: -omega * DUNYA_YARICAPI_M * np.sin(phi) * np.cos(lam),
+            lambda phi, lam: omega * DUNYA_YARICAPI_M * np.sin(lam),
+        ),
+    ]:
+        u, v = _kuresel_alan(30.0, 55.0, -10.0, 30.0, u_fonk, v_fonk)
+        assert float(np.abs(_ic(yatay_deformasyon_hesapla(u, v))).max()) < 0.01 * omega
+        assert float(np.abs(_ic(yatay_diverjans_hesapla(u, v))).max()) < 0.01 * omega
+
+
+def test_saf_gerilmede_deformasyon_2k_dir():
+    from turbulans_radar.fizik.turbulans_indeksleri import DUNYA_YARICAPI_M
+
+    k = 2e-5
+    u, v = _kuresel_alan(
+        -2.0,
+        2.0,
+        28.0,
+        32.0,
+        lambda phi, lam: k * DUNYA_YARICAPI_M * np.cos(phi) * (lam - np.deg2rad(30.0)),
+        lambda phi, lam: -k * DUNYA_YARICAPI_M * phi,
+    )
+    np.testing.assert_allclose(_ic(yatay_deformasyon_hesapla(u, v)).values, 2 * k, rtol=0.01)
+
+
+def test_dogrusal_kaymada_deformasyon_kayma_katsayisina_esittir():
+    from turbulans_radar.fizik.turbulans_indeksleri import DUNYA_YARICAPI_M
+
+    a = 3e-5
+    u, v = _kuresel_alan(-2.0, 2.0, 28.0, 32.0, lambda phi, lam: a * DUNYA_YARICAPI_M * phi, lambda phi, lam: 0.0 * phi)
+    np.testing.assert_allclose(_ic(yatay_deformasyon_hesapla(u, v)).values, a, rtol=0.01)
+
+
+def test_hipsometrik_kalinlik_isa_yakininda_ve_sicaklikla_artar():
+    from turbulans_radar.fizik.birim_donusumleri import basinc_hpa_to_irtifa_metre
+    from turbulans_radar.fizik.turbulans_indeksleri import hipsometrik_kalinlik_m
+
+    isa = float(basinc_hpa_to_irtifa_metre(225.0) - basinc_hpa_to_irtifa_metre(250.0))
+    assert float(hipsometrik_kalinlik_m(225.0, 250.0, 216.65, 216.65)) == pytest.approx(isa, rel=0.01)
+    assert hipsometrik_kalinlik_m(225.0, 250.0, 230.0, 230.0) > hipsometrik_kalinlik_m(225.0, 250.0, 210.0, 210.0)

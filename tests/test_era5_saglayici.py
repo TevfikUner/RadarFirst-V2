@@ -15,6 +15,11 @@ _SEVIYELER = (300.0, 250.0, 200.0)
 
 
 @pytest.fixture(autouse=True)
+def _uc_seviye(monkeypatch):
+    monkeypatch.setattr(config, "ERA5_BASINC_SEVIYELERI_HPA", _SEVIYELER)
+
+
+@pytest.fixture(autouse=True)
 def kilit_kayitlari(monkeypatch):
     kayitlar = []
 
