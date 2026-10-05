@@ -6,7 +6,13 @@ servisi yoran deneme yapılmadı.
 
 ## Bulgular (önem sırasıyla)
 
-### 🔴 1. Proje kökünün tamamı API ve işçi konteynerine bağlı (`/veri`)
+> **Durum (2026-10-05):** 1 ve 2 düzeltildi ve canlıda doğrulandı. 3–10, proje yalnızca
+> yerelde, depo gizli ve öncelik veri kaybı olduğu için kullanıcı kararıyla ertelendi; API ağa
+> açılırsa ya da depo herkese açılırsa yeniden ele alınmalı.
+
+### 🔴 1. Proje kökünün tamamı API ve işçi konteynerine bağlı (`/veri`) — ✅ düzeltildi
+`/veri`'ye artık yalnızca ana küp, `era5_egitim_verisi/` ve `pirep_ham/` bağlı; `.env`, yedekler,
+`.git` konteynerden görünmüyor (api ve worker'da doğrulandı).
 `docker-compose.yml`: `${YEREL_VERI_KOKU:-.}:/veri:ro`. Uygulama kullanıcısı (uid 1000) konteyner
 içinden `.env` (postgres süper kullanıcı şifresi, yönetici API anahtarı, MCP şifresi), tüm DB
 dump'ları, `.git`, `turbulans_projesi.zip`, `.claude/` okuyabiliyor (doğrulandı). `db:5432`
@@ -16,7 +22,9 @@ konteynerden erişilebilir.
 rolü ve ortam değişkeni boşaltma bu yolla tamamen aşılıyor.
 **Çözüm:** `/veri`'ye yalnızca ERA5 küpleri ve PIREP arşivi bağlanmalı (ayrı salt okunur bağlar).
 
-### 🔴 2. Uygulama kodu konteyner içinde yazılabilir
+### 🔴 2. Uygulama kodu konteyner içinde yazılabilir — ✅ düzeltildi
+`COPY --chmod=755`: kod root'a ait, uid 1000 yazamıyor; yazılabilir kalanlar yalnızca bağlanan
+veri klasörleri. CI duman testi her iki maddeyi de denetliyor.
 `/app` altındaki tüm dosyalar 777 (WSL `/mnt/c` NTFS izinleri `COPY . .` ile imaja geçiyor).
 uid 1000 `api_servisi.py`'yi değiştirebiliyor (doğrulandı). Dockerfile'daki "kod salt okunur"
 varsayımı geçersiz. Saldırgan kalıcı arka kapı bırakır; konteyner yeniden başlatılsa da kalır.

@@ -203,11 +203,14 @@ komutu `docker compose exec --user turbulans ...` ile çalıştırın.
 bitirip `yarida_kaldi` olarak durur ve zamanlayıcı aynı gün yeniden dener.
 Bu yüzden işçinin durması 5 dakikaya kadar sürebilir (`stop_grace_period`).
 
-- **ERA5 arşiv küpleri** imaja dahil değildir (boyut); proje kökü API ve
-  işçiye `/veri` olarak **salt okunur** bağlanır, `ocak_2019_turbulans.nc` ve
-  `era5_egitim_verisi/*.nc` oradan okunur. Başka bir klasör için `.env`'de
-  `YEREL_VERI_KOKU`, `HAVA_DURUMU_DOSYA_ADI`, `EK_HAVA_DURUMU_KLASOR_ADI`.
-  Dosya yoksa sadece o küp atlanır.
+- **ERA5 arşiv küpleri** imaja dahil değildir (boyut); `ocak_2019_turbulans.nc`,
+  `era5_egitim_verisi/` ve `pirep_ham/` API ve işçiye `/veri` altında **salt
+  okunur** bağlanır. Proje kökünün tamamı bağlanmaz: `.env`, yedekler ve `.git`
+  konteynerden okunamaz. Başka bir klasör için `.env`'de `YEREL_VERI_KOKU`,
+  `HAVA_DURUMU_DOSYA_ADI`, `EK_HAVA_DURUMU_KLASOR_ADI`, `ML_PIREP_ARSIV_KLASOR_ADI`.
+  Dosya yoksa Docker yerine boş bir klasör açar ve o küp atlanır.
+- **Kod salt okunur:** imajdaki kod root'a ait ve 755 izinlidir; uygulama
+  kullanıcısı (uid 1000) yalnızca bağlanan veri klasörlerine yazabilir.
 - **Uçuşa özel ERA5 dilimleri, ARCO saatlik önbelleği ve OpenSky rota
   önbelleği** proje klasöründeki `era5_ucus_verisi/`, `era5_arco_onbellek/`
   ve `opensky_onbellek/` klasörlerine bağlanır (bind mount): konteyner
