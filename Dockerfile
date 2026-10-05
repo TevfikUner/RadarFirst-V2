@@ -25,7 +25,9 @@ COPY src/turbulans_radar/__init__.py src/turbulans_radar/
 COPY src/turbulans_radar/cli/__init__.py src/turbulans_radar/cli/statik_indir.py src/turbulans_radar/cli/
 RUN PYTHONPATH=/app/src PYTHONUNBUFFERED=1 python -m turbulans_radar.cli.statik_indir --fir-hedef veri_dosyalari/fir_sinirlari.geojson
 
-COPY . .
+# 755: Windows (WSL /mnt/c) kaynaklı dosyalar 777 geliyordu; uygulama kullanıcısı
+# (uid 1000) kodu değiştirebiliyordu. Kod root'a ait ve yalnızca okunur kalır.
+COPY --chmod=755 . .
 ENV PYTHONPATH=/app/src
 # Yalnızca doğrular: paketler güncelse indirme yapılmaz.
 RUN python -m turbulans_radar.cli.statik_indir

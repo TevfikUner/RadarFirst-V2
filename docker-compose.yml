@@ -1,7 +1,8 @@
-# ERA5 arşiv küpleri imaja girmez (.dockerignore: *.nc); proje kökü (ya da
-# YEREL_VERI_KOKU) /veri'ye SALT OKUNUR bağlanır ve API ile işçi AYNI yollardan
-# okur (katalogdaki dosya_yolu iki serviste de geçerli olsun diye). Dosya yoksa
-# sadece o küp atlanır, yığın yine ayağa kalkar.
+# ERA5 arşiv küpleri imaja girmez (.dockerignore: *.nc); ana küp, ek küp klasörü ve
+# PIREP arşivi (YEREL_VERI_KOKU altında) /veri'ye SALT OKUNUR bağlanır ve API ile
+# işçi AYNI yollardan okur (katalogdaki dosya_yolu iki serviste de geçerli olsun
+# diye). Proje kökünün tamamı bağlanmaz: .env, yedekler ve .git konteynerden
+# okunamasın. Dosya yoksa (Docker yerine boş klasör açar) o küp atlanır.
 x-veri-ortami: &veri_ortami
   HAVA_DURUMU_DOSYASI: /veri/${HAVA_DURUMU_DOSYA_ADI:-ocak_2019_turbulans.nc}
   EK_HAVA_DURUMU_KLASORU: /veri/${EK_HAVA_DURUMU_KLASOR_ADI:-era5_egitim_verisi}
@@ -36,7 +37,9 @@ x-ortak-volumeler: &ortak_volumeler
   - ./ats_verisi:/app/ats_verisi:ro
   # Sağlık raporu yedeğin tazeliğini okur (yazmaz).
   - ./db_yedekleri:/app/db_yedekleri:ro
-  - ${YEREL_VERI_KOKU:-.}:/veri:ro
+  - ${YEREL_VERI_KOKU:-.}/${HAVA_DURUMU_DOSYA_ADI:-ocak_2019_turbulans.nc}:/veri/${HAVA_DURUMU_DOSYA_ADI:-ocak_2019_turbulans.nc}:ro
+  - ${YEREL_VERI_KOKU:-.}/${EK_HAVA_DURUMU_KLASOR_ADI:-era5_egitim_verisi}:/veri/${EK_HAVA_DURUMU_KLASOR_ADI:-era5_egitim_verisi}:ro
+  - ${YEREL_VERI_KOKU:-.}/${ML_PIREP_ARSIV_KLASOR_ADI:-pirep_ham}:/veri/${ML_PIREP_ARSIV_KLASOR_ADI:-pirep_ham}:ro
   - turbulans_modeller:/app/model_deposu
 
 services:
