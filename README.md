@@ -334,7 +334,7 @@ görüntü (snapshot) kolaylığı sağlar.
 | POST | `/api/v1/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir` | Geçmiş bir model versiyonunu YENİDEN EĞİTİM GEREKMEDEN aktif model yapar (rollback); bilinmeyen `versiyon_id` 404 döner |
 | POST | `/api/v1/sanal-pirep/iz` | (yönetici) Havayolu ADS-B beslemesinden bir uçağın izi: seyirdeki irtifa sapmalarını sanal PIREP olarak kaydeder (bkz. "Sanal PIREP") |
 | GET | `/api/v1/sanal-pirep` | Koridordaki sanal PIREP olayları ve uzay-zaman kümeleri (`son_saat`, `bitis`, kutu, `sadece_dogrulanmis`) |
-| WS | `/ws/uyarilar?api_key=...` | TI1 "orta-şiddetli" eşiği aşılınca ve en az 2 uçağın doğruladığı sanal PIREP'te canlı uyarı yayınlar |
+| WS | `/ws/uyarilar?bilet=...` | TI1 "orta-şiddetli" eşiği aşılınca ve en az 2 uçağın doğruladığı sanal PIREP'te canlı uyarı yayınlar |
 | GET | `/saglik?derin=true` | (anahtarsız) Veritabanı + SIGMET tazeliği, canlı GFS, görev kuyruğu, kısıtlı sahalar, küp önbelleği, yerel kütüphaneler; operasyonel sorunda `durum: bozulmus` |
 | GET | `/api/v1/sistem/durum` | Aynı rapor + kaynak başına son hata metinleri (anahtarlı) |
 | GET | `/harita/harita3d.html` | 3D/canlı harita önyüzü (statik, tarayıcıda açılır) |
@@ -374,14 +374,24 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
   görünür; sorgu dizesindeki webhook URL'si maskelenir. Okuma:
   `GET /api/v1/denetim` (yönetici). Saklama: `DENETIM_SAKLAMA_GUN` (180).
 - **Hız sınırı ve yük:** Sayaç PostgreSQL'de, tüm API süreçlerince
-  paylaşılır. Rota/tahmin uçları istemci başına sınırlı ve süreç başına
+  paylaşılır; veritabanına ulaşılamazsa istek reddedilmez, süreç içi sayaca
+  düşülür. Rota/tahmin uçları istemci başına sınırlı ve süreç başına
   eşzamanlılık tavanlı (`ROTA_HESABI_DAKIKADA_MAKS`, `TAHMIN_DAKIKADA_MAKS`,
   `AGIR_HESAP_MAKS_ESZAMANLI`); anahtarsız `/saglik?derin=true`
   `SAGLIK_ONBELLEK_SANIYE` önbelleklidir.
 - **WebSocket bileti:** `/ws/uyarilar` anahtarı URL'de (erişim loglarında)
   taşımamak için `POST /api/v1/ws-bileti`'den alınan 60 sn'lik, sunucu
-  anahtarıyla imzalı bilet (`?bilet=`) kullanır; `?api_key=` eski istemciler
-  için hâlâ kabul edilir ama önerilmez.
+  anahtarıyla imzalı, tek kullanımlık bilet (`?bilet=`) kullanır; `?api_key=`
+  kabul edilmez.
+- **API belgeleri:** `/docs`, `/redoc`, `/openapi.json` yalnızca API bu
+  makineye bağlıyken (`API_YAYIN_ADRESI` boş/`127.0.0.1`) açıktır; ağa
+  açılınca kapanır. `API_BELGELERI_ACIK=true|false` ile zorlanabilir.
+- **TLS:** API düz HTTP konuşur. `API_YAYIN_ADRESI=0.0.0.0` ile ağa açılırsa
+  anahtarlar açık metin gider (açılışta uyarı loglanır); güvenilmeyen ağda
+  önüne TLS sonlandıran bir ters vekil (ör. Caddy) koyun.
+- **Konteyner kabuğu:** Uygulama süreçleri uid 1000 ile çalışır, ama
+  `docker compose exec` varsayılan olarak root açar; elle komut için
+  `docker compose exec -u turbulans api ...` kullanın.
 - **Girdi doğrulama:** `tarih` gerçek bir tarih olarak, `ucus_numarasi`
   harf/rakam + en fazla 8 karakter olarak doğrulanır (422 döner).
 - **Hata gizliliği:** 500/503 yanıtları ham exception mesajını (SQL,
@@ -1358,21 +1368,50 @@ yedek yoksa iki dosya üretir (depoya konmaz):
   kopyalanır ve aynı saklama süresi uygulanır. Örnek: bir OneDrive klasörü
   (`- /mnt/c/Users/<kullanici>/OneDrive/TurbulansRadar_Yedekleri:/dis_yedek`);
   OneDrive'a giriş yapılmamışsa klasör buluta eşitlenmez.
+- **Disk dışı kopyanın şifrelenmesi:** `.env`'de `YEDEK_PAROLA_DOSYASI`
+  (depo dışında, tek satırlık parola dosyası; WSL yolu) verilirse kopyalar gpg
+  AES256 ile `*.gpg` olarak yazılır ve aynı yedeğin şifresiz kopyası silinir.
+  Yerel `db_yedekleri/` hızlı geri yükleme için şifresiz kalır; diski Windows
+  Cihaz Şifrelemesi/BitLocker korur. **Parolayı bir parola yöneticisine de
+  kaydedin** -- kaybolursa şifreli kopyalar açılamaz. Açmak:
+  `gpg --batch --pinentry-mode loopback --passphrase-file <parola> -o turbulans_YYYYAAGG.dump -d turbulans_YYYYAAGG.dump.gpg`.
 
 Başarısız deneme (ör. açılışta veritabanı henüz hazır değil)
 `YEDEK_YENIDEN_DENEME_SANIYE` (60) sonra tekrarlanır; eskiden bir saat
 bekleniyordu ve kısa açık kalan günlerde yedek hiç alınmıyordu. Başarıdan
 sonra saatte bir bakılır; her türden en yeni `DB_YEDEK_SAKLA_GUN` (7) dosya
-tutulur. Durum: `docker compose logs yedek`. Yedekler aynı diskte durduğu
-için bilgisayar arızasına karşı arada bir başka bir diske/buluta kopyalayın.
+tutulur. Durum: `docker compose logs yedek`. Bilgisayar arızasına karşı
+disk dışı kopyayı (yukarıda) açık tutun.
 
 Geri yükleme (önce API ve işçiyi durdurun; mevcut tablolar silinip yedekle değiştirilir):
 
 ```bash
 docker compose stop api worker
 docker compose exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --clean --if-exists --no-owner' < db_yedekleri/turbulans_20261002.dump
+sh otomasyon/uygulama_rolu_olustur.sh   # geri yüklenen tablolar postgres'e ait olur; sahipliği uygulama rolüne geri ver
 docker compose start api worker
 ```
+
+### Uygulama veritabanı rolü
+
+API, işçi ve demo `postgres` süper kullanıcısıyla değil, yalnızca kendi
+veritabanının ve tablolarının sahibi olan `turbulans_uygulama` rolüyle
+bağlanır: migration çalıştırabilir, kendi tablolarına yazabilir; başka
+veritabanlarına, rollere ve sunucu dosyalarına (`COPY ... PROGRAM`,
+`pg_read_file`) erişemez. Süper kullanıcı şifresi yalnızca `db` ve `yedek`
+servislerinde kalır; API/işçi konteynerlerinde MCP okuyucu şifresi de boştur.
+
+```bash
+# .env: UYGULAMA_POSTGRES_USER=turbulans_uygulama, UYGULAMA_POSTGRES_PASSWORD=<güçlü şifre>
+sh otomasyon/uygulama_rolu_olustur.sh "Turbulence-db-test"   # önce test veritabanında
+sh otomasyon/uygulama_rolu_olustur.sh                         # sonra asıl veritabanı
+docker compose up -d api worker
+```
+
+Betik tekrar çalıştırılabilir (şifre değişikliği için de). `UYGULAMA_*` boşsa
+servisler eski davranışla `POSTGRES_USER`'la bağlanır (CI, demo). Testler
+`<POSTGRES_DB>-test` veritabanını oluşturabilmek için `.env`'deki
+`POSTGRES_USER` ile çalışır.
 
 ## Testleri çalıştırmak
 
