@@ -380,8 +380,11 @@ function sonucPanelDoldur(sonuc) {
   const kisittanKacinildi = sonuc.sigmetten_kacinildi_mi || sonuc.kisitli_sahadan_kacinildi_mi;
   if (sonuc.guvenli_rota_bulundu_mu === false) {
     tasarrufEl.innerHTML = `<span class="tasarruf-yok">⚠ SIGMET ve kısıtlı sahalara girmeyen güvenli bir rota bulunamadı -- öneri yok.</span>`;
-  } else if (kisittanKacinildi && n.riskli_nokta_sayisi === 0) {
-    tasarrufEl.innerHTML = `<span class="tasarruf-iyi">✓ Sert kısıttan kaçınıldı</span> (SIGMET / kısıtlı saha ihlali ${n.sigmet_ihlali_sayisi} / ${n.kisitli_saha_ihlali_sayisi} → ${o.sigmet_ihlali_sayisi} / ${o.kisitli_saha_ihlali_sayisi}), ${yakitCumlesi}.`;
+  } else if (kisittanKacinildi && !n.riskli_nokta_sayisi) {
+    tasarrufEl.innerHTML = `<span class="tasarruf-iyi">✓ Sert kısıttan kaçınıldı</span> (SIGMET / kısıtlı saha ihlali ${n.sigmet_ihlali_sayisi} / ${n.kisitli_saha_ihlali_sayisi} → ${o.sigmet_ihlali_sayisi} / ${o.kisitli_saha_ihlali_sayisi}), ${yakitCumlesi}.` +
+      (n.riskli_nokta_sayisi == null ? " Türbülans riski hesaplanmadı (rota veri kapsamı dışında)." : "");
+  } else if (n.riskli_nokta_sayisi == null) {
+    tasarrufEl.innerHTML = `<span class="tasarruf-yok">Türbülans riski hesaplanmadı (rota veri kapsamı dışında); bu, risk olmadığı anlamına gelmez.</span>`;
   } else if (n.riskli_nokta_sayisi === 0) {
     tasarrufEl.innerHTML = `<span class="tasarruf-yok">Rotada riskli türbülans tespit edilmedi -- iki rota aynı, ${yakitCumlesi}.</span>`;
   } else if (sonuc.optimize_rota.riskli_nokta_sayisi === 0) {

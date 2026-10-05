@@ -96,6 +96,7 @@ def test_kapsam_disinda_risk_hesaplanmadi_yazar_kabin_bildirimi_cikmaz(canli_sun
     sayfa = tarayici_sayfasi["sayfa"]
     _simule_et(canli_sunucu, sayfa, {"#bitis-enlem": "40.70", "#bitis-boylam": "-74.00", "#irtifa-ft": "34000"})
     assert sayfa.inner_text("#s-normal-turbulans").strip() == "hesaplanmadı"
+    assert "hesaplanmadı" in sayfa.inner_text("#tasarruf-satiri")
     assert "0 nokta" not in sayfa.inner_text("#sonuc-paneli")
     assert not sayfa.is_visible("#kabin-bildirimi")
     assert "NM" in sayfa.inner_text("#s-normal-mesafe")
