@@ -1,9 +1,8 @@
 # Katkılar (rapor bölümü taslağı, E3)
 
 Bu bölüm bitirme raporuna doğrudan aktarılabilir. Her katkının yanında depoda
-nerede görüleceği ve sınırı yazılıdır; jüri sorusunda kanıt buradan gösterilir.
-"Bildiğimiz kadarıyla" ile başlayan özgünlük ifadeleri, "İlgili Çalışmalar"
-taraması tamamlanınca doğrulanmalı ya da yumuşatılmalıdır.
+nerede görüleceği, sınırı ve literatürdeki en yakın çalışmadan farkı yazılıdır
+(künyeler: `ILGILI_CALISMALAR.md`); jüri sorusunda kanıt buradan gösterilir.
 
 Sistem sertifikalı EDR üretmez; karar destek aracıdır.
 
@@ -24,6 +23,7 @@ kapsamadığı noktalar tahmin edilmez, "veri yok" olarak bırakılır.
 - Kanıt: `fizik/eslestirme.py`, ADR 0005; demo: THY322'nin 1614 noktasının 720'si
   150–350 hPa içinde.
 - Sınır: ERA5 0,25° ve saatliktir; türbülansın ölçeği bunun altındadır.
+- En yakın çalışmadan farkı: Lee vd. (2023) aynı ERA5 teşhislerini ızgara klimatolojisi olarak hesaplar; biz onları gerçek ADS-B izinin barometrik seviyesinde, uçağı çevreleyen katmandan nokta nokta hesaplıyor ve kapsam dışını tahmin etmeden "veri yok" bırakıyoruz.
 
 **K2. PIREP irtifa hatasının tespiti ve seyir irtifası etiket hattı.**
 IEM PIREP arşivindeki `FL` alanının feet cinsinden olduğu, önceki veri setinin bu
@@ -33,6 +33,7 @@ veride TI1'in ROC-AUC'si 0,44'ten 0,71'e çıktı (10 gün × 100 PIREP, gerçek
 - Kanıt: `ml/ml_veri_hatti.py`, `dogrulama/bagimsiz_kanit.py` (`pirepleri_normalize_et`).
 - Sınır: PIREP öznel ve gecikmelidir; nesnel EDR etiketi için NOAA MADIS başvurusu
   yapıldı (geliştirme planı M1).
+- En yakın çalışmadan farkı: Schwartz (1996) PIREP'in nicel kullanımındaki gürültüyü genel olarak tartışır; biz açık IEM arşivinde somut iki hatayı (FL alanının feet olması, /OV UNK konumu) bulup etiket hattını bunlara göre yeniden kurduk.
 
 **K3. Kendiliğinden büyüyen, kotalı ve tekrar indirmesiz eğitim verisi.**
 Gece işi IEM'den yeni PIREP'leri çeker, gün/bölge gruplarıyla küçük ERA5 dilimleri
@@ -40,6 +41,7 @@ ister (gece ≤ 60, gün ≤ 150 CDS isteği) ve dilimleri bir pencere deposunda
 yeni bir özellik denemek için veri yeniden indirilmez.
 - Kanıt: `ml/ml_veri_hatti.py`, `ml/ozellik_deposu.py`, ADR 0002; durum
   `GET /api/v1/ml/durum`.
+- En yakın çalışmadan farkı: Muñoz-Esparza vd. (2020) sabit ve kapalı bir yerinde EDR veri kümesiyle çalışır; bizim eğitim verimiz açık kaynaklardan her gece sağlayıcı kotaları içinde büyür ve ham pencereler saklandığı için yeni bir özellik yeniden indirmeden denenir.
 
 ## 2. Değerlendirme ve belirsizlik
 
@@ -51,20 +53,23 @@ eşleştirilmiş AUC testiyle verilir. Aday model ancak holdout ROC-AUC'de TI1'i
 sürüm olarak saklanır ve geri alınabilir.
 - Kanıt: `ml/degerlendirme.py`, `ml/ml_otomatik_egitim.py`, ADR 0003, 0004,
   `docs/deney_protokolu.md`.
+- En yakın çalışmadan farkı: Roberts vd. (2017) gruplu doğrulamayı genel olarak önerir; biz onu gün gruplu CV, zamansal holdout ve TI1'e karşı eşleştirilmiş bootstrap farkının alt sınırına bağlı otomatik bir aktivasyon kapısına dönüştürdük.
 
 **K5. "Emin değilim" diyebilen tahmin.**
 Çapraz-konformal tahminle her olasılık `dusuk_risk`, `yuksek_risk` ya da `belirsiz`
 durumuna çevrilir (hedef kapsama %90); gerçekleşen kapsama zamansal holdout'ta
 ölçülüp model sürümüyle saklanır.
 - Kanıt: `ml/belirsizlik.py`, ADR 0010.
+- En yakın çalışmadan farkı: Angelopoulos ve Bates (2021) çapraz-konformal yöntemi genel olarak anlatır; biz onu türbülans olasılığını "belirsiz" diyebilen üç durumlu bir karar çıktısına çevirip gerçekleşen kapsamayı holdout'ta ölçtük.
 
 **K6. Fizik göstergesinin sınırının ölçülmesi ve ürüne yansıtılması.**
-TI1'in bağımsız becerisi seyir PIREP'lerinde ölçüldü (6141 PIREP, ROC-AUC 0,67; holdout
+TI1'in bağımsız becerisi seyir PIREP'lerinde ölçüldü (6218 PIREP, ROC-AUC 0,67; holdout
 0,71, eşikte yakalama 0,49, yanlış alarm 0,16) ve gerçek bir uçuşta (PUE502) aktif TURB SIGMET'i
 yakalamadığı gösterildi. Sonuç, her rota yanıtında ve arayüzde gösterilen bir
 güvenilirlik notuna ve güvenliğin SIGMET sert kısıtına dayandırılmasına dönüştü.
 - Kanıt: `fizik/turbulans_indeksleri.py` (`TI1_GUVENILIRLIK_NOTU`),
   `dogrulama/bagimsiz_kanit.py`, `docs/SISTEM_KARTI.md` §6.
+- En yakın çalışmadan farkı: Kim vd. (2011) ile Sharman ve Pearson (2017) teşhislerin becerisini ölçüp operasyonel birleşime ağırlık olarak kullanır; biz ölçülen sınırı (TI1 ROC-AUC 0,67) ürün davranışına taşıdık: TI1 yumuşak, SIGMET sert kısıt, her yanıtta güvenilirlik notu.
 
 ## 3. Karar ve işletim
 
@@ -76,6 +81,7 @@ payıyla; (2) riskli TI1'den kaçınmak; (3) yakıt. Kaçınacak risk yoksa rota
 daireyle aynı kalır; güvenli rota yoksa öneri verilmez.
 - Kanıt: `rota/rota_optimizasyonu.py`, `rota/risk_katmanlari.py`; demo ekranları
   `docs/sunum/ekranlar/`.
+- En yakın çalışmadan farkı: Cheung (2018) A* ile CAT'ten kaçınmayı bir örnek olayla gösterir; biz yanal sapmayı seviye değişimiyle yakıt bedeli üzerinden karşılaştıran, SIGMET ve kısıtlı sahayı varış zamanında sert kısıt sayan ve kalan riski dispeçere UTC/FL/NM olarak veren bir karar akışı kurduk.
 
 **K8. ADS-B'den gözleme dayalı ikinci türbülans kanalı (sanal PIREP).**
 Seyirdeki uçağın atanmış seviyesinden ani sapmaları, eşikleri RVSM otopilot
@@ -84,21 +90,27 @@ doğrulaması yapılır ve dispeçere WebSocket ile iletilir. İlk ölçüm (16 
 POD 1/8, POFD 0/8.
 - Kanıt: `fizik/sanal_pirep.py`, ADR 0011.
 - Sınır: Örneklem küçük; eşikler kalibre edilmedi; sapma EDR değildir.
+- En yakın çalışmadan farkı: Kopeć vd. (2016) ADS-B/Mode-S'ten EDR türetir; biz EDR'ye çevirmeden yalnız atanmış seviyeden sapmayı olay sayıp çoklu uçakla doğruluyor ve PIREP'e karşı POD/POFD ile ölçüyoruz.
 
 **K9. Üretime yakın işletim mühendisliği.**
 - Uzun işler için PostgreSQL kuyruğu (`FOR UPDATE SKIP LOCKED`) ve dağıtık kilit.
 - Sağlayıcı yasaklarına karşı korumalar: tek eşzamanlı OpenSky sorgusu, günlük
   tavanlar, istek aralıkları, zamanlayıcı lider kilidi.
-- Ağsız demo paketi; 601 otomatik test ve 5 işli CI (sır taraması, SBOM, tarayıcı
+- Ağsız demo paketi; 780 otomatik test ve 5 işli CI (sır taraması, SBOM, tarayıcı
   testleri dahil); ölçülmüş performans raporu.
 - Kanıt: ADR 0006–0009, `docs/PERFORMANS_RAPORU.md`, `docs/VERI_KAYNAKLARI_VE_LISANSLAR.md`.
+- En yakın çalışmadan farkı: İncelenen açık kaynak türbülans projeleri (İlgili Çalışmalar §8) doğrulama ve işletim altyapısı içermez; bizde kuyruk, kilit, yedek, sağlayıcı yasak korumaları ve otomatik testler ölçülmüş performansla birlikte gelir.
 
-## Özgünlük beyanı (taslak)
+## Özgünlük beyanı
 
-Bildiğimiz kadarıyla, açık veriyle çalışan bir sistemde şu üçünün birlikte
-sunulduğu bir çalışma yoktur [İlgili Çalışmalar taramasıyla doğrulanacak]:
-(a) gerçek ADS-B izinin barometrik irtifayla reanaliz verisine eşlenip rota
-optimizasyonuna sert/yumuşak kısıt olarak girmesi, (b) fizik göstergesinin bağımsız
-etiketle ölçülen sınırının ürün davranışına yansıtılması, (c) konformal belirsizlik
-durumu ve kapılı model aktivasyonu. GTG ve WAFS gibi operasyonel ürünlerle doğruluk
-iddiası yoktur; bu karşılaştırma gelecek çalışmadır (M3).
+Bu çalışmanın katkısı yeni bir türbülans teşhisi ya da tahmin ürünü değildir.
+Katkı, bilinen yöntemleri (Ellrod TI1, Sharman–Pearson eşlemesi, gruplu doğrulama,
+konformal tahmin, A*) yalnız açık veriyle tek bir işletilebilir karar destek
+sisteminde birleştirmek ve bunu yaparken üç şeyi ölçülebilir kılmaktır:
+(a) gerçek ADS-B izinin barometrik irtifayla reanalize eşlenmesi ve sonucun rota
+optimizasyonuna sert/yumuşak kısıt olarak girmesi; (b) fizik göstergesinin sınırının
+bağımsız etiketlerle (PIREP, MADIS EDR) ölçülüp ürün davranışına yansıtılması;
+(c) modelin ancak bu göstergeyi istatistiksel olarak geçtiğinde devreye girmesi.
+Yan katkı: açık IEM PIREP arşivinde irtifa birimi ve konum hatalarının bulunup
+belgelenmesi. GTG ve WAFS gibi operasyonel ürünlerle doğruluk karşılaştırması
+yapılmadı; bu gelecek çalışmadır (M3).

@@ -118,6 +118,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 ## 5. Bilinen sınırlamalar
 
 **Fiziksel gösterge**
+- Kapsam yalnızca açık hava türbülansıdır (CAT). Konvektif, bulut içi, dağ dalgası
+  ve iz türbülansı kapsam dışıdır; yalnız seyir safhası (FL280 üstü) değerlendirilir.
 - EDR tahmini (birleşik EDR, `fizik/edr_esleme.py`) sertifikalı bir EDR değeri
   değildir: TI1, TI2, VWS, DEF ve 1/Ri log-normal eşlemeyle (Sharman & Pearson
   2017; C1 = −2,953, C2 = 0,602) EDR'ye çevrilip ortalanır; göstergelerin
@@ -134,7 +136,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   ızgarada ~0,125°'ye kadar kayma olabilir.
 - Küp sınırının 0,125° dışına kadar (zamanda 3 saate kadar) noktalar kapsam
   içi sayılır ve kenar değerini alır.
-- Seyir irtifasındaki 6141 PIREP'te (63 gün) TI1'in tek başına ayırt
+- Seyir irtifasındaki 6218 PIREP'te (64 gün) TI1'in tek başına ayırt
   ediciliği orta düzeydedir (ROC-AUC 0,67 [0,65–0,69]; zamansal holdout'ta
   0,71, `TI1_ESIK_ORTA_SIDDETLI`'de POD 0,49, POFD 0,16). Fizik düzeltmesinden
   önce aynı örneklerde 0,64'tü; eski 0,44 değeri 300-400 feet'teki PIREP'leri
