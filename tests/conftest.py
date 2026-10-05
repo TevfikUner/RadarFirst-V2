@@ -93,11 +93,11 @@ _KATMAN_FIXTURELARI = {
     "gercek_veri": {
         "_gereksinimler",
         "_kupler_var_mi",
+        "gercek_senaryo",
         "gercek_veri_var_mi",
         "kayitli_ucus",
         "sahte_canli_ortam",
         "veri_kupu",
-        "veri_kupu_mevcut_mu",
     },
     "tarayici": {"canli_sunucu", "tarayici_sayfasi"},
 }

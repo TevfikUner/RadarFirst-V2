@@ -1,5 +1,7 @@
 """İz bulutu duyarlılığı. Nem alanı SENTETİKTİR; sıcaklık ve rüzgar gerçek demo küpünden."""
 
+import os
+
 import numpy as np
 import pytest
 
@@ -17,13 +19,10 @@ def test_olcut_soguk_ve_buza_gore_doymus_havayi_isaretler():
 @pytest.fixture(scope="module")
 def veri_kupu():
     xr = pytest.importorskip("xarray")
-    from test_eslestirme import NC_YOLU
+    from test_eslestirme import DEMO_NC_YOLU, NC_YOLU
 
-    try:
-        with xr.open_dataset(NC_YOLU) as kup:
-            return kup.load()
-    except FileNotFoundError:
-        pytest.skip("Demo küpü yok.")
+    with xr.open_dataset(NC_YOLU if os.path.isfile(NC_YOLU) else DEMO_NC_YOLU) as kup:
+        return kup.load()
 
 
 def test_eslestirme_nem_varsa_iz_bulutu_sutunlarini_doldurur_yoksa_bos_birakir(veri_kupu):

@@ -8,8 +8,11 @@ ERA5 veri küpü üzerinde doğrular -- ve bir de kapsam-dışı/boş rota gibi 
 durumlarını kontrol eder.
 
 Gerçek '.nc' dosyası (ocak_2019_turbulans.nc) .gitignore'da olduğu için her
-ortamda bulunmayabilir; bulunmazsa bu testler atlanır (skip).
+ortamda bulunmayabilir; bulunmazsa depodaki gerçek demo küpü (THY322, 6 saat)
+kullanılır. CI'da bu testler atlanmaz (bkz. ci.yml).
 """
+
+import os
 
 import numpy as np
 import pandas as pd
@@ -35,6 +38,7 @@ from turbulans_radar.fizik.turbulans_indeksleri import (
 )
 
 NC_YOLU = config.HAVA_DURUMU_DOSYASI
+DEMO_NC_YOLU = os.path.join(os.path.dirname(os.path.dirname(__file__)), "demo", "era5", "era5_THY322_2019-01-15.nc")
 
 
 @pytest.fixture(scope="module")
@@ -42,7 +46,7 @@ def veri_kupu():
     try:
         return xr.open_dataset(NC_YOLU)
     except FileNotFoundError:
-        pytest.skip(f"'{NC_YOLU}' bulunamadı, gerçek veri gerektiren test atlanıyor.")
+        return xr.open_dataset(DEMO_NC_YOLU)
 
 
 def _referans_nokta_nokta_hesapla(rota_df, veri_kupu):
@@ -184,8 +188,11 @@ def test_geometrik_irtifa_yoksa_barometrik_irtifa_kullanilir(veri_kupu):
 
 
 def test_zaman_boslugundaki_nokta_uzak_bir_saatle_eslestirilmez(veri_kupu):
-    aralikli_kup = veri_kupu.isel(valid_time=[0, 1, 2, 200, 201])
-    zamanlar = pd.DatetimeIndex(veri_kupu.valid_time.values[[1, 100, 200]]).tz_localize("UTC")
+    aralikli_kup = veri_kupu.isel(valid_time=[0, 1, 2, 3, 4])
+    saatler = aralikli_kup.valid_time.values.copy()
+    saatler[3:] += np.timedelta64(197, "h")
+    aralikli_kup = aralikli_kup.assign_coords(valid_time=saatler)
+    zamanlar = pd.DatetimeIndex([saatler[1], saatler[1] + np.timedelta64(99, "h"), saatler[3]]).tz_localize("UTC")
     rota_df = pd.DataFrame(
         {
             "zaman": zamanlar,
