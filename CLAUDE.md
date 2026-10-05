@@ -4,9 +4,10 @@
 
 ## İzin Verilen İşlemler (Allowlist)
 - Dosya okuma: Her zaman OK
-- Git: Varsayılan dal `master`. `master`'a doğrudan push YASAK (`.githooks/pre-push` engeller, `core.hooksPath=.githooks`; `--no-verify` deny listesinde); `master` üzerinde commit atma.
-  Her iş `claude/<konu>` dalında, küçük commit'lerle; push sadece kendi dalına. `master`'a birleştirme yalnızca Tevfik'in onayıyla (GitHub PR).
-  Force-push ve geçmişi yeniden yazma (amend, rebase, filter-repo) yasak/önce sor.
+- Git: Varsayılan dal `master`. İş `claude/<konu>` dalında küçük commit'lerle yapılır; testler ve lint temizse
+  Claude `master`'a birleştirip push edebilir (2026-10-06 Tevfik'in kararı; GitHub'da PR şartı kaldırıldı, CI çalıştırıcı
+  sorunları birleştirmeyi engellemez). Birleştirme için `gh pr merge <no> --merge` (settings.local.json izinli).
+  Force-push ve geçmişi yeniden yazma (amend, rebase, filter-repo) yasak/önce sor; GitHub'da master force-push/silme kapalı.
 - Dosya silme: Sadece kendi oluşturduğun dosyaları sil
 - Tehlikeli komutlar `.claude/settings.json` deny listesiyle teknik olarak engellenir (rm -rf, docker compose down -v, docker volume rm, DROP/TRUNCATE, force-push).
 - Diğer her şey için: Önce sor

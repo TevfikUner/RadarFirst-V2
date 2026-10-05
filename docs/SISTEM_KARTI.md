@@ -146,9 +146,11 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   bir alan olarak (`ti1_guvenilirlik_notu`) ve iki web arayüzünde de
   gösteriliyor -- bugün rota güvenliğinin gerçek garantisi TI1'den değil
   SIGMET sert kısıtından geliyor (bkz. "Bağımsız kanıt" bölümü, PUE502 uçuşu).
-- EDR ölçekleme katsayısı 0.40'tır (gün bazlı bootstrap %95 GA [0.35, 0.44],
-  1600 PIREP / 16 gün). Tanh ölçeği sabit ortalama tahmininden daha iyi
-  tahmin etmez (test MSE 0.085 vs 0.071); görselleştirme ölçeğidir.
+- EDR ölçekleme katsayısı 0.27'dir (Madde 2 fiziğiyle, gün bazlı bootstrap
+  %95 GA [0.25, 0.28], 6218 PIREP / 64 gün; önceki 0.40 eski fizikle). Tanh
+  ölçeği sabit ortalama tahmininden daha iyi tahmin etmez (test MSE 0.076 vs
+  0.067); görselleştirme ölçeğidir. Birleşik EDR log-normal eşlemeyi kullanır,
+  tanh yalnızca yedektir.
 
 **ML sınıflandırıcısı**
 - Aktif model (Random Forest, 5 Ekim 2026) doğru irtifalı PIREP'lerle eğitildi ve

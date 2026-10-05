@@ -1531,11 +1531,11 @@ python -m uv pip compile requirements-era5.txt -c ana_kisit.txt --python-version
   doldurulmuş (padded) saklanır; eşleştirme bunu otomatik yapar.
 - Yatay deformasyon hesabı için veri kübünün ilgili zaman dilimindeki tüm
   enlem/boylam grid'ine ihtiyaç var (tek nokta yetmiyor).
-- `config.EDR_OLCEKLENDIRME_KATSAYISI` (0.40) seyir irtifasındaki gerçek IEM
-  PIREP'leri + saatlik ERA5 ile (`ml_ornekleri`, 1600 örnek, 16 gün)
-  `turbulans-edr-kalibrasyon` kullanılarak kalibre edildi: gün bazlı bootstrap
-  %95 GA `[0.35, 0.44]`; son 4 günlük zamansal testte MSE 0.085 (eski 0.23:
-  0.093). Tanh ölçeği sabit ortalama tahmininden (MSE 0.071) daha iyi tahmin
+- `config.EDR_OLCEKLENDIRME_KATSAYISI` (0.27) seyir irtifasındaki gerçek IEM
+  PIREP'leri + saatlik ERA5 ile (`ml_ornekleri`, 6218 örnek, 64 gün, Madde 2
+  fiziği) `turbulans-edr-kalibrasyon` kullanılarak kalibre edildi: gün bazlı
+  bootstrap %95 GA `[0.25, 0.28]`; son 13 günlük zamansal testte MSE 0.076
+  (önceki 0.40: 0.082). Tanh ölçeği sabit ortalama tahmininden (MSE 0.067) daha iyi tahmin
   etmez: bir görselleştirme ölçeğidir, risk için ML olasılığı kullanılmalıdır.
   ABD hava sahası verisine dayanan, bölgeden bağımsız kaba bir kalibrasyondur;
   veri büyüdükçe yeniden çalıştırılmalıdır. Eski 0.23 değeri hatalı irtifa

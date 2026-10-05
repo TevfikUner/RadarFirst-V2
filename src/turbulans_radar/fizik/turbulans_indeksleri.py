@@ -144,13 +144,13 @@ TI1_GUVENILIRLIK_NOTU = (
 )
 
 
-def ti1_den_edr_proxy_olcegine_cevir(ti1_degeri, olceklendirme_katsayisi=0.40):
+def ti1_den_edr_proxy_olcegine_cevir(ti1_degeri, olceklendirme_katsayisi=0.27):
     """
     TI1'in tipik değer aralığı (~1e-7 - 1e-6 s^-2) EDR'nin alışılan 0-1
     aralığıyla doğrudan karşılaştırılabilir değil. Burada TI1'i, eski
     kodunla aynı yerlerde kullanılabilecek 0'a yakın-1'e yakın bir "proxy"
     ölçeğine sıkıştırıyoruz (tanh ile doygunlaştırma). Varsayılan katsayı
-    (0.40), config.EDR_OLCEKLENDIRME_KATSAYISI ile AYNIDIR -- seyir
+    (0.27), config.EDR_OLCEKLENDIRME_KATSAYISI ile AYNIDIR -- seyir
     irtifasındaki gerçek IEM PIREP + ERA5 verisiyle kalibre edildi (bkz.
     ml/edr_kalibrasyonu.py). Görselleştirme ölçeğidir, sertifikalı EDR değildir.
     """
