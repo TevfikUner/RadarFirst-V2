@@ -46,6 +46,15 @@ düşey hız taşır ama kullanılmıyordu. PIREP gönüllüdür, gecikir ve kon
   alarm verse de türbülans bildirilen ve bildirilmeyen PIREP'leri ayırt etmedi
   (POD ≈ POFD); kural daha seçici. Aralıklar geniş ve çakışıyor, ön bulgudur.
   Denetimsiz işaretler etiket olarak kullanılmaz.
+- LOF düzeltmesi (5 Ekim 2026): gerçek veride seyir noktalarının %68'i ADS-B
+  kuantizasyonu (25 ft, 64 ft/dk) yüzünden birebir aynı özellik vektörüydü (en büyük
+  küme 17.034 nokta). LOF "Duplicate values" uyarısı verdi, skorlar ~1e11'e çıktı ve
+  alarm kümesi komşu sayısına bağlıydı (k=20 ile k=400 arasında 79 alarmın 4'ü ortak).
+  Yukarıdaki LOF satırı bu yüzden geçersizdir. Özellikler artık kuantizasyon aralığı
+  içinde düzgün titreşimle (dither) açılıyor; uyarı kalktı. Yeniden ölçüm (aynı 16
+  PIREP, tohum 0–3): LOF POD 3–4/8, POFD 4–5/8 (Peirce −0,25…0); Isolation Forest
+  POD 2–4/8, POFD 3–4/8 (−0,13…+0,13); kural değişmedi (1/8, 0/8). Sonuç aynı:
+  denetimsiz yöntemler ayırt edici değil.
 - Yanlış alarm kaynakları: dalga takibi, otopilot mod geçişi, ATC'nin verdiği küçük
   seviye düzeltmeleri. Çoklu uçak doğrulaması bunun için vardır.
 - ADS-B'de PIREP'i veren uçak tanınamaz; doğrulamada tüpteki herhangi bir uçağın olayı

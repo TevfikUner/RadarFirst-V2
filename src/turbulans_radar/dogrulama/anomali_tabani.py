@@ -39,6 +39,22 @@ from turbulans_radar.fizik.sanal_pirep import _iz_hazirla, coklu_izden_olaylar, 
 
 OZELLIKLER = ["mutlak_sapma_ft", "irtifa_oynakligi_ft", "mutlak_dikey_hiz_ftdk", "dikey_hiz_degisimi_ftdk"]
 MIN_ALARM_ORANI = 0.001
+# ADS-B kuantizasyon adımları (irtifa 25 ft, düşey hız 64 ft/dk). Seyirdeki noktaların
+# çoğu aynı vektöre düşer (gerçek veride %68); LOF tekrar eden değerlerde bozulur
+# (skor ~1e11, komşu sayısına göre alarm kümesi değişir). Özellikler kuantizasyon
+# aralığı içinde düzgün titreşimle (dither) açılır; bilgi eklenmez.
+KUANTIZASYON_ADIMI = {
+    "mutlak_sapma_ft": 25.0,
+    "irtifa_oynakligi_ft": 25.0,
+    "mutlak_dikey_hiz_ftdk": 64.0,
+    "dikey_hiz_degisimi_ftdk": 64.0,
+}
+
+
+def kuantizasyon_titresimi(degerler: np.ndarray, tohum: int = 0) -> np.ndarray:
+    rng = np.random.default_rng(tohum)
+    adim = np.array([KUANTIZASYON_ADIMI[o] for o in OZELLIKLER])
+    return degerler + rng.uniform(-0.5, 0.5, degerler.shape) * adim
 
 
 def seyir_noktalari(izler: pd.DataFrame) -> pd.DataFrame:
@@ -79,7 +95,7 @@ def anomali_isaretle(noktalar: pd.DataFrame, oran: float, tohum: int = 0) -> dic
     """{'isolation_forest': bool[], 'lof': bool[]} -- her yöntem en olağan dışı
     'oran' kadar noktayı işaretler."""
     oran = min(max(oran, MIN_ALARM_ORANI), 0.5)
-    x = RobustScaler().fit_transform(noktalar[OZELLIKLER].fillna(0.0).to_numpy())
+    x = RobustScaler().fit_transform(kuantizasyon_titresimi(noktalar[OZELLIKLER].fillna(0.0).to_numpy(), tohum))
     adet = max(1, round(oran * len(x)))
 
     def _en_ust(skor):
