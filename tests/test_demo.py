@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import pandas as pd
 import pytest
 
 from turbulans_radar import config
@@ -39,6 +40,26 @@ def test_demo_cevrimdisi_calisir_harita_ve_kayit_uretir(yalniz_demo_verisi, tmp_
     assert yalniz_demo_verisi == [("THY322", "2019-01-15", 1614)]
     assert os.path.isfile(tmp_path / "ciktilar" / "turbulans_haritasi_THY322_2019-01-15.html")
     assert config.ERA5_OTOMATIK_INDIRME is False and config.CANLI_HAVA_VERISI_ETKIN is False
+
+
+ALTIN_SUTUNLAR = ["ti1_indeksi", "dusey_ruzgar_kaymasi", "yatay_deformasyon", "richardson_sayisi"]
+ALTIN_DEGERLER = {
+    "2019-01-15T19:39:51Z": [7.230308534336888e-07, 0.01400688940796959, 5.161965889602165e-05, 3.3576305165137983],
+    "2019-01-15T19:56:59Z": [8.363713944410138e-07, 0.01304600875866315, 6.410936937978252e-05, 3.728469441661187],
+    "2019-01-15T20:00:38Z": [7.68524566911208e-07, 0.01309462371003511, 5.8690084108506796e-05, 3.5361578988691167],
+    "2019-01-15T21:11:53Z": [1.8075133545648178e-07, 0.00475738221546833, 3.799386453936372e-05, 17.466693679081416],
+}
+ALTIN_NAN_SAYISI = 894
+
+
+def test_demo_altin_degerleri_degismez(yalniz_demo_verisi):
+    sonuc = demo.demo_calistir(harita_uret=False).set_index("zaman")
+
+    for sutun in ALTIN_SUTUNLAR:
+        assert int(sonuc[sutun].isna().sum()) == ALTIN_NAN_SAYISI, sutun
+    for zaman, beklenen in ALTIN_DEGERLER.items():
+        gercek = sonuc.loc[pd.Timestamp(zaman), ALTIN_SUTUNLAR].to_numpy(dtype=float)
+        np.testing.assert_allclose(gercek, beklenen, rtol=1e-6, err_msg=zaman)
 
 
 def test_demo_klasoru_bossa_acik_hata(monkeypatch):

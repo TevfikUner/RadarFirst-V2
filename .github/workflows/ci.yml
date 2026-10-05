@@ -107,7 +107,16 @@ jobs:
       - name: Veritabanı şemasını kur (alembic upgrade head)
         run: alembic upgrade head
       - name: Testleri çalıştır (kapsam raporuyla)
-        run: pytest tests/ -v --cov --cov-report=term-missing --cov-report=xml
+        shell: bash
+        run: pytest tests/ -v -rs --cov --cov-report=term-missing --cov-report=xml | tee pytest.log
+      # Fizik çekirdeği CI'da gerçek küple (depodaki demo küpü) sınanmalı:
+      # bu dosyalarda atlanan test başarısızlık sayılır.
+      - name: Gerçek küp testleri atlanmadı mı
+        run: |
+          if grep -E "SKIPPED.*tests/test_(eslestirme|rota_optimizasyonu|demo|iz_bulutu)\.py|tests/test_(eslestirme|rota_optimizasyonu|demo|iz_bulutu)\.py.*SKIPPED" pytest.log; then
+            echo "::error::Gerçek küp testlerinden biri atlandı; CI'da hepsi demo küpüyle çalışmalı."
+            exit 1
+          fi
       - name: Kapsam özetini iş özetine yaz
         if: always()
         run: |

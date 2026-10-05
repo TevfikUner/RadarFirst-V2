@@ -57,16 +57,27 @@ def test_gunluk_kota_dolunca_opensky_a_sorgu_gitmez(monkeypatch, kilit_kaydi):
     assert baglanti.kayit == []
 
 
-def test_veritabani_yokken_kota_surec_icinde_sayilir(monkeypatch, kilit_kaydi):
+def test_veritabani_yokken_kota_sayilamaz_sorgu_gitmez(monkeypatch, kilit_kaydi):
     def _db_yok(anahtar, pencere):
         raise ConnectionError("db yok")
 
     monkeypatch.setattr("turbulans_radar.depo.hiz_siniri.istegi_say_senkron", _db_yok)
-    monkeypatch.setattr(config, "OPENSKY_GUNLUK_MAKS_SORGU", 2)
-    monkeypatch.setattr(vy, "_yerel_opensky_kota", {"gun": None, "sayi": 0})
     baglanti = _SahteBaglanti()
-    vy._sorgu_calistir(baglanti, "SELECT 1", ["x", "y"])
-    vy._sorgu_calistir(baglanti, "SELECT 1", ["x", "y"])
-    with pytest.raises(vy.OpenSkyKotaAsildiHatasi):
+    with pytest.raises(vy.OpenSkyKotaAsildiHatasi, match="ulaşılamadı"):
         vy._sorgu_calistir(baglanti, "SELECT 1", ["x", "y"])
-    assert len(baglanti.kayit) == 2
+    assert baglanti.kayit == []
+
+
+def test_veritabani_kapaliyken_opensky_sorgusu_kilitsiz_calismaz(monkeypatch):
+    class _BozukMotor:
+        def connect(self):
+            raise ConnectionError("db yok")
+
+    monkeypatch.setattr(dagitik_kilit, "_kilit_motoru", lambda: _BozukMotor())
+    monkeypatch.setattr(
+        "turbulans_radar.depo.hiz_siniri.istegi_say_senkron", lambda *a: pytest.fail("kilitsiz kota sayıldı")
+    )
+    baglanti = _SahteBaglanti()
+    with pytest.raises(dagitik_kilit.KilitAlinamadiHatasi):
+        vy._sorgu_calistir(baglanti, "SELECT 1", ["x"])
+    assert baglanti.kayit == []

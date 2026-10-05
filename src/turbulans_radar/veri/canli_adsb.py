@@ -150,7 +150,7 @@ def canli_oturum(
     if kilit is None:
         from turbulans_radar.depo.dagitik_kilit import dagitik_kilit
 
-        kilit = dagitik_kilit("canli_adsb", zaman_asimi_saniye=0)
+        kilit = dagitik_kilit("canli_adsb", zaman_asimi_saniye=0, zorunlu=True)
 
     parcalar, istek = [], 0
     with kilit:

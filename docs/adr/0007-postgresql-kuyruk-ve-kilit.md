@@ -15,6 +15,10 @@ indirmemeli.
   ve kalp atışı gönderir. Kalp atışı kesilen görev `GOREV_MAKS_DENEME`'ye kadar
   yeniden kuyruğa girer.
 - Süreçler arası kilit PostgreSQL oturum düzeyinde advisory lock'tur.
+- Dış servise giden çağrılar (OpenSky, CDS, ARCO-ERA5, MADIS, canlı ADS-B) kilidi
+  `zorunlu=True` ile alır: veritabanına ulaşılamazsa kilitsiz sürdürülmez,
+  `KilitAlinamadiHatasi` fırlar. OpenSky günlük kota sayacı da veritabanı yoksa
+  sorguyu reddeder (2026-10-05; kota koruması devreden çıkıp hesap askıya alınmasın).
 - Canlı uyarılar işçiden API'ye `NOTIFY`/`LISTEN` ile taşınır.
 
 ## Sonuçlar
