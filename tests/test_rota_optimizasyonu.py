@@ -164,11 +164,11 @@ def test_gercek_era5_kismi_atlatma_durustce_raporlanir(veri_kupu_mevcut_mu):
     if not veri_kupu_mevcut_mu:
         pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı, gerçek veri gerektiren test atlanıyor.")
 
-    # İstanbul -> Antalya, 1 Ocak 2019, 34000ft: normal rotada 5 riskli nokta
-    # var ve denenen hiçbir aday riski TAMAMEN ortadan kaldıramıyor (gerçek
-    # ERA5 verisiyle doğrulandı) -- yine de riski azaltan aday dürüstçe
-    # seçilmeli, "tamamen güvenli" diye YALAN söylenmemeli.
-    sonuc = rota_simulasyonu_olustur(41.0, 28.9, 36.9, 30.7, 34000, "2019-01-01T06:00:00", "A320")
+    # İstanbul -> Antalya, 1 Ocak 2019, 30000ft: normal rotada 6 riskli nokta
+    # var ve denenen hiçbir aday riski TAMAMEN ortadan kaldıramıyor (çevreleyen
+    # katman fiziğiyle gerçek ERA5 verisinde doğrulandı: 6 -> 2) -- yine de riski
+    # azaltan aday dürüstçe seçilmeli, "tamamen güvenli" diye YALAN söylenmemeli.
+    sonuc = rota_simulasyonu_olustur(41.0, 28.9, 36.9, 30.7, 30000, "2019-01-01T06:00:00", "A320")
     assert sonuc["ruzgar_verisi_kaynagi"] == "era5_gercek"
     assert sonuc["normal_rota"]["riskli_nokta_sayisi"] > 0
     assert 0 < sonuc["optimize_rota"]["riskli_nokta_sayisi"] < sonuc["normal_rota"]["riskli_nokta_sayisi"]

@@ -934,6 +934,13 @@ def _kisitli_saha_katmanini_hazirla(kisitli_sahalar, enlemler_gc, boylamlar_gc, 
     return katman, {**ozet, "durum": "uygulandi"}
 
 
+def _temel_strateji(strateji: str) -> str:
+    """Pareto adayları ("yanal_ceza_60", "ats_ceza_0") temel stratejiye indirgenir."""
+    if "_ceza_" not in strateji:
+        return strateji
+    return "yanal" if strateji.startswith("yanal") else "ats_alternatif"
+
+
 def rota_simulasyonu_olustur(
     baslangic_enlem,
     baslangic_boylam,
@@ -1171,7 +1178,7 @@ def rota_simulasyonu_olustur(
         "sigmetten_kacinildi_mi": normal["sigmet_ihlali"] > 0 and en_iyi["sigmet_ihlali"] == 0,
         "kisitli_sahadan_kacinildi_mi": normal["kisitli_saha_ihlali"] > 0 and en_iyi["kisitli_saha_ihlali"] == 0,
         "guvenli_rota_bulundu_mu": guvenli_rota_bulundu_mu,
-        "kacinma_stratejisi": en_iyi["strateji"],
+        "kacinma_stratejisi": _temel_strateji(en_iyi["strateji"]),
         "sigmet_kontrolu": sigmet_kontrolu,
         "kisitli_saha_kontrolu": kisitli_saha_kontrolu,
         "normal_rota": _rota_ozeti(normal, normal_yakit_kg, normal["saniye"]),
@@ -1423,7 +1430,7 @@ def _bulgulari_olustur(
             )
         )
     else:
-        strateji = en_iyi["strateji"]
+        strateji = _temel_strateji(en_iyi["strateji"])
         irtifa_farki_ft = (en_iyi["irtifa_m"] - irtifa_m) / 0.3048
         strateji_aciklamasi = {
             "yanal": f"A* araması ile yanal sapma (en fazla {en_iyi['yanal_sapma_km']:.0f} km)",
