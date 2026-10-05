@@ -1,0 +1,49 @@
+{
+  "kaynak": "Sharman & Pearson (2017), 20–45 kft; Kim vd. (2019) doi:10.5194/amt-2019-442",
+  "c1": -2.953,
+  "c2": 0.602,
+  "veri": "ERA5 pencere deposu, 150–300 hPa, PIREP pencerelerindeki tüm iç ızgara hücreleri, eğitim günleri",
+  "gun_sayisi": 49,
+  "test_gunleri_haric": [
+    "2020-03-01",
+    "2020-04-01",
+    "2020-04-24",
+    "2020-05-12",
+    "2020-05-13",
+    "2020-05-24",
+    "2020-06-03",
+    "2020-06-04",
+    "2020-06-05",
+    "2020-06-06",
+    "2020-06-07",
+    "2020-06-08",
+    "2020-06-09"
+  ],
+  "gostergeler": {
+    "ti1_indeksi": {
+      "ln_ortalama": -15.007413508382173,
+      "ln_ss": 1.1271578867665522,
+      "ornek": 1439760
+    },
+    "ti2_indeksi": {
+      "ln_ortalama": -14.989994935010913,
+      "ln_ss": 1.3296968783313805,
+      "ornek": 1272572
+    },
+    "dusey_ruzgar_kaymasi": {
+      "ln_ortalama": -5.171890980127073,
+      "ln_ss": 0.7643451576258186,
+      "ornek": 1439928
+    },
+    "yatay_deformasyon": {
+      "ln_ortalama": -9.835482376293529,
+      "ln_ss": 0.753176561287977,
+      "ornek": 1439760
+    },
+    "ters_richardson": {
+      "ln_ortalama": -1.6913762840753053,
+      "ln_ss": 1.5597227530324536,
+      "ornek": 1439928
+    }
+  }
+}

@@ -309,36 +309,15 @@ def _edr_ornekleri_oku(motor) -> pd.DataFrame:
         return pd.DataFrame(oturum.execute(sorgu).all(), columns=[c.name for c in sorgu.selected_columns])
 
 
-def ozellikleri_yeniden_hesapla(motor=None, onceki_dosyasi=None) -> dict:
-    """Pencereli ml_ornekleri ve onlara bağlı edr_ornekleri özelliklerini güncel
-    fizik koduyla depodan yeniden hesaplayıp yazar (CDS'e gidilmez); EDR sınıfı da
-    güncel edr_sinifi ile yenilenir. Eski değerler onceki_dosyasi'na (Parquet) yazılır.
-    Pencere dosyası açılamayan örneklere dokunulmaz, sayısı raporlanır."""
-    from sqlalchemy import update
-    from sqlalchemy.orm import Session
-
-    from turbulans_radar.depo.models import EdrOrnegi, MlOrnegi
-    from turbulans_radar.depo.veritabani import motor_al
-    from turbulans_radar.ml.turbulans_ml_modeli import MODEL_OZELLIK_SUTUNLARI, ozellikleri_cikar
-    from turbulans_radar.veri.madis_edr import METRE_FT, edr_sinifi
-
-    motor = motor or motor_al()
-    ml = _ornekleri_oku(motor)
-    edr = _edr_ornekleri_oku(motor)
-    if onceki_dosyasi:
-        os.makedirs(os.path.dirname(onceki_dosyasi) or ".", exist_ok=True)
-        pd.concat(
-            [
-                ml[["id", "ozellikler"]].assign(tablo="ml_ornekleri", edr_sinifi=np.nan),
-                edr[["id", "ozellikler", "edr_sinifi"]].assign(tablo="edr_ornekleri"),
-            ],
-            ignore_index=True,
-        ).assign(ozellikler=lambda d: d["ozellikler"].map(lambda o: json.dumps(o or {}))).to_parquet(
-            onceki_dosyasi, index=False
-        )
+def depodan_tum_ozellikler(ml: pd.DataFrame, edr: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame, list]:
+    """ml (_ornekleri_oku) ve edr (_edr_ornekleri_oku) örneklerinin model
+    özelliklerini güncel fizik koduyla depodan hesaplar (DB'ye yazmaz).
+    Dönüş: (ml özellikleri, edr özellikleri [id indeksli], açılamayan dosyalar)."""
+    from turbulans_radar.ml.turbulans_ml_modeli import ozellikleri_cikar
+    from turbulans_radar.veri.madis_edr import METRE_FT
 
     dosyalar = set(ml["pencere_dosyasi"]) | set(edr["pencere_dosyasi"])
-    ml_guncelleme, edr_guncelleme, acilamayan = [], [], []
+    ml_parca, edr_parca, acilamayan = [], [], []
     for goreli_yol in sorted(dosyalar):
         try:
             pencereler = pencere_dosyasini_ac(goreli_yol)
@@ -355,28 +334,71 @@ def ozellikleri_yeniden_hesapla(motor=None, onceki_dosyasi=None) -> dict:
                     "irtifa_m": [satir.irtifa_ft * 0.3048],
                 }
             )
-            hesap = next(ozellikleri_cikar(nokta, ozellik_kupu(pencereden_kup(pencereler, satir.id))).itertuples())
-            ml_guncelleme.append(
-                {
-                    "id": int(satir.id),
-                    "ozellikler": {**(satir.ozellikler or {}), **_sozluk(hesap, MODEL_OZELLIK_SUTUNLARI)},
-                }
-            )
+            kup = ozellik_kupu(pencereden_kup(pencereler, satir.id))
+            ml_parca.append(ozellikleri_cikar(nokta, kup).assign(id=int(satir.id)))
         for ml_id, alt in edr[edr["pencere_dosyasi"] == goreli_yol].groupby("ml_ornek_id"):
             noktalar = alt.assign(zaman=pd.to_datetime(alt["zaman"], utc=True), irtifa_m=alt["irtifa_ft"] / METRE_FT)
-            yeni = ozellikleri_cikar(noktalar, ozellik_kupu(pencereden_kup(pencereler, int(ml_id))))
-            siniflar = edr_sinifi(alt["max_edr"].to_numpy(dtype=float))
-            for satir, hesap, sinif in zip(
-                alt.itertuples(index=False), yeni.itertuples(index=False), siniflar, strict=True
-            ):
-                edr_guncelleme.append(
-                    {
-                        "id": int(satir.id),
-                        "edr_sinifi": int(sinif),
-                        "ozellikler": {**(satir.ozellikler or {}), **_sozluk(hesap, MODEL_OZELLIK_SUTUNLARI)},
-                    }
-                )
+            kup = ozellik_kupu(pencereden_kup(pencereler, int(ml_id)))
+            edr_parca.append(ozellikleri_cikar(noktalar, kup).assign(id=alt["id"].astype(int).to_numpy()))
 
+    def _birlestir(parcalar):
+        return pd.concat(parcalar, ignore_index=True).set_index("id") if parcalar else pd.DataFrame()
+
+    return _birlestir(ml_parca), _birlestir(edr_parca), acilamayan
+
+
+def ozellikleri_yeniden_hesapla(motor=None, onceki_dosyasi=None) -> dict:
+    """Pencereli ml_ornekleri ve onlara bağlı edr_ornekleri özelliklerini güncel
+    fizik koduyla depodan yeniden hesaplayıp yazar (CDS'e gidilmez); EDR sınıfı da
+    güncel edr_sinifi ile yenilenir. Eski değerler onceki_dosyasi'na (Parquet) yazılır.
+    Pencere dosyası açılamayan örneklere dokunulmaz, sayısı raporlanır."""
+    from sqlalchemy import update
+    from sqlalchemy.orm import Session
+
+    from turbulans_radar.depo.models import EdrOrnegi, MlOrnegi
+    from turbulans_radar.depo.veritabani import motor_al
+    from turbulans_radar.ml.turbulans_ml_modeli import MODEL_OZELLIK_SUTUNLARI
+    from turbulans_radar.veri.madis_edr import edr_sinifi
+
+    motor = motor or motor_al()
+    ml = _ornekleri_oku(motor)
+    edr = _edr_ornekleri_oku(motor)
+    if onceki_dosyasi:
+        os.makedirs(os.path.dirname(onceki_dosyasi) or ".", exist_ok=True)
+        pd.concat(
+            [
+                ml[["id", "ozellikler"]].assign(tablo="ml_ornekleri", edr_sinifi=np.nan),
+                edr[["id", "ozellikler", "edr_sinifi"]].assign(tablo="edr_ornekleri"),
+            ],
+            ignore_index=True,
+        ).assign(ozellikler=lambda d: d["ozellikler"].map(lambda o: json.dumps(o or {}))).to_parquet(
+            onceki_dosyasi, index=False
+        )
+
+    ml_yeni, edr_yeni, acilamayan = depodan_tum_ozellikler(ml, edr)
+    ml_guncelleme = [
+        {
+            "id": int(satir.id),
+            "ozellikler": {
+                **(satir.ozellikler or {}),
+                **_sozluk(ml_yeni.loc[satir.id], MODEL_OZELLIK_SUTUNLARI),
+            },
+        }
+        for satir in ml.itertuples(index=False)
+        if satir.id in ml_yeni.index
+    ]
+    edr_guncelleme = [
+        {
+            "id": int(satir.id),
+            "edr_sinifi": int(edr_sinifi([satir.max_edr])[0]),
+            "ozellikler": {
+                **(satir.ozellikler or {}),
+                **_sozluk(edr_yeni.loc[satir.id], MODEL_OZELLIK_SUTUNLARI),
+            },
+        }
+        for satir in edr.itertuples(index=False)
+        if satir.id in edr_yeni.index
+    ]
     with Session(motor) as oturum, oturum.begin():
         if ml_guncelleme:
             oturum.execute(update(MlOrnegi), ml_guncelleme)

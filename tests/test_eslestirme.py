@@ -117,7 +117,10 @@ def _sentetik_rota_uret(veri_kupu, n=200, tohum=42):
     )
 
 
-def test_vektorel_eslestirme_nokta_nokta_referansla_birebir_ayni(veri_kupu):
+def test_vektorel_eslestirme_nokta_nokta_referansla_birebir_ayni(veri_kupu, monkeypatch):
+    from turbulans_radar.fizik import edr_esleme
+
+    monkeypatch.setattr(edr_esleme, "KATSAYI_DOSYASI", "/yok/edr_esleme_katsayilari.json")
     rota_df = _sentetik_rota_uret(veri_kupu)
 
     sonuc = rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu)
@@ -257,3 +260,20 @@ def test_ince_katmanda_richardson_esigin_altina_dusebilir():
     sonuc = rotayi_hava_durumuyla_eslestir(_tek_nokta(240.0), _jet_kupu(seviyeler, u_profili, t_profili)).iloc[0]
     assert sonuc["richardson_sayisi"] < DINAMIK_KARARSIZLIK_ESIGI
     assert bool(sonuc["dinamik_kararsizlik"]) is True
+
+
+def test_edr_proxy_katsayi_varsa_birlesik_edr_yoksa_tanh_yedegidir(monkeypatch):
+    from turbulans_radar.fizik import edr_esleme
+
+    kup = _jet_kupu([300.0, 250.0, 200.0], [30.0, 50.0, 40.0], [229.0, 221.0, 217.0])
+    kup["u"] = kup["u"] + xr.DataArray(np.linspace(0, 8, kup.sizes["latitude"]), dims="latitude")
+    nokta = _tek_nokta(240.0)
+    sonuc = rotayi_hava_durumuyla_eslestir(nokta, kup).iloc[0]
+    assert np.isfinite(sonuc["birlesik_edr"]) and sonuc["edr_proxy"] == sonuc["birlesik_edr"]
+
+    monkeypatch.setattr(edr_esleme, "KATSAYI_DOSYASI", "/yok/edr_esleme_katsayilari.json")
+    yedek = rotayi_hava_durumuyla_eslestir(nokta, kup).iloc[0]
+    assert np.isnan(yedek["birlesik_edr"])
+    assert yedek["edr_proxy"] == pytest.approx(
+        ti1_den_edr_proxy_olcegine_cevir(yedek["ti1_indeksi"], config.EDR_OLCEKLENDIRME_KATSAYISI)
+    )

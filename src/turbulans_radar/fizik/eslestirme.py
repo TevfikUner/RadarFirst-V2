@@ -41,6 +41,7 @@ import xarray as xr
 
 from turbulans_radar import config
 from turbulans_radar.fizik.birim_donusumleri import irtifa_metre_to_basinc_hpa
+from turbulans_radar.fizik.edr_esleme import birlesik_edr
 from turbulans_radar.fizik.iz_bulutu import iz_bulutu_duyarli
 from turbulans_radar.fizik.turbulans_indeksleri import (
     DINAMIK_KARARSIZLIK_ESIGI,
@@ -61,6 +62,7 @@ _SONUC_SUTUNLARI = [
     "basinc_hpa",
     "ti1_indeksi",
     "edr_proxy",
+    "birlesik_edr",
     "richardson_sayisi",
     "dinamik_kararsizlik",
     "dusey_ruzgar_kaymasi",
@@ -244,8 +246,10 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
     veri_kupu: xarray.Dataset (t, u, v rüzgar/sıcaklık bileşenleri; boyutlar:
                valid_time, latitude, longitude ve config.BASINC_BOYUTU)
 
-    Dönüş: rota_df'e 'basinc_hpa', 'ti1_indeksi', 'edr_proxy',
+    Dönüş: rota_df'e 'basinc_hpa', 'ti1_indeksi', 'edr_proxy', 'birlesik_edr',
            'richardson_sayisi', 'dinamik_kararsizlik' sütunları eklenmiş hali.
+           edr_proxy: log-normal birleşik EDR (fizik/edr_esleme.py); katsayı
+           dosyası yoksa yedek olarak TI1'in tanh ölçeği.
            Küpte ERA5 bağıl nemi ('r') varsa 'buz_bagil_nem_yuzde' ve
            'iz_bulutu_duyarli' (fizik/iz_bulutu.py) da doldurulur; yoksa NaN/None.
     """
@@ -322,7 +326,6 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
 
     ti1 = ti1_indeksi_hesapla(vws, deformasyon)
     ti2 = ti2_indeksi_hesapla(vws, deformasyon, diverjans)
-    edr_proxy = ti1_den_edr_proxy_olcegine_cevir(ti1, config.EDR_OLCEKLENDIRME_KATSAYISI)
 
     theta_ust = potansiyel_sicaklik_hesapla(dilim_ust["t"].values, ust_seviyeler)
     theta_alt = potansiyel_sicaklik_hesapla(dilim_alt["t"].values, alt_seviyeler)
@@ -349,8 +352,23 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
 
     basinc_hpa_sonuc = en_yakin_seviyeler.astype(float)
     vws = np.array(vws, dtype=float)
-    for dizi in (basinc_hpa_sonuc, ti1, edr_proxy, richardson, vws, deformasyon, diverjans, ti2):
+    for dizi in (basinc_hpa_sonuc, ti1, richardson, vws, deformasyon, diverjans, ti2):
         dizi[kapsam_disi] = np.nan
+    birlesik = birlesik_edr(
+        pd.DataFrame(
+            {
+                "ti1_indeksi": ti1,
+                "ti2_indeksi": ti2,
+                "dusey_ruzgar_kaymasi": vws,
+                "yatay_deformasyon": deformasyon,
+                "richardson_sayisi": richardson,
+            }
+        )
+    )
+    birlesik[kapsam_disi] = np.nan
+    edr_proxy = np.where(
+        np.isfinite(birlesik), birlesik, ti1_den_edr_proxy_olcegine_cevir(ti1, config.EDR_OLCEKLENDIRME_KATSAYISI)
+    )
     dinamik_kararsizlik = dinamik_kararsizlik.astype(object)
     dinamik_kararsizlik[kapsam_disi] = None
 
@@ -359,6 +377,7 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
             "basinc_hpa": basinc_hpa_sonuc,
             "ti1_indeksi": ti1,
             "edr_proxy": edr_proxy,
+            "birlesik_edr": birlesik,
             "richardson_sayisi": richardson,
             "dinamik_kararsizlik": dinamik_kararsizlik,
             "dusey_ruzgar_kaymasi": vws,

@@ -33,6 +33,8 @@ turbulans-aip-sahalar = "turbulans_radar.cli.aip_enr51:ana"
 turbulans-madis = "turbulans_radar.ml.madis_hatti:ana"
 turbulans-canli-adsb = "turbulans_radar.veri.canli_adsb:ana"
 turbulans-anomali-tabani = "turbulans_radar.dogrulama.anomali_tabani:ana"
+turbulans-edr-esleme = "turbulans_radar.fizik.edr_esleme:ana"
+turbulans-gosterge-degerlendirme = "turbulans_radar.ml.gosterge_degerlendirme:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
@@ -42,7 +44,7 @@ optional-dependencies = { dev = { file = ["requirements-dev.txt"] }, era5 = { fi
 where = ["src"]
 
 [tool.setuptools.package-data]
-turbulans_radar = ["veri/*.geojson"]
+turbulans_radar = ["veri/*.geojson", "fizik/*.json"]
 
 [tool.ruff]
 line-length = 120
