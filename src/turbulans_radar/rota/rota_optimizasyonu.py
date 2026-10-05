@@ -1620,7 +1620,10 @@ def _bulgulari_olustur(
         strateji = _temel_strateji(en_iyi["strateji"])
         irtifa_farki_ft = (en_iyi["irtifa_m"] - irtifa_m) / 0.3048
         strateji_aciklamasi = {
-            "yanal": f"A* araması ile yanal sapma (en fazla {en_iyi['yanal_sapma_km']:.0f} km)",
+            "yanal": (
+                f"A* araması ile yanal sapma (en fazla {en_iyi['yanal_sapma_km'] / NM_KM:.0f} NM, "
+                f"{en_iyi['yanal_sapma_km']:.0f} km)"
+            ),
             "ats_alternatif": "ATS ağı üzerinde alternatif rota (A*)",
             "irtifa_yukari": f"irtifayı {irtifa_farki_ft:.0f} ft artırarak (tırmanma)",
             "irtifa_asagi": f"irtifayı {-irtifa_farki_ft:.0f} ft azaltarak (alçalma)",

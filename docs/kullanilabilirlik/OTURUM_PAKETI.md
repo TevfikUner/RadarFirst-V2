@@ -51,7 +51,7 @@ sonraki adıma geçilir.
 |---|---|---|---|
 | G1 | "THY322 uçuşunun 15 Ocak 2019 izini açın ve uçuşun türbülans riskinin en yüksek olduğu bölümü gösterin." | 3B harita | Uçuşu yükler, renk lejantını kullanarak doğru bölümü gösterir |
 | G2 | "Gri noktalar ne anlama geliyor? Sistem orada ne biliyor?" | 3B harita | "Veri yok / kapsam dışı" anlamını kendi sözleriyle söyler |
-| G3 | "41,0 / 29,0'dan 40,5 / 43,5'e, 36.000 ft, 15.01.2019 20:00 UTC, A320 için rota isteyin. Önerilen rota neden farklı ve bunun bedeli ne?" | Rota simülasyonu | Riskli 4 noktadan kaçınıldığını ve bedelin (+1,6 dk, +%2 yakıt) farkına varır |
+| G3 | "41,0 / 29,0'dan 40,5 / 43,5'e, 36.000 ft, 15.01.2019 20:00 UTC, A320 için rota isteyin. Önerilen rota neden farklı ve bunun bedeli ne?" | Rota simülasyonu | Riskli bölümden (~198 NM, 23 dk) kaçınıldığını ve bedelin (~+6 dk, +%7,7 seyir yakıtı) farkına varır |
 | G4 | "Malatya'dan (38,35 / 38,31) Musul'a (36,34 / 43,13) aynı ayarlarla rota isteyin. Bu sonuca ne kadar güvenirdiniz?" | Rota simülasyonu | Kısıtlı sahadan kaçınıldığını ve "rüzgar hesaba katılamadı / kapsam dışı" uyarısını fark eder |
 | G5 | "Ekranda gördüklerinize göre bu sistemin türbülans değerlerini gerçek bir uçuşta nasıl kullanırdınız?" | Her ikisi | Sertifikalı EDR olmadığını / karar destek amaçlı olduğunu ya da TI1 güvenilirlik notunu kendiliğinden anar |
 
