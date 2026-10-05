@@ -341,7 +341,7 @@ class ArcoEra5Saglayici:
         for saat, yol in zip(saatler, yollar, strict=True):
             with _yol_kilidi(yol):
                 if not os.path.exists(yol):
-                    with dagitik_kilit(f"era5_arco:{os.path.basename(yol)}"):
+                    with dagitik_kilit(f"era5_arco:{os.path.basename(yol)}", zorunlu=True):
                         if not os.path.exists(yol):
                             _logger.info("ARCO-ERA5 saati indiriliyor: %s", yol)
                             self._saati_indir(saat, yol)
@@ -433,7 +433,7 @@ def ucus_hava_dilimi_hazirla(enlemler, boylamlar, zamanlar, saglayici=None) -> x
     saglayici = saglayici or YedekliEra5Saglayici()
     anahtar = hashlib.sha1(repr((kutu, baslangic.isoformat(), bitis.isoformat())).encode()).hexdigest()[:10]
     hedef = os.path.join(config.ERA5_UCUS_KLASORU, f"era5_{baslangic:%Y%m%dT%H}_{anahtar}.nc")
-    with _yol_kilidi(hedef), dagitik_kilit(f"era5_dilim:{os.path.basename(hedef)}"):
+    with _yol_kilidi(hedef), dagitik_kilit(f"era5_dilim:{os.path.basename(hedef)}", zorunlu=True):
         if os.path.exists(hedef):
             _logger.info("ERA5 dilimi başka bir işçi tarafından hazırlanmış: %s", hedef)
         else:

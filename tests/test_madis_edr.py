@@ -2,6 +2,7 @@
 SENTETİKTİR; ERA5 penceresi depodaki gerçek demo küpünden (THY322) kesilir."""
 
 import gzip
+from contextlib import contextmanager
 
 import numpy as np
 import pandas as pd
@@ -23,6 +24,19 @@ def gecici_klasorler(monkeypatch, tmp_path):
     monkeypatch.setattr(config, "MADIS_EDR_KLASORU", str(tmp_path / "madis"))
     monkeypatch.setattr(config, "ML_DEPO_KLASORU", str(tmp_path / "depo"))
     monkeypatch.setattr(config, "MADIS_ISTEKLER_ARASI_SANIYE", 0)
+
+
+@pytest.fixture(autouse=True)
+def kilit_kayitlari(monkeypatch):
+    kayitlar = []
+
+    @contextmanager
+    def _sahte_kilit(ad, **k):
+        kayitlar.append((ad, k))
+        yield True
+
+    monkeypatch.setattr(me, "dagitik_kilit", _sahte_kilit)
+    return kayitlar
 
 
 def _acars_nc(yol, kayitlar):
@@ -84,6 +98,11 @@ def test_gunluk_edr_24_dosya_bekleme_kota_ve_onbellek(tmp_path):
     assert len(istenen) == 24 and istenen[0].endswith("/2019/01/15/point/acars/netcdf/20190115_0000.gz")
     assert len(uykular) == 23 and len(df) == 2
     assert len(me.gunluk_edr("2019-01-15", indirici=lambda url: pytest.fail("önbellekteyken indirdi"))) == 2
+
+
+def test_indirme_zorunlu_dagitik_kilitle_korunur(tmp_path, kilit_kayitlari):
+    me.gunluk_edr("2019-01-15", indirici=lambda url: b"", sayac=lambda: 1, uyku=lambda s: None)
+    assert kilit_kayitlari == [("madis_indirme", {"zaman_asimi_saniye": 0, "zorunlu": True})]
 
 
 def test_gunluk_kota_asilinca_durur(tmp_path):

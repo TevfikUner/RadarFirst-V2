@@ -46,13 +46,39 @@ dosya_yedegi() {
 }
 
 # İsteğe bağlı disk dışı kopya: /dis_yedek bağlıysa (docker-compose.override.yml,
-# örn. OneDrive klasörü) yeni yedekler oraya da kopyalanır. Başarısızlık yerel
-# yedeği etkilemez; bir sonraki turda yeniden denenir.
+# örn. OneDrive klasörü) yeni yedekler oraya da kopyalanır. Parola secret'ı
+# (YEDEK_PAROLA_DOSYASI) doluysa kopya gpg AES256 ile şifrelenir (*.gpg) ve aynı
+# yedeğin şifresiz eski kopyası silinir. Başarısızlık yerel yedeği etkilemez; bir
+# sonraki turda yeniden denenir. Yedek dosyaları adlandıktan sonra değişmez.
+PAROLA=/run/secrets/yedek_parolasi
+
+sifreli_mi() {
+  [ -s "$PAROLA" ]
+}
+
 dis_kopyala() {
   [ -d /dis_yedek ] || return 0
+  sifreli_mi || echo "$(date -u +%FT%TZ) UYARI: yedek parolasi yok, dis kopya SIFRESIZ" >&2
   for kaynak in /yedekler/turbulans_*.dump /yedekler/dosyalar_*.tar.gz; do
     [ -s "$kaynak" ] || continue
     hedef="/dis_yedek/$(basename "$kaynak")"
+    if sifreli_mi; then
+      if [ -s "$hedef.gpg" ]; then
+        rm -f "$hedef"
+        continue
+      fi
+      mkdir -p -m 700 /tmp/gnupg
+      if gpg --homedir /tmp/gnupg --batch --yes --pinentry-mode loopback --passphrase-file "$PAROLA" \
+          --symmetric --cipher-algo AES256 --compress-algo none -o "$hedef.gpg.yaziliyor" "$kaynak" \
+          && mv "$hedef.gpg.yaziliyor" "$hedef.gpg"; then
+        rm -f "$hedef"
+        echo "$(date -u +%FT%TZ) dis kopya (sifreli): $(basename "$hedef").gpg"
+      else
+        rm -f "$hedef.gpg.yaziliyor"
+        echo "$(date -u +%FT%TZ) DIS KOPYA BASARISIZ: $(basename "$hedef").gpg" >&2
+      fi
+      continue
+    fi
     if [ -s "$hedef" ] && cmp -s "$kaynak" "$hedef"; then
       continue
     fi
@@ -63,8 +89,9 @@ dis_kopyala() {
       echo "$(date -u +%FT%TZ) DIS KOPYA BASARISIZ: $(basename "$hedef")" >&2
     fi
   done
-  ls -1t /dis_yedek/turbulans_*.dump 2>/dev/null | tail -n +"$((SAKLA + 1))" | xargs -r rm -f
-  ls -1t /dis_yedek/dosyalar_*.tar.gz 2>/dev/null | tail -n +"$((SAKLA + 1))" | xargs -r rm -f
+  for desen in 'turbulans_*.dump' 'dosyalar_*.tar.gz' 'turbulans_*.dump.gpg' 'dosyalar_*.tar.gz.gpg'; do
+    ls -1t /dis_yedek/$desen 2>/dev/null | tail -n +"$((SAKLA + 1))" | xargs -r rm -f
+  done
 }
 
 while true; do

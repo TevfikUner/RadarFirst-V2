@@ -6,12 +6,13 @@ rota_optimizasyonu.py için birim testleri:
   - ERA5 kapsam dışı durumda dürüst geri düşüş davranışı (bu test .nc
     dosyası olsun/olmasın çalışır -- New York, projenin veri küpünün
     kapsadığı Türkiye/Doğu Akdeniz bölgesinin kesinlikle dışındadır).
-  - Gerçek ERA5 verisiyle uçtan uca simülasyon + CZML üretimi (sadece
-    'ocak_2019_turbulans.nc' bulunursa çalışır, yoksa atlanır -- bkz.
-    test_eslestirme.py'deki aynı desen).
+  - Gerçek ERA5 verisiyle uçtan uca simülasyon + CZML üretimi: depodaki
+    demo küpüyle (THY322, 2019-01-15 18-23 UTC) her ortamda, yerel Ocak 2019
+    küpü varsa onun senaryolarıyla da çalışır; atlanmaz (bkz. ci.yml).
 """
 
 import json
+import os
 
 import pandas as pd
 import pytest
@@ -86,24 +87,44 @@ def test_ti1_guvenilirlik_notu_her_yanitta_bulunur():
     assert "KANITLANMAMIŞTIR" in sonuc["ti1_guvenilirlik_notu"]
 
 
-@pytest.fixture(scope="module")
-def veri_kupu_mevcut_mu():
-    try:
-        xr.open_dataset(config.HAVA_DURUMU_DOSYASI).close()
-        return True
-    except FileNotFoundError:
-        return False
+# Her senaryo gerçek ERA5 verisiyle doğrulandı. "ana": yerel Ocak 2019 küpü;
+# "demo": depodaki THY322 küpü (yalnızca o yüklenir).
+GERCEK_SENARYOLAR = {
+    "ana": {
+        "riskisiz": (38.4, 27.1, 38.5, 43.4, 34000, "2019-01-31T00:00:00"),
+        "riskli": (41.0, 28.9, 36.9, 30.7, 28000, "2019-01-05T12:00:00"),
+        "kismi": (41.0, 28.9, 36.9, 30.7, 30000, "2019-01-01T06:00:00"),
+        "sigmet": ((38.2, 39.6, 34.5, 35.5), "2019-01-31"),
+    },
+    "demo": {
+        "riskisiz": (41.0, 28.9, 40.1, 32.99, 34000, "2019-01-15T19:00:00"),
+        "riskli": (40.9, 29.3, 40.6, 43.1, 34000, "2019-01-15T19:00:00"),
+        "kismi": (41.0, 28.9, 39.9, 41.3, 30000, "2019-01-15T19:00:00"),
+        "sigmet": ((40.0, 41.2, 30.5, 31.5), "2019-01-15"),
+    },
+}
 
 
-def test_gercek_era5_turbulans_yoksa_optimize_normalle_birebir_ayni(veri_kupu_mevcut_mu):
-    if not veri_kupu_mevcut_mu:
-        pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı, gerçek veri gerektiren test atlanıyor.")
+@pytest.fixture(params=["demo"] + (["ana"] if os.path.isfile(config.HAVA_DURUMU_DOSYASI) else []))
+def gercek_senaryo(request, monkeypatch, tmp_path):
+    if request.param == "demo":
+        monkeypatch.setattr(config, "HAVA_DURUMU_DOSYASI", str(tmp_path / "yok.nc"))
+        monkeypatch.setattr(config, "EK_HAVA_DURUMU_KLASORU", "")
+        monkeypatch.setattr(config, "ERA5_UCUS_KLASORU", "")
+        monkeypatch.setattr(
+            config, "DEMO_VERI_KLASORU", os.path.join(os.path.dirname(os.path.dirname(__file__)), "demo")
+        )
+        monkeypatch.setattr(config, "ERA5_OTOMATIK_INDIRME", False)
+        monkeypatch.setattr(config, "CANLI_HAVA_VERISI_ETKIN", False)
+    return GERCEK_SENARYOLAR[request.param]
 
-    # İzmir -> Van, 31 Ocak 2019: bu rotada gerçek ERA5 verisiyle riskli
+
+def test_gercek_era5_turbulans_yoksa_optimize_normalle_birebir_ayni(gercek_senaryo):
+    # "riskisiz" senaryo: rotada gerçek ERA5 verisiyle riskli
     # türbülans tespit EDİLMİYOR -- bu durumda optimize rota, kullanıcıyla
     # netleştirilen ilkeyle, uydurma bir sapma göstermeden normal rotayla
     # BİREBİR AYNI olmalı (aynı koordinatlar, aynı süre/yakıt).
-    sonuc = rota_simulasyonu_olustur(38.4, 27.1, 38.5, 43.4, 34000, "2019-01-31T00:00:00", "A320")
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskisiz"], "A320")
     assert sonuc["ruzgar_verisi_kaynagi"] == "era5_gercek"
     assert sonuc["normal_rota"]["riskli_nokta_sayisi"] == 0
     assert sonuc["turbulanstan_kacinildi_mi"] is False
@@ -112,14 +133,10 @@ def test_gercek_era5_turbulans_yoksa_optimize_normalle_birebir_ayni(veri_kupu_me
     assert sonuc["optimize_rota"]["riskli_bolumler"] == [] and sonuc["kabin_onerisi"] is None
 
 
-def test_gercek_era5_turbulans_varsa_tamamen_atlatilir(veri_kupu_mevcut_mu):
-    if not veri_kupu_mevcut_mu:
-        pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı, gerçek veri gerektiren test atlanıyor.")
-
-    # İstanbul -> Antalya, 5 Ocak 2019, 28000ft: normal rotada TAM OLARAK 1
-    # riskli TI1 noktası var ve denenen adaylardan biri onu tamamen atlatıyor
-    # (gerçek ERA5 verisiyle doğrulandı, bkz. konuşma geçmişi).
-    sonuc = rota_simulasyonu_olustur(41.0, 28.9, 36.9, 30.7, 28000, "2019-01-05T12:00:00", "A320")
+def test_gercek_era5_turbulans_varsa_tamamen_atlatilir(gercek_senaryo):
+    # "riskli" senaryo: normal rotada riskli TI1 noktası var ve denenen
+    # adaylardan biri onu tamamen atlatıyor (gerçek ERA5 verisiyle doğrulandı).
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320")
     assert sonuc["ruzgar_verisi_kaynagi"] == "era5_gercek"
     assert sonuc["normal_rota"]["riskli_nokta_sayisi"] > 0
     assert sonuc["optimize_rota"]["riskli_nokta_sayisi"] == 0
@@ -148,12 +165,8 @@ def test_irtifa_degisimi_gidis_donus_maliyetlenir_ve_yone_gore_simetriktir():
     assert _irtifa_degisimi_maliyeti(9000.0, 9000.0, 2400.0) == (0.0, 0.0)
 
 
-def test_seviye_degisimi_secenekleri_yakit_tasarrufu_gostermez(veri_kupu_mevcut_mu):
-    if not veri_kupu_mevcut_mu:
-        pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı, gerçek veri gerektiren test atlanıyor.")
-    sonuc = rota_simulasyonu_olustur(
-        41.0, 28.9, 36.9, 30.7, 28000, "2019-01-05T12:00:00", "A320", sigmetler=[], kisitli_sahalar=[]
-    )
+def test_seviye_degisimi_secenekleri_yakit_tasarrufu_gostermez(gercek_senaryo):
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320", sigmetler=[], kisitli_sahalar=[])
     for secenek in sonuc["secenekler"]:
         seyir_yakiti = 2400.0 * secenek["toplam_sure_dk"] / 60.0
         if secenek["strateji"].startswith("irtifa"):
@@ -164,15 +177,12 @@ def test_seviye_degisimi_secenekleri_yakit_tasarrufu_gostermez(veri_kupu_mevcut_
         assert "seviyeye bağlı seyir yakıt akışı modellenmez" in sonuc["aciklama"]
 
 
-def test_gercek_era5_kismi_atlatma_durustce_raporlanir(veri_kupu_mevcut_mu):
-    if not veri_kupu_mevcut_mu:
-        pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı, gerçek veri gerektiren test atlanıyor.")
-
-    # İstanbul -> Antalya, 1 Ocak 2019, 30000ft: normal rotada 6 riskli nokta
-    # var ve denenen hiçbir aday riski TAMAMEN ortadan kaldıramıyor (çevreleyen
-    # katman fiziğiyle gerçek ERA5 verisinde doğrulandı: 6 -> 2) -- yine de riski
+def test_gercek_era5_kismi_atlatma_durustce_raporlanir(gercek_senaryo):
+    # "kismi" senaryo, FL300: denenen hiçbir aday riski TAMAMEN ortadan
+    # kaldıramıyor (çevreleyen katman fiziğiyle gerçek ERA5 verisinde doğrulandı:
+    # ana küpte 6 -> 2, demo küpünde 6 -> 1) -- yine de riski
     # azaltan aday dürüstçe seçilmeli, "tamamen güvenli" diye YALAN söylenmemeli.
-    sonuc = rota_simulasyonu_olustur(41.0, 28.9, 36.9, 30.7, 30000, "2019-01-01T06:00:00", "A320")
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["kismi"], "A320")
     assert sonuc["ruzgar_verisi_kaynagi"] == "era5_gercek"
     assert sonuc["normal_rota"]["riskli_nokta_sayisi"] > 0
     assert 0 < sonuc["optimize_rota"]["riskli_nokta_sayisi"] < sonuc["normal_rota"]["riskli_nokta_sayisi"]
@@ -187,11 +197,8 @@ def test_gercek_era5_kismi_atlatma_durustce_raporlanir(veri_kupu_mevcut_mu):
     assert oneri["metin"].startswith("Öneri (karar kaptanındır)") and "FL300" in oneri["metin"]
 
 
-def test_gercek_era5_ile_czml_yapisi_gecerli(veri_kupu_mevcut_mu):
-    if not veri_kupu_mevcut_mu:
-        pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı, gerçek veri gerektiren test atlanıyor.")
-
-    sonuc = rota_simulasyonu_olustur(38.4, 27.1, 38.5, 43.4, 34000, "2019-01-31T00:00:00", "B738")
+def test_gercek_era5_ile_czml_yapisi_gecerli(gercek_senaryo):
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskisiz"], "B738")
     czml = simulasyonu_czml_e_cevir(sonuc)
 
     assert czml[0]["id"] == "document"
@@ -235,10 +242,9 @@ def _izmir_van(sigmetler):
     return rota_simulasyonu_olustur(38.4, 27.1, 38.5, 43.4, 34000, "2019-01-31T00:00:00", "A320", sigmetler=sigmetler)
 
 
-def test_rota_ortasindaki_sigmetten_yanal_sapmayla_kacinilir(veri_kupu_mevcut_mu):
-    if not veri_kupu_mevcut_mu:
-        pytest.skip(f"'{config.HAVA_DURUMU_DOSYASI}' bulunamadı, gerçek veri gerektiren test atlanıyor.")
-    sonuc = _izmir_van([_kare_sigmet(38.2, 39.6, 34.5, 35.5)])
+def test_rota_ortasindaki_sigmetten_yanal_sapmayla_kacinilir(gercek_senaryo):
+    kutu, gun = gercek_senaryo["sigmet"]
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskisiz"], "A320", sigmetler=[_kare_sigmet(*kutu, gun=gun)])
     assert sonuc["sigmet_kontrolu"]["durum"] == "uygulandi"
     assert sonuc["normal_rota"]["sigmet_ihlali_sayisi"] > 0
     assert sonuc["optimize_rota"]["sigmet_ihlali_sayisi"] == 0

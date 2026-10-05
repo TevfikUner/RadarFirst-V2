@@ -30,8 +30,10 @@ done
 echo "   görev durumu: $DURUM"
 test "$DURUM" = tamamlandi
 
-echo "5) Volume'lar: model deposu var, ERA5 kökü salt okunur"
+echo "5) Volume'lar: model deposu var, ERA5 klasörü salt okunur, .env ve kod konteynerden erişilemez"
 docker compose exec -T api test -d /app/model_deposu
-docker compose exec -T api sh -c 'test -f /veri/docker-compose.yml && ! touch /veri/.yazma_denemesi 2>/dev/null'
+docker compose exec -T api sh -c 'test -d /veri/era5_egitim_verisi && ! touch /veri/era5_egitim_verisi/.yazma_denemesi 2>/dev/null'
+docker compose exec -T api sh -c '! test -e /veri/.env && ! test -e /veri/docker-compose.yml'
+docker compose exec -T -u turbulans api sh -c '! test -w /app/src/turbulans_radar/api/api_servisi.py'
 
 echo "Duman testi başarılı."

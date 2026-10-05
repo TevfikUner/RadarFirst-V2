@@ -61,7 +61,6 @@ _yeniden_dene = gecici_hatada_yeniden_dene(_GECICI_HATALAR, azami_bekleme_saniye
 
 OPENSKY_KOTA_ANAHTARI = "kota:opensky_gunluk_sorgu"
 _TRINO_SURECI_KILIDI = threading.Lock()
-_yerel_opensky_kota = {"gun": None, "sayi": 0}
 
 
 class OpenSkyKotaAsildiHatasi(RuntimeError):
@@ -70,17 +69,16 @@ class OpenSkyKotaAsildiHatasi(RuntimeError):
 
 def _opensky_kotasini_tuket() -> int:
     """Günlük sorgu sayacını artırır; sınır aşılırsa sorgu gönderilmez. Sayaç
-    PostgreSQL'de (tüm süreçler ortak); veritabanı yoksa süreç içinde sayılır."""
-    try:
-        from turbulans_radar.depo.hiz_siniri import istegi_say_senkron
+    PostgreSQL'de (tüm süreçler ortak); veritabanı yoksa sorgu reddedilir:
+    süreç içi sayaç başka süreçlerin sorgularını göremez."""
+    from turbulans_radar.depo.hiz_siniri import istegi_say_senkron
 
+    try:
         sayi = istegi_say_senkron(OPENSKY_KOTA_ANAHTARI, 86400)
-    except Exception:
-        bugun = pd.Timestamp.now(tz="UTC").date()
-        if _yerel_opensky_kota["gun"] != bugun:
-            _yerel_opensky_kota.update(gun=bugun, sayi=0)
-        _yerel_opensky_kota["sayi"] += 1
-        sayi = _yerel_opensky_kota["sayi"]
+    except Exception as hata:
+        raise OpenSkyKotaAsildiHatasi(
+            "OpenSky kota sayacına (PostgreSQL) ulaşılamadı; sayılamayan sorgu gönderilmez."
+        ) from hata
     if sayi > config.OPENSKY_GUNLUK_MAKS_SORGU:
         raise OpenSkyKotaAsildiHatasi(
             f"Günlük OpenSky sorgu sınırı ({config.OPENSKY_GUNLUK_MAKS_SORGU}) doldu; UTC gece yarısı sıfırlanır."
@@ -378,7 +376,9 @@ def _sorgu_calistir(baglanti, sorgu, sutunlar, parametreler=None):
     # süreçlerde en fazla 1 sorgu çalıştırır (geliştiricinin elle sorgusuna pay kalır).
     with (
         _TRINO_SURECI_KILIDI,
-        dagitik_kilit("opensky_trino_sorgusu", zaman_asimi_saniye=config.OPENSKY_SORGU_KILIDI_BEKLEME_SANIYE),
+        dagitik_kilit(
+            "opensky_trino_sorgusu", zaman_asimi_saniye=config.OPENSKY_SORGU_KILIDI_BEKLEME_SANIYE, zorunlu=True
+        ),
     ):
         _opensky_kotasini_tuket()
         imlec = baglanti.cursor()

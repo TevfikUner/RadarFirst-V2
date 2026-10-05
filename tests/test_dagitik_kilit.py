@@ -39,6 +39,18 @@ def test_veritabani_yoksa_kilitsiz_devam_eder():
     assert calisti == [False]
 
 
+def test_zorunlu_kilitte_veritabani_yoksa_govde_calismaz():
+    class _BozukMotor:
+        def connect(self):
+            raise ConnectionError("db yok")
+
+    calisti = []
+    with pytest.raises(dk.KilitAlinamadiHatasi, match="pytest"):
+        with dk.dagitik_kilit("pytest", motor=_BozukMotor(), zorunlu=True):
+            calisti.append(True)
+    assert calisti == []
+
+
 def test_tutulan_kilit_baska_oturumda_zaman_asimina_ugrar_birakilinca_alinir(motor):
     ad = f"pytest:{uuid.uuid4().hex}"
     sonuclar = {}

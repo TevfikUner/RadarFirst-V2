@@ -120,7 +120,7 @@ async def test_v1_ascii_disi_anahtar_500_degil_401(istemci, api_anahtari):
     assert yanit.status_code == 401
 
 
-@pytest.mark.parametrize("bilet", ["²³.pilot.abc", "9999999999.pilot.é", "1.2", ""])
+@pytest.mark.parametrize("bilet", ["²³.pilot.x.abc", "9999999999.pilot.x.é", "1.2", ""])
 def test_bozuk_ws_bileti_hata_atmadan_reddedilir(api_anahtari, bilet):
     assert api_servisi.ws_bileti_gecerli_mi(bilet) is False
 
@@ -128,6 +128,13 @@ def test_bozuk_ws_bileti_hata_atmadan_reddedilir(api_anahtari, bilet):
 def test_ws_bileti_gecerli_ve_suresi_dolunca_gecersiz(api_anahtari):
     assert api_servisi.ws_bileti_gecerli_mi(api_servisi.ws_bileti_uret("pilot"))
     assert not api_servisi.ws_bileti_gecerli_mi(api_servisi.ws_bileti_uret("pilot", simdi=0))
+
+
+def test_ws_bileti_tek_kullanimlik_ve_ayni_saniyede_benzersiz(api_anahtari):
+    birinci, ikinci = api_servisi.ws_bileti_uret("pilot", simdi=1e10), api_servisi.ws_bileti_uret("pilot", simdi=1e10)
+    assert birinci != ikinci
+    assert api_servisi.ws_biletini_kullan(birinci) and not api_servisi.ws_biletini_kullan(birinci)
+    assert api_servisi.ws_biletini_kullan(ikinci)
 
 
 async def test_v1_dogru_anahtar_200(istemci, api_anahtari):
@@ -300,9 +307,13 @@ def test_websocket_anahtarsiz_reddedilir(api_anahtari):
             pass
 
 
-def test_websocket_dogru_anahtarla_kabul_edilir(api_anahtari):
+def test_websocket_url_anahtariyla_reddedilir_biletle_kabul_edilir(api_anahtari):
     istemci = TestClient(api_servisi.app)
-    with istemci.websocket_connect(f"/ws/uyarilar?api_key={api_anahtari}"):
+    with pytest.raises(Exception):
+        with istemci.websocket_connect(f"/ws/uyarilar?api_key={api_anahtari}"):
+            pass
+    bilet = istemci.post("/api/v1/ws-bileti", headers={"X-API-Key": api_anahtari}).json()["bilet"]
+    with istemci.websocket_connect(f"/ws/uyarilar?bilet={bilet}"):
         pass
 
 
@@ -724,7 +735,7 @@ def test_websocket_api_anahtari_tanimsizsa_reddedilir(monkeypatch):
     monkeypatch.delenv("API_ANAHTARI", raising=False)
     istemci = TestClient(api_servisi.app)
     with pytest.raises(Exception):
-        with istemci.websocket_connect("/ws/uyarilar?api_key=herhangi"):
+        with istemci.websocket_connect(f"/ws/uyarilar?bilet={api_servisi.ws_bileti_uret('pilot')}"):
             pass
 
 
@@ -1111,7 +1122,7 @@ def test_ws_bileti_ile_baglanilir_bozuk_ya_da_suresi_gecmis_bilet_reddedilir(api
         pass
     gecmis = api_servisi.ws_bileti_uret("pilot", simdi=0)
     oynanmis = bilet.replace("pilot", "yonetici")
-    for gecersiz in (gecmis, oynanmis, "1.2.3"):
+    for gecersiz in (bilet, gecmis, oynanmis, "1.2.3.4"):
         with pytest.raises(Exception):
             with istemci.websocket_connect(f"/ws/uyarilar?bilet={gecersiz}"):
                 pass
@@ -1143,14 +1154,29 @@ async def test_pilot_rota_hesabi_istemci_basina_sinirlanir(istemci, api_anahtari
     assert yanit.status_code == 429 and "Retry-After" in yanit.headers
 
 
-async def test_hiz_siniri_sayacina_ulasilamazsa_istek_engellenmez(monkeypatch):
+async def test_hiz_siniri_sayacina_ulasilamazsa_surec_ici_sayac_kullanilir(monkeypatch):
     from sqlalchemy.exc import OperationalError
 
     async def ulasilamaz(*_):
         raise OperationalError("SELECT", {}, Exception("baglanti yok"))
 
     monkeypatch.setattr(api_servisi, "istegi_say", ulasilamaz)
-    await api_servisi._hiz_sinirini_kontrol_et("herhangi", maks=0)
+    monkeypatch.setattr(api_servisi, "_yerel_sayaclar", {})
+    for _ in range(2):
+        await api_servisi._hiz_sinirini_kontrol_et("herhangi", maks=2)
+    with pytest.raises(api_servisi.HTTPException) as hata:
+        await api_servisi._hiz_sinirini_kontrol_et("herhangi", maks=2)
+    assert hata.value.status_code == 429
+
+
+@pytest.mark.parametrize(
+    ("ayar", "adres", "beklenen"),
+    [("", "", True), ("", "127.0.0.1", True), ("", "0.0.0.0", False), ("true", "0.0.0.0", True), ("false", "", False)],
+)
+def test_api_belgeleri_ag_acilinca_kapanir(monkeypatch, ayar, adres, beklenen):
+    monkeypatch.setenv("API_BELGELERI_ACIK", ayar)
+    monkeypatch.setenv("API_YAYIN_ADRESI", adres)
+    assert api_servisi.api_belgeleri_acik_mi() is beklenen
 
 
 async def test_agir_hesap_tavani_doluysa_503(monkeypatch):

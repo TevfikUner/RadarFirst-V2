@@ -24,6 +24,10 @@ class KilitZamanAsimiHatasi(TimeoutError):
     pass
 
 
+class KilitAlinamadiHatasi(RuntimeError):
+    pass
+
+
 _motor = None
 _motor_kilidi = threading.Lock()
 
@@ -47,12 +51,20 @@ def kilit_anahtari(ad: str) -> int:
 
 
 @contextmanager
-def dagitik_kilit(ad: str, zaman_asimi_saniye: float | None = None, yoklama_saniye: float = 1.0, motor=None):
+def dagitik_kilit(
+    ad: str, zaman_asimi_saniye: float | None = None, yoklama_saniye: float = 1.0, motor=None, zorunlu: bool = False
+):
+    """zorunlu=True: veritabanına ulaşılamazsa kilitsiz sürdürmek yerine
+    KilitAlinamadiHatasi fırlatır (dış servis kotası/eşzamanlılık koruması)."""
     zaman_asimi = config.DAGITIK_KILIT_ZAMAN_ASIMI_SANIYE if zaman_asimi_saniye is None else zaman_asimi_saniye
     anahtar = kilit_anahtari(ad)
     try:
         baglanti = (motor or _kilit_motoru()).connect()
     except Exception as hata:
+        if zorunlu:
+            raise KilitAlinamadiHatasi(
+                f"'{ad}' kilidi için veritabanına bağlanılamadı; dış servis koruması olmadan sürdürülmez."
+            ) from hata
         _logger.warning("Dağıtık kilit için veritabanına bağlanılamadı, '%s' kilitsiz sürdürülüyor: %s", ad, hata)
         baglanti = None
     if baglanti is None:
