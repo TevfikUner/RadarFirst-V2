@@ -137,7 +137,7 @@ def gunluk_edr(gun, indirici=None, sayac=None, uyku=time.sleep, bayt_sayaci=None
     os.makedirs(parca_klasoru, exist_ok=True)
     parcalar = []
     indirilen = 0
-    with dagitik_kilit("madis_indirme", zaman_asimi_saniye=0):
+    with dagitik_kilit("madis_indirme", zaman_asimi_saniye=0, zorunlu=True):
         for saat in range(24):
             parca = os.path.join(parca_klasoru, f"{saat:02d}.parquet")
             if os.path.exists(parca):
