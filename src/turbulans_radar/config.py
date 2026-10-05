@@ -96,8 +96,11 @@ ERA5_UCUS_KLASORU = _ortam_str("ERA5_UCUS_KLASORU", "era5_ucus_verisi")
 ERA5_UCUS_EK_DEGISKENLER = tuple(
     d.strip() for d in _ortam_str("ERA5_UCUS_EK_DEGISKENLER", "relative_humidity").split(",") if d.strip()
 )
+# Fizik özellikleri (kayma, Ri) uçağı çevreleyen katmandan alınır; 25 hPa'lık
+# seviyeler jet çekirdeğindeki ince katmanı (Ri < 0,25) görünür kılar. ML deposu
+# ile aynı küme: eğitim ve kullanım aynı katman kalınlığını görür.
 ERA5_BASINC_SEVIYELERI_HPA = tuple(
-    float(s) for s in _ortam_str("ERA5_BASINC_SEVIYELERI_HPA", "300,250,200").split(",") if s.strip()
+    float(s) for s in _ortam_str("ERA5_BASINC_SEVIYELERI_HPA", "350,300,250,225,200,175,150").split(",") if s.strip()
 )
 ERA5_YAYIN_GECIKMESI_GUN = _ortam_sayi("ERA5_YAYIN_GECIKMESI_GUN", 5, int)
 ERA5_UCUS_MAKS_SAAT = _ortam_sayi("ERA5_UCUS_MAKS_SAAT", 24, int)
@@ -181,8 +184,8 @@ ML_ESKI_MODELI_KULLAN = _ortam_bool("ML_ESKI_MODELI_KULLAN", False)
 # PIREP'in çevresindeki pencere (±PENCERE_DERECE, ±PENCERE_SAAT, tüm seviyeler)
 # bu klasöre yazılır; yeni bir özellik CDS'e gitmeden yeniden hesaplanabilir.
 # Depo açıkken ML indirmesi ML_DEPO_BASINC_SEVIYELERI_HPA ve ek değişkenleri
-# (bağıl nem) içerir; mevcut özellikler kalibrasyon tutarlılığı için yine
-# ERA5_BASINC_SEVIYELERI_HPA alt kümesinden hesaplanır. Boş klasör = kapalı.
+# (bağıl nem) içerir; özellikler ERA5_BASINC_SEVIYELERI_HPA alt kümesinden
+# hesaplanır (varsayılanda ikisi aynı 7 seviye). Boş klasör = kapalı.
 ML_DEPO_KLASORU = _ortam_str("ML_DEPO_KLASORU", "ml_ozellik_deposu")
 ML_DEPO_BASINC_SEVIYELERI_HPA = tuple(
     float(s) for s in _ortam_str("ML_DEPO_BASINC_SEVIYELERI_HPA", "350,300,250,225,200,175,150").split(",") if s.strip()
@@ -250,6 +253,9 @@ DIKEY_KAPSAM_TOLERANSI_HPA = _ortam_sayi("DIKEY_KAPSAM_TOLERANSI_HPA", 50.0)
 # edilmesi önerilir, "kesin" bir eşik değildir.
 TI1_ESIK_HAFIF = _ortam_sayi("TI1_ESIK_HAFIF", 4e-7)
 TI1_ESIK_ORTA_SIDDETLI = _ortam_sayi("TI1_ESIK_ORTA_SIDDETLI", 8e-7)
+# Dispeç ekranında bundan kısa riskli bölümler listelenmez. 0 = her riskli nokta
+# (mevcut davranış); eşik kalibre edilmedi.
+RISKLI_BOLUM_MIN_NM = _ortam_sayi("RISKLI_BOLUM_MIN_NM", 0.0)
 
 # turbulans_indeksleri.ti1_den_edr_proxy_olcegine_cevir()'in kullandığı
 # ölçeklendirme katsayısı. 2026-10-01 sürümü: ml_ornekleri'ndeki seyir

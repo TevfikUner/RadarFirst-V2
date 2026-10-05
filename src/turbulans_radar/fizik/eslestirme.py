@@ -40,14 +40,13 @@ import pandas as pd
 import xarray as xr
 
 from turbulans_radar import config
-from turbulans_radar.fizik.birim_donusumleri import (
-    basinc_hpa_to_irtifa_metre,
-    irtifa_metre_to_basinc_hpa,
-)
+from turbulans_radar.fizik.birim_donusumleri import irtifa_metre_to_basinc_hpa
+from turbulans_radar.fizik.edr_esleme import birlesik_edr
 from turbulans_radar.fizik.iz_bulutu import iz_bulutu_duyarli
 from turbulans_radar.fizik.turbulans_indeksleri import (
     DINAMIK_KARARSIZLIK_ESIGI,
     dusey_ruzgar_kaymasi_hesapla,
+    hipsometrik_kalinlik_m,
     potansiyel_sicaklik_hesapla,
     richardson_sayisi_hesapla,
     ti1_den_edr_proxy_olcegine_cevir,
@@ -57,10 +56,13 @@ from turbulans_radar.fizik.turbulans_indeksleri import (
     yatay_diverjans_hesapla,
 )
 
+YATAY_KAPSAM_TOLERANSI_DERECE = 0.125
+
 _SONUC_SUTUNLARI = [
     "basinc_hpa",
     "ti1_indeksi",
     "edr_proxy",
+    "birlesik_edr",
     "richardson_sayisi",
     "dinamik_kararsizlik",
     "dusey_ruzgar_kaymasi",
@@ -93,7 +95,7 @@ def _kapsam_disi_maskesi_hesapla(
     boylamlar,
     zaman_uyumlu_dizisi,
     basinc_hpa=None,
-    tolerans_derece=1.0,
+    tolerans_derece=YATAY_KAPSAM_TOLERANSI_DERECE,
     tolerans_zaman=pd.Timedelta(hours=3),
 ):
     """
@@ -192,6 +194,16 @@ def _zamanlari_veri_kupu_izgarasina_yuvarla(veri_kupu, zaman_serisi):
     return valid_time_index[konumlar]
 
 
+def cevreleyen_katman_seviyeleri(basinc_hpa, basinc_seviyeleri_sirali):
+    """Uçağın basıncını çevreleyen tek katman: p_ust <= p <= p_alt. Küpün
+    kenarındaki (ya da dışındaki) noktalar için en yakın iki seviye kullanılır.
+    basinc_seviyeleri_sirali artan sıradadır; dönüş (p_ust, p_alt)."""
+    seviyeler = np.asarray(basinc_seviyeleri_sirali, dtype=float)
+    basinc_hpa = np.asarray(basinc_hpa, dtype=float)
+    alt_indeks = np.clip(np.searchsorted(seviyeler, np.nan_to_num(basinc_hpa, nan=seviyeler[0])), 1, len(seviyeler) - 1)
+    return seviyeler[alt_indeks - 1], seviyeler[alt_indeks]
+
+
 def _yatay_alan_degerlerini_hesapla(veri_kupu, seviyeler, zaman_serisi, enlemler, boylamlar):
     """
     Her nokta için yatay deformasyonu hesaplar. Aynı (basınç seviyesi, zaman)
@@ -234,8 +246,10 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
     veri_kupu: xarray.Dataset (t, u, v rüzgar/sıcaklık bileşenleri; boyutlar:
                valid_time, latitude, longitude ve config.BASINC_BOYUTU)
 
-    Dönüş: rota_df'e 'basinc_hpa', 'ti1_indeksi', 'edr_proxy',
+    Dönüş: rota_df'e 'basinc_hpa', 'ti1_indeksi', 'edr_proxy', 'birlesik_edr',
            'richardson_sayisi', 'dinamik_kararsizlik' sütunları eklenmiş hali.
+           edr_proxy: log-normal birleşik EDR (fizik/edr_esleme.py); katsayı
+           dosyası yoksa yedek olarak TI1'in tanh ölçeği.
            Küpte ERA5 bağıl nemi ('r') varsa 'buz_bagil_nem_yuzde' ve
            'iz_bulutu_duyarli' (fizik/iz_bulutu.py) da doldurulur; yoksa NaN/None.
     """
@@ -254,12 +268,8 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
         basinc_hpa = irtifa_metre_to_basinc_hpa(irtifa_m)
 
     en_yakin_indeksleri = np.abs(basinc_seviyeleri_sirali[None, :] - basinc_hpa[:, None]).argmin(axis=1)
-    alt_indeksleri = np.maximum(en_yakin_indeksleri - 1, 0)
-    ust_indeksleri = np.minimum(en_yakin_indeksleri + 1, len(basinc_seviyeleri_sirali) - 1)
-
     en_yakin_seviyeler = basinc_seviyeleri_sirali[en_yakin_indeksleri]
-    alt_seviyeler = basinc_seviyeleri_sirali[alt_indeksleri]
-    ust_seviyeler = basinc_seviyeleri_sirali[ust_indeksleri]
+    ust_seviyeler, alt_seviyeler = cevreleyen_katman_seviyeleri(basinc_hpa, basinc_seviyeleri_sirali)
 
     enlemler = rota_df["enlem"].to_numpy(dtype=float)
     boylamlar = rota_df["boylam"].to_numpy(dtype=float)
@@ -298,7 +308,9 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
     dilim_alt = _seviye_dilimi_sec(alt_seviyeler)
     dilim_ust = _seviye_dilimi_sec(ust_seviyeler)
 
-    yukseklik_farki_m = basinc_hpa_to_irtifa_metre(ust_seviyeler) - basinc_hpa_to_irtifa_metre(alt_seviyeler)
+    yukseklik_farki_m = hipsometrik_kalinlik_m(
+        ust_seviyeler, alt_seviyeler, dilim_ust["t"].values, dilim_alt["t"].values
+    )
 
     vws = dusey_ruzgar_kaymasi_hesapla(
         u_ust=dilim_ust["u"].values,
@@ -314,7 +326,6 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
 
     ti1 = ti1_indeksi_hesapla(vws, deformasyon)
     ti2 = ti2_indeksi_hesapla(vws, deformasyon, diverjans)
-    edr_proxy = ti1_den_edr_proxy_olcegine_cevir(ti1, config.EDR_OLCEKLENDIRME_KATSAYISI)
 
     theta_ust = potansiyel_sicaklik_hesapla(dilim_ust["t"].values, ust_seviyeler)
     theta_alt = potansiyel_sicaklik_hesapla(dilim_alt["t"].values, alt_seviyeler)
@@ -341,8 +352,23 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
 
     basinc_hpa_sonuc = en_yakin_seviyeler.astype(float)
     vws = np.array(vws, dtype=float)
-    for dizi in (basinc_hpa_sonuc, ti1, edr_proxy, richardson, vws, deformasyon, diverjans, ti2):
+    for dizi in (basinc_hpa_sonuc, ti1, richardson, vws, deformasyon, diverjans, ti2):
         dizi[kapsam_disi] = np.nan
+    birlesik = birlesik_edr(
+        pd.DataFrame(
+            {
+                "ti1_indeksi": ti1,
+                "ti2_indeksi": ti2,
+                "dusey_ruzgar_kaymasi": vws,
+                "yatay_deformasyon": deformasyon,
+                "richardson_sayisi": richardson,
+            }
+        )
+    )
+    birlesik[kapsam_disi] = np.nan
+    edr_proxy = np.where(
+        np.isfinite(birlesik), birlesik, ti1_den_edr_proxy_olcegine_cevir(ti1, config.EDR_OLCEKLENDIRME_KATSAYISI)
+    )
     dinamik_kararsizlik = dinamik_kararsizlik.astype(object)
     dinamik_kararsizlik[kapsam_disi] = None
 
@@ -351,6 +377,7 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
             "basinc_hpa": basinc_hpa_sonuc,
             "ti1_indeksi": ti1,
             "edr_proxy": edr_proxy,
+            "birlesik_edr": birlesik,
             "richardson_sayisi": richardson,
             "dinamik_kararsizlik": dinamik_kararsizlik,
             "dusey_ruzgar_kaymasi": vws,

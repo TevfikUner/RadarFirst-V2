@@ -1,0 +1,300 @@
+{
+  "yontem": "Özellikler pencere deposundan güncel fizikle; GA gün bazlı blok bootstrap (%95).",
+  "acilamayan_pencere_dosyasi": 0,
+  "pirep_orta_ve_ustu": {
+    "tum": {
+      "ornek": 6218,
+      "pozitif": 3250,
+      "gun": 64,
+      "skorlar": {
+        "TI1": {
+          "roc_auc": 0.6713928053078997,
+          "alt": 0.651311486901736,
+          "ust": 0.6902404384779174
+        },
+        "TI2": {
+          "roc_auc": 0.6460639643375493,
+          "alt": 0.6253596738851133,
+          "ust": 0.665508036798527,
+          "ti1_farki": {
+            "fark": -0.025328840970350375,
+            "alt": -0.03506161345677056,
+            "ust": -0.015824039988818372,
+            "p_degeri": 0.0,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "VWS": {
+          "roc_auc": 0.6414668774621605,
+          "alt": 0.6238396962596707,
+          "ust": 0.6596466545997469,
+          "ti1_farki": {
+            "fark": -0.02992592784573922,
+            "alt": -0.041437141247346154,
+            "ust": -0.017565757390250247,
+            "p_degeri": 0.0,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "DEF": {
+          "roc_auc": 0.6295463922869583,
+          "alt": 0.6099829076250011,
+          "ust": 0.6470085676910712,
+          "ti1_farki": {
+            "fark": -0.041846413020941386,
+            "alt": -0.053263016488091536,
+            "ust": -0.029740277057256938,
+            "p_degeri": 0.0,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "1/Ri": {
+          "roc_auc": 0.6472954074227659,
+          "alt": 0.6305004160112233,
+          "ust": 0.6624025429988863,
+          "ti1_farki": {
+            "fark": -0.024097397885133764,
+            "alt": -0.03833965260728621,
+            "ust": -0.00923200437145717,
+            "p_degeri": 0.0,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "Birleşik EDR": {
+          "roc_auc": 0.6844421521874351,
+          "alt": 0.6662687060056619,
+          "ust": 0.7022964078191807,
+          "ti1_farki": {
+            "fark": 0.013049346879535406,
+            "alt": 0.009589205717457557,
+            "ust": 0.016683399045127664,
+            "p_degeri": 0.0,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        }
+      }
+    },
+    "holdout": {
+      "ornek": 1151,
+      "pozitif": 609,
+      "gun": 13,
+      "skorlar": {
+        "TI1": {
+          "roc_auc": 0.7072222323208454,
+          "alt": 0.6568519479511616,
+          "ust": 0.7547010204306988
+        },
+        "TI2": {
+          "roc_auc": 0.6815586013002987,
+          "alt": 0.6313154556328384,
+          "ust": 0.7281136003350172,
+          "ti1_farki": {
+            "fark": -0.025663631020546696,
+            "alt": -0.043046928518824745,
+            "ust": -0.0049120923820847266,
+            "p_degeri": 0.014,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "VWS": {
+          "roc_auc": 0.6644626421633675,
+          "alt": 0.6114048464939363,
+          "ust": 0.7206734055842527,
+          "ti1_farki": {
+            "fark": -0.04275959015747788,
+            "alt": -0.0699515578680393,
+            "ust": -0.01277467502035587,
+            "p_degeri": 0.008,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "DEF": {
+          "roc_auc": 0.6679693890534963,
+          "alt": 0.6232671319947057,
+          "ust": 0.7089199055526666,
+          "ti1_farki": {
+            "fark": -0.039252843267349014,
+            "alt": -0.0761087834844288,
+            "ust": -0.005448407312035693,
+            "p_degeri": 0.016,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "1/Ri": {
+          "roc_auc": 0.6675225249789445,
+          "alt": 0.6154589432015996,
+          "ust": 0.7136309213614765,
+          "ti1_farki": {
+            "fark": -0.03969970734190087,
+            "alt": -0.07161973251045577,
+            "ust": -0.009911768206397524,
+            "p_degeri": 0.01,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "Birleşik EDR": {
+          "roc_auc": 0.7194617635831531,
+          "alt": 0.6710871326237644,
+          "ust": 0.7664533390035215,
+          "ti1_farki": {
+            "fark": 0.012239531262307701,
+            "alt": 0.0032313662000991905,
+            "ust": 0.021338202579887576,
+            "p_degeri": 0.012,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        }
+      }
+    },
+    "holdout_gunleri": [
+      "2020-03-01",
+      "2020-04-01",
+      "2020-04-24",
+      "2020-05-12",
+      "2020-05-13",
+      "2020-05-24",
+      "2020-06-03",
+      "2020-06-04",
+      "2020-06-05",
+      "2020-06-06",
+      "2020-06-07",
+      "2020-06-08",
+      "2020-06-09"
+    ],
+    "eski_fizik_ti1": {
+      "ornek": 6220,
+      "pozitif": 3252,
+      "gun": 64,
+      "skorlar": {
+        "TI1": {
+          "roc_auc": 0.6440208472165584,
+          "alt": 0.6232889544422967,
+          "ust": 0.6641979957122152
+        }
+      }
+    }
+  },
+  "seviye_ti1_esik_orani": [
+    {
+      "basinc_hpa": 175.0,
+      "ornek": 530,
+      "eski_seviyeler": [
+        200.0
+      ],
+      "eski_oran_hafif": 0.37169811320754714,
+      "yeni_oran_hafif": 0.5415094339622641,
+      "eski_oran_orta_siddetli": 0.17169811320754716,
+      "yeni_oran_orta_siddetli": 0.3018867924528302
+    },
+    {
+      "basinc_hpa": 200.0,
+      "ornek": 973,
+      "eski_seviyeler": [
+        200.0
+      ],
+      "eski_oran_hafif": 0.4676258992805755,
+      "yeni_oran_hafif": 0.5745118191161357,
+      "eski_oran_orta_siddetli": 0.21068859198355602,
+      "yeni_oran_orta_siddetli": 0.3329907502569373
+    },
+    {
+      "basinc_hpa": 225.0,
+      "ornek": 1414,
+      "eski_seviyeler": [
+        200.0,
+        250.0
+      ],
+      "eski_oran_hafif": 0.39745403111739747,
+      "yeni_oran_hafif": 0.5650636492220651,
+      "eski_oran_orta_siddetli": 0.1768033946251768,
+      "yeni_oran_orta_siddetli": 0.3118811881188119
+    },
+    {
+      "basinc_hpa": 250.0,
+      "ornek": 2214,
+      "eski_seviyeler": [
+        250.0
+      ],
+      "eski_oran_hafif": 0.4074074074074074,
+      "yeni_oran_hafif": 0.549683830171635,
+      "eski_oran_orta_siddetli": 0.1919602529358627,
+      "yeni_oran_orta_siddetli": 0.3134598012646793
+    },
+    {
+      "basinc_hpa": 300.0,
+      "ornek": 825,
+      "eski_seviyeler": [
+        300.0
+      ],
+      "eski_oran_hafif": 0.5612121212121212,
+      "yeni_oran_hafif": 0.5793939393939394,
+      "eski_oran_orta_siddetli": 0.3090909090909091,
+      "yeni_oran_orta_siddetli": 0.3418181818181818
+    },
+    {
+      "basinc_hpa": 350.0,
+      "ornek": 264,
+      "eski_seviyeler": [
+        300.0
+      ],
+      "eski_oran_hafif": 0.553030303030303,
+      "yeni_oran_hafif": 0.6022727272727273,
+      "eski_oran_orta_siddetli": 0.3106060606060606,
+      "yeni_oran_orta_siddetli": 0.30303030303030304
+    }
+  ],
+  "eski_kaynak": "ciktilar/ozellikler_onceki_20261005T1434.parquet",
+  "madis_hafif_ve_ustu": {
+    "ornek": 12232,
+    "pozitif": 372,
+    "gun": 4,
+    "skorlar": {
+      "TI1": {
+        "roc_auc": 0.7354601851348166
+      },
+      "TI2": {
+        "roc_auc": 0.6960777847286442
+      },
+      "VWS": {
+        "roc_auc": 0.6905777983281656
+      },
+      "DEF": {
+        "roc_auc": 0.6691476726685888
+      },
+      "1/Ri": {
+        "roc_auc": 0.7293169413769969
+      },
+      "Birleşik EDR": {
+        "roc_auc": 0.773031582621625
+      }
+    },
+    "not": "Gün bazlı GA için en az 5 gün gerekli; yalnız nokta değerler (ön sonuç)."
+  },
+  "madis_orta_ve_ustu": {
+    "ornek": 12232,
+    "pozitif": 0,
+    "gun": 4,
+    "skorlar": {},
+    "durum": "yetersiz_veri"
+  }
+}

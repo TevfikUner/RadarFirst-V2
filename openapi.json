@@ -3487,6 +3487,39 @@
         "title": "HavaDurumuKupuYaniti",
         "description": "hava_durumu_kupleri kataloğundaki bir küp (bkz. kup_katalogu.py)."
       },
+      "KabinOnerisiYaniti": {
+        "properties": {
+          "metin": {
+            "type": "string",
+            "title": "Metin"
+          },
+          "servis_durdur": {
+            "type": "boolean",
+            "title": "Servis Durdur"
+          },
+          "ilk_bolum_baslangic_utc": {
+            "type": "string",
+            "title": "Ilk Bolum Baslangic Utc"
+          },
+          "bolum_sayisi": {
+            "type": "integer",
+            "title": "Bolum Sayisi"
+          },
+          "toplam_sure_dk": {
+            "type": "number",
+            "title": "Toplam Sure Dk"
+          }
+        },
+        "type": "object",
+        "required": [
+          "metin",
+          "servis_durdur",
+          "ilk_bolum_baslangic_utc",
+          "bolum_sayisi",
+          "toplam_sure_dk"
+        ],
+        "title": "KabinOnerisiYaniti"
+      },
       "KapsamYaniti": {
         "properties": {
           "safha": {
@@ -4129,6 +4162,87 @@
         "title": "PlanlamaUfkuYaniti",
         "description": "kullanim: gecmis_analiz | ucus_oncesi_planlama. tahmin_ufku_disi: kalkış\ncanlı GFS tahmin ufkundan ileride (rüzgar/TI1 yok)."
       },
+      "RiskliBolumYaniti": {
+        "properties": {
+          "baslangic_utc": {
+            "type": "string",
+            "title": "Baslangic Utc"
+          },
+          "bitis_utc": {
+            "type": "string",
+            "title": "Bitis Utc"
+          },
+          "fl": {
+            "type": "integer",
+            "title": "Fl"
+          },
+          "uzunluk_nm": {
+            "type": "number",
+            "title": "Uzunluk Nm"
+          },
+          "sure_dk": {
+            "type": "number",
+            "title": "Sure Dk"
+          },
+          "baslangic_enlem": {
+            "type": "number",
+            "title": "Baslangic Enlem"
+          },
+          "baslangic_boylam": {
+            "type": "number",
+            "title": "Baslangic Boylam"
+          },
+          "bitis_enlem": {
+            "type": "number",
+            "title": "Bitis Enlem"
+          },
+          "bitis_boylam": {
+            "type": "number",
+            "title": "Bitis Boylam"
+          },
+          "maks_ti1": {
+            "type": "number",
+            "title": "Maks Ti1"
+          },
+          "maks_birlesik_edr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maks Birlesik Edr"
+          },
+          "beklenen_siddet": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Beklenen Siddet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "baslangic_utc",
+          "bitis_utc",
+          "fl",
+          "uzunluk_nm",
+          "sure_dk",
+          "baslangic_enlem",
+          "baslangic_boylam",
+          "bitis_enlem",
+          "bitis_boylam",
+          "maks_ti1"
+        ],
+        "title": "RiskliBolumYaniti",
+        "description": "Ardışık riskli noktalar: dispeçer dilinde yer, zaman, seviye ve uzunluk."
+      },
       "RotaAnalizIstegi": {
         "properties": {
           "ucus_numarasi": {
@@ -4253,6 +4367,50 @@
           "zaman": {
             "type": "string",
             "title": "Zaman"
+          },
+          "fl": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fl"
+          },
+          "ti1": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ti1"
+          },
+          "birlesik_edr": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Birlesik Edr"
+          },
+          "riskli": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Riskli"
           }
         },
         "type": "object",
@@ -4291,7 +4449,14 @@
             "title": "Ek Yakit Yuzde"
           },
           "riskli_nokta_sayisi": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Riskli Nokta Sayisi"
           },
           "iz_bulutu_nokta_sayisi": {
@@ -4486,6 +4651,16 @@
           "optimize_rota": {
             "$ref": "#/components/schemas/RotaSonucuYaniti"
           },
+          "kabin_onerisi": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KabinOnerisiYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "sure_tasarrufu_dk": {
             "type": "number",
             "title": "Sure Tasarrufu Dk"
@@ -4626,9 +4801,85 @@
             "title": "Maks Ti1"
           },
           "riskli_nokta_sayisi": {
-            "type": "integer",
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
             "title": "Riskli Nokta Sayisi",
             "default": 0
+          },
+          "fl": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Fl"
+          },
+          "riskli_bolumler": {
+            "anyOf": [
+              {
+                "items": {
+                  "$ref": "#/components/schemas/RiskliBolumYaniti"
+                },
+                "type": "array"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Riskli Bolumler"
+          },
+          "riskli_mesafe_nm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Riskli Mesafe Nm"
+          },
+          "riskli_sure_dk": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Riskli Sure Dk"
+          },
+          "kapsam_disi_nokta_sayisi": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kapsam Disi Nokta Sayisi"
+          },
+          "ortalama_ruzgar_bileseni_kt": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ortalama Ruzgar Bileseni Kt"
           },
           "iz_bulutu_nokta_sayisi": {
             "anyOf": [

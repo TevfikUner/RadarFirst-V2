@@ -160,6 +160,36 @@ class RotaNoktasiYaniti(BaseModel):
     boylam: float
     irtifa_m: float
     zaman: str
+    fl: int | None = None
+    # TI1 hesaplanamadıysa (kapsam dışı) ti1 ve riskli None'dır; "riskli değil" anlamına gelmez.
+    ti1: float | None = None
+    birlesik_edr: float | None = None
+    riskli: bool | None = None
+
+
+class RiskliBolumYaniti(BaseModel):
+    """Ardışık riskli noktalar: dispeçer dilinde yer, zaman, seviye ve uzunluk."""
+
+    baslangic_utc: str
+    bitis_utc: str
+    fl: int
+    uzunluk_nm: float
+    sure_dk: float
+    baslangic_enlem: float
+    baslangic_boylam: float
+    bitis_enlem: float
+    bitis_boylam: float
+    maks_ti1: float
+    maks_birlesik_edr: float | None = None
+    beklenen_siddet: str | None = None
+
+
+class KabinOnerisiYaniti(BaseModel):
+    metin: str
+    servis_durdur: bool
+    ilk_bolum_baslangic_utc: str
+    bolum_sayisi: int
+    toplam_sure_dk: float
 
 
 class RotaSonucuYaniti(BaseModel):
@@ -171,7 +201,15 @@ class RotaSonucuYaniti(BaseModel):
     maks_yanal_sapma_km: float | None = None
     irtifa_ft: float | None = None
     maks_ti1: float | None = None
-    riskli_nokta_sayisi: int = 0
+    # None: risk hesaplanmadı (kapsam dışı / veri yok); 0 risk değildir.
+    riskli_nokta_sayisi: int | None = 0
+    fl: int | None = None
+    riskli_bolumler: list[RiskliBolumYaniti] | None = None
+    riskli_mesafe_nm: float | None = None
+    riskli_sure_dk: float | None = None
+    kapsam_disi_nokta_sayisi: int | None = None
+    # Yer hızı − TAS (kt); + kuyruk rüzgârı, − baş rüzgârı.
+    ortalama_ruzgar_bileseni_kt: float | None = None
     # Kalıcı iz bulutu duyarlı nokta sayısı (fizik/iz_bulutu.py); küpte ERA5
     # nemi yoksa None. Gözlenmiş iz bulutu değil, duyarlılık göstergesidir.
     iz_bulutu_nokta_sayisi: int | None = None
@@ -308,7 +346,7 @@ class RotaSecenegiYaniti(BaseModel):
     ek_sure_dk: float
     tahmini_yakit_kg: float
     ek_yakit_yuzde: float
-    riskli_nokta_sayisi: int
+    riskli_nokta_sayisi: int | None
     iz_bulutu_nokta_sayisi: int | None = None
     maks_ti1: float | None = None
     irtifa_ft: float
@@ -331,6 +369,8 @@ class RotaSimulasyonuYaniti(BaseModel):
     kisitli_saha_kontrolu: KisitliSahaKontroluYaniti | None = None
     normal_rota: RotaSonucuYaniti
     optimize_rota: RotaSonucuYaniti
+    # Yalnızca önerilen rotada kalan risk varsa dolu (karar kaptanındır).
+    kabin_onerisi: KabinOnerisiYaniti | None = None
     sure_tasarrufu_dk: float
     ti1_guvenilirlik_notu: str
     yakit_tasarrufu_yuzde: float

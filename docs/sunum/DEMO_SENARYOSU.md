@@ -3,7 +3,7 @@
 Jüri sunumundaki canlı demo ve yedek video için adım adım akış. Demo, depodaki
 demo paketiyle (THY322, 15 Ocak 2019, gerçek OpenSky izi + ERA5 dilimi) **ağ
 bağlantısı ve kimlik bilgisi olmadan** çalışır. Aşağıdaki tüm sayılar bu paketle
-1 Ekim 2026'da alınmış gerçek çıktılardır; ekran görüntüleri `ekranlar/`
+5 Ekim 2026'da (çevreleyen katman fiziğiyle, ağsız provada) alınmış gerçek çıktılardır; ekran görüntüleri `ekranlar/`
 klasöründedir ve `turbulans-demo-ekranlari` ile yeniden üretilir.
 
 Sistem sertifikalı EDR üretmez; karar destek aracıdır. Demo boyunca bu cümle
@@ -32,11 +32,19 @@ en az bir kez söylenmelidir.
    ```
 
 4. Prova: aşağıdaki komut demo adımlarını tarayıcıda gerçekten tıklar ve ekran
-   görüntülerini üretir. Hata verirse sunumdan önce düzeltilecek bir şey vardır.
+   görüntülerini üretir. `--agsiz` localhost dışındaki her isteği keser ve denenen dış
+   adresleri listeler; listede yalnız `server.arcgisonline.com` (Esri karoları)
+   görünmelidir. Hata verirse sunumdan önce düzeltilecek bir şey vardır.
 
    ```bash
-   TURBULANS_API_ANAHTARI=demo-yerel-yonetici turbulans-demo-ekranlari --klasor /tmp/prova
+   TURBULANS_API_ANAHTARI=demo-yerel-yonetici turbulans-demo-ekranlari --agsiz --klasor /tmp/prova
    ```
+
+   Kapsayıcıların da ağa çıkmadığını sınamak için demo klonunda
+   `docker-compose.override.yml` ile `api`, `worker` ve `demo` servislerine
+   `dns: [127.0.0.1]` verin. 5 Ekim 2026 provası bu düzenle geçti: kapsayıcılar dış
+   adres çözemedi, tarayıcıda yalnız Esri karoları (~600 istek) kesildi, üç adım da
+   tamamlandı.
 
 5. Yedek videoyu kaydedin (bkz. §4) ve sunum bilgisayarına kopyalayın.
 
@@ -55,9 +63,9 @@ en az bir kez söylenmelidir.
 |---|---|---|---|---|
 | 1 | 0:30 | Terminal | `docker compose ps` (db, api, worker sağlıklı); Wi-Fi kapalı | "Sistem dizüstünde, internet bağlantısı yok. Veri, depoyla gelen gerçek bir uçuş ve gerçek ERA5 dilimi." |
 | 2 | 1:30 | 3B harita | Uçuş `THY322`, tarih `2019-01-15`, **Yükle**. Zaman kaydırıcısını baştan sona sürükleyin | "OpenSky'dan alınmış 1614 gerçek ADS-B noktası. Her nokta, uçağın o anki barometrik irtifasına karşılık gelen basınç seviyesinde ERA5 rüzgarıyla eşleşti ve Ellrod TI1 hesaplandı. Tırmanışın alt kısmı 150–350 hPa dışında kaldığı için 1614 noktanın 720'si hesaplandı, gerisi 'veri yok': sistem kapsamadığı yeri tahmin etmiyor. İzdeki ~1 saatlik boşlukta OpenSky'da kayıt yok; sistem bu boşluğu doldurmuyor." |
-| 3 | 0:30 | 3B harita, sol panel | Model paneli ve lejanttaki TI1 notunu gösterin | "TI1'in tek başına güvenilirliği kanıtlanmadı: seyir irtifasındaki 1600 PIREP'te ROC-AUC 0,69. Bu not ekranda her zaman duruyor." |
-| 4 | 1:30 | Rota simülasyonu | 41.0, 29.0 → 40.5, 43.5; 36000 ft; 15.01.2019 20:00; A320; **Simüle Et** | "Büyük daire rotasında 4 riskli TI1 noktası var. A* 53 km yanal sapmayla hepsinden kaçınıyor; bedeli 1,6 dakika ve %2 yakıt. Sistem tasarrufu değil güvenlik bedelini gösteriyor." (Ekran: `ekranlar/02_…`) |
-| 5 | 1:00 | Rota simülasyonu | 38.35, 38.31 → 36.34, 43.13 (Malatya → Musul); **Simüle Et** | "Bu kez sert kısıt: normal rota örnek kısıtlı sahaya 11 noktada giriyor, önerilen rota hiç girmiyor. Bu bölge ERA5 diliminin dışında; sistem rüzgarı hesaba katamadığını açıkça söylüyor. SIGMET de aynı sert kısıt mekanizmasıyla çalışıyor." (Ekran: `ekranlar/03_…`) |
+| 3 | 0:30 | 3B harita, sol panel | Model paneli ve lejanttaki TI1 notunu gösterin | "TI1'in tek başına güvenilirliği kanıtlanmadı: seyir irtifasındaki 6218 PIREP'te ROC-AUC 0,67. Bu not ekranda her zaman duruyor." |
+| 4 | 1:30 | Rota simülasyonu | 41.0, 29.0 → 40.5, 43.5; 36000 ft; 15.01.2019 20:00; A320; **Simüle Et** | "Büyük daire rotasında yaklaşık 198 NM, 23 dakikalık riskli bölüm var; kırmızı çizilen kısım. A* en çok 86 NM yanal sapmayla hepsinden kaçınıyor; bedeli yaklaşık 6 dakika ve %7,7 seyir yakıtı. Sistem tasarrufu değil güvenliğin bedelini gösteriyor; seçim dispeçerin." (Ekran: `ekranlar/02_…`) |
+| 5 | 1:00 | Rota simülasyonu | 38.35, 38.31 → 36.34, 43.13 (Malatya → Musul); **Simüle Et** | "Bu kez sert kısıt: normal rota örnek kısıtlı sahaya 11 noktada giriyor, önerilen rota hiç girmiyor (bedeli %6,2 seyir yakıtı). Bu bölge ERA5 diliminin dışında; ekranda türbülans riski '0' değil 'hesaplanmadı' yazıyor, çünkü veri yokken risk yok demek en tehlikeli hata olurdu. SIGMET de aynı sert kısıt mekanizmasıyla çalışıyor." (Ekran: `ekranlar/03_…`) |
 | 6 | 0:30 | Slayt | ML ve doğrulama sonuçları slaytına geçin | "Model sonuçlarını canlı değil, ölçülmüş haliyle gösteriyorum. Sistem sertifikalı EDR üretmez; karar destek aracıdır." |
 
 Demo paketinde olmayanlar, slaytla gösterilir:

@@ -118,22 +118,29 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 ## 5. Bilinen sınırlamalar
 
 **Fiziksel gösterge**
-- TI1'den türetilen EDR proxy sertifikalı bir EDR değeri değildir.
+- Kapsam yalnızca açık hava türbülansıdır (CAT). Konvektif, bulut içi, dağ dalgası
+  ve iz türbülansı kapsam dışıdır; yalnız seyir safhası (FL280 üstü) değerlendirilir.
+- EDR tahmini (birleşik EDR, `fizik/edr_esleme.py`) sertifikalı bir EDR değeri
+  değildir: TI1, TI2, VWS, DEF ve 1/Ri log-normal eşlemeyle (Sharman & Pearson
+  2017; C1 = −2,953, C2 = 0,602) EDR'ye çevrilip ortalanır; göstergelerin
+  klimatolojisi ABD PIREP pencerelerinden gelir. Katsayı dosyası yoksa TI1'in
+  tanh ölçeği yedek olarak kullanılır.
 - ERA5/GFS'nin ~25-30 km çözünürlüğü küçük ölçekli türbülansı çözemez.
-- Düşey rüzgar kayması ve Richardson sayısı, uçuş seviyesine en yakın basınç
-  seviyesinin bir üstü ile bir altı arasından hesaplanır (200/250/300 hPa
-  küpünde ~2,6 km'lik katman); daha ince kayma katmanları bu hesapta seyrelir.
+- Düşey rüzgar kayması ve Richardson sayısı uçağın basıncını çevreleyen tek
+  katmandan hesaplanır (ERA5 varsayılanı 350–150 hPa, 7 seviye; jet çevresinde
+  25 hPa ≈ 700 m); katman kalınlığı hipsometrik denklemle, deformasyon ve
+  diverjans küresel metrik terimleriyle hesaplanır. Canlı GFS küpü 3 seviyeyle
+  indirildiği için orada katman 50 hPa'dır.
 - Hava verisi zaman ve konumda en yakın ızgara noktasından okunur,
   enterpolasyon yapılmaz: GFS'in 3 saatlik adımında 1,5 saate, 0,25°
   ızgarada ~0,125°'ye kadar kayma olabilir.
-- Küp sınırının 1° dışına kadar (zamanda 3 saate kadar) noktalar kapsam içi
-  sayılır ve kenar değerini alır.
-- Bu tercihler bilinçli olarak değiştirilmedi: özellik hesabı değişirse
-  eşleşmiş ML örneklerinin ve modelin yeniden üretilmesi gerekir.
-- Seyir irtifasındaki 1600 PIREP'te (16 gün) TI1'in tek başına ayırt
-  ediciliği orta düzeydedir (ROC-AUC 0.69; `TI1_ESIK_ORTA_SIDDETLI`'de POD
-  0.31, POFD 0.10). Eski 0.44 değeri 300-400 feet'teki PIREP'leri seçen
-  hatalı bir irtifa filtresinden geliyordu. Bu, tek başına KANITLANMAMIŞ bir gösterge olduğu anlamına
+- Küp sınırının 0,125° dışına kadar (zamanda 3 saate kadar) noktalar kapsam
+  içi sayılır ve kenar değerini alır.
+- Seyir irtifasındaki 6218 PIREP'te (64 gün) TI1'in tek başına ayırt
+  ediciliği orta düzeydedir (ROC-AUC 0,67 [0,65–0,69]; zamansal holdout'ta
+  0,71, `TI1_ESIK_ORTA_SIDDETLI`'de POD 0,49, POFD 0,16). Fizik düzeltmesinden
+  önce aynı örneklerde 0,64'tü; eski 0,44 değeri 300-400 feet'teki PIREP'leri
+  seçen hatalı bir irtifa filtresinden geliyordu. Ayrıntı: `docs/rapor/SONUCLAR.md`. Bu, tek başına KANITLANMAMIŞ bir gösterge olduğu anlamına
   gelir; bu not (`TI1_GUVENILIRLIK_NOTU`, bkz. `fizik/turbulans_indeksleri.py`)
   artık `POST /simulasyon/rota` ve `POST /turbulans/tahmin` yanıtlarında ayrı
   bir alan olarak (`ti1_guvenilirlik_notu`) ve iki web arayüzünde de
@@ -144,9 +151,12 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   tahmin etmez (test MSE 0.085 vs 0.071); görselleştirme ölçeğidir.
 
 **ML sınıflandırıcısı**
-- Aktif model hâlâ eski 167 örneklik veriyle (hatalı irtifa filtresi) eğitilmiştir;
-  yeni veriyle aday model en az 60 farklı gün eşleşince gece işinde eğitilir ve
-  yalnızca holdout'ta TI1 referansını ve aktif modeli geçerse aktifleşir.
+- Aktif model (Random Forest, 5 Ekim 2026) doğru irtifalı PIREP'lerle eğitildi ve
+  holdout'ta TI1'i geçti (bkz. `docs/rapor/SONUCLAR.md`). Yeni aday her gece
+  eğitilir ve yalnızca holdout'ta TI1 referansını ve aktif modeli geçerse aktifleşir.
+- Olasılık, "PIREP verilmiş bir noktada orta+ türbülans" oranına göredir
+  (PIREP'lerde pozitif oran ~%52, MADIS ölçümlerinde hafif+ ~%3): raporlama
+  yanlılığı nedeniyle mutlak sıklık olarak okunmamalıdır.
   TI1'i geçmek için ROC-AUC farkı hem `ML_TI1_AUC_USTUNLUGU`'nu aşmalı hem de
   gün bazlı eşleştirilmiş bootstrap aralığının alt sınırı 0'ın üstünde
   olmalıdır (holdout her gece yeniden kullanılır). Aday, gün gruplu CV

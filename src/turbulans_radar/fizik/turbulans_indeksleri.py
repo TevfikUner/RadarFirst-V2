@@ -27,11 +27,14 @@ olurdu. İkisi ayrı sütunlar olarak raporlanır, yorum kullanıcıya bırakıl
 
 import numpy as np
 
-# Enlem/boylam derecesini yaklaşık metreye çeviren sabitler
-METRE_PER_DERECE_ENLEM = 110_540.0
+DUNYA_YARICAPI_M = 6_371_000.0
+METRE_PER_DERECE_ENLEM = DUNYA_YARICAPI_M * np.pi / 180.0
 
 # Potansiyel sıcaklık formülü için kuru hava sabiti (R/cp, Poisson bağıntısı).
 R_CP_KURU_HAVA = 0.286
+
+# Kuru havanın gaz sabiti (J kg^-1 K^-1).
+R_KURU_HAVA = 287.05
 
 # Yerçekimi ivmesi (m/s^2).
 YERCEKIMI_IVMESI = 9.80665
@@ -43,34 +46,54 @@ DINAMIK_KARARSIZLIK_ESIGI = 0.25
 
 
 def _metre_per_derece_boylam(enlem_derece):
-    return 111_320.0 * np.cos(np.deg2rad(enlem_derece))
+    return METRE_PER_DERECE_ENLEM * np.cos(np.deg2rad(enlem_derece))
+
+
+def _kuresel_turevler(u, v, enlem_boyutu, boylam_boyutu):
+    enlem = u[enlem_boyutu]
+    dx = _metre_per_derece_boylam(enlem)
+    metrik = np.tan(np.deg2rad(enlem)) / DUNYA_YARICAPI_M
+    return (
+        u.differentiate(boylam_boyutu) / dx,
+        u.differentiate(enlem_boyutu) / METRE_PER_DERECE_ENLEM,
+        v.differentiate(boylam_boyutu) / dx,
+        v.differentiate(enlem_boyutu) / METRE_PER_DERECE_ENLEM,
+        metrik,
+    )
 
 
 def yatay_deformasyon_hesapla(u, v, enlem_boyutu="latitude", boylam_boyutu="longitude"):
     """
     Tek bir basınç seviyesindeki u, v rüzgar bileşenlerinden (xarray.DataArray,
-    2 boyutlu: enlem x boylam) yatay deformasyonu hesaplar.
+    2 boyutlu: enlem x boylam) küresel metrik terimleriyle yatay deformasyonu hesaplar.
 
-    DEF = sqrt(gerilme_terimi^2 + kayma_terimi^2)
-      gerilme_terimi (stretching) = du/dx - dv/dy
-      kayma_terimi   (shearing)   = dv/dx + du/dy
+    DEF = sqrt(gerilme^2 + kayma^2)
+      gerilme (stretching) = du/dx - dv/dy - v·tanφ/a
+      kayma   (shearing)   = dv/dx + du/dy + u·tanφ/a
+    Katı cisim dönmesinde DEF = 0 olur.
     """
-    dx = _metre_per_derece_boylam(u[enlem_boyutu])
-    dy = METRE_PER_DERECE_ENLEM
-
-    dudx = u.differentiate(boylam_boyutu) / dx
-    dudy = u.differentiate(enlem_boyutu) / dy
-    dvdx = v.differentiate(boylam_boyutu) / dx
-    dvdy = v.differentiate(enlem_boyutu) / dy
-
-    gerilme = dudx - dvdy
-    kayma = dvdx + dudy
+    dudx, dudy, dvdx, dvdy, metrik = _kuresel_turevler(u, v, enlem_boyutu, boylam_boyutu)
+    gerilme = dudx - dvdy - v * metrik
+    kayma = dvdx + dudy + u * metrik
     return np.sqrt(gerilme**2 + kayma**2)
 
 
 def yatay_diverjans_hesapla(u, v, enlem_boyutu="latitude", boylam_boyutu="longitude"):
-    dx = _metre_per_derece_boylam(u[enlem_boyutu])
-    return u.differentiate(boylam_boyutu) / dx + v.differentiate(enlem_boyutu) / METRE_PER_DERECE_ENLEM
+    """DIV = du/dx + dv/dy - v·tanφ/a (küresel)."""
+    dudx, _, _, dvdy, metrik = _kuresel_turevler(u, v, enlem_boyutu, boylam_boyutu)
+    return dudx + dvdy - v * metrik
+
+
+def hipsometrik_kalinlik_m(basinc_ust_hpa, basinc_alt_hpa, sicaklik_ust_k, sicaklik_alt_k):
+    """Δz = R_d·T̄/g·ln(p_alt/p_ust); T̄ iki seviyenin ortalama sıcaklığı."""
+    ortalama_t = (np.asarray(sicaklik_ust_k, dtype=float) + np.asarray(sicaklik_alt_k, dtype=float)) / 2
+    with np.errstate(divide="ignore", invalid="ignore"):
+        return (
+            R_KURU_HAVA
+            * ortalama_t
+            / YERCEKIMI_IVMESI
+            * np.log(np.asarray(basinc_alt_hpa, dtype=float) / np.asarray(basinc_ust_hpa, dtype=float))
+        )
 
 
 def ti2_indeksi_hesapla(vws, deformasyon, diverjans):
@@ -100,8 +123,9 @@ def ti1_indeksi_hesapla(vws, deformasyon):
 
 # DÜRÜSTLÜK NOTU (madde 6, bkz. konuşma geçmişi): TI1'in TEK BAŞINA gerçek
 # türbülans olaylarını ayırt ettiği BAĞIMSIZ olarak kanıtlanmamıştır. Seyir
-# irtifasındaki 1600 PIREP'te (16 gün) TI1'in tek başına ayırt ediciliği orta
-# düzeydedir (ROC-AUC 0.69; eski 0.44 hatalı irtifalı veriden geliyordu). Bağımsız kanıt modülüyle (dogrulama/bagimsiz_kanit.py)
+# irtifasındaki 6218 PIREP'te (64 gün, çevreleyen katman fiziği) TI1'in tek başına
+# ayırt ediciliği orta düzeydedir (ROC-AUC 0.67; holdout 0.71; bkz. docs/rapor/SONUCLAR.md).
+# Bağımsız kanıt modülüyle (dogrulama/bagimsiz_kanit.py)
 # yapılan canlı bir sınamada (PUE502, 26 Eylül 2026) aktif TURB SIGMET'lerin
 # işaret ettiği bir bölgede TI1 HİÇ risk görmedi -- yani bugün rota
 # güvenliğini fiilen SIGMET sert kısıtı sağlıyor, TI1 değil. Bu yüzden bu not
@@ -111,10 +135,12 @@ def ti1_indeksi_hesapla(vws, deformasyon):
 # istemci (EFB arayüzü) TI1'e "kanıtlanmış" güvenmesin diye elinin altında olsun.
 TI1_GUVENILIRLIK_NOTU = (
     "TI1 fiziksel göstergesi, gerçek türbülans olaylarını TEK BAŞINA güvenilir şekilde ayırt ettiği bağımsız "
-    "olarak KANITLANMAMIŞTIR (seyir irtifasındaki 1600 PIREP'te ROC-AUC 0.69, config eşiğinde yakalama 0.31, "
-    "yanlış alarm 0.10; gerçek bir uçuşta [PUE502] aktif SIGMET'in işaret ettiği türbülansı TI1 hiç "
+    "olarak KANITLANMAMIŞTIR (seyir irtifasındaki 6218 PIREP'te [64 gün] ROC-AUC 0.67, zamansal holdout'ta "
+    "0.71; config eşiğinde holdout yakalama 0.49, yanlış alarm 0.16; gerçek bir uçuşta [PUE502] aktif "
+    "SIGMET'in işaret ettiği türbülansı TI1 hiç "
     "yakalamadı). Bugün güvenlik garantisi TI1'den değil SIGMET sert kısıtından "
-    "gelir; TI1 yalnızca ek/yumuşak bir gösterge olarak değerlendirilmelidir."
+    "gelir; TI1 yalnızca ek/yumuşak bir gösterge olarak değerlendirilmelidir. Kapsam yalnızca açık hava "
+    "türbülansıdır (CAT); konvektif, bulut içi, dağ dalgası ve iz türbülansı kapsam dışıdır."
 )
 
 

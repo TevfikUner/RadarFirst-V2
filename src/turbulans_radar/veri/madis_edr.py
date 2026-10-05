@@ -170,7 +170,7 @@ def _atomik_parquet(df: pd.DataFrame, yol: str) -> None:
 
 def edr_sinifi(max_edr) -> np.ndarray:
     """0 yok (< hafif eşiği), 1 hafif, 2 orta, 3 şiddetli (ICAO tepe EDR eşikleri)."""
-    edr = np.asarray(max_edr, dtype=float)
+    edr = np.round(np.asarray(max_edr, dtype=float), 3)
     return (
         (edr >= config.EDR_ESIK_HAFIF).astype(int)
         + (edr >= config.EDR_ESIK_ORTA).astype(int)

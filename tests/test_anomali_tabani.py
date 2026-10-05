@@ -1,3 +1,5 @@
+import numpy as np
+
 """Denetimsiz anomali tabanı. İzler ve PIREP'ler SENTETİKTİR."""
 
 import pandas as pd
@@ -41,3 +43,22 @@ def test_esit_alarm_butcesiyle_isaretler_ve_karsilastirma_raporu():
     assert rapor["kural"]["pod"]["isabet"] == 1 and rapor["kural"]["pofd"]["isabet"] == 0
     assert rapor["kural"]["peirce"] == 1.0
     assert set(rapor["kural_ile_ayni_sonuc"]) == {"isolation_forest", "lof"}
+
+
+def test_tekrar_eden_kuantize_degerlerde_lof_uyarisi_vermez():
+    import warnings
+
+    rng = np.random.default_rng(1)
+    noktalar = pd.DataFrame(
+        {
+            "mutlak_sapma_ft": np.r_[np.zeros(900), rng.choice([25.0, 50.0], 100)],
+            "irtifa_oynakligi_ft": np.zeros(1000),
+            "mutlak_dikey_hiz_ftdk": np.r_[np.zeros(900), rng.choice([64.0, 128.0], 100)],
+            "dikey_hiz_degisimi_ftdk": np.zeros(1000),
+        }
+    )
+    with warnings.catch_warnings():
+        warnings.simplefilter("error")
+        isaretler = at.anomali_isaretle(noktalar, 0.05)
+    assert isaretler["lof"].sum() == 50
+    assert np.array_equal(isaretler["lof"], at.anomali_isaretle(noktalar, 0.05)["lof"])
