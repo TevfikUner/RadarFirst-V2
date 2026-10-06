@@ -54,9 +54,11 @@ with st.sidebar:
         for u in kayitli:
             satir1, satir2 = st.columns([3, 1])
             satir1.caption(f"**{u['ucus_numarasi']}** / {u['tarih']}")
-            if satir2.button("Sil", key=f"sil_{u['id']}"):
-                vt.ucus_sil(u["ucus_numarasi"], str(u["tarih"]))
-                st.rerun()
+            with satir2.popover("Sil"):
+                st.caption(f"{u['ucus_numarasi']} / {u['tarih']} ölçümleriyle silinsin mi?")
+                if st.button("Evet, sil", key=f"sil_{u['id']}"):
+                    vt.ucus_sil(u["ucus_numarasi"], str(u["tarih"]))
+                    st.rerun()
     elif arama:
         st.caption("Eşleşen kayıtlı uçuş yok.")
     else:
@@ -80,9 +82,11 @@ with st.sidebar:
 with st.form("analiz_formu"):
     sutun1, sutun2 = st.columns(2)
     with sutun1:
-        ucus_numarasi = st.text_input("Uçuş numarası (callsign)", value="THY1234", help="Örn. THY1234")
+        ucus_numarasi = st.text_input(
+            "Uçuş numarası (callsign)", value="THY322", help="Örn. THY322 (depodaki demo uçuşu, OpenSky gerektirmez)"
+        )
     with sutun2:
-        tarih = st.text_input("Tarih (YYYY-MM-DD)", value="2019-01-01")
+        tarih = st.text_input("Tarih (YYYY-MM-DD)", value="2019-01-15")
     gonder = st.form_submit_button("Analiz Et", type="primary")
 
 if gonder:
