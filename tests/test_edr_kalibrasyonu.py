@@ -20,6 +20,8 @@ def test_bilinen_katsayi_geri_bulunur_ve_eski_katsayidan_iyi_cikar():
     alt, ust = sonuc["guven_araligi_95"]
     assert alt <= 0.9 <= ust
     assert sonuc["test_mse_yeni"] < sonuc["test_mse_eski"]
+    assert sonuc["mevcut_katsayi"] == ek.config.EDR_OLCEKLENDIRME_KATSAYISI
+    assert sonuc["test_mse_yeni"] <= sonuc["test_mse_mevcut"]
     assert (sonuc["gun"], sonuc["test_ornek"]) == (20, 4 * 40)
 
 

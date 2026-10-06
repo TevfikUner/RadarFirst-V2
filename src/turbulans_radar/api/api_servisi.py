@@ -1896,17 +1896,20 @@ async def ucus_backtesti(
 async def toplu_backtest_baslat(
     request: Request,
     limit: int = Query(default=20, ge=1, le=200),
+    yenile: bool = Query(default=False),
     bildirim_webhook_url: str | None = Query(default=None),
     rol: str = Depends(api_anahtarini_dogrula),
 ):
     """Henüz backtest'i olmayan uçuşları arka planda karşılaştırır (örn. n8n'in
-    gece tetiklemesi); sonuç /analiz/durum/{gorev_id} ve webhook ile alınır."""
+    gece tetiklemesi); yenile=true mevcut backtest'leri de en eskiden başlayarak
+    yeniden hesaplar (algoritma değişince bayat sonuç kalmasın). Sonuç
+    /analiz/durum/{gorev_id} ve webhook ile alınır."""
     await _hiz_sinirini_kontrol_et(f"backtest:{_istemci_kimligi(request, rol)}")
     try:
         webhook = _webhook_url_dogrula(bildirim_webhook_url)
     except ValueError as hata:
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, str(hata)) from hata
-    gorev_id = await _gorev_olustur("backtest", parametreler={"limit": limit}, webhook_url=webhook)
+    gorev_id = await _gorev_olustur("backtest", parametreler={"limit": limit, "yenile": yenile}, webhook_url=webhook)
     return _kuyruga_alindi(gorev_id)
 
 

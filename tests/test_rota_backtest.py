@@ -86,6 +86,7 @@ def test_uctan_uca_backtest_kaydedilir_ve_listelenir(kayitli_ucus):
     assert len(kayitlar) == 1
     assert kayitlar[0]["optimize_mesafe_km"] == pytest.approx(ikinci["optimize_mesafe_km"])
     assert ("BTEST1", "2019-01-05") not in rb.backtest_edilmemis_ucuslar(limit=1000)
+    assert ("BTEST1", "2019-01-05") in rb.yenilenecek_ucuslar(limit=1000)
 
 
 def test_toplu_backtestte_bir_ucusun_beklenmeyen_hatasi_digerlerini_durdurmaz(monkeypatch):
@@ -105,6 +106,9 @@ def test_toplu_backtestte_bir_ucusun_beklenmeyen_hatasi_digerlerini_durdurmaz(mo
     monkeypatch.setattr(rb, "ucus_backtest_et", sahte_backtest)
     sonuclar = rb.toplu_backtest(limit=10)
     assert [s["durum"] for s in sonuclar] == ["hata", "tamamlandi", "atlandi"]
+
+    monkeypatch.setattr(rb, "yenilenecek_ucuslar", lambda limit, motor=None: [("ESKI1", "2019-01-01")])
+    assert [s["ucus_numarasi"] for s in rb.toplu_backtest(limit=10, yenile=True)] == ["ESKI1"]
 
 
 def _kare(tehlike, enlem0, enlem1, boylam0, boylam1):

@@ -272,12 +272,27 @@ def backtest_edilmemis_ucuslar(limit=20, motor=None) -> list[tuple[str, str]]:
     return [(u, t.isoformat()) for u, t in satirlar]
 
 
-def toplu_backtest(limit=20, motor=None) -> list[dict]:
-    """Henüz backtest'i olmayan uçuşları sırayla dener. Yapılamayanlar
-    ('atlandi') ve beklenmeyen hatayla düşenler ('hata') gerekçesiyle
-    raporlanır; tek bir uçuş toplu işi durdurmaz."""
+def yenilenecek_ucuslar(limit=20, motor=None) -> list[tuple[str, str]]:
+    """Backtest'i olmayanlar önce, sonra backtest'i en eski olanlar."""
+    motor = motor or motor_al()
+    with Session(motor) as oturum:
+        satirlar = oturum.execute(
+            select(Ucus.ucus_numarasi, Ucus.tarih)
+            .outerjoin(RotaBacktesti, RotaBacktesti.ucus_id == Ucus.id)
+            .order_by(RotaBacktesti.olusturulma_zamani.asc().nulls_first(), Ucus.olusturulma_zamani.desc())
+            .limit(limit)
+        ).all()
+    return [(u, t.isoformat()) for u, t in satirlar]
+
+
+def toplu_backtest(limit=20, motor=None, yenile=False) -> list[dict]:
+    """Henüz backtest'i olmayan uçuşları (yenile=True ise mevcutları da, en
+    eskiden başlayarak) sırayla dener. Yapılamayanlar ('atlandi') ve
+    beklenmeyen hatayla düşenler ('hata') gerekçesiyle raporlanır; tek bir
+    uçuş toplu işi durdurmaz."""
     sonuclar = []
-    for ucus_numarasi, tarih in backtest_edilmemis_ucuslar(limit, motor):
+    ucuslar = yenilenecek_ucuslar(limit, motor) if yenile else backtest_edilmemis_ucuslar(limit, motor)
+    for ucus_numarasi, tarih in ucuslar:
         try:
             ucus_backtest_et(ucus_numarasi, tarih, motor=motor)
             sonuclar.append({"ucus_numarasi": ucus_numarasi, "tarih": tarih, "durum": "tamamlandi"})

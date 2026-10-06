@@ -136,7 +136,8 @@ def _toplu_gorevi(gorev):
 
 
 def _backtest_gorevi(gorev):
-    return {"durum": "tamamlandi", "ozet": toplu_backtest(gorev["parametreler"]["limit"])}
+    p = gorev["parametreler"]
+    return {"durum": "tamamlandi", "ozet": toplu_backtest(p["limit"], yenile=p.get("yenile", False))}
 
 
 def _canli_veri_gorevi(gorev):
