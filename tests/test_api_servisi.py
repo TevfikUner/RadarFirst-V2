@@ -1819,6 +1819,7 @@ def test_yedek_saglik_kontrolu_yas_ve_eksikligi_raporlar(monkeypatch, tmp_path):
 
 def test_canli_gfs_uzun_suredir_kullanilmadiysa_bosta_hata_degil(monkeypatch):
     monkeypatch.setattr(config, "CANLI_HAVA_VERISI_ETKIN", True)
+    monkeypatch.setattr(config, "CANLI_ISITMA_SAAT", 0)
     kayit = {
         "son_basari_zamani": datetime.now(UTC) - timedelta(days=4),
         "son_deneme_zamani": datetime.now(UTC) - timedelta(days=4),
@@ -1830,3 +1831,52 @@ def test_canli_gfs_uzun_suredir_kullanilmadiysa_bosta_hata_degil(monkeypatch):
     assert sonuc["durum"] == "bosta" and sonuc["son_basari_yas_saat"] > 90
     kayit["ardisik_hata_sayisi"] = 2
     assert api_servisi._canli_gfs_kontrolu()["durum"] == "hata"
+
+
+def test_gfs_isitmasi_acikken_uzun_suredir_basari_yoksa_bayat(monkeypatch):
+    monkeypatch.setattr(config, "CANLI_HAVA_VERISI_ETKIN", True)
+    monkeypatch.setattr(config, "CANLI_ISITMA_SAAT", 6.0)
+    kayit = {
+        "son_basari_zamani": datetime.now(UTC) - timedelta(days=6),
+        "son_deneme_zamani": datetime.now(UTC) - timedelta(hours=1),
+        "ardisik_hata_sayisi": 0,
+        "son_hata": None,
+    }
+    monkeypatch.setattr(api_servisi, "kaynak_durumlarini_getir", lambda anahtarlar: [kayit])
+    assert api_servisi._canli_gfs_kontrolu()["durum"] == "bayat"
+    assert "bayat" in api_servisi._SAGLIKSIZ_DURUMLAR
+
+
+async def test_gfs_isitmasi_aralikta_tek_gorev_kuyruga_alir(monkeypatch):
+    olusturulanlar = []
+
+    async def durumlar(tur, sonra):
+        return ["tamamlandi"] if olusturulanlar else []
+
+    async def aktif_mi(tur):
+        return False
+
+    async def olustur(tur, parametreler=None, **_):
+        olusturulanlar.append((tur, parametreler))
+        return "g1"
+
+    monkeypatch.setattr(api_servisi, "gorev_durumlari", durumlar)
+    monkeypatch.setattr(api_servisi, "aktif_gorev_var_mi", aktif_mi)
+    monkeypatch.setattr(api_servisi, "gorev_olustur", olustur)
+    monkeypatch.setattr(config, "CANLI_ISITMA_KUTUSU", (36.0, 42.0, 26.0, 45.0))
+
+    assert await api_servisi._gfs_isitma_adimi(6 * 3600) == "g1"
+    assert await api_servisi._gfs_isitma_adimi(6 * 3600) is None
+    assert olusturulanlar[0][0] == "canli_veri"
+    assert olusturulanlar[0][1]["kutu"] == [36.0, 42.0, 26.0, 45.0]
+
+
+def test_gfs_isitma_zamanlayicisi_yalnizca_aciksa_eklenir(monkeypatch):
+    monkeypatch.setattr(config, "SIGMET_OTOMATIK_GUNCELLEME_DAKIKA", 0)
+    monkeypatch.setattr(config, "OPENAIP_OTOMATIK_GUNCELLEME_SAAT", 0)
+    monkeypatch.setattr(config, "ML_GECE_ISI_SAATI", "")
+    monkeypatch.setattr(config, "CANLI_HAVA_VERISI_ETKIN", True)
+    monkeypatch.setattr(config, "CANLI_ISITMA_SAAT", 0)
+    assert api_servisi._zamanlayici_fabrikalari() == []
+    monkeypatch.setattr(config, "CANLI_ISITMA_SAAT", 6)
+    assert len(api_servisi._zamanlayici_fabrikalari()) == 1

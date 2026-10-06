@@ -99,8 +99,9 @@ def gfs_kupunu_normalize_et(ham: xr.Dataset) -> xr.Dataset:
     """THREDDS GFS alt kümesini ortak şemaya çevirir."""
     zaman_boyutu = next(b for b in ham["u-component_of_wind_isobaric"].dims if b.startswith("time"))
     calisma_zamani = None
-    if "reftime" in ham.variables:
-        calisma_zamani = pd.Timestamp(np.max(ham["reftime"].values)).isoformat()
+    referans = next((ad for ad in ham.variables if str(ad).startswith("reftime")), None)
+    if referans is not None:
+        calisma_zamani = pd.Timestamp(np.max(ham[referans].values)).isoformat()
     kup = ham[list(_GFS_DEGISKENLERI)].rename({**_GFS_DEGISKENLERI, zaman_boyutu: "valid_time"})
     kup = kup.rename({"isobaric": config.BASINC_BOYUTU})
     kup = kup.drop_vars([c for c in kup.coords if c not in kup.dims])

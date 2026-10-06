@@ -79,6 +79,8 @@ services:
       # üstün gelir (x-uygulama-db).
       # Otonom backend: API, canlı AWC SIGMET'lerini kendi içinde periyodik yeniler.
       SIGMET_OTOMATIK_GUNCELLEME_DAKIKA: ${SIGMET_OTOMATIK_GUNCELLEME_DAKIKA:-15}
+      # Canlı GFS küpü bu aralıkla (saat) Türkiye kutusu için önceden hazırlanır; 0 kapatır.
+      CANLI_ISITMA_SAAT: ${CANLI_ISITMA_SAAT:-6}
       # ML gece işi (IEM PIREP + CDS eşleştirme + eğitim) her gün bu saatte (UTC;
       # 23:07 = Türkiye 02:07) API tarafından kuyruğa alınır. .env'de boş
       # bırakılırsa (ML_GECE_ISI_SAATI=) kapalıdır; n8n kullanılıyorsa kapatın.

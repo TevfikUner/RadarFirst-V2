@@ -238,6 +238,8 @@ def _zamanlayici_fabrikalari() -> list:
             fabrikalar.append(lambda: _openaip_zamanlayicisi(config.OPENAIP_OTOMATIK_GUNCELLEME_SAAT * 3600))
         else:
             _logger.warning("OPENAIP_OTOMATIK_GUNCELLEME_SAAT açık ama OPENAIP_API_ANAHTARI yok; yenileme kapalı.")
+    if config.CANLI_ISITMA_SAAT > 0 and config.CANLI_HAVA_VERISI_ETKIN:
+        fabrikalar.append(lambda: _gfs_isitma_zamanlayicisi(config.CANLI_ISITMA_SAAT * 3600))
     if config.ML_GECE_ISI_SAATI:
         try:
             _gece_isi_saati(config.ML_GECE_ISI_SAATI)
@@ -322,6 +324,35 @@ async def _openaip_zamanlayicisi(aralik_saniye, kontrol_saniye=600.0):
             await _openaip_zamanlayici_adimi(aralik_saniye)
         except Exception as hata:
             _logger.warning("openAIP zamanlayıcısı çalışamadı: %s", dostane_hata_mesaji(hata))
+        await asyncio.sleep(min(kontrol_saniye, aralik_saniye))
+
+
+async def _gfs_isitma_adimi(aralik_saniye, simdi: datetime | None = None) -> str | None:
+    """Son aralıkta canlı veri görevi yoksa CANLI_ISITMA_KUTUSU için GFS küpünü
+    kuyruğa alır: sağlayıcı kesintisi ilk kullanıcı isteğinden önce fark edilir."""
+    simdi = simdi or datetime.now(UTC)
+    if await gorev_durumlari("canli_veri", simdi - timedelta(seconds=aralik_saniye)):
+        return None
+    if await aktif_gorev_var_mi("canli_veri"):
+        return None
+    gorev_id = await gorev_olustur(
+        "canli_veri",
+        parametreler={
+            "kutu": list(config.CANLI_ISITMA_KUTUSU),
+            "baslangic": simdi.isoformat(),
+            "saat_sayisi": config.CANLI_ISITMA_SAAT_SAYISI,
+        },
+    )
+    _logger.info("Canlı GFS ısıtması kuyruğa alındı (%s).", gorev_id)
+    return gorev_id
+
+
+async def _gfs_isitma_zamanlayicisi(aralik_saniye, kontrol_saniye=600.0):
+    while True:
+        try:
+            await _gfs_isitma_adimi(aralik_saniye)
+        except Exception as hata:
+            _logger.warning("GFS ısıtma zamanlayıcısı çalışamadı: %s", dostane_hata_mesaji(hata))
         await asyncio.sleep(min(kontrol_saniye, aralik_saniye))
 
 
@@ -1933,7 +1964,7 @@ def _canli_gfs_kontrolu():
     if kayit["ardisik_hata_sayisi"]:
         durum = "hata"
     elif yas_saat is None or yas_saat > config.SAGLIK_GFS_BOSTA_SAAT:
-        durum = "bosta"
+        durum = "bayat" if config.CANLI_ISITMA_SAAT > 0 else "bosta"
     else:
         durum = "tamam"
     return {

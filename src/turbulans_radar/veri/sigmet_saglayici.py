@@ -98,7 +98,9 @@ def _gecerlilik(ham: dict) -> tuple[datetime | None, datetime | None]:
     if baslangic < _MAKUL_EN_ERKEN_ZAMAN or baslangic > bitis:
         metin = str(ham.get("rawSigmet") or ham.get("rawAirSigmet") or "")
         onarilan = _metinden_baslangic(metin, bitis) or bitis - timedelta(hours=config.SIGMET_YAYIN_UFKU_SAAT)
-        _logger.warning("SIGMET geçerlilik başlangıcı geçersiz (%s); %s kullanıldı.", ham.get("validTimeFrom"), onarilan)
+        _logger.warning(
+            "SIGMET geçerlilik başlangıcı geçersiz (%s); %s kullanıldı.", ham.get("validTimeFrom"), onarilan
+        )
         baslangic = onarilan
     return baslangic, bitis
 

@@ -411,6 +411,9 @@ CANLI_TAHMIN_UFKU_SAAT = _ortam_sayi("CANLI_TAHMIN_UFKU_SAAT", 120, int)
 CANLI_KUP_TAZELIK_SAAT = _ortam_sayi("CANLI_KUP_TAZELIK_SAAT", 6, int)
 # Geçerliliği bu kadar saat önce bitmiş canlı küpler (dosya + katalog kaydı) silinir.
 CANLI_KUP_SAKLAMA_SAAT = _ortam_sayi("CANLI_KUP_SAKLAMA_SAAT", 48, int)
+CANLI_ISITMA_SAAT = _ortam_sayi("CANLI_ISITMA_SAAT", 0.0)
+CANLI_ISITMA_KUTUSU = tuple(float(s) for s in _ortam_str("CANLI_ISITMA_KUTUSU", "36,42,26,45").split(",") if s.strip())
+CANLI_ISITMA_SAAT_SAYISI = _ortam_sayi("CANLI_ISITMA_SAAT_SAYISI", 12, int)
 # Etkileşimli uçlar (rota simülasyonu, tahmin) katalogda olmayan bir canlı küp
 # için en fazla bu kadar bekler; indirme arka planda sürer, yanıt rüzgarsız
 # ön sonuçla "canli_veri_hazirlaniyor" döner (yavaş ağda istek askıda kalmaz).

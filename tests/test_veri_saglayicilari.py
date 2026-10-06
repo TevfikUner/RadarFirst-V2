@@ -12,11 +12,11 @@ from turbulans_radar.veri import veri_saglayicilari as vs
 from turbulans_radar.veri.veri_yukleme import hava_durumu_onbellekli_yukle
 
 
-def _thredds_benzeri_ham_kup():
+def _thredds_benzeri_ham_kup(zaman="time", referans="reftime"):
     zamanlar = pd.date_range("2026-09-26T09:00", periods=2, freq="3h")
     sekil = (2, 1, 3, 4)
     veri = {
-        ad: (("time", "isobaric", "latitude", "longitude"), np.full(sekil, deger, dtype="float32"))
+        ad: ((zaman, "isobaric", "latitude", "longitude"), np.full(sekil, deger, dtype="float32"))
         for ad, deger in [
             ("u-component_of_wind_isobaric", 10.0),
             ("v-component_of_wind_isobaric", -5.0),
@@ -26,8 +26,8 @@ def _thredds_benzeri_ham_kup():
     ham = xr.Dataset(
         {**veri, "LatLon_721X1440-0p13S-180p00E-2": ((), 0)},
         coords={
-            "time": zamanlar,
-            "reftime": ("time", pd.to_datetime(["2026-09-26T00:00", "2026-09-26T06:00"])),
+            zaman: zamanlar,
+            referans: (zaman, pd.to_datetime(["2026-09-26T00:00", "2026-09-26T06:00"])),
             "isobaric": ("isobaric", [25000.0], {"units": "Pa"}),
             "latitude": [50.0, 45.0, 40.0],
             "longitude": [280.0, 283.0, 286.0, 289.0],
@@ -43,6 +43,11 @@ def test_gfs_kupu_ortak_semaya_normalize_edilir():
     assert kup[config.BASINC_BOYUTU].values.tolist() == [250.0]
     assert kup["longitude"].values.tolist() == [-80.0, -77.0, -74.0, -71.0]
     assert kup.attrs == {"kaynak": "gfs", "model_calisma_zamani": "2026-09-26T06:00:00"}
+
+
+def test_gercek_thredds_adlari_time1_reftime1_ile_calisma_zamani_okunur():
+    kup = vs.gfs_kupunu_normalize_et(_thredds_benzeri_ham_kup(zaman="time1", referans="reftime1"))
+    assert kup.attrs["model_calisma_zamani"] == "2026-09-26T06:00:00"
 
 
 def test_canli_zaman_penceresi():
