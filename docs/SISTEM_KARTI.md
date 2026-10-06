@@ -64,9 +64,11 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
     daire yönüne göre açısı en fazla 30°, toplam sapma en fazla 400 km, ızgara
     aralığı en fazla 20 km (kısa rotada açı sınırına göre daralır). Sapma
     uçlarda kendiliğinden kademeli sınırlanır.
-  - Bir üst ya da bir alt basınç seviyesine geçiş: geçici seviyeye gidiş ve
-    planlanan seviyeye dönüşün yaklaşık yakıt bedeli hesaba katılır (tırmanma
-    ve alçalma simetrik; seviyeye bağlı seyir yakıt akışı modellenmez).
+  - Aynı yönün bir üst ya da bir alt yasal FL'sine geçiş (yarım daire kuralı,
+    RVSM, tip tavanı; manyetik sapma sabit +5°E varsayımı): geçici seviyeye
+    gidiş ve planlanan seviyeye dönüşün yaklaşık yakıt bedeli hesaba katılır
+    (alçalmaya kredi yok; seviyeye bağlı seyir yakıt akışı modellenmez).
+    Kurala aykırı girilen seviye en yakın yasal FL'ye yuvarlanır, uyarı verilir.
 - **Öncelik sırası:**
   1. Aktif SIGMET'e ve kısıtlı/yasak hava sahasına **girmemek** (sert
      kısıtlar). Kısıt dört boyutludur: poligon, irtifa bandı, uçağın o

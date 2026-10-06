@@ -41,7 +41,7 @@ ayağa kalkınca `demo` servisi uçuşu analiz edip veritabanına yazar
 - 3B harita: <http://localhost:8000/harita/harita3d.html> -- API anahtarı
   `demo-yerel-yonetici`, listeden THY322'yi seç.
 - Rota simülasyonu: <http://localhost:8000/harita/ucus_simulasyonu.html>
-  (örn. 41.0, 29.0 → 40.5, 43.5; FL360; 2019-01-15 20:00).
+  (örn. 41.0, 29.0 → 40.5, 43.5; FL350; 2019-01-15 20:00).
 - API belgesi: <http://localhost:8000/docs>
 
 **Docker olmadan (yalnızca analiz ve harita):**
@@ -712,14 +712,18 @@ kapsamasının olmadığı bölümler uydurma bir rotayla doldurulmaz). Sonuçla
 `turbulans-backtest --hepsi`. Ölçümler artık irtifayı da
 saklıyor (`edr_olcumleri.irtifa_m`).
 
-Depodaki gerçek uçuşlarla (15 Ocak 2019, Türkiye ERA5 küpü, A320 profili)
-ilk sonuçlar -- riskli oran: TI1 >= eşik nokta oranı:
+Depodaki gerçek uçuşla (15 Ocak 2019, Türkiye ERA5 küpü, A320 profili;
+6 Ekim 2026'da yasal FL kuralı ve çevreleyen katman fiziğiyle yeniden
+üretildi) -- riskli oran: TI1 >= eşik nokta oranı. Büyük daire ve A* rotası,
+gerçek seyir irtifasının bu yöndeki en yakın yasal FL'sinde hesaplanır:
 
-| Uçuş | Seyir | Karşılaştırılan bölüm | Riskli oran (gerçek / büyük daire / A*) | A* stratejisi |
+| Uçuş | Seyir (gerçek → yasal) | Karşılaştırılan bölüm | Riskli oran (gerçek / büyük daire / A*) | A* stratejisi |
 |---|---|---|---|---|
-| THY72C | FL320 | 258 km | 0.68 / 0.17 / 0.00 | tırmanma (+5 dk) |
-| THY322 | FL300 | 260 km | 0.15 / 0.24 / 0.00 | tırmanma (+2 dk) |
-| THY606 | FL380 | 101 km | 0.00 / 0.00 / 0.00 | yok (risk yok) |
+| THY322 | FL300 → FL290 (doğu) | 116 km | 0.19 / 0.32 / 0.00 | yanal (+0,4 dk) |
+
+Önceki tablodaki THY72C ve THY606 veritabanında artık olmadığı için
+yeniden üretilemedi; eski değerleri (basınç seviyesinden türetilen dikey
+alternatifler, eski fizik) geçersiz sayılmalıdır.
 
 ### Bağımsız kanıt: TI1'i TI1 ile ölçmemek
 
@@ -825,11 +829,17 @@ irtifa, tarih-saat ve uçak modelini girip "Simüle Et"e basınca:
   bacak 16.7°, 140 km sapmayla güvenli rota.
 - **Çok faktörlü karşılaştırma -- irtifa değişimi (tırmanma/alçalma):**
   Riskli türbülanstan kaçınmanın YANAL sapma dışında ikinci bir GERÇEK
-  stratejisi daha var: aynı yatay rotada kalıp bir üst/alt basınç seviyesine
-  geçmek (bazı CAT katmanları irtifaya bağlıdır). Seyir başı ve sonu
-  planlanan seviyede olduğu için geçici seviyeye gidiş ve planlanan seviyeye
-  dönüş birlikte maliyetlenir (bir tırmanma + bir alçalma; tırmanmada yakıt
-  akışı seyrin ~%50 üstü, alçalmada ~%30 altı, 1500 ft/dk -- bkz.
+  stratejisi daha var: aynı yatay rotada kalıp aynı yönün bir üst/alt yasal
+  uçuş seviyesine geçmek (bazı CAT katmanları irtifaya bağlıdır). Seviyeler
+  yarım daire kuralından gelir (`rota/ucus_seviyeleri.py`: manyetik iz
+  000–179° tek, 180–359° çift FL; RVSM'de 2000 ft, FL410 üstünde 4000 ft;
+  manyetik sapma sabit +5°E VARSAYIM; tip tavanı `azami_fl`). Kurala aykırı
+  girilen seviye en yakın yasal FL'ye yuvarlanır ve yanıtta uyarı verilir.
+  Rüzgâr ve TI1 o FL'ye en yakın / çevreleyen basınç seviyesinden okunur;
+  yer hızı rüzgâr üçgeniyle (GS = √(TAS² − Xw²) + Hw) hesaplanır. Seyir
+  başı ve sonu planlanan seviyede olduğu için geçici seviyeye gidiş ve
+  planlanan seviyeye dönüş birlikte maliyetlenir (bir tırmanma + bir alçalma;
+  tırmanmada yakıt akışı seyrin ~%50 üstü, alçalmaya kredi yok, 1500 ft/dk -- bkz.
   `_irtifa_degisimi_maliyeti`, halka açık tipik jet mertebeleri, resmi
   performans verisi DEĞİL). Bu yüzden tırmanma ile alçalma simetriktir ve
   hiçbiri yakıt "tasarrufu" göstermez; eskiden yalnızca gidiş sayıldığı için
@@ -875,7 +885,7 @@ göstermez -- `ruzgar_verisi_kaynagi: "era5_kapsam_disi"` döner, iki rota da
 sadece uçağın hava hızıyla (rüzgarsız/türbülanssız) hesaplanır ve arayüzde bu
 açıkça belirtilir. Bu veri kümesiyle demo yapmak için başlangıç/bitiş
 noktalarını bu bölgenin içinde ve tarihi Ocak 2019 içinde seçmen gerekir
-(sayfa varsayılan olarak İstanbul↔Antalya, 5 Ocak 2019, 28000ft ile açılır --
+(sayfa varsayılan olarak İstanbul↔Antalya, 5 Ocak 2019, 29000ft ile açılır --
 bu rotada gerçek bir türbülans noktası tespit edilip tamamen atlatılıyor) --
 gerçek dünyadaki uçuş rotanı/tarihini görmek istersen, kendi ERA5 veri
 küpünü indirip `HAVA_DURUMU_DOSYASI` ortam değişkeniyle o dosyayı gösterebilirsin.
