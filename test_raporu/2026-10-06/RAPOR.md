@@ -61,6 +61,10 @@ Katmanların toplamı 809'u aşıyor çünkü bazı testler birden fazla işaret
 derlemesi yükü altında alındı. Tek başına iki kez koşuldu, ikisinde de geçti (iki performans testi toplam 61,6 sn, test başına
 ≈30 sn). Yani sınırın payı yok, test kırılgan.
 
+**Betiğin doğrulaması:** `scripts/tam_denetim.sh` (tam mod, `RAPOR_KLASORU=test_raporu/_deneme_tam`) yüksüz ikinci koşuda 838 sn'de
+22/22 adımı ✅ tamamladı. `gercek_veri` 53/53 geçti, kapsam yine %84,0, Playwright konsol hatası 0. `--hizli` modu 143 sn sürdü.
+Bu ikinci koşu da performans hatasının yükten kaynaklandığını doğruluyor.
+
 **Kapsamı en düşük 10 modül:** `cli/kimlik_kontrol` %0 · `cli/ornek_ucus_bul` %0 · `cli/veri_kontrol` %0 ·
 `arayuz/web_arayuzu` %0 · `cli/demo_ekranlari` %27 · `cli/performans_olcumu` %39 · `ml/gosterge_degerlendirme` %52 ·
 `ml/sonuc_paketi` %55 · `analiz/toplu_analiz` %60 · `fizik/edr_esleme` %60.
