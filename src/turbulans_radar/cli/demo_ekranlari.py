@@ -28,13 +28,13 @@ SENARYOLAR = {
     "02_simulasyon_turbulanstan_kacinma": {
         "baslangic": (41.00, 29.00),
         "bitis": (40.50, 43.50),
-        "irtifa_ft": 36000,
+        "irtifa_ft": 35000,
         "zaman": "2019-01-15T20:00",
     },
     "03_simulasyon_kisitli_sahadan_kacinma": {
         "baslangic": (38.35, 38.31),
         "bitis": (36.34, 43.13),
-        "irtifa_ft": 36000,
+        "irtifa_ft": 35000,
         "zaman": "2019-01-15T20:00",
     },
 }

@@ -5,7 +5,7 @@ web/ucus_simulasyonu.html'in gerçek bir tarayıcıda (Playwright + headless
 Chromium) uçtan uca çalıştığını doğrular -- README'nin "3D uçuş
 simülasyonu" bölümünde anlatılan manuel doğrulamanın kalıcı,
 tekrarlanabilir hale getirilmiş hali. Sayfanın kendi varsayılan değerleri
-(İstanbul->Antalya, 2019-01-05, 28000ft) zaten ERA5 veri küpünün
+(İstanbul->Antalya, 2019-01-05, 29000ft) zaten ERA5 veri küpünün
 kapsadığı bölge/tarih aralığında -- ekstra bir uçuş kaydına gerek yok,
 doğrudan gerçek ERA5 rüzgarıyla A* rota hesabı tetiklenir.
 
@@ -116,11 +116,11 @@ def test_kalan_risk_yoksa_kabin_bildirimi_cikmaz(canli_sunucu, tarayici_sayfasi)
 
 def test_kalan_riskte_bolumler_ve_kabin_onerisi_dispecer_dilinde(canli_sunucu, tarayici_sayfasi):
     sayfa = tarayici_sayfasi["sayfa"]
-    _simule_et(canli_sunucu, sayfa, {"#irtifa-ft": "30000"}, "2019-01-01T06:00")
+    _simule_et(canli_sunucu, sayfa, {"#irtifa-ft": "31000"}, "2019-01-01T06:00")
     if sayfa.inner_text("#s-optimize-turbulans").strip() in ("hesaplanmadı", "yok"):
         return
     oneri = sayfa.inner_text("#kabin-bildirimi")
-    assert "Öneri (karar kaptanındır)" in oneri and "FL300" in oneri
+    assert "Öneri (karar kaptanındır)" in oneri and "FL310" in oneri
     assert sayfa.locator("#riskli-bolumler-tablosu tr").count() > 1
-    assert "FL300" in sayfa.inner_text("#s-optimize-irtifa")
+    assert "FL310" in sayfa.inner_text("#s-optimize-irtifa")
     assert ":" in sayfa.inner_text("#s-optimize-sure")

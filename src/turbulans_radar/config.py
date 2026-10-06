@@ -323,6 +323,10 @@ ROTA_PARETO_CEZALARI_SANIYE = [
 # ~%30'u; yanal sapma yolu da uzatır).
 ROTA_ZAMAN_BELIRSIZLIK_ORANI = _ortam_sayi("ROTA_ZAMAN_BELIRSIZLIK_ORANI", 0.3)
 ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA = _ortam_sayi("ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA", 5.0)
+# rota/ucus_seviyeleri.py: yarım daire kuralı manyetik ize göre uygulanır.
+# Manyetik sapma (doğu +) tüm rotalar için SABİT alınır: Türkiye için ~+5°E
+# VARSAYIMDIR (NOAA WMM ile teyit edilmedi; ABD/Avrupa dışı rotalarda yanlış olabilir).
+MANYETIK_SAPMA_DERECE = _ortam_sayi("MANYETIK_SAPMA_DERECE", 5.0)
 # rota/hava_yolu_agi.py -- ATS yolları / FRA ağı (AIP'ten elle hazırlanır, depoya
 # konmaz; bkz. docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md). ToC/ToD ağa en yakın
 # ATS_AGI_BAGLANTI_SAYISI noktaya (en fazla ATS_AGI_BAGLANTI_KM) DCT bağlanır;

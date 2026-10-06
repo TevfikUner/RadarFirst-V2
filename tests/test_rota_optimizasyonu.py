@@ -88,18 +88,19 @@ def test_ti1_guvenilirlik_notu_her_yanitta_bulunur():
 
 
 # Her senaryo gerçek ERA5 verisiyle doğrulandı. "ana": yerel Ocak 2019 küpü;
-# "demo": depodaki THY322 küpü (yalnızca o yüklenir).
+# "demo": depodaki THY322 küpü (yalnızca o yüklenir). Seviyeler yarım daire
+# kuralına uygun (hepsi doğu yönü: tek FL).
 GERCEK_SENARYOLAR = {
     "ana": {
-        "riskisiz": (38.4, 27.1, 38.5, 43.4, 34000, "2019-01-31T00:00:00"),
-        "riskli": (41.0, 28.9, 36.9, 30.7, 28000, "2019-01-05T12:00:00"),
-        "kismi": (41.0, 28.9, 36.9, 30.7, 30000, "2019-01-01T06:00:00"),
+        "riskisiz": (38.4, 27.1, 38.5, 43.4, 35000, "2019-01-31T00:00:00"),
+        "riskli": (41.0, 28.9, 36.9, 30.7, 29000, "2019-01-05T12:00:00"),
+        "kismi": (41.0, 28.9, 36.9, 30.7, 31000, "2019-01-01T06:00:00"),
         "sigmet": ((38.2, 39.6, 34.5, 35.5), "2019-01-31"),
     },
     "demo": {
-        "riskisiz": (41.0, 28.9, 40.1, 32.99, 34000, "2019-01-15T19:00:00"),
-        "riskli": (40.9, 29.3, 40.6, 43.1, 34000, "2019-01-15T19:00:00"),
-        "kismi": (41.0, 28.9, 39.9, 41.3, 30000, "2019-01-15T19:00:00"),
+        "riskisiz": (41.0, 28.9, 40.1, 32.99, 35000, "2019-01-15T19:00:00"),
+        "riskli": (40.9, 29.3, 40.6, 43.1, 35000, "2019-01-15T19:00:00"),
+        "kismi": (41.0, 28.9, 39.9, 41.3, 31000, "2019-01-15T19:00:00"),
         "sigmet": ((40.0, 41.2, 30.5, 31.5), "2019-01-15"),
     },
 }
@@ -178,7 +179,7 @@ def test_seviye_degisimi_secenekleri_yakit_tasarrufu_gostermez(gercek_senaryo):
 
 
 def test_gercek_era5_kismi_atlatma_durustce_raporlanir(gercek_senaryo):
-    # "kismi" senaryo, FL300: denenen hiçbir aday riski TAMAMEN ortadan
+    # "kismi" senaryo, FL310: denenen hiçbir aday riski TAMAMEN ortadan
     # kaldıramıyor (çevreleyen katman fiziğiyle gerçek ERA5 verisinde doğrulandı:
     # ana küpte 6 -> 2, demo küpünde 6 -> 1) -- yine de riski
     # azaltan aday dürüstçe seçilmeli, "tamamen güvenli" diye YALAN söylenmemeli.
@@ -189,12 +190,12 @@ def test_gercek_era5_kismi_atlatma_durustce_raporlanir(gercek_senaryo):
     assert sonuc["turbulanstan_kacinildi_mi"] is True
 
     bolumler = sonuc["optimize_rota"]["riskli_bolumler"]
-    assert bolumler and all(b["fl"] == 300 and b["uzunluk_nm"] > 0 and b["sure_dk"] > 0 for b in bolumler)
+    assert bolumler and all(b["fl"] == 310 and b["uzunluk_nm"] > 0 and b["sure_dk"] > 0 for b in bolumler)
     assert pd.Timestamp(bolumler[0]["baslangic_utc"]) < pd.Timestamp(bolumler[0]["bitis_utc"])
     assert sonuc["optimize_rota"]["riskli_mesafe_nm"] == pytest.approx(sum(b["uzunluk_nm"] for b in bolumler))
     oneri = sonuc["kabin_onerisi"]
     assert oneri["servis_durdur"] is True
-    assert oneri["metin"].startswith("Öneri (karar kaptanındır)") and "FL300" in oneri["metin"]
+    assert oneri["metin"].startswith("Öneri (karar kaptanındır)") and "FL310" in oneri["metin"]
 
 
 def test_gercek_era5_ile_czml_yapisi_gecerli(gercek_senaryo):
@@ -239,7 +240,7 @@ def _kare_sigmet(enlem0, enlem1, boylam0, boylam1, taban=None, tavan=45000, gun=
 
 
 def _izmir_van(sigmetler):
-    return rota_simulasyonu_olustur(38.4, 27.1, 38.5, 43.4, 34000, "2019-01-31T00:00:00", "A320", sigmetler=sigmetler)
+    return rota_simulasyonu_olustur(38.4, 27.1, 38.5, 43.4, 35000, "2019-01-31T00:00:00", "A320", sigmetler=sigmetler)
 
 
 def test_rota_ortasindaki_sigmetten_yanal_sapmayla_kacinilir(gercek_senaryo):
@@ -266,7 +267,7 @@ def test_baslangic_sigmet_icindeyse_rota_onerilmez():
 
 def test_bulgular_aciklama_ile_ayni_siradadir_ve_metin_tasimaz():
     sigmet = _kare_sigmet(4.3, 5.9, 17.0, 18.0, gun="2019-01-15")
-    sonuc = rota_simulasyonu_olustur(5.0, 10.0, 5.0, 25.0, 36000, "2019-01-15T00:00:00", "A320", sigmetler=[sigmet])
+    sonuc = rota_simulasyonu_olustur(5.0, 10.0, 5.0, 25.0, 35000, "2019-01-15T00:00:00", "A320", sigmetler=[sigmet])
     kodlar = [b["kod"] for b in sonuc["bulgular"]]
     assert kodlar[0] == "ruzgar_hesaba_katilamadi"
     assert sonuc["bulgular"][0]["parametreler"] == {"neden": "kapsam_disi"}
@@ -284,7 +285,7 @@ def test_ucusun_irtifa_bandi_disindaki_sigmet_rotayi_degistirmez():
 
 def test_hava_verisi_olmayan_bolgede_de_sigmetten_kacinilir():
     sigmet = _kare_sigmet(4.3, 5.9, 17.0, 18.0, gun="2019-01-15")
-    sonuc = rota_simulasyonu_olustur(5.0, 10.0, 5.0, 25.0, 36000, "2019-01-15T00:00:00", "A320", sigmetler=[sigmet])
+    sonuc = rota_simulasyonu_olustur(5.0, 10.0, 5.0, 25.0, 35000, "2019-01-15T00:00:00", "A320", sigmetler=[sigmet])
     assert sonuc["ruzgar_verisi_kaynagi"] == "era5_kapsam_disi"
     assert sonuc["sigmetten_kacinildi_mi"] is True
     assert sonuc["optimize_rota"]["sigmet_ihlali_sayisi"] == 0
@@ -319,7 +320,7 @@ def _kare_saha(enlem0, enlem1, boylam0, boylam1, taban=None, tavan=None):
 
 def _afrika_rotasi(kisitli_sahalar):
     return rota_simulasyonu_olustur(
-        5.0, 10.0, 5.0, 25.0, 36000, "2019-01-15T00:00:00", "A320", sigmetler=[], kisitli_sahalar=kisitli_sahalar
+        5.0, 10.0, 5.0, 25.0, 35000, "2019-01-15T00:00:00", "A320", sigmetler=[], kisitli_sahalar=kisitli_sahalar
     )
 
 
@@ -351,7 +352,7 @@ def test_varis_ulkesinde_planli_rota_koridoru_disina_sapilmaz():
     """Varış noktasını içeren saha tamamen muaf değil: koridor dışı yine yasak."""
     saha = _kare_saha(0.0, 10.0, 20.0, 30.0)
     sonuc = rota_simulasyonu_olustur(
-        5.0, 10.0, 5.0, 25.0, 36000, "2019-01-15T00:00:00", "A320", sigmetler=[], kisitli_sahalar=[saha]
+        5.0, 10.0, 5.0, 25.0, 35000, "2019-01-15T00:00:00", "A320", sigmetler=[], kisitli_sahalar=[saha]
     )
     assert sonuc["kisitli_saha_kontrolu"]["muaf_tutulanlar"] == ["Deneme sahası"]
     assert sonuc["normal_rota"]["kisitli_saha_ihlali_sayisi"] == 0

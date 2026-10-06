@@ -135,7 +135,7 @@ def api_senaryolari():
             "baslangic_boylam": 29.0,
             "bitis_enlem": 40.5,
             "bitis_boylam": round(43.5 - 0.01 * i, 3),
-            "irtifa_ft": 36000,
+            "irtifa_ft": 35000,
             "zaman": "2019-01-15T20:00:00",
             "ucak_modeli": "A320",
         }

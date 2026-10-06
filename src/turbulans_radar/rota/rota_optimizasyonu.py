@@ -78,7 +78,6 @@ import xarray as xr
 
 from turbulans_radar import config
 from turbulans_radar.fizik.birim_donusumleri import (
-    basinc_hpa_to_irtifa_metre,
     en_yakin_basinc_seviyesi,
     irtifa_metre_to_basinc_hpa,
 )
@@ -86,7 +85,7 @@ from turbulans_radar.fizik.eslestirme import kapsam_disi_maskesi
 from turbulans_radar.fizik.iz_bulutu import duyarli_nokta_sayisi
 from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.loglama import logger_al
-from turbulans_radar.rota import hava_yolu_agi
+from turbulans_radar.rota import hava_yolu_agi, ucus_seviyeleri
 from turbulans_radar.rota.risk_katmanlari import (
     KisitliSahaKatmani,
     SigmetKisitKatmani,
@@ -109,11 +108,33 @@ DUNYA_YARICAPI_M = 6_371_000.0
 # Yaklaşık, halka açık tipik seyir performansı değerleri (bkz. modül dosya
 # başlığı) -- resmi üretici verisi değildir, sadece büyüklük mertebesi
 # doğru, karşılaştırma amaçlı kaba tahminlerdir.
+# azami_fl: halka açık azami işletme irtifası (A320 39.800 ft, 737-800 41.000 ft,
+# 777-300ER ve A350-900 43.100 ft); kütleye bağlı fiili tavan modellenmez.
 UCAK_PROFILLERI = {
-    "A320": {"etiket": "Airbus A320 (dar gövde, kısa/orta menzil)", "tas_ms": 230.0, "yakit_akisi_kg_saat": 2400.0},
-    "B738": {"etiket": "Boeing 737-800 (dar gövde, kısa/orta menzil)", "tas_ms": 227.0, "yakit_akisi_kg_saat": 2500.0},
-    "B77W": {"etiket": "Boeing 777-300ER (geniş gövde, uzun menzil)", "tas_ms": 250.0, "yakit_akisi_kg_saat": 6800.0},
-    "A359": {"etiket": "Airbus A350-900 (geniş gövde, uzun menzil)", "tas_ms": 252.0, "yakit_akisi_kg_saat": 5800.0},
+    "A320": {
+        "etiket": "Airbus A320 (dar gövde, kısa/orta menzil)",
+        "tas_ms": 230.0,
+        "yakit_akisi_kg_saat": 2400.0,
+        "azami_fl": 398,
+    },
+    "B738": {
+        "etiket": "Boeing 737-800 (dar gövde, kısa/orta menzil)",
+        "tas_ms": 227.0,
+        "yakit_akisi_kg_saat": 2500.0,
+        "azami_fl": 410,
+    },
+    "B77W": {
+        "etiket": "Boeing 777-300ER (geniş gövde, uzun menzil)",
+        "tas_ms": 250.0,
+        "yakit_akisi_kg_saat": 6800.0,
+        "azami_fl": 431,
+    },
+    "A359": {
+        "etiket": "Airbus A350-900 (geniş gövde, uzun menzil)",
+        "tas_ms": 252.0,
+        "yakit_akisi_kg_saat": 5800.0,
+        "azami_fl": 431,
+    },
 }
 
 # Jet yakıtının (Jet A-1) yanma başına CO2 emisyon katsayısı -- ICAO/IPCC'nin
@@ -124,17 +145,16 @@ UCAK_PROFILLERI = {
 # kg CO2 / kg yakıt) -- uçak modeline göre DEĞİŞMEZ, uydurma bir katsayı DEĞİLDİR.
 CO2_KG_PER_KG_YAKIT = 3.16
 
-# İrtifa değişimi (tırmanma/alçalma) maliyet modeli: bir üst/alt basınç
-# seviyesine geçmek irtifaya bağlı bir CAT katmanını atlatabilir. Seyir başı ve
+# İrtifa değişimi (tırmanma/alçalma) maliyet modeli: aynı yönün bir üst/alt yasal
+# FL'sine geçmek irtifaya bağlı bir CAT katmanını atlatabilir. Seyir başı ve
 # sonu planlanan seviyede olduğu için (ToC/ToD, bkz. kapsam) geçici seviyeye
 # gidiş ve planlanan seviyeye dönüş BİRLİKTE maliyetlenir: tırmanma ve alçalma
 # simetriktir, hiçbiri yakıt "tasarrufu" göstermez. Katsayılar YAKLAŞIKTIR
 # (halka açık tipik jet mertebeleri, resmi performans verisi DEĞİL); seviyeye
 # bağlı seyir yakıt akışı ve TAS modellenmez.
-#   - Tırmanmada yakıt akışı seyrin ~%50 üstü, alçalmada ~%30 altı.
+#   - Tırmanmada yakıt akışı seyrin ~%50 üstü; alçalmaya kredi verilmez (seyirle aynı).
 #   - Dikey hız ~1500 ft/dk; uçak bu sürede ilerlediği için ek süre sayılmaz.
 TIRMANMA_EK_YAKIT_ORANI = 0.5
-ALCALMA_YAKIT_TASARRUFU_ORANI = 0.3
 DIKEY_HIZ_FT_DK = 1500.0
 
 # Veritabanından SIGMET/kısıtlı saha çekerken rota kutusuna eklenen pay
@@ -434,9 +454,7 @@ def _a_yildiz_ile_rota_ara(
         mesafe_km = buyuk_daire_mesafesi_km(ea, ba, eb, bb)
         yon = _ilk_yon_derece(ea, ba, eb, bb)
         u, v = ruzgar_sozluk[dugum_b]
-        kuyruk_ruzgari_ms = u * math.sin(_bd(yon)) + v * math.cos(_bd(yon))
-        yer_hizi_ms = max(tas_ms + kuyruk_ruzgari_ms, tas_ms * 0.2)
-        return (mesafe_km * 1000.0) / yer_hizi_ms + risk.dugum_cezasi.get(dugum_b, 0.0)
+        return (mesafe_km * 1000.0) / _yer_hizi_ms(tas_ms, u, v, yon) + risk.dugum_cezasi.get(dugum_b, 0.0)
 
     def _sezgisel_saniye(dugum):
         e, b = konumlar[dugum]
@@ -550,7 +568,7 @@ def _ats_ile_rota_ara(ag, bas, bit, irtifa_m, baslangic_zamani, tas_ms, veri_kup
         (ea, ba), (eb, bb) = konumlar[a], konumlar[b]
         yon = _ilk_yon_derece(ea, ba, eb, bb)
         u, v = ruzgar[b]
-        yer_hizi = max(tas_ms + u * math.sin(_bd(yon)) + v * math.cos(_bd(yon)), tas_ms * 0.2)
+        yer_hizi = _yer_hizi_ms(tas_ms, u, v, yon)
         return buyuk_daire_mesafesi_km(ea, ba, eb, bb) * 1000.0 / yer_hizi + risk.dugum_cezasi.get(b, 0.0)
 
     def sezgisel(d):
@@ -645,6 +663,15 @@ def ruzgar_bilesenlerini_toplu_al(veri_kupu, enlemler, boylamlar, basinc_hpa, za
 # ---------------------------------------------------------------------------
 
 
+def _yer_hizi_ms(tas_ms, u, v, iz_derece):
+    """Rüzgâr üçgeni: GS = √(TAS² − Xw²) + Hw. Hw izdeki bileşen (kuyruk +),
+    Xw yan bileşen; u doğu, v kuzey. Alt sınır TAS'ın %20'si (bacak süresi şişmesin)."""
+    iz = _bd(iz_derece)
+    kuyruk = u * math.sin(iz) + v * math.cos(iz)
+    yan = u * math.cos(iz) - v * math.sin(iz)
+    return max(math.sqrt(max(tas_ms * tas_ms - yan * yan, 0.0)) + kuyruk, tas_ms * 0.2)
+
+
 def _rotayi_zamanla(enlemler, boylamlar, irtifa_m, baslangic_zamani, tas_ms, veri_kupu, ruzgarli_mi):
     """Rota boyunca her bacağı (leg) sırayla zamanlar; dönüş:
     (toplam_saniye, her_noktadaki_zaman_listesi)."""
@@ -664,12 +691,7 @@ def _rotayi_zamanla(enlemler, boylamlar, irtifa_m, baslangic_zamani, tas_ms, ver
             orta_enlem = (enlemler[i] + enlemler[i + 1]) / 2
             orta_boylam = (boylamlar[i] + boylamlar[i + 1]) / 2
             u, v = ruzgar_bilesenlerini_al(veri_kupu, orta_enlem, orta_boylam, basinc_hpa, zaman)
-            # Rüzgarın rota yönündeki izdüşümü (kuyruk rüzgarı pozitif, burun
-            # rüzgarı negatif): u=doğu bileşeni, v=kuzey bileşeni.
-            kuyruk_ruzgari_ms = u * math.sin(_bd(yon_derece)) + v * math.cos(_bd(yon_derece))
-            # Yer hızının aşırı düşüp bacak süresini gerçekçi olmayan
-            # biçimde şişirmesini önlemek için alt sınır (TAS'ın %20'si).
-            yer_hizi_ms = max(tas_ms + kuyruk_ruzgari_ms, tas_ms * 0.2)
+            yer_hizi_ms = _yer_hizi_ms(tas_ms, u, v, yon_derece)
 
         bacak_saniye = (mesafe_km * 1000.0) / yer_hizi_ms
         toplam_saniye += bacak_saniye
@@ -832,22 +854,19 @@ def _irtifa_degisimi_maliyeti(eski_irtifa_m, yeni_irtifa_m, yakit_akisi_kg_saat)
     if fark_ft == 0:
         return 0.0, 0.0
     tek_yon_saat = fark_ft / DIKEY_HIZ_FT_DK / 60.0
-    ekstra_yakit_kg = yakit_akisi_kg_saat * tek_yon_saat * (TIRMANMA_EK_YAKIT_ORANI - ALCALMA_YAKIT_TASARRUFU_ORANI)
+    ekstra_yakit_kg = yakit_akisi_kg_saat * tek_yon_saat * TIRMANMA_EK_YAKIT_ORANI
     return 0.0, ekstra_yakit_kg
 
 
-def _en_yakin_komsu_basinc_seviyeleri(veri_kupu, irtifa_m):
-    """Veri küpündeki basınç seviyeleri arasından, mevcut irtifaya en yakın
-    olanın BİR ÜST ve BİR ALT komşusunu (varsa) irtifa (m) olarak döner --
-    'irtifa değiştirerek kaçınma' adaylarını üretmek için."""
-    basinc_seviyeleri = np.sort(veri_kupu[config.BASINC_BOYUTU].values)  # artan basınç = azalan irtifa
-    mevcut_basinc = irtifa_metre_to_basinc_hpa(irtifa_m)
-    en_yakin_indeks = int(np.argmin(np.abs(basinc_seviyeleri - mevcut_basinc)))
+def _komsu_yasal_seviyeler(seviye, veri_kupu, enlemler, boylamlar, zaman_iso):
+    """Aynı yönün bir üst/alt yasal FL'si (irtifa, m); veri küpünün dikeyde
+    kapsamadığı seviye aday yapılmaz (TI1 hesaplanamaz, 'risk yok' sanılmasın)."""
     sonuc = {}
-    if en_yakin_indeks - 1 >= 0:
-        sonuc["irtifa_yukari"] = basinc_hpa_to_irtifa_metre(basinc_seviyeleri[en_yakin_indeks - 1])
-    if en_yakin_indeks + 1 < len(basinc_seviyeleri):
-        sonuc["irtifa_asagi"] = basinc_hpa_to_irtifa_metre(basinc_seviyeleri[en_yakin_indeks + 1])
+    for strateji, fl in (("irtifa_yukari", seviye["yukari_fl"]), ("irtifa_asagi", seviye["asagi_fl"])):
+        if fl is not None and _era5_tamamen_kapsiyor_mu(
+            veri_kupu, enlemler, boylamlar, zaman_iso, ucus_seviyeleri.fl_metre(fl)
+        ):
+            sonuc[strateji] = ucus_seviyeleri.fl_metre(fl)
     return sonuc
 
 
@@ -1107,7 +1126,12 @@ def rota_simulasyonu_olustur(
 
     profil = UCAK_PROFILLERI[ucak_modeli_kodu]
     tas_ms = profil["tas_ms"]
-    irtifa_m = irtifa_ft * 0.3048
+    seviye = ucus_seviyeleri.seviye_plani(
+        irtifa_ft,
+        ucus_seviyeleri.manyetik_iz(_ilk_yon_derece(baslangic_enlem, baslangic_boylam, bitis_enlem, bitis_boylam)),
+        profil["azami_fl"],
+    )
+    irtifa_m = ucus_seviyeleri.fl_metre(seviye["fl"])
     enlemler_gc, boylamlar_gc = buyuk_daire_rotasi_olustur(
         baslangic_enlem, baslangic_boylam, bitis_enlem, bitis_boylam, config.ROTA_SIMULASYONU_NOKTA_SAYISI
     )
@@ -1203,7 +1227,7 @@ def rota_simulasyonu_olustur(
         if planli is None:
             raise AtsAgiKullanilamazHatasi(
                 f"ToC/ToD ATS ağına bağlanamadı (en yakın nokta {config.ATS_AGI_BAGLANTI_KM:.0f} km'den uzak) ya da "
-                f"FL{irtifa_ft / 100:.0f}'de bu iki nokta arasında ATS rotası yok."
+                f"FL{seviye['fl']}'de bu iki nokta arasında ATS rotası yok."
             )
         ats_yollari["yok"] = planli
         normal = _aday("yok", planli[0], planli[1], irtifa_m)
@@ -1221,15 +1245,17 @@ def rota_simulasyonu_olustur(
     else:
         # ÇOK FAKTÖRLÜ karşılaştırma: (1) YANAL -- A* ile büyük daire
         # etrafındaki ızgarada, risk katmanlarına (TI1 cezası + SIGMET yasağı)
-        # göre en ucuz yol; (2/3) İRTİFA -- aynı yatay rotada bir üst/alt
-        # basınç seviyesi (gerçek tırmanma/alçalma bedeliyle, bkz.
+        # göre en ucuz yol; (2/3) İRTİFA -- aynı yatay rotada aynı yönün bir üst/alt
+        # yasal FL (gerçek tırmanma/alçalma bedeliyle, bkz.
         # _irtifa_degisimi_maliyeti). Bazı CAT katmanları ve SIGMET'ler
         # irtifaya bağlıdır; seviye değiştirmek bazen en ucuz güvenli seçenektir.
         sert_katmanlar = [k for k in (sigmet_katmani, saha_katmani) if k is not None]
         risk_katmanlari = ([Ti1CezaKatmani(veri_kupu)] if ruzgarli_mi else []) + sert_katmanlar
         pareto_cezalari = config.ROTA_PARETO_CEZALARI_SANIYE if ruzgarli_mi else []
         adaylar = []
-        irtifa_secenekleri = _en_yakin_komsu_basinc_seviyeleri(veri_kupu, irtifa_m) if ruzgarli_mi else {}
+        irtifa_secenekleri = (
+            _komsu_yasal_seviyeler(seviye, veri_kupu, enlemler_gc, boylamlar_gc, zaman_iso) if ruzgarli_mi else {}
+        )
         if ag is None:
             for strateji_adi, katmanlar in [
                 ("yanal", risk_katmanlari),
@@ -1294,6 +1320,7 @@ def rota_simulasyonu_olustur(
         guvenli_rota_bulundu_mu,
         kisitli_saha_kontrolu,
         veri_durumu.get("canli_hata") or (CANLI_VERI_HAZIRLANIYOR if veri_durumu.get("canli_hazirlaniyor") else None),
+        seviye,
     )
 
     return {
@@ -1312,6 +1339,7 @@ def rota_simulasyonu_olustur(
         "bulgular": [{k: b[k] for k in ("kod", "seviye", "parametreler")} for b in bulgular],
         "ucak_modeli": ucak_modeli_kodu,
         "ucak_etiketi": profil["etiket"],
+        "seviye_plani": seviye,
         "turbulanstan_kacinildi_mi": en_iyi["riskli_sayisi"] < normal["riskli_sayisi"],
         "sigmetten_kacinildi_mi": normal["sigmet_ihlali"] > 0 and en_iyi["sigmet_ihlali"] == 0,
         "kisitli_sahadan_kacinildi_mi": normal["kisitli_saha_ihlali"] > 0 and en_iyi["kisitli_saha_ihlali"] == 0,
@@ -1392,7 +1420,7 @@ def pareto_secenekleri(adaylar, onerilen, normal, yakit_fonksiyonu) -> list[dict
             "riskli_nokta_sayisi": _riskli_nokta_sayisi(a),
             "iz_bulutu_nokta_sayisi": a.get("iz_bulutu_sayisi"),
             "maks_ti1": a["maks_ti1"],
-            "irtifa_ft": a["irtifa_m"] / 0.3048,
+            "irtifa_ft": _ucus_seviyesi(a["irtifa_m"]) * 100,
             "maks_yanal_sapma_km": a["yanal_sapma_km"],
             "noktalar": _noktalari_paketle(
                 a["enlem"], a["boylam"], a["irtifa_m"], a["zamanlar"], a.get("ti1"), a.get("birlesik_edr")
@@ -1441,7 +1469,7 @@ def _rota_ozeti(aday, yakit_kg, toplam_saniye):
         ),
         "tahmini_yakit_kg": yakit_kg,
         "tahmini_co2_kg": yakit_kg * CO2_KG_PER_KG_YAKIT,
-        "irtifa_ft": aday["irtifa_m"] / 0.3048,
+        "irtifa_ft": _ucus_seviyesi(aday["irtifa_m"]) * 100,
         "maks_ti1": aday["maks_ti1"],
         "riskli_nokta_sayisi": _riskli_nokta_sayisi(aday),
         "iz_bulutu_nokta_sayisi": aday["iz_bulutu_sayisi"],
@@ -1463,6 +1491,29 @@ def _bulgu(kod, seviye, metin, **parametreler):
     return {"kod": kod, "seviye": seviye, "parametreler": parametreler, "metin": metin}
 
 
+def _seviye_bulgulari(seviye):
+    if not seviye or not seviye["duzeltildi"]:
+        return []
+    yon = "doğu (000-179°): tek" if seviye["yon"] == "dogu" else "batı (180-359°): çift"
+    if seviye["tavan_asildi"]:
+        neden = f"uçak tipinin azami seviyesinin (FL{seviye['azami_fl']}) üstünde"
+    else:
+        neden = f"yarım daire kuralına aykırı (manyetik iz {seviye['manyetik_iz']:03.0f}°, {yon} FL)"
+    return [
+        _bulgu(
+            "ucus_seviyesi_duzeltildi",
+            "uyari",
+            f"İstenen FL{seviye['istenen_fl']:.0f} {neden}; hesap en yakın yasal seviye FL{seviye['fl']} ile "
+            f"yapıldı. Manyetik sapma sabit {config.MANYETIK_SAPMA_DERECE:+.0f}° varsayıldı.",
+            istenen_fl=seviye["istenen_fl"],
+            fl=seviye["fl"],
+            manyetik_iz=seviye["manyetik_iz"],
+            yon=seviye["yon"],
+            tavan_asildi=seviye["tavan_asildi"],
+        )
+    ]
+
+
 def _bulgulari_olustur(
     ruzgarli_mi,
     veri_kupu,
@@ -1474,8 +1525,9 @@ def _bulgulari_olustur(
     guvenli_rota_bulundu_mu,
     kisitli_saha_kontrolu=None,
     canli_hata=None,
+    seviye=None,
 ):
-    bulgular = []
+    bulgular = _seviye_bulgulari(seviye)
     if ruzgarli_mi and veri_kupu_kaynagi(veri_kupu) == "gfs":
         calisma = veri_kupu.attrs.get("model_calisma_zamani", "bilinmiyor")
         bulgular.append(
@@ -1644,7 +1696,7 @@ def _bulgulari_olustur(
                 _bulgu(
                     "kacinma_tam_guvenli",
                     "bilgi",
-                    "ÇOK FAKTÖRLÜ karşılaştırmada (yanal A* araması vs bir üst/alt basınç seviyesine geçiş, her "
+                    "ÇOK FAKTÖRLÜ karşılaştırmada (yanal A* araması vs aynı yönün bir üst/alt yasal FL'sine geçiş, her "
                     "biri yaklaşık yakıt/süre maliyetiyle) en ucuz TAM güvenli seçenek olarak "
                     f"{strateji_aciklamasi} bulundu." + (_SEVIYE_MALIYET_NOTU if strateji.startswith("irtifa") else ""),
                     **kacinma,
