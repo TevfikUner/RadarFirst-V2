@@ -68,6 +68,41 @@ def _zaman(epoch_saniye) -> datetime | None:
     return datetime.fromtimestamp(int(epoch_saniye), UTC) if epoch_saniye is not None else None
 
 
+_MAKUL_EN_ERKEN_ZAMAN = datetime(2000, 1, 1, tzinfo=UTC)
+_VALID_DESENI = re.compile(r"\bVALID\s+(\d{2})(\d{2})(\d{2})/\d{6}")
+
+
+def _metinden_baslangic(metin: str, bitis: datetime) -> datetime | None:
+    """'VALID 312345/010345' -> bitişe en yakın önceki 31. gün 23:45 (UTC)."""
+    eslesme = _VALID_DESENI.search(metin)
+    if not eslesme:
+        return None
+    gun, saat, dakika = map(int, eslesme.groups())
+    for geri in range(3):
+        aday = bitis - timedelta(days=geri)
+        if aday.day == gun:
+            try:
+                baslangic = aday.replace(hour=saat, minute=dakika, second=0, microsecond=0)
+            except ValueError:
+                return None
+            return baslangic if baslangic <= bitis else None
+    return None
+
+
+def _gecerlilik(ham: dict) -> tuple[datetime | None, datetime | None]:
+    """(başlangıç, bitiş); geçersiz başlangıç VALID metninden ya da bitiş - yayın ufkundan türetilir."""
+    bitis = _zaman(ham.get("validTimeTo"))
+    baslangic = _zaman(ham.get("validTimeFrom"))
+    if bitis is None or baslangic is None or bitis < _MAKUL_EN_ERKEN_ZAMAN:
+        return None, None
+    if baslangic < _MAKUL_EN_ERKEN_ZAMAN or baslangic > bitis:
+        metin = str(ham.get("rawSigmet") or ham.get("rawAirSigmet") or "")
+        onarilan = _metinden_baslangic(metin, bitis) or bitis - timedelta(hours=config.SIGMET_YAYIN_UFKU_SAAT)
+        _logger.warning("SIGMET geçerlilik başlangıcı geçersiz (%s); %s kullanıldı.", ham.get("validTimeFrom"), onarilan)
+        baslangic = onarilan
+    return baslangic, bitis
+
+
 def durum_anahtari(kaynak: str) -> str:
     return f"sigmet:{kaynak}"
 
@@ -175,6 +210,7 @@ def _poligon_kaydi(kaynak: str, ham: dict, alan: list) -> dict | None:
         koseler.append(koseler[0])
     taban_ft, tavan_ft = _irtifa_bandi(ham)
     hareket = _hareket(ham)
+    gecerlilik_baslangic, gecerlilik_bitis = _gecerlilik(ham)
     boylamlar, enlemler = [k[0] for k in koseler], [k[1] for k in koseler]
     antimeridyen = max(abs(b - a) for a, b in itertools.pairwise(boylamlar)) > 180.0 or max(boylamlar) > 180.0
     if antimeridyen:
@@ -189,8 +225,8 @@ def _poligon_kaydi(kaynak: str, ham: dict, alan: list) -> dict | None:
         "seri_no": ham.get("seriesId"),
         "tehlike": str(ham.get("hazard") or config.SIGMET_BILINMEYEN_TEHLIKE).upper(),
         "niteleyici": ham.get("qualifier"),
-        "gecerlilik_baslangic": _zaman(ham.get("validTimeFrom")),
-        "gecerlilik_bitis": _zaman(ham.get("validTimeTo")),
+        "gecerlilik_baslangic": gecerlilik_baslangic,
+        "gecerlilik_bitis": gecerlilik_bitis,
         "taban_ft": taban_ft,
         "tavan_ft": tavan_ft,
         "poligon": [list(k) for k in koseler],
@@ -237,7 +273,7 @@ def sigmet_kayitlarini_cozumle(kaynak: str, ham) -> tuple[list[dict], str | None
     if _abd_bicimi_mi(ham) and ham.get("airSigmetType") != "SIGMET":
         return [], "sigmet_degil"
     try:
-        if _zaman(ham.get("validTimeFrom")) is None or _zaman(ham.get("validTimeTo")) is None:
+        if _gecerlilik(ham)[1] is None:
             return [], "gecerlilik_yok"
         kayitlar = [k for k in (_poligon_kaydi(kaynak, ham, alan) for alan in _alanlar(ham)) if k is not None]
     except (TypeError, ValueError, KeyError, OverflowError, OSError):
@@ -413,14 +449,18 @@ def gecerli_sigmetleri_getir(
         return [_satiri_sozluge_cevir(s) for s in satirlar]
 
 
+_ARSIV_GERI_PAYI = timedelta(hours=12)
+
+
 def arsiv_baslangici(motor=None, kaynaklar=_KAYNAKLAR) -> datetime | None:
     """Arşivin kapsadığı en erken an (saklanan en eski kaydın geçerlilik
     başlangıcı) -- bağımsız doğrulama, arşivin bir uçuşu kapsayıp
-    kapsamadığına buna bakarak karar verir."""
+    kapsamadığına buna bakarak karar verir. Alınma zamanından en fazla _ARSIV_GERI_PAYI geriye gider."""
     motor = motor or motor_al()
+    sinirli_baslangic = func.greatest(Sigmet.gecerlilik_baslangic, Sigmet.alinma_zamani - _ARSIV_GERI_PAYI)
     with Session(motor) as oturum:
         return oturum.execute(
-            select(func.min(Sigmet.gecerlilik_baslangic)).where(Sigmet.kaynak.in_(list(kaynaklar)))
+            select(func.min(sinirli_baslangic)).where(Sigmet.kaynak.in_(list(kaynaklar)))
         ).scalar_one()
 
 
