@@ -1,16 +1,16 @@
 """
 web_arayuzu.py
 -----------------
-main.py'nin işlevini terminalden değil, tarayıcıdan kullanılabilir hale
+turbulans-analiz'in (analiz/ucus_analizi.py) işlevini terminalden değil, tarayıcıdan kullanılabilir hale
 getiren basit bir web sayfası (Streamlit ile). Uçuş numarası ve tarihi bir
 kutuya yazıp "Analiz Et" butonuna basman yeterli; sonuç tablosu ve zaman
 kaydırıcılı harita direkt sayfada görünür.
 
 Çalıştırma:
-    pip install -r requirements.txt
+    pip install -e .
     streamlit run src/turbulans_radar/arayuz/web_arayuzu.py
 
-Bu sayfa main.py'deki calistir() fonksiyonunu ÇAĞIRIR -- yani arkada hâlâ
+Bu sayfa ucus_analizi.py'deki calistir() fonksiyonunu ÇAĞIRIR -- yani arkada hâlâ
 gerçek OpenSky/Trino sorgusu ve gerçek hava durumu eşleştirmesi yapılıyor;
 bu sadece görsel bir ön yüz, hesaplama mantığı aynı.
 """

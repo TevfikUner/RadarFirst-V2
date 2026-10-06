@@ -5,12 +5,12 @@ Turuncu/tek renkli haritanın sebebini TAHMİN etmek yerine, verinin gerçek
 çözünürlüğünü (kaç farklı zaman/enlem/boylam/basınç noktası olduğunu) ve
 hesaplanan TI1 değerlerinin ne kadar ÇEŞİTLİ olduğunu gösterir.
 
-NOT: main.py artık sonucu bir CSV'ye değil PostgreSQL'e yazıyor (bkz.
+NOT: turbulans-analiz (analiz/ucus_analizi.py) sonucu bir CSV'ye değil PostgreSQL'e yazıyor (bkz.
 veritabani.py) -- bu script de artık eski `eslesme_sonuclari_*.csv`
 dosyasını değil, doğrudan veritabanındaki kayıtları okuyor.
 
 Kullanım:
-    python -m turbulans_radar.cli.veri_kontrol N10VZ 2019-01-15
+    python -m turbulans_radar.cli.veri_kontrol THY322 2019-01-15
 """
 
 import argparse
