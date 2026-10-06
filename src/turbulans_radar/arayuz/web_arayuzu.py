@@ -54,7 +54,7 @@ with st.sidebar:
         for u in kayitli:
             satir1, satir2 = st.columns([3, 1])
             satir1.caption(f"**{u['ucus_numarasi']}** / {u['tarih']}")
-            with satir2.popover("Sil"):
+            with satir2.popover("🗑", help="Sil"):
                 st.caption(f"{u['ucus_numarasi']} / {u['tarih']} ölçümleriyle silinsin mi?")
                 if st.button("Evet, sil", key=f"sil_{u['id']}"):
                     vt.ucus_sil(u["ucus_numarasi"], str(u["tarih"]))
