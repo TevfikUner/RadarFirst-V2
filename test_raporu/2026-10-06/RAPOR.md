@@ -6,6 +6,37 @@
 > (`db_yedekleri/turbulans_20261006.dump`) işlemlerden önce vardı.
 > Çıktılar sertifikalı EDR değildir. Sistem operasyonel karar aracı değil, karar destek aracıdır.
 
+## Düzeltme durumu (aynı gün, dal `claude/denetim-duzeltmeleri`)
+
+Bu raporun 10 bulgusu ve notları düzeltildi. Her birinin testi var; düzeltmeler küçük commit'ler halinde.
+Sonrasında tam paket **823/823** geçti (`-m "not ag"`, toplam 825 test), kapsam **%84,0 → %85,8**, süre 260 → 180 sn.
+Görseller: `duzeltme_sonrasi/ekran/`, konsol hatası 0.
+
+| # | Bulgu | Durum | Doğrulama |
+|---|---|---|---|
+| 1 | SIGMET 1970 kaydı → sahte bağımsız kanıt | ✅ düzeltildi | VALID metninden başlangıç + arşiv başlangıcı alınma zamanıyla sınırlı; migration `e9c1d4b7a2f6` (-test DB'de up/down/up), dev DB'de en eski SIGMET artık 2026-09-30; THY322 backtest `kanit_kaynaklari: []` |
+| 2 | Varış havalimanı "NaN" | ✅ | NaN → NULL; migration mevcut kayıtları temizledi |
+| 3 | Yerel/konteyner model deposu ayrı | ✅ | `./model_deposu` bağlama klasörü (hash birebir kopya; eski volume silinmedi), Streamlit artık RF'yi gösteriyor; eski 167 örnekli model `arsiv/`'de |
+| 4 | GFS kararsız, alarm yok | ✅ | 6 saatte bir ısıtma görevi, 24 sa başarısızlıkta `bayat`; `model_calisma_zamani` (THREDDS `reftime1`) dolu. UCAR'ın kendisi dış etken olarak kalıyor |
+| 5 | Performans testi payı yok | ✅ kök neden | Eşleştirme vektörel: 55 bin nokta **30,7 sn → 0,9 sn**, DB yazımı 33,5 → 2,6 sn; eşdeğerlik testi ve THY322 özeti birebir; eşik 10 sn |
+| 6 | Lejant sonuç tablosunu örtüyor | ✅ | Panel kaydırılabilir, lejant panelin solunda |
+| 7 | harita3d eski TI1 notu | ✅ | Not `/esikler`'den (tek kaynak), tarayıcı testi var |
+| 8 | Folium saati +3 sa | ✅ | Etiket "19:39:36 UTC" (İstanbul saat dilimindeki tarayıcıda doğrulandı) |
+| 9 | `ti1_guvenilirlik_notu` her zaman dönmüyor | ✅ | Şema varsayılanı; kapsam dışında da dönüyor |
+| 10 | Worker healthcheck yok | ✅ | Bakım döngüsü sağlık dosyası + compose healthcheck; `worker (healthy)` |
+| not | Streamlit 0.0.0.0'a bağlı | ✅ | `.streamlit/config.toml` → 127.0.0.1; ayrıca varsayılan uçuş THY322/2019-01-15, silme onaylı |
+| not | EDR "eski katsayı" yanıltıcı | ✅ | Kalibrasyon çıktısında `mevcut_katsayi`/`test_mse_mevcut` |
+| not | WSL git CRLF gürültüsü | ✅ | Depo yerel `core.autocrlf=true` (commit'e girmez) |
+| ek | Bayat backtest satırları | ✅ | `POST /backtest/toplu?yenile=true` |
+| ek | %0 kapsamlı CLI/arayüz modülleri, `main.py` artıkları | ✅ | `tests/test_cli_araclari.py` (Streamlit AppTest dahil), mesajlar `turbulans-analiz` |
+| ek | Statik güvenlik taraması (ruff S/B/BLE) | ✅ bulgu yok | SQL'ler sabit/parametreli; MCP salt-okunur tasarım |
+
+**Yapılmayanlar (kullanıcı/kota kararı gerektiriyor):** Türkiye için 7 seviyeli ERA5 dilimleri (CDS kotası, veri
+dondurma 2026-10-18 ve README/demo sayılarını değiştirir), daha fazla gerçek uçuş (OpenSky tarayıcı girişi),
+`edr_esleme`/`kalibrasyon` CLI satırlarının testi (çekirdek matematik zaten testli).
+Not: DB'deki **THY322 / 2019-01-01** kaydı ve `opensky_onbellek/THY322_2019-01-01.parquet` denetim sırasında 16:51'de
+Streamlit üzerinden (eski varsayılan tarih) oluşturulmuş görünüyor; kullanıcı verisi olduğu için silinmedi.
+
 ## Yönetici özeti
 
 1. **Genel olgunluk: iyi; prototipten "ürün adayı"na geçmiş.** 809 testten 806'sı geçti (2'si `ag` olduğu için
