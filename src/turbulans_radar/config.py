@@ -347,6 +347,7 @@ GOREV_ISCI_SAYISI = _ortam_sayi("GOREV_ISCI_SAYISI", 2, int)
 GOREV_KUYRUK_BEKLEME_SANIYE = _ortam_sayi("GOREV_KUYRUK_BEKLEME_SANIYE", 1.0)
 GOREV_KALP_ATISI_SANIYE = _ortam_sayi("GOREV_KALP_ATISI_SANIYE", 15.0)
 GOREV_BAYAT_SANIYE = _ortam_sayi("GOREV_BAYAT_SANIYE", 120.0)
+ISCI_SAGLIK_DOSYASI = _ortam_str("ISCI_SAGLIK_DOSYASI", "")
 GOREV_MAKS_DENEME = _ortam_sayi("GOREV_MAKS_DENEME", 2, int)
 # Ayrı işçi SIGTERM alınca çalışan görevi bu kadar bekler (ML işi süren CDS isteğini bitirip durur);
 # docker-compose'daki stop_grace_period bundan uzun olmalı, yoksa Docker SIGKILL atar.

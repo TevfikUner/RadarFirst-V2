@@ -54,10 +54,21 @@ def _lejant_ekle(harita):
         <span style="color:#e74c3c;">&#9679;</span> Orta-Şiddetli (TI1 &gt; {config.TI1_ESIK_ORTA_SIDDETLI:.0e})<br>
         <span style="color:#95a5a6;">&#9679;</span> Veri yok<br>
         <small>Not: Kaba çözünürlüklü reanaliz verisinden proxy tahmindir,<br>
-        sertifikalı EDR değildir.</small>
+        sertifikalı EDR değildir. Saatler UTC'dir.</small>
     </div>
     """
     harita.get_root().html.add_child(folium.Element(lejant_html))
+
+
+_UTC_ZAMAN_ETIKETI_JS = """
+document.addEventListener("DOMContentLoaded", function () {
+    if (!window.L || !L.Control.TimeDimensionCustom || !window.moment) { return; }
+    L.Control.TimeDimensionCustom.prototype._getDisplayDateFormat = function (tarih) {
+        return moment.utc(tarih).format("YYYY-MM-DD HH:mm:ss") + " UTC";
+    };
+    if (window.timeDimensionControl && window.timeDimensionControl._update) { window.timeDimensionControl._update(); }
+});
+"""
 
 
 def zaman_kaydiricili_harita_olustur(
@@ -171,6 +182,7 @@ def zaman_kaydiricili_harita_olustur(
         max_speed=3,
         transition_time=300,
     ).add_to(harita)
+    harita.get_root().script.add_child(folium.Element(_UTC_ZAMAN_ETIKETI_JS))
 
     _lejant_ekle(harita)
     harita.save(dosya_adi)

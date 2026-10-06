@@ -1132,6 +1132,7 @@ async def esikleri_getir():
     return {
         "ti1_esik_hafif": config.TI1_ESIK_HAFIF,
         "ti1_esik_orta_siddetli": config.TI1_ESIK_ORTA_SIDDETLI,
+        "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
     }
 
 

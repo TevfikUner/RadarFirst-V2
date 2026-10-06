@@ -121,8 +121,16 @@ services:
       - .env
     environment:
       GOREV_ISCI_SAYISI: ${GOREV_ISCI_SAYISI:-2}
+      ISCI_SAGLIK_DOSYASI: /tmp/isci_saglik
       <<: [*veri_ortami, *uygulama_db]
     volumes: *ortak_volumeler
+    # Bakım döngüsü (15 sn) veritabanına ulaştıkça dosyayı tazeler; 90 sn tazelenmezse sağlıksız.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, sys, time; sys.exit(time.time() - os.path.getmtime('/tmp/isci_saglik') > 90)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     secrets: [cdsapirc]
 
   # Günlük veritabanı yedeği: ml_ornekleri/edr_ornekleri haftalarca indirilen

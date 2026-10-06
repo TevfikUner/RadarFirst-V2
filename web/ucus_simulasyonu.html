@@ -59,7 +59,7 @@
   #durum { margin-top: 8px; font-size: 12px; line-height: 1.4; white-space: pre-wrap; }
   #durum.hata { color: #ff8080; }
   #durum.bilgi { color: #9fd6ff; }
-  #sonuc-paneli { top: 12px; right: 12px; width: 260px; display: none; }
+  #sonuc-paneli { top: 12px; right: 12px; width: 260px; display: none; max-height: calc(100vh - 24px); overflow-y: auto; box-sizing: border-box; }
   #sonuc-paneli table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
   #sonuc-paneli td { padding: 3px 4px; border-bottom: 1px solid #333; }
   #sonuc-paneli td:first-child { color: #aaa; }
@@ -69,6 +69,7 @@
   #kaynak-etiketi.gercek { background: #1e5f3a; color: #7be6a6; }
   #kaynak-etiketi.kapsam-disi { background: #5f4a1e; color: #e6c17b; }
   #lejant { bottom: 12px; right: 12px; width: 210px; }
+  body.sonuc-acik #lejant { right: 284px; bottom: 40px; }
   #lejant div { display: flex; align-items: center; gap: 6px; margin: 3px 0; }
   #lejant .cizgi { width: 18px; height: 3px; display: inline-block; }
   #lejant .hacim { width: 12px; height: 12px; display: inline-block; border: 1px solid; vertical-align: middle; }
@@ -297,6 +298,7 @@ function riskliBolumleriGoster(rota) {
 
 function sonucPanelDoldur(sonuc) {
   document.getElementById("sonuc-paneli").style.display = "block";
+  document.body.classList.add("sonuc-acik");
 
   const ufuk = sonuc.planlama_ufku;
   const kullanim = !ufuk ? "" : ufuk.kullanim === "gecmis_analiz"

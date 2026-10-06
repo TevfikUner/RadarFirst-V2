@@ -239,9 +239,7 @@ def _yatay_alan_degerlerini_hesapla(veri_kupu, seviyeler, zaman_serisi, enlemler
             "latitude": xr.DataArray(enlemler[sira], dims="nokta"),
             "longitude": xr.DataArray(boylamlar[sira], dims="nokta"),
         }
-        deformasyon[sira] = (
-            yatay_deformasyon_hesapla(alt_kup["u"], alt_kup["v"]).sel(noktalar, method="nearest").values
-        )
+        deformasyon[sira] = yatay_deformasyon_hesapla(alt_kup["u"], alt_kup["v"]).sel(noktalar, method="nearest").values
         diverjans[sira] = yatay_diverjans_hesapla(alt_kup["u"], alt_kup["v"]).sel(noktalar, method="nearest").values
 
     return deformasyon, diverjans

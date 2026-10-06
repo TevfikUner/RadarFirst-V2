@@ -15,6 +15,7 @@ import pandas as pd
 import pytest
 
 from turbulans_radar.depo import veritabani as vt
+from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 
 _UCUS_NO = "PWHARITA"
 _TARIH = "2019-01-15"
@@ -56,6 +57,7 @@ def test_ucus_yuklenip_harita_render_olur(canli_sunucu, tarayici_sayfasi, kayitl
     # Model durum paneli uçuş yüklenince API'den doldurulur (model olsun olmasın).
     sayfa.wait_for_function("!document.getElementById('model-bilgisi-govde').innerText.includes('Uçuş yüklenince')")
     assert "alınamadı" not in sayfa.inner_text("#model-bilgisi-govde")
+    assert TI1_GUVENILIRLIK_NOTU in sayfa.inner_text("#ti1-guvenilirlik-notu")
 
     # GERÇEK TARAYICI TESTİYLE bulunan hatanın (MapLibre'de setProjection
     # hiç olmaması / "Style is not done loading") bir daha geri gelmediğini

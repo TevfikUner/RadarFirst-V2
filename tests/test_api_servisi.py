@@ -368,6 +368,7 @@ async def test_esikler_config_ile_ayni(istemci, api_anahtari):
     govde = yanit.json()
     assert govde["ti1_esik_hafif"] == config.TI1_ESIK_HAFIF
     assert govde["ti1_esik_orta_siddetli"] == config.TI1_ESIK_ORTA_SIDDETLI
+    assert govde["ti1_guvenilirlik_notu"] == api_servisi.TI1_GUVENILIRLIK_NOTU
 
 
 async def test_sigmet_dogrulama_olmayan_ucus_404(istemci, api_anahtari):
@@ -686,6 +687,7 @@ async def test_turbulans_tahmini_kapsam_disinda_200_doner(istemci, api_anahtari)
     )
     assert yanit.status_code == 200
     assert yanit.json()["kapsam_icinde_mi"] is False
+    assert yanit.json()["ti1_guvenilirlik_notu"] == api_servisi.TI1_GUVENILIRLIK_NOTU
 
 
 @pytest.mark.gercek_veri
