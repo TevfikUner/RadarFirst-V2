@@ -72,7 +72,7 @@ aşağıdaki [Kurulum](#kurulum) bölümüne bakın.
                                   │
                     ┌─────────────┼─────────────┐
                     ▼             ▼             ▼
-             veritabani.py   harita.py      main.py /
+             veritabani.py   harita.py      ucus_analizi /
              (PostgreSQL,    (Folium HTML)  toplu_analiz.py /
               models.py)                    web_arayuzu.py (CLI/UI)
                     │
@@ -254,8 +254,10 @@ streamlit run src/turbulans_radar/arayuz/web_arayuzu.py
 ```
 
 Uçuş numarası ve tarihi bir kutuya yazıp "Analiz Et"e basman yeterli;
-sonuç tablosu ve harita direkt sayfada görünür. Arkada aynı `main.py`
-mantığı çalışır -- bu sadece görsel bir ön yüz.
+sonuç tablosu ve harita direkt sayfada görünür. Arkada aynı `turbulans-analiz`
+mantığı çalışır -- bu sadece görsel bir ön yüz. Varsayılan uçuş, depoda önbelleği
+olan THY322 / 2019-01-15'tir (OpenSky girişi gerektirmez). Sayfa yalnızca
+127.0.0.1'de dinler (`.streamlit/config.toml`).
 
 ### Birden fazla uçuşu birden analiz etmek
 

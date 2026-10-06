@@ -922,12 +922,22 @@ async def test_backtest_listesi_ozet_ve_sonuc_doner(istemci, api_anahtari):
 
 async def test_toplu_backtest_gorev_olarak_calisir(istemci, api_anahtari, monkeypatch, calisan_isci):
     sahte = [{"ucus_numarasi": "X1", "tarih": "2019-01-01", "durum": "atlandi", "aciklama": "küp yok"}]
-    monkeypatch.setattr(gorev_iscisi, "toplu_backtest", lambda limit: sahte)
+    cagrilar = []
+
+    def sahte_toplu_backtest(limit, yenile=False):
+        cagrilar.append((limit, yenile))
+        return sahte
+
+    monkeypatch.setattr(gorev_iscisi, "toplu_backtest", sahte_toplu_backtest)
     yanit = await istemci.post("/api/v1/backtest/toplu?limit=5", headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 202
     durum = await _gorev_bitene_kadar_bekle(istemci, api_anahtari, yanit.json()["gorev_id"])
     assert durum["durum"] == "tamamlandi"
     assert durum["ozet"] == sahte
+
+    yanit = await istemci.post("/api/v1/backtest/toplu?limit=3&yenile=true", headers={"X-API-Key": api_anahtari})
+    await _gorev_bitene_kadar_bekle(istemci, api_anahtari, yanit.json()["gorev_id"])
+    assert cagrilar == [(5, False), (3, True)]
 
 
 @pytest.mark.gercek_veri
