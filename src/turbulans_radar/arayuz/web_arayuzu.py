@@ -1,16 +1,16 @@
 """
 web_arayuzu.py
 -----------------
-main.py'nin işlevini terminalden değil, tarayıcıdan kullanılabilir hale
+turbulans-analiz'in (analiz/ucus_analizi.py) işlevini terminalden değil, tarayıcıdan kullanılabilir hale
 getiren basit bir web sayfası (Streamlit ile). Uçuş numarası ve tarihi bir
 kutuya yazıp "Analiz Et" butonuna basman yeterli; sonuç tablosu ve zaman
 kaydırıcılı harita direkt sayfada görünür.
 
 Çalıştırma:
-    pip install -r requirements.txt
+    pip install -e .
     streamlit run src/turbulans_radar/arayuz/web_arayuzu.py
 
-Bu sayfa main.py'deki calistir() fonksiyonunu ÇAĞIRIR -- yani arkada hâlâ
+Bu sayfa ucus_analizi.py'deki calistir() fonksiyonunu ÇAĞIRIR -- yani arkada hâlâ
 gerçek OpenSky/Trino sorgusu ve gerçek hava durumu eşleştirmesi yapılıyor;
 bu sadece görsel bir ön yüz, hesaplama mantığı aynı.
 """
@@ -54,9 +54,11 @@ with st.sidebar:
         for u in kayitli:
             satir1, satir2 = st.columns([3, 1])
             satir1.caption(f"**{u['ucus_numarasi']}** / {u['tarih']}")
-            if satir2.button("Sil", key=f"sil_{u['id']}"):
-                vt.ucus_sil(u["ucus_numarasi"], str(u["tarih"]))
-                st.rerun()
+            with satir2.popover("🗑", help="Sil"):
+                st.caption(f"{u['ucus_numarasi']} / {u['tarih']} ölçümleriyle silinsin mi?")
+                if st.button("Evet, sil", key=f"sil_{u['id']}"):
+                    vt.ucus_sil(u["ucus_numarasi"], str(u["tarih"]))
+                    st.rerun()
     elif arama:
         st.caption("Eşleşen kayıtlı uçuş yok.")
     else:
@@ -80,9 +82,11 @@ with st.sidebar:
 with st.form("analiz_formu"):
     sutun1, sutun2 = st.columns(2)
     with sutun1:
-        ucus_numarasi = st.text_input("Uçuş numarası (callsign)", value="THY1234", help="Örn. THY1234")
+        ucus_numarasi = st.text_input(
+            "Uçuş numarası (callsign)", value="THY322", help="Örn. THY322 (depodaki demo uçuşu, OpenSky gerektirmez)"
+        )
     with sutun2:
-        tarih = st.text_input("Tarih (YYYY-MM-DD)", value="2019-01-01")
+        tarih = st.text_input("Tarih (YYYY-MM-DD)", value="2019-01-15")
     gonder = st.form_submit_button("Analiz Et", type="primary")
 
 if gonder:

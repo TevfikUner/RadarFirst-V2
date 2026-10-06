@@ -208,6 +208,7 @@ jobs:
           API_ANAHTARI=ci-duman-yonetici
           API_PILOT_ANAHTARI=ci-duman-pilot
           ML_GECE_ISI_SAATI=
+          CANLI_ISITMA_SAAT=0
           ORTAM
           docker compose up -d --build --wait --wait-timeout 300
       - name: Duman testi

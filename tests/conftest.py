@@ -41,6 +41,7 @@ except ImportError:
 # Yerel .env gece işi saatini açabilir; testlerde (canlı test sunucusu dahil)
 # ML zamanlayıcısı test veritabanına görev eklemesin.
 os.environ["ML_GECE_ISI_SAATI"] = ""
+os.environ["CANLI_ISITMA_SAAT"] = "0"
 os.environ["MADIS_GECE_ETKIN"] = "false"
 os.environ["GUNLUK_VERI_BUTCESI_MB"] = "0"
 

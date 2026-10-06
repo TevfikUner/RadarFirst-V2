@@ -213,6 +213,37 @@ def test_bozuk_kayit_istisna_firlatmadan_nedeniyle_elenir(ham, neden):
     assert ss.sigmet_kayitlarini_cozumle("isigmet", ham) == ([], neden)
 
 
+_FIJI_BITIS = datetime(2026, 10, 1, 3, 45, tzinfo=UTC)
+
+
+@pytest.mark.parametrize(
+    "metin, beklenen",
+    [
+        ("NFFF SIGMET 15 VALID 312345/010345 NFFN- SEV TURB", datetime(2026, 9, 30, 23, 45, tzinfo=UTC)),
+        ("NFFF SIGMET 15 SEV TURB", _FIJI_BITIS - timedelta(hours=4)),
+    ],
+    ids=["valid_metninden_ay_gecisi", "metin_yoksa_bitis_eksi_ufuk"],
+)
+def test_sifir_epoch_baslangic_1970_olarak_kaydedilmez(metin, beklenen):
+    ham = {**ULUSLARARASI_ORNEK, "validTimeFrom": 0, "validTimeTo": int(_FIJI_BITIS.timestamp()), "rawSigmet": metin}
+    kayit = ss.sigmet_kaydini_normalize_et("isigmet", ham)
+    assert kayit["gecerlilik_baslangic"] == beklenen
+    assert kayit["gecerlilik_bitis"] == _FIJI_BITIS
+
+
+def test_makul_olmayan_bitis_gecerlilik_yok_sayilir():
+    ham = {**ULUSLARARASI_ORNEK, "validTimeFrom": 0, "validTimeTo": 0}
+    assert ss.sigmet_kayitlarini_cozumle("isigmet", ham) == ([], "gecerlilik_yok")
+
+
+def test_arsiv_baslangici_bozuk_gecerlilikle_1970e_gitmez(test_veritabani):
+    kayit = ss.sigmet_kaydini_normalize_et("isigmet", ULUSLARARASI_ORNEK)
+    kayit.update(kaynak="test", gecerlilik_baslangic=datetime(1970, 1, 1, tzinfo=UTC))
+    ss.sigmetleri_kaydet([kayit], motor=test_veritabani)
+    baslangic = ss.arsiv_baslangici(motor=test_veritabani, kaynaklar=("test",))
+    assert datetime.now(UTC) - timedelta(hours=13) < baslangic < datetime.now(UTC)
+
+
 def test_makul_olmayan_irtifa_bandi_muhafazakar_genisletilir():
     def bant(**alanlar):
         kayit = ss.sigmet_kaydini_normalize_et("isigmet", {**ULUSLARARASI_ORNEK, **alanlar})

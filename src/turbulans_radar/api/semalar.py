@@ -16,6 +16,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator
 
+from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.rota.rota_optimizasyonu import UCAK_PROFILLERI
 
 
@@ -105,6 +106,7 @@ class EsiklerYaniti(BaseModel):
 
     ti1_esik_hafif: float
     ti1_esik_orta_siddetli: float
+    ti1_guvenilirlik_notu: str | None = None
 
 
 class SigmetYaniti(BaseModel):
@@ -413,7 +415,7 @@ class TurbulansTahminYaniti(BaseModel):
     kapsam_icinde_mi: bool
     ti1_indeksi: float | None = None
     ti1_riskli_mi: bool | None = None
-    ti1_guvenilirlik_notu: str | None = None
+    ti1_guvenilirlik_notu: str = TI1_GUVENILIRLIK_NOTU
     ml_riski_var_mi: bool | None = None
     ml_olasilik: float | None = None
     ml_risk_durumu: Literal["dusuk_risk", "yuksek_risk", "belirsiz"] | None = None

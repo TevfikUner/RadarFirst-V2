@@ -63,6 +63,18 @@ def test_ucus_ve_olcumleri_kaydet_ve_geri_oku(motor):
     assert len(detay["olcumler"]) == 2
 
 
+def test_eksik_havaalani_nan_metni_degil_null_yazilir(motor):
+    df = _ornek_df()
+    df["varis_havaalani"] = float("nan")
+    df["icao24"] = None
+    vt.ucus_ve_olcumleri_kaydet(df, _TEST_UCUS_NUMARASI, _TEST_TARIH, motor)
+
+    ucus = vt.ucus_detayini_getir(_TEST_UCUS_NUMARASI, _TEST_TARIH, motor)["ucus"]
+    assert ucus["varis_havaalani"] is None
+    assert ucus["icao24"] is None
+    assert ucus["kalkis_havaalani"] == "AAAA"
+
+
 def test_ayni_ucus_yeniden_kaydedilince_eskisi_silinir(motor):
     vt.ucus_ve_olcumleri_kaydet(_ornek_df(), _TEST_UCUS_NUMARASI, _TEST_TARIH, motor)
     vt.ucus_ve_olcumleri_kaydet(_ornek_df(), _TEST_UCUS_NUMARASI, _TEST_TARIH, motor)

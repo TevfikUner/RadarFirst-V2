@@ -2,7 +2,7 @@
 ornek_ucus_bul.py
 -------------------
 Ocak 2019'dan GERÇEK, veritabanında kayıtlı callsign'lar çekip listeler.
-Bu sayede main.py'yi çalıştırmak için "havada olsun mu olmasın mı" diye
+Bu sayede turbulans-analiz'i çalıştırmak için "havada olsun mu olmasın mı" diye
 tahmin etmene gerek kalmıyor -- zaten OpenSky'da kaydı olan bir uçuşu
 seçiyorsun.
 
@@ -57,7 +57,7 @@ def ornek_ucuslari_getir(tarih_str="2019-01-15", onek=None, adet=20):
 def _argumanlari_ayristir(argv=None):
     ayristirici = argparse.ArgumentParser(
         description="Ocak 2019'dan gerçek, OpenSky'da kayıtlı callsign'lar çekip listeler "
-        "(main.py'yi çalıştırmak için hangi uçuşun mevcut olduğunu tahmin etmene gerek kalmaz).",
+        "(turbulans-analiz için hangi uçuşun mevcut olduğunu tahmin etmene gerek kalmaz).",
     )
     ayristirici.add_argument("tarih", nargs="?", default="2019-01-15", help="YYYY-MM-DD (varsayılan: 2019-01-15)")
     ayristirici.add_argument(
@@ -70,8 +70,8 @@ def _argumanlari_ayristir(argv=None):
     return ayristirici.parse_args(argv)
 
 
-if __name__ == "__main__":
-    argumanlar = _argumanlari_ayristir()
+def ana(argv=None):
+    argumanlar = _argumanlari_ayristir(argv)
     tarih, onek = argumanlar.tarih, argumanlar.onek
 
     sonuc = ornek_ucuslari_getir(tarih, onek, adet=argumanlar.adet)
@@ -79,6 +79,10 @@ if __name__ == "__main__":
     if sonuc.empty:
         print(f"[Uyarı] {tarih} için hiç uçuş bulunamadı. Farklı bir tarih dene.")
     else:
-        print(f"\n{tarih} tarihinden gerçek uçuşlar (main.py'de kullanabilirsin):\n")
+        print(f"\n{tarih} tarihinden gerçek uçuşlar (turbulans-analiz ile kullanabilirsin):\n")
         print(sonuc.to_string(index=False))
-        print(f"\nÖrnek kullanım:\n  python main.py {sonuc.iloc[0]['callsign']} {tarih}")
+        print(f"\nÖrnek kullanım:\n  turbulans-analiz {sonuc.iloc[0]['callsign']} {tarih}")
+
+
+if __name__ == "__main__":
+    ana()

@@ -5,12 +5,12 @@ Turuncu/tek renkli haritanın sebebini TAHMİN etmek yerine, verinin gerçek
 çözünürlüğünü (kaç farklı zaman/enlem/boylam/basınç noktası olduğunu) ve
 hesaplanan TI1 değerlerinin ne kadar ÇEŞİTLİ olduğunu gösterir.
 
-NOT: main.py artık sonucu bir CSV'ye değil PostgreSQL'e yazıyor (bkz.
+NOT: turbulans-analiz (analiz/ucus_analizi.py) sonucu bir CSV'ye değil PostgreSQL'e yazıyor (bkz.
 veritabani.py) -- bu script de artık eski `eslesme_sonuclari_*.csv`
 dosyasını değil, doğrudan veritabanındaki kayıtları okuyor.
 
 Kullanım:
-    python -m turbulans_radar.cli.veri_kontrol N10VZ 2019-01-15
+    python -m turbulans_radar.cli.veri_kontrol THY322 2019-01-15
 """
 
 import argparse
@@ -72,7 +72,7 @@ def ucus_sonuclarini_incele(ucus_numarasi, tarih_str):
         return
 
     if df is None:
-        print(f"'{ucus_numarasi}' / {tarih_str} için kayıt bulunamadı. Önce main.py ile analiz çalıştır.")
+        print(f"'{ucus_numarasi}' / {tarih_str} için kayıt bulunamadı. Önce turbulans-analiz ile analiz çalıştır.")
         return
     if df.empty or "ti1_indeksi" not in df.columns:
         print("Kayıtlı ölçüm yok ya da 'ti1_indeksi' sütunu bulunamadı.")
@@ -111,19 +111,23 @@ def _argumanlari_ayristir(argv=None):
         "ucus_numarasi",
         nargs="?",
         default=None,
-        help="main.py ile daha önce analiz edilmiş bir uçuş numarası (opsiyonel)",
+        help="turbulans-analiz ile daha önce analiz edilmiş bir uçuş numarası (opsiyonel)",
     )
     ayristirici.add_argument("tarih", nargs="?", default=None, help="YYYY-MM-DD (opsiyonel)")
     return ayristirici.parse_args(argv)
 
 
-if __name__ == "__main__":
-    argumanlar = _argumanlari_ayristir()
+def ana(argv=None):
+    argumanlar = _argumanlari_ayristir(argv)
     nc_dosyasini_incele()
     if argumanlar.ucus_numarasi and argumanlar.tarih:
         ucus_sonuclarini_incele(argumanlar.ucus_numarasi, argumanlar.tarih)
     else:
         print(
-            "İpucu: 'python veri_kontrol.py N10VZ 2019-01-15' şeklinde uçuş numarası + tarih de ver "
-            "(önce main.py ile o uçuşu analiz etmiş olman gerekir)."
+            "İpucu: 'python -m turbulans_radar.cli.veri_kontrol THY322 2019-01-15' şeklinde uçuş numarası + "
+            "tarih de ver (önce turbulans-analiz ile o uçuşu analiz etmiş olman gerekir)."
         )
+
+
+if __name__ == "__main__":
+    ana()

@@ -40,7 +40,7 @@ x-ortak-volumeler: &ortak_volumeler
   - ${YEREL_VERI_KOKU:-.}/${HAVA_DURUMU_DOSYA_ADI:-ocak_2019_turbulans.nc}:/veri/${HAVA_DURUMU_DOSYA_ADI:-ocak_2019_turbulans.nc}:ro
   - ${YEREL_VERI_KOKU:-.}/${EK_HAVA_DURUMU_KLASOR_ADI:-era5_egitim_verisi}:/veri/${EK_HAVA_DURUMU_KLASOR_ADI:-era5_egitim_verisi}:ro
   - ${YEREL_VERI_KOKU:-.}/${ML_PIREP_ARSIV_KLASOR_ADI:-pirep_ham}:/veri/${ML_PIREP_ARSIV_KLASOR_ADI:-pirep_ham}:ro
-  - turbulans_modeller:/app/model_deposu
+  - ./model_deposu:/app/model_deposu
 
 services:
   db:
@@ -79,6 +79,8 @@ services:
       # üstün gelir (x-uygulama-db).
       # Otonom backend: API, canlı AWC SIGMET'lerini kendi içinde periyodik yeniler.
       SIGMET_OTOMATIK_GUNCELLEME_DAKIKA: ${SIGMET_OTOMATIK_GUNCELLEME_DAKIKA:-15}
+      # Canlı GFS küpü bu aralıkla (saat) Türkiye kutusu için önceden hazırlanır; 0 kapatır.
+      CANLI_ISITMA_SAAT: ${CANLI_ISITMA_SAAT:-6}
       # ML gece işi (IEM PIREP + CDS eşleştirme + eğitim) her gün bu saatte (UTC;
       # 23:07 = Türkiye 02:07) API tarafından kuyruğa alınır. .env'de boş
       # bırakılırsa (ML_GECE_ISI_SAATI=) kapalıdır; n8n kullanılıyorsa kapatın.
@@ -119,8 +121,16 @@ services:
       - .env
     environment:
       GOREV_ISCI_SAYISI: ${GOREV_ISCI_SAYISI:-2}
+      ISCI_SAGLIK_DOSYASI: /tmp/isci_saglik
       <<: [*veri_ortami, *uygulama_db]
     volumes: *ortak_volumeler
+    # Bakım döngüsü (15 sn) veritabanına ulaştıkça dosyayı tazeler; 90 sn tazelenmezse sağlıksız.
+    healthcheck:
+      test: ["CMD", "python", "-c", "import os, sys, time; sys.exit(time.time() - os.path.getmtime('/tmp/isci_saglik') > 90)"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
     secrets: [cdsapirc]
 
   # Günlük veritabanı yedeği: ml_ornekleri/edr_ornekleri haftalarca indirilen
@@ -145,7 +155,7 @@ services:
       - ./ml_ozellik_deposu:/kaynak/ml_ozellik_deposu:ro
       - ./madis_edr:/kaynak/madis_edr:ro
       - ./opensky_onbellek:/kaynak/opensky_onbellek:ro
-      - turbulans_modeller:/kaynak/model_deposu:ro
+      - ./model_deposu:/kaynak/model_deposu:ro
     # Disk dışı kopya için docker-compose.override.yml'de /dis_yedek bağlanır
     # (makineye özgü yol, depoya girmez; bkz. README "Veritabanı yedeği").
     # Doluysa disk dışı kopya gpg ile şifrelenir (.env: YEDEK_PAROLA_DOSYASI).
@@ -179,6 +189,3 @@ secrets:
 
 volumes:
   turbulans_pgdata:
-  # Aktif ML modeli + model_versiyonlari/ (rollback konteyner yeniden
-  # oluşturulunca kaybolmasın; ilk açılışta imajdaki model ile dolar).
-  turbulans_modeller:

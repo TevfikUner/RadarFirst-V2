@@ -88,3 +88,13 @@ def test_kucuk_rota_seyreltilmez():
         zaman_kaydiricili_harita_olustur(_ornek_rota_df(500), dosya_adi=dosya, maks_animasyon_noktasi=2000)
         nokta_sayisi = _uretilen_html_deki_nokta_sayisi(dosya)
         assert nokta_sayisi == 500
+
+
+def test_zaman_etiketi_utc_olarak_gosterilir():
+    with tempfile.TemporaryDirectory() as klasor:
+        dosya = os.path.join(klasor, "harita.html")
+        zaman_kaydiricili_harita_olustur(_ornek_rota_df(50), dosya_adi=dosya)
+        with open(dosya, encoding="utf-8") as f:
+            icerik = f.read()
+    assert "moment.utc(tarih)" in icerik
+    assert 'addEventListener("DOMContentLoaded"' in icerik

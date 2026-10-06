@@ -152,3 +152,37 @@ def test_bildirim_notify_ile_gercekten_yayinlanir(kuyruk_veritabani):
             await baglanti.close()
 
     assert '"NOTIFY2"' in asyncio.run(dinle())
+
+
+def _bakimi_kisa_calistir(isci):
+    import threading
+
+    isci._bakim_dur.clear()
+    is_parcacigi = threading.Thread(target=isci._bakim_dongusu, daemon=True)
+    is_parcacigi.start()
+    time.sleep(0.2)
+    isci._bakim_dur.set()
+    is_parcacigi.join(2)
+
+
+def test_bakim_dongusu_saglik_dosyasini_yalniz_veritabanina_ulasinca_tazeler(monkeypatch, tmp_path):
+    import os
+
+    dosya = tmp_path / "isci_saglik"
+    monkeypatch.setattr(config, "ISCI_SAGLIK_DOSYASI", str(dosya))
+    monkeypatch.setattr(config, "GOREV_KALP_ATISI_SANIYE", 0.02)
+    monkeypatch.setattr(gi, "bayat_gorevleri_kurtar", lambda *a: {})
+    isci = gi.GorevIscisi(turler=("yok",))
+
+    isci._saglik_isaretle()
+    os.utime(dosya, (0, 0))
+    _bakimi_kisa_calistir(isci)
+    assert dosya.stat().st_mtime > 1e9
+
+    def veritabani_yok(*a):
+        raise RuntimeError("veritabanı yok")
+
+    monkeypatch.setattr(gi, "bayat_gorevleri_kurtar", veritabani_yok)
+    os.utime(dosya, (0, 0))
+    _bakimi_kisa_calistir(isci)
+    assert dosya.stat().st_mtime == 0

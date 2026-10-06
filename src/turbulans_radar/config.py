@@ -347,6 +347,7 @@ GOREV_ISCI_SAYISI = _ortam_sayi("GOREV_ISCI_SAYISI", 2, int)
 GOREV_KUYRUK_BEKLEME_SANIYE = _ortam_sayi("GOREV_KUYRUK_BEKLEME_SANIYE", 1.0)
 GOREV_KALP_ATISI_SANIYE = _ortam_sayi("GOREV_KALP_ATISI_SANIYE", 15.0)
 GOREV_BAYAT_SANIYE = _ortam_sayi("GOREV_BAYAT_SANIYE", 120.0)
+ISCI_SAGLIK_DOSYASI = _ortam_str("ISCI_SAGLIK_DOSYASI", "")
 GOREV_MAKS_DENEME = _ortam_sayi("GOREV_MAKS_DENEME", 2, int)
 # Ayrı işçi SIGTERM alınca çalışan görevi bu kadar bekler (ML işi süren CDS isteğini bitirip durur);
 # docker-compose'daki stop_grace_period bundan uzun olmalı, yoksa Docker SIGKILL atar.
@@ -411,6 +412,9 @@ CANLI_TAHMIN_UFKU_SAAT = _ortam_sayi("CANLI_TAHMIN_UFKU_SAAT", 120, int)
 CANLI_KUP_TAZELIK_SAAT = _ortam_sayi("CANLI_KUP_TAZELIK_SAAT", 6, int)
 # Geçerliliği bu kadar saat önce bitmiş canlı küpler (dosya + katalog kaydı) silinir.
 CANLI_KUP_SAKLAMA_SAAT = _ortam_sayi("CANLI_KUP_SAKLAMA_SAAT", 48, int)
+CANLI_ISITMA_SAAT = _ortam_sayi("CANLI_ISITMA_SAAT", 0.0)
+CANLI_ISITMA_KUTUSU = tuple(float(s) for s in _ortam_str("CANLI_ISITMA_KUTUSU", "36,42,26,45").split(",") if s.strip())
+CANLI_ISITMA_SAAT_SAYISI = _ortam_sayi("CANLI_ISITMA_SAAT_SAYISI", 12, int)
 # Etkileşimli uçlar (rota simülasyonu, tahmin) katalogda olmayan bir canlı küp
 # için en fazla bu kadar bekler; indirme arka planda sürer, yanıt rüzgarsız
 # ön sonuçla "canli_veri_hazirlaniyor" döner (yavaş ağda istek askıda kalmaz).
@@ -511,10 +515,9 @@ SAGLIK_YEDEK_MAKS_YAS_SAAT = _ortam_sayi("SAGLIK_YEDEK_MAKS_YAS_SAAT", 36.0)
 SAGLIK_GFS_BOSTA_SAAT = _ortam_sayi("SAGLIK_GFS_BOSTA_SAAT", 24.0)
 
 # turbulans_ml_modeli.py -- aktif model, bilgi JSON'u ve model_versiyonlari/
-# bu klasörde tutulur. Docker'da kalıcı bir volume'a işaret eder (bkz.
-# docker-compose.yml); aksi halde geri dönüş (rollback) konteyner yeniden
-# oluşturulunca kaybolurdu.
-MODEL_KLASORU = _ortam_str("MODEL_KLASORU", ".")
+# bu klasörde tutulur. Docker aynı proje klasörünü /app/model_deposu'na bağlar
+# (bkz. docker-compose.yml): konteyner ile yerel araçlar aynı modeli görür.
+MODEL_KLASORU = _ortam_str("MODEL_KLASORU", "model_deposu")
 
 # rota_backtest.py -- gerçek uçuşla karşılaştırılan A* rotasında kullanılan
 # uçak profili (bkz. rota_optimizasyonu.UCAK_PROFILLERI).

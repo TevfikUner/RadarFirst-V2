@@ -131,10 +131,9 @@
       Sadece ABD hava sahası için gerçek veri (bkz. sigmet_dogrulama.py)
     </div>
   </div>
-  <div style="font-size:10px; color:#e67e22; margin-top:6px; border-top:1px solid #444; padding-top:6px;">
-    ⚠ TI1 tek başına bağımsız doğrulanmamıştır (1600 seyir PIREP'inde ROC-AUC 0.69; bir
-    uçuşta [PUE502] aktif SIGMET'in işaret ettiği türbülansı hiç yakalamadı) --
-    bkz. fizik/turbulans_indeksleri.py.
+  <div id="ti1-guvenilirlik-notu" style="font-size:10px; color:#e67e22; margin-top:6px; border-top:1px solid #444; padding-top:6px;">
+    ⚠ TI1 tek başına bağımsız doğrulanmamıştır; güvenlik garantisi SIGMET sert kısıtından gelir
+    (ayrıntı uçuş yüklenince API'den gelir; bkz. fizik/turbulans_indeksleri.py).
   </div>
 </div>
 
@@ -377,6 +376,9 @@ async function ucusuYukle() {
   durumGoster("Yükleniyor...", "bilgi");
   try {
     esikler = await apiIste("/api/v1/esikler");
+    if (esikler.ti1_guvenilirlik_notu) {
+      document.getElementById("ti1-guvenilirlik-notu").textContent = `⚠ ${esikler.ti1_guvenilirlik_notu}`;
+    }
     const detay = await apiIste(`/api/v1/ucuslar/${encodeURIComponent(ucus)}/${tarih}?olcum_limit=5000`);
     tumNoktalar = detay.olcumler;
     rotaKatmaniniGuncelle(tumNoktalar.filter(seviyeFiltresi()));

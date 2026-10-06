@@ -249,7 +249,10 @@ def ucus_ve_olcumleri_kaydet(eslesmis_df, ucus_numarasi, tarih_str, motor=None):
     motor = motor or motor_al()
 
     def bos_ise_al(sutun):
-        return eslesmis_df[sutun].iloc[0] if sutun in eslesmis_df.columns and not eslesmis_df.empty else None
+        if sutun not in eslesmis_df.columns or eslesmis_df.empty:
+            return None
+        deger = eslesmis_df[sutun].iloc[0]
+        return None if pd.isna(deger) else deger
 
     tarih = _tarihe_cevir(tarih_str)
     guncellenebilir_alanlar = ("icao24", "kalkis_havaalani", "varis_havaalani")

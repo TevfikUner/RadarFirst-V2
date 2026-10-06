@@ -100,6 +100,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | AWC akışı boş, liste değil ya da SIGMET'lerinin %25'inden fazlası çözümlenemiyor (şema değişikliği) | Kaynak hatası sayılır: mevcut SIGMET'ler sonlandırılmaz, `kaynak_hatalari` doldurulur, kaynak başarılı güncelleme almaz (bayatlık uyarısı devreye girer). |
 | Tek SIGMET'te birden fazla poligon (`geom: "AREAS"`) | Her alan ayrı kayıt olarak saklanır ve uygulanır. |
 | SIGMET koordinatsız geldi (örn. "ENTIRE FIR") | FIR sınır verisi varsa ve FIR kodu biliniyorsa alan FIR'ın TAMAMINA genişletilir (muhafazakâr); yoksa eski davranış (eleme). Bu genişletme şema-uyuşmazlığı eşiğinde çözümlenemeyen gibi sayılır. |
+| SIGMET'in geçerlilik başlangıcı geçersiz (AWC'de görülen `validTimeFrom=0`) | Başlangıç ham metindeki `VALID ddhhmm/ddhhmm` alanından, o da yoksa bitiş − 4 sa'ten türetilir; bağımsız kanıtta arşiv başlangıcı kaydın alınma zamanından en fazla 12 sa geriye gider (1970 tarihli kayıt 2019 uçuşlarını sahte biçimde 'kapsıyordu'). |
 | SIGMET'in irtifa bandı ya da tehlike türü okunamıyor | Bant genişletilir (taban yer, tavan sınırsız); tehlike `BILINMIYOR` olur ve her zaman kaçınılır. |
 | Bir SIGMET iptal edildi (canlı akıştan düştü) | Geçerliliği o an sona erdirilir; artık rotayı saptırmaz. |
 | AWC'den geçersiz (kendini kesen) ya da 180° boylamını kesen bir SIGMET poligonu geldi | Geometri onarılır/bölünür; yalnızca gerçek alan yasaklanır. |
@@ -108,6 +109,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | Toplu backtest'te bir uçuş beklenmeyen hatayla düştü | O uçuş `hata` olarak raporlanır, diğerleri işlenmeye devam eder. |
 | Hava verisi yok (bölge, tarih ya da irtifa kapsam dışı) | Rota rüzgarsız, sadece TAS ile hesaplanır ve TI1 raporlanmaz; bu durum açıkça belirtilir. SIGMET ve kısıtlı saha kısıtları yine uygulanır. |
 | Canlı GFS sağlayıcısı yanıt vermedi | Aynı rüzgarsız hesap; ama `ruzgar_verisi_kaynagi: canli_veri_alinamadi` ve açıklamada UYARI ("kapsam dışı" denmez). Sonuç `veri_kaynagi_durumlari`'na yazılır, `/saglik?derin=true` `canli_gfs: hata` gösterir. |
+| Canlı GFS uzun süredir başarıyla indirilemiyor (sağlayıcı kesintisi) | Docker'da API zamanlayıcısı `CANLI_ISITMA_SAAT` (6 sa) aralıkla Türkiye kutusunu önceden hazırlatır; `SAGLIK_GFS_BOSTA_SAAT`'ten (24 sa) eski başarıda `/saglik?derin=true` `canli_gfs: bayat` ve genel `bozulmus` döner (6 Ekim 2026 denetiminde UCAR 6 gün yanıtsız kalmış, fark edilmemişti). |
 | Canlı GFS indirmesi 8 sn'de bitmedi (yavaş ağ) | Rota/tahmin beklemeden rüzgarsız ön sonuç döner (`canli_veri_hazirlaniyor`, SIGMET ve kısıtlı sahalar uygulanmış); indirme arka planda sürer, sayfa hesabı kendiliğinden tekrarlar. |
 | SIGMET bayat, bir veri kaynağı hata veriyor ya da görev kuyruğu birikiyor | `/saglik?derin=true` genel durumu `bozulmus` döner (HTTP 200; monitoring gövdeye bakar). |
 | Kokpitte bağlantı zayıf ya da yok | Kütüphaneler API sunucusundan gelir; altlık harita yerel (NaturalEarthII / ülke sınırları). Sadece Esri karoları eksik kalır. |
@@ -233,8 +235,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 753 test (4 Ekim 2026; 2'si gerçek dış servise
-  istek attığı için varsayılan çalıştırmada hariç), kod kapsamı ~%84. Kapsamı: birim testleri, gerçek PostgreSQL
+- **Otomatik testler:** 825 test (6 Ekim 2026; 2'si gerçek dış servise
+  istek attığı için varsayılan çalıştırmada hariç), kod kapsamı ~%86. Kapsamı: birim testleri, gerçek PostgreSQL
   üzerinde API, depo ve görev kuyruğu testleri (eşzamanlı işçiler, ölen işçi
   kurtarma, LISTEN/NOTIFY), gerçek ERA5 küpüyle eşleştirme ve rota testleri,
   Playwright ile iki web önyüzünün tarayıcı testleri. Ağa çıkan bileşenler

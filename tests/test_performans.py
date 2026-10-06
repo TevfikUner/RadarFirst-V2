@@ -9,7 +9,7 @@ doğrular.
 
 Bu, kesin bir performans BENCHMARK'ı değil -- amaç, örn. vektörel
 eşleştirmenin yanlışlıkla nokta-nokta bir döngüye geri dönmesi gibi
-KATASTROFİK bir regresyonu yakalamak; bu yüzden sınırlar (30sn/60sn)
+KATASTROFİK bir regresyonu yakalamak; bu yüzden sınırlar (10sn/60sn)
 bilerek gevşek tutuldu (yavaş bir CI makinesinde bile false-positive
 vermesin diye).
 
@@ -69,9 +69,9 @@ def test_buyuk_rota_vektorel_eslestirme_makul_surede_biter(veri_kupu):
     sure_saniye = time.perf_counter() - baslangic
 
     assert len(sonuc) == BUYUK_ROTA_NOKTA_SAYISI
-    assert sure_saniye < 30.0, (
+    assert sure_saniye < 10.0, (
         f"{BUYUK_ROTA_NOKTA_SAYISI} nokta eşleştirmesi {sure_saniye:.1f}sn sürdü "
-        "(30sn sınırını aştı -- katastrofik bir regresyon olabilir, bkz. eslestirme.py)."
+        "(10sn sınırını aştı -- katastrofik bir regresyon olabilir, bkz. eslestirme.py)."
     )
 
 

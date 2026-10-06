@@ -204,37 +204,43 @@ def cevreleyen_katman_seviyeleri(basinc_hpa, basinc_seviyeleri_sirali):
     return seviyeler[alt_indeks - 1], seviyeler[alt_indeks]
 
 
+_YATAY_ALAN_ZAMAN_PARCASI = 64
+
+
 def _yatay_alan_degerlerini_hesapla(veri_kupu, seviyeler, zaman_serisi, enlemler, boylamlar):
     """
-    Her nokta için yatay deformasyonu hesaplar. Aynı (basınç seviyesi, zaman)
-    kombinasyonuna denk gelen noktalar GRUPLANIR: pahalı .differentiate()
-    işlemi bu kombinasyon için sadece bir kez çalıştırılır, sonra o gruptaki
-    tüm noktalar tek bir vektörel .sel() ile birlikte örneklenir.
+    Her nokta için yatay deformasyon ve diverjansı hesaplar. Noktaların denk
+    geldiği zaman adımları en fazla _YATAY_ALAN_ZAMAN_PARCASI'lık parçalar
+    halinde, gereken seviyelerle birlikte TEK bir vektörel .differentiate()
+    ile işlenir; parçadaki noktalar tek bir noktasal .sel() ile örneklenir.
+    (Eski (seviye, zaman) başına döngü, 55 bin noktada xarray hizalama
+    yüküyle ~30 sn sürüyordu.)
     """
-    zaman_izgaraya_yuvarlanmis = _zamanlari_veri_kupu_izgarasina_yuvarla(veri_kupu, zaman_serisi)
-
-    anahtar_df = pd.DataFrame(
-        {
-            "seviye": seviyeler,
-            "zaman": zaman_izgaraya_yuvarlanmis,
-            "enlem": enlemler,
-            "boylam": boylamlar,
-            "sira": np.arange(len(seviyeler)),
-        }
-    )
-
+    seviyeler = np.asarray(seviyeler, dtype=float)
+    zamanlar = np.asarray(_zamanlari_veri_kupu_izgarasina_yuvarla(veri_kupu, zaman_serisi), dtype="datetime64[ns]")
+    enlemler, boylamlar = np.asarray(enlemler, dtype=float), np.asarray(boylamlar, dtype=float)
     deformasyon = np.full(len(seviyeler), np.nan)
     diverjans = np.full(len(seviyeler), np.nan)
-    for (seviye, zaman), grup in anahtar_df.groupby(["seviye", "zaman"]):
-        tam_dilim = veri_kupu.sel(pressure_level=seviye, valid_time=zaman, method="nearest")
-        noktalar = dict(
-            latitude=xr.DataArray(grup["enlem"].to_numpy(), dims="nokta"),
-            longitude=xr.DataArray(grup["boylam"].to_numpy(), dims="nokta"),
-            method="nearest",
+    gecerli = ~np.isnan(seviyeler) & ~np.isnat(zamanlar)
+    if not gecerli.any():
+        return deformasyon, diverjans
+
+    benzersiz_seviyeler = np.unique(seviyeler[gecerli])
+    benzersiz_zamanlar = np.unique(zamanlar[gecerli])
+    for bas in range(0, len(benzersiz_zamanlar), _YATAY_ALAN_ZAMAN_PARCASI):
+        parca = benzersiz_zamanlar[bas : bas + _YATAY_ALAN_ZAMAN_PARCASI]
+        alt_kup = veri_kupu[["u", "v"]].sel(
+            {config.BASINC_BOYUTU: benzersiz_seviyeler, "valid_time": parca}, method="nearest"
         )
-        sira = grup["sira"].to_numpy()
-        deformasyon[sira] = yatay_deformasyon_hesapla(tam_dilim["u"], tam_dilim["v"]).sel(**noktalar).values
-        diverjans[sira] = yatay_diverjans_hesapla(tam_dilim["u"], tam_dilim["v"]).sel(**noktalar).values
+        sira = np.flatnonzero(gecerli & np.isin(zamanlar, parca))
+        noktalar = {
+            config.BASINC_BOYUTU: xr.DataArray(seviyeler[sira], dims="nokta"),
+            "valid_time": xr.DataArray(zamanlar[sira], dims="nokta"),
+            "latitude": xr.DataArray(enlemler[sira], dims="nokta"),
+            "longitude": xr.DataArray(boylamlar[sira], dims="nokta"),
+        }
+        deformasyon[sira] = yatay_deformasyon_hesapla(alt_kup["u"], alt_kup["v"]).sel(noktalar, method="nearest").values
+        diverjans[sira] = yatay_diverjans_hesapla(alt_kup["u"], alt_kup["v"]).sel(noktalar, method="nearest").values
 
     return deformasyon, diverjans
 

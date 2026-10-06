@@ -60,6 +60,7 @@ def edr_kalibrasyonu_calistir(df=None, motor=None, tekrar=300, arama_araligi=(0.
         egitim_df["ti1_indeksi"], egitim_df["pirep_edr"], arama_araligi=arama_araligi, adim_sayisi=adim_sayisi
     )
     eski = config.EDR_OLCEKLENDIRME_KATSAYISI_ESKI
+    mevcut = config.EDR_OLCEKLENDIRME_KATSAYISI
     tum_veri, _ = katsayi_kalibre_et(
         df["ti1_indeksi"], df["pirep_edr"], arama_araligi=arama_araligi, adim_sayisi=adim_sayisi
     )
@@ -68,8 +69,10 @@ def edr_kalibrasyonu_calistir(df=None, motor=None, tekrar=300, arama_araligi=(0.
         "yeni_katsayi_tum_veri": tum_veri,
         "guven_araligi_95": [alt, ust],
         "egitim_katsayisi": yeni,
+        "mevcut_katsayi": mevcut,
         "eski_katsayi": eski,
         "test_mse_yeni": _kayip_hesapla(yeni, test_df["ti1_indeksi"].to_numpy(), test_df["pirep_edr"].to_numpy()),
+        "test_mse_mevcut": _kayip_hesapla(mevcut, test_df["ti1_indeksi"].to_numpy(), test_df["pirep_edr"].to_numpy()),
         "test_mse_eski": _kayip_hesapla(eski, test_df["ti1_indeksi"].to_numpy(), test_df["pirep_edr"].to_numpy()),
         "test_mse_sabit_ortalama": float(np.mean((test_df["pirep_edr"] - egitim_df["pirep_edr"].mean()) ** 2)),
         "egitim_mse": egitim_mse,

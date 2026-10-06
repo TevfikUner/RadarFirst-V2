@@ -72,7 +72,7 @@ aşağıdaki [Kurulum](#kurulum) bölümüne bakın.
                                   │
                     ┌─────────────┼─────────────┐
                     ▼             ▼             ▼
-             veritabani.py   harita.py      main.py /
+             veritabani.py   harita.py      ucus_analizi /
              (PostgreSQL,    (Folium HTML)  toplu_analiz.py /
               models.py)                    web_arayuzu.py (CLI/UI)
                     │
@@ -224,12 +224,14 @@ Bu yüzden işçinin durması 5 dakikaya kadar sürebilir (`stop_grace_period`).
   `CDSAPI_RC` oraya ayarlanır; imaja ya da ortam değişkenlerine girmez.
   Verilmezse boş bir dosya bağlanır, yığın yine açılır; CDS başarısız olur
   ve ARCO yedeği (`ARCO_ONBELLEK_MAKS_GB`, varsayılan 20 GB) kullanılır.
-- **ML modeli ve sürümleri** `turbulans_modeller` adlı volume'da
-  (`MODEL_KLASORU=/app/model_deposu`) tutulur: `/aktiflestir` ile yapılan
-  geri dönüş ve konteyner içinde yapılan eğitim
-  (`docker compose run --rm api python -m turbulans_radar.ml.ml_egitimi`)
-  konteyner yeniden oluşturulunca kaybolmaz. Volume ilk oluşturulduğunda
-  imajı derleyen makinedeki model (varsa) ile dolar.
+- **ML modeli ve sürümleri** proje kökündeki `model_deposu/` klasöründe
+  tutulur (konteynerde `/app/model_deposu`'na bağlanır; yerelde
+  `MODEL_KLASORU` varsayılanı da `model_deposu`): Docker'daki API/işçi ile
+  yerelde çalışan Streamlit ve `turbulans-ml` AYNI aktif modeli ve sürüm
+  listesini görür. `/aktiflestir` ile yapılan geri dönüş ve konteyner içinde
+  yapılan eğitim konteyner yeniden oluşturulunca kaybolmaz; yedek servisi
+  klasörü salt okunur kopyalar. (6 Ekim 2026'ya kadar kullanılan
+  `turbulans_modeller` volume'u silinmedi; içeriği bu klasöre kopyalandı.)
 
 ## Kullanım
 
@@ -252,8 +254,10 @@ streamlit run src/turbulans_radar/arayuz/web_arayuzu.py
 ```
 
 Uçuş numarası ve tarihi bir kutuya yazıp "Analiz Et"e basman yeterli;
-sonuç tablosu ve harita direkt sayfada görünür. Arkada aynı `main.py`
-mantığı çalışır -- bu sadece görsel bir ön yüz.
+sonuç tablosu ve harita direkt sayfada görünür. Arkada aynı `turbulans-analiz`
+mantığı çalışır -- bu sadece görsel bir ön yüz. Varsayılan uçuş, depoda önbelleği
+olan THY322 / 2019-01-15'tir (OpenSky girişi gerektirmez). Sayfa yalnızca
+127.0.0.1'de dinler (`.streamlit/config.toml`).
 
 ### Birden fazla uçuşu birden analiz etmek
 
@@ -329,7 +333,7 @@ görüntü (snapshot) kolaylığı sağlar.
 | POST | `/api/v1/veri/canli/hazirla` | Bir bölge/zaman için canlı GFS küpünü arka planda hazırlar (katalogda tazesi varsa onu kullanır), 202 + `gorev_id` döner |
 | GET | `/api/v1/veri/kupler` | Hava durumu küpü kataloğu (kaynak, model çalıştırması, kapsam, seviyeler) |
 | POST | `/api/v1/backtest/ucuslar/{ucus_numarasi}/{tarih}` | Bir uçuşun gerçek izini büyük daire ve A* rotasıyla karşılaştırıp kaydeder |
-| POST | `/api/v1/backtest/toplu` | Backtest'i olmayan uçuşları arka planda karşılaştırır (ör. gecelik bir zamanlayıcıdan), `gorev_id` döner |
+| POST | `/api/v1/backtest/toplu` | Backtest'i olmayan uçuşları arka planda karşılaştırır (ör. gecelik bir zamanlayıcıdan), `gorev_id` döner; `?yenile=true` mevcut backtest'leri de en eskiden başlayarak yeniden hesaplar (algoritma değişince bayat sonuç kalmaz) |
 | GET | `/api/v1/backtest` | Tüm backtest sonuçları + filo geneli özet |
 | POST | `/api/v1/turbulans/tahmin` | Tek nokta için fizik (TI1) + gerçek PIREP verisiyle eğitilmiş ML tahminini karşılaştırmalı döner |
 | GET | `/api/v1/turbulans/model-bilgisi` | ML modelinin seçim gerekçesi/metrikleri (recall, F1, ROC-AUC vb.) + eğitim tarihini döner; model henüz eğitilmediyse dürüstçe `egitildi_mi: false` |

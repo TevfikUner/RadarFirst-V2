@@ -136,7 +136,8 @@ def _toplu_gorevi(gorev):
 
 
 def _backtest_gorevi(gorev):
-    return {"durum": "tamamlandi", "ozet": toplu_backtest(gorev["parametreler"]["limit"])}
+    p = gorev["parametreler"]
+    return {"durum": "tamamlandi", "ozet": toplu_backtest(p["limit"], yenile=p.get("yenile", False))}
 
 
 def _canli_veri_gorevi(gorev):
@@ -284,6 +285,7 @@ class GorevIscisi:
         self._is_parcaciklari.append(threading.Thread(target=self._bakim_dongusu, name="gorev-bakim", daemon=True))
         for is_parcacigi in self._is_parcaciklari:
             is_parcacigi.start()
+        self._saglik_isaretle()
         _logger.info("Görev işçisi başladı: %s (%d iş parçacığı)", self.ad, self.isci_sayisi)
         return self
 
@@ -339,8 +341,19 @@ class GorevIscisi:
                 kurtarilan = bayat_gorevleri_kurtar(bayat_sure, config.GOREV_MAKS_DENEME)
                 if any(kurtarilan.values()):
                     _logger.warning("Ölmüş işçilerin görevleri kurtarıldı: %s", kurtarilan)
+                self._saglik_isaretle()
             except Exception as hata:
                 _logger.warning("Görev bakımı yapılamadı: %s", dostane_hata_mesaji(hata))
+
+    def _saglik_isaretle(self):
+        """Konteyner healthcheck'i için: bakım döngüsü veritabanına ulaştıkça dosya tazelenir."""
+        if not config.ISCI_SAGLIK_DOSYASI:
+            return
+        try:
+            with open(config.ISCI_SAGLIK_DOSYASI, "a"):
+                os.utime(config.ISCI_SAGLIK_DOSYASI)
+        except OSError as hata:
+            _logger.warning("İşçi sağlık dosyası yazılamadı: %s", hata)
 
 
 def ana():

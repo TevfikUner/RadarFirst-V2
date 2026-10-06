@@ -1529,13 +1529,14 @@ def _bulgulari_olustur(
 ):
     bulgular = _seviye_bulgulari(seviye)
     if ruzgarli_mi and veri_kupu_kaynagi(veri_kupu) == "gfs":
-        calisma = veri_kupu.attrs.get("model_calisma_zamani", "bilinmiyor")
+        calisma = veri_kupu.attrs.get("model_calisma_zamani")
         bulgular.append(
             _bulgu(
                 "veri_gfs_tahmin",
                 "bilgi",
-                f"Canlı NOAA GFS tahmin verisiyle hesaplandı (model çalıştırması {calisma} UTC).",
-                model_calisma_zamani=str(calisma),
+                f"Canlı NOAA GFS tahmin verisiyle hesaplandı (model çalıştırması "
+                f"{f'{calisma} UTC' if calisma else 'bilinmiyor'}).",
+                model_calisma_zamani=str(calisma) if calisma else None,
             )
         )
     elif ruzgarli_mi:
