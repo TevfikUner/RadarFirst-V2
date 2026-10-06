@@ -124,7 +124,7 @@ def _sentetik_sigmet(enlem, boylam, yari=0.6):
     }
 
 
-def _rota(ag, sigmetler=(), irtifa_ft=36000, bas=TOC, bit=TOD, zaman="2019-01-15T10:00:00"):
+def _rota(ag, sigmetler=(), irtifa_ft=35000, bas=TOC, bit=TOD, zaman="2019-01-15T10:00:00"):
     return rota_simulasyonu_olustur(
         *bas,
         *bit,
@@ -165,8 +165,8 @@ def test_ats_modu_her_iki_yol_kapaliysa_oneri_yok():
 
 def test_ats_modu_seviye_disinda_ve_baglanamayan_uclarda_anlasilir_hata():
     ag = hya.agi_kur(_veri())
-    with pytest.raises(AtsAgiKullanilamazHatasi, match="FL200"):
-        _rota(ag, irtifa_ft=20000)
+    with pytest.raises(AtsAgiKullanilamazHatasi, match="FL190"):
+        _rota(ag, irtifa_ft=19000)
     with pytest.raises(AtsAgiKullanilamazHatasi, match="bağlanamadı"):
         _rota(ag, bas=(30.0, -60.0))
 
@@ -185,7 +185,7 @@ def test_ats_agi_dosyasi_yoksa_hata_ve_dosyadan_yukleme(tmp_path, monkeypatch):
 
 
 def test_koridor_modu_degismedi():
-    sonuc = rota_simulasyonu_olustur(*TOC, *TOD, 36000, "2019-01-15T10:00:00", "A320", sigmetler=[], kisitli_sahalar=[])
+    sonuc = rota_simulasyonu_olustur(*TOC, *TOD, 35000, "2019-01-15T10:00:00", "A320", sigmetler=[], kisitli_sahalar=[])
     assert sonuc["ats"] is None and sonuc["kapsam"]["arama_uzayi"] == "koridor"
 
 

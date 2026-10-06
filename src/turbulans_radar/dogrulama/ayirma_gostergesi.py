@@ -228,6 +228,14 @@ def rotalar_icin_gosterge(rotalar: dict, trafik_df, haric_icao24=None) -> dict:
     }
 
 
+def sorgu_irtifa_bandi_ft(rotalar: dict, irtifa_ft) -> tuple[float, float]:
+    """Trafik sorgusu bandı: tüm rotaların (seviye değiştiren öneri dahil)
+    irtifa aralığı ± (dikey minima + 2000 ft pay)."""
+    bant = config.AYIRMA_DIKEY_FT + 2000.0
+    tum = np.concatenate([np.atleast_1d(np.asarray(r[3], dtype=float)) for r in rotalar.values()] + [[irtifa_ft]])
+    return float(np.nanmin(tum)) - bant, float(np.nanmax(tum)) + bant
+
+
 def ucus_ayirma_gostergesi(ucus_numarasi, tarih_str, sorgu_izni=False, ucak_modeli=None, motor=None) -> dict:
     from sqlalchemy import select
     from sqlalchemy.orm import Session
@@ -253,10 +261,9 @@ def ucus_ayirma_gostergesi(ucus_numarasi, tarih_str, sorgu_izni=False, ucak_mode
         float(tum_boylam.min()) - pay / max(math.cos(math.radians(float(np.abs(tum_enlem).max()))), 0.1),
         float(tum_boylam.max()) + pay / max(math.cos(math.radians(float(np.abs(tum_enlem).max()))), 0.1),
     )
-    bant = config.AYIRMA_DIKEY_FT + 2000.0
     bitis = max(pd.Timestamp(r[2][-1]) for r in rotalar.values())
     trafik = trafik_izleri(
-        kutu, girdi["baslangic_zamani"], bitis, irtifa_ft - bant, irtifa_ft + bant, sorgu_izni=sorgu_izni
+        kutu, girdi["baslangic_zamani"], bitis, *sorgu_irtifa_bandi_ft(rotalar, irtifa_ft), sorgu_izni=sorgu_izni
     )
     with Session(motor) as oturum:
         icao24 = oturum.execute(
