@@ -70,3 +70,7 @@ db_yedekleri/
 
 # Makineye özgü docker compose ayarları (ör. disk dışı yedek yolu)
 docker-compose.override.yml
+
+# Aktif ML modeli ve sürümleri (Docker ile yerel araçların ortak deposu) ve arşiv
+model_deposu/
+arsiv/

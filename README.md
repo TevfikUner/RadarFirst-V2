@@ -224,12 +224,14 @@ Bu yüzden işçinin durması 5 dakikaya kadar sürebilir (`stop_grace_period`).
   `CDSAPI_RC` oraya ayarlanır; imaja ya da ortam değişkenlerine girmez.
   Verilmezse boş bir dosya bağlanır, yığın yine açılır; CDS başarısız olur
   ve ARCO yedeği (`ARCO_ONBELLEK_MAKS_GB`, varsayılan 20 GB) kullanılır.
-- **ML modeli ve sürümleri** `turbulans_modeller` adlı volume'da
-  (`MODEL_KLASORU=/app/model_deposu`) tutulur: `/aktiflestir` ile yapılan
-  geri dönüş ve konteyner içinde yapılan eğitim
-  (`docker compose run --rm api python -m turbulans_radar.ml.ml_egitimi`)
-  konteyner yeniden oluşturulunca kaybolmaz. Volume ilk oluşturulduğunda
-  imajı derleyen makinedeki model (varsa) ile dolar.
+- **ML modeli ve sürümleri** proje kökündeki `model_deposu/` klasöründe
+  tutulur (konteynerde `/app/model_deposu`'na bağlanır; yerelde
+  `MODEL_KLASORU` varsayılanı da `model_deposu`): Docker'daki API/işçi ile
+  yerelde çalışan Streamlit ve `turbulans-ml` AYNI aktif modeli ve sürüm
+  listesini görür. `/aktiflestir` ile yapılan geri dönüş ve konteyner içinde
+  yapılan eğitim konteyner yeniden oluşturulunca kaybolmaz; yedek servisi
+  klasörü salt okunur kopyalar. (6 Ekim 2026'ya kadar kullanılan
+  `turbulans_modeller` volume'u silinmedi; içeriği bu klasöre kopyalandı.)
 
 ## Kullanım
 

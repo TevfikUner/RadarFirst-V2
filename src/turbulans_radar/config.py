@@ -511,10 +511,9 @@ SAGLIK_YEDEK_MAKS_YAS_SAAT = _ortam_sayi("SAGLIK_YEDEK_MAKS_YAS_SAAT", 36.0)
 SAGLIK_GFS_BOSTA_SAAT = _ortam_sayi("SAGLIK_GFS_BOSTA_SAAT", 24.0)
 
 # turbulans_ml_modeli.py -- aktif model, bilgi JSON'u ve model_versiyonlari/
-# bu klasörde tutulur. Docker'da kalıcı bir volume'a işaret eder (bkz.
-# docker-compose.yml); aksi halde geri dönüş (rollback) konteyner yeniden
-# oluşturulunca kaybolurdu.
-MODEL_KLASORU = _ortam_str("MODEL_KLASORU", ".")
+# bu klasörde tutulur. Docker aynı proje klasörünü /app/model_deposu'na bağlar
+# (bkz. docker-compose.yml): konteyner ile yerel araçlar aynı modeli görür.
+MODEL_KLASORU = _ortam_str("MODEL_KLASORU", "model_deposu")
 
 # rota_backtest.py -- gerçek uçuşla karşılaştırılan A* rotasında kullanılan
 # uçak profili (bkz. rota_optimizasyonu.UCAK_PROFILLERI).

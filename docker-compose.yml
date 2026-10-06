@@ -40,7 +40,7 @@ x-ortak-volumeler: &ortak_volumeler
   - ${YEREL_VERI_KOKU:-.}/${HAVA_DURUMU_DOSYA_ADI:-ocak_2019_turbulans.nc}:/veri/${HAVA_DURUMU_DOSYA_ADI:-ocak_2019_turbulans.nc}:ro
   - ${YEREL_VERI_KOKU:-.}/${EK_HAVA_DURUMU_KLASOR_ADI:-era5_egitim_verisi}:/veri/${EK_HAVA_DURUMU_KLASOR_ADI:-era5_egitim_verisi}:ro
   - ${YEREL_VERI_KOKU:-.}/${ML_PIREP_ARSIV_KLASOR_ADI:-pirep_ham}:/veri/${ML_PIREP_ARSIV_KLASOR_ADI:-pirep_ham}:ro
-  - turbulans_modeller:/app/model_deposu
+  - ./model_deposu:/app/model_deposu
 
 services:
   db:
@@ -145,7 +145,7 @@ services:
       - ./ml_ozellik_deposu:/kaynak/ml_ozellik_deposu:ro
       - ./madis_edr:/kaynak/madis_edr:ro
       - ./opensky_onbellek:/kaynak/opensky_onbellek:ro
-      - turbulans_modeller:/kaynak/model_deposu:ro
+      - ./model_deposu:/kaynak/model_deposu:ro
     # Disk dışı kopya için docker-compose.override.yml'de /dis_yedek bağlanır
     # (makineye özgü yol, depoya girmez; bkz. README "Veritabanı yedeği").
     # Doluysa disk dışı kopya gpg ile şifrelenir (.env: YEDEK_PAROLA_DOSYASI).
@@ -179,6 +179,3 @@ secrets:
 
 volumes:
   turbulans_pgdata:
-  # Aktif ML modeli + model_versiyonlari/ (rollback konteyner yeniden
-  # oluşturulunca kaybolmasın; ilk açılışta imajdaki model ile dolar).
-  turbulans_modeller:

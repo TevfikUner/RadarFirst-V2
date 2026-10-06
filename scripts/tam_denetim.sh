@@ -50,7 +50,7 @@ adim "Faz 0 - Envanter"
   done
   for k in $(grep -oE '^OPENSKY_[A-Z_]+=' .env | tr -d '='); do [ -n "$(env_degeri "$k")" ] && echo "$k: tanımlı" || echo "$k: EKSİK"; done
   echo "-- veri varlıkları"
-  du -sh ocak_2019_turbulans.nc era5_egitim_verisi era5_ucus_verisi opensky_onbellek pirep_ham turbulans_ml_modeli.joblib model_versiyonlari web/vendor veri_dosyalari ciktilar 2>&1
+  du -sh ocak_2019_turbulans.nc era5_egitim_verisi era5_ucus_verisi opensky_onbellek pirep_ham model_deposu web/vendor veri_dosyalari ciktilar 2>&1
   echo "opensky_onbellek uçuşları: $(ls opensky_onbellek/*.parquet 2>/dev/null | xargs -n1 basename 2>/dev/null | tr '\n' ' ')"
 } > "$R/envanter.txt" 2>&1
 kaydet "Envanter" "✅" "$R/envanter.txt"

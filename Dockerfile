@@ -32,17 +32,12 @@ ENV PYTHONPATH=/app/src
 # Yalnızca doğrular: paketler güncelse indirme yapılmaz.
 RUN python -m turbulans_radar.cli.statik_indir
 
-# Model deposu (MODEL_KLASORU): docker-compose buraya adlandırılmış bir volume
-# bağlar. Docker boş bir volume'u ilk bağlamada imajdaki içerikle doldurur --
-# derleme makinesinde eğitilmiş model varsa ilk açılışta hazır gelir, sonraki
-# eğitim/geri dönüşler volume'da kalıcıdır.
-RUN mkdir -p model_deposu \
-    && for f in turbulans_ml_modeli.joblib turbulans_ml_modeli_bilgisi.json model_versiyonlari; do \
-         if [ -e "$f" ]; then cp -r "$f" model_deposu/; fi; \
-       done
+# Model deposu (MODEL_KLASORU): docker-compose projenin model_deposu/ klasörünü
+# buraya bağlar; yerel araçlar da aynı klasörü kullanır (imaja girmez).
+RUN mkdir -p model_deposu
 
 # Root olmayan kullanıcı: kod imajda salt okunur kalır; yazılan her şey
-# docker-compose'un bağladığı klasörlerde ve model volume'undadır. Giriş betiği
+# docker-compose'un bağladığı klasörlerdedir. Giriş betiği
 # bu klasörleri sahiplendirip süreci uid 1000'e düşürür (otomasyon/konteyner_giris.sh).
 RUN useradd --create-home --uid 1000 turbulans && chown -R turbulans:turbulans model_deposu \
     && install -m 755 otomasyon/konteyner_giris.sh /usr/local/bin/konteyner_giris
