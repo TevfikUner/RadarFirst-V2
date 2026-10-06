@@ -4,6 +4,35 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Uçtan uca denetim düzeltmeleri (6 Ekim 2026)
+
+Rapor: `test_raporu/2026-10-06/RAPOR.md` (bulgu numaraları oradaki gibi).
+
+- **SIGMET 1970 kaydı (1):** AWC'nin `validTimeFrom=0` gönderdiği SIGMET
+  1970 başlangıçla kaydediliyor, arşiv başlangıcı 1970 sayılıyor ve 2019
+  uçuşlarının backtest'i sahte `sigmet_arsivi` kanıtı alıyordu. Başlangıç
+  VALID metninden türetilir, arşiv başlangıcı alınma zamanıyla sınırlanır;
+  `e9c1d4b7a2f6` migration'ı mevcut kaydı onarır.
+- **"NaN" havalimanı (2):** pandas NaN'ı varchar'a "NaN" metni olarak
+  yazılıyordu; artık NULL (migration mevcutları da temizler).
+- **Tek model deposu (3):** `turbulans_modeller` volume'u yerine
+  `./model_deposu` bağlanır, `MODEL_KLASORU` varsayılanı `model_deposu`:
+  Streamlit/CLI artık API'deki aktif modeli görür. Kökteki 167 örnekli
+  eski model `arsiv/`'e taşındı.
+- **GFS (4):** API zamanlayıcısı canlı küpü önceden hazırlar
+  (`CANLI_ISITMA_SAAT`), uzun süre başarı yoksa sağlık `bayat`; THREDDS
+  `reftime1` okunduğu için `model_calisma_zamani` dolu.
+- **Performans (5):** yatay deformasyon/diverjans zaman parçaları üzerinde
+  vektörel: 55 bin nokta 30,7 sn → 0,9 sn (eşdeğerlik testi birebir);
+  performans testi sınırı 10 sn.
+- **Arayüz/işletim (6-10):** simülasyonda lejant örtüşmesi, harita3d TI1
+  notu API'den, Folium saati UTC, tahmin yanıtında TI1 notu her zaman,
+  worker healthcheck.
+- **Diğer:** `/backtest/toplu?yenile=true`; EDR kalibrasyonu yürürlükteki
+  katsayıyla da karşılaştırır; Streamlit yalnızca 127.0.0.1, varsayılan
+  uçuş THY322/2019-01-15, silme onaylı; CLI'larda `main.py` artıkları ve
+  %0 kapsamlı dört modüle testler.
+
 ## Proje denetimi: düşük öncelikli maddeler
 
 - **Docker giriş betiği:** `USER` yerine `otomasyon/konteyner_giris.sh`:
