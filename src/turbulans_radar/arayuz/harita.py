@@ -3,7 +3,7 @@ harita.py
 ----------
 Eski `interaktif_harita.py` sadece statik nokta/çizgi çiziyordu. Bu modül:
   - folium.plugins.TimestampedGeoJson ile ZAMAN KAYDIRICILI animasyonlu rota
-  - Popup'larda gerçek uçuş bilgisi (uçuş no, icao24, kalkış/varış, EDR proxy)
+  - Popup'larda gerçek uçuş bilgisi (uçuş no, icao24, kalkış/varış, gösterge ölçeği)
   - Renk skalası için bir lejant
 sağlar.
 
@@ -34,6 +34,18 @@ def _turbulans_rengi(ti1_degeri):
     if ti1_degeri < config.TI1_ESIK_ORTA_SIDDETLI:
         return "orange"
     return "red"
+
+
+def _olcek_adi(satir) -> str:
+    """edr_proxy birleşik gösterge eşlemesidir, o yoksa TI1'in tanh ölçeğidir; ikisi de EDR değildir.
+    birlesik_edr sütunu yoksa hangisi olduğu bilinmez."""
+    if "birlesik_edr" not in satir:
+        return "Gösterge ölçeği (EDR değildir)"
+    return (
+        "TI1 görsel ölçeği (EDR değildir)"
+        if pd_isna(satir["birlesik_edr"])
+        else "Birleşik gösterge ölçeği (EDR değildir)"
+    )
 
 
 def pd_isna(x):
@@ -142,10 +154,9 @@ def zaman_kaydiricili_harita_olustur(
         aciklama_parcalari.append(
             f"<b>TI1 İndeksi:</b> {ti1_degeri:.2e} s^-2" if not pd_isna(ti1_degeri) else "<b>TI1 İndeksi:</b> veri yok"
         )
+        olcek_adi = _olcek_adi(satir)
         aciklama_parcalari.append(
-            f"<b>EDR tahmini (sertifikalı değil):</b> {edr_degeri:.3f}"
-            if not pd_isna(edr_degeri)
-            else "<b>EDR tahmini:</b> veri yok"
+            f"<b>{olcek_adi}:</b> {edr_degeri:.3f}" if not pd_isna(edr_degeri) else f"<b>{olcek_adi}:</b> veri yok"
         )
         richardson_degeri = satir.get("richardson_sayisi", float("nan"))
         if not pd_isna(richardson_degeri):

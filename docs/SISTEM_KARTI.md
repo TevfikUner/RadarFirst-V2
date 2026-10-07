@@ -35,8 +35,12 @@ trafikle varsayımsal minima karşılaştırması yalnızca gösterge olarak var
   `SIGMET_YAYIN_UFKU_SAAT`), uçuşun bu ufkun ötesindeki kısmında "aktif SIGMET
   yok" sonucu güvence değildir. Yanıt bu durumda `sigmet_ufuk_disi` uyarısı verir.
 - Kalkıştan önceki son saatlerde yeniden hesaplanmalıdır.
-- Hesaplama süresi, veri hazırken rota başına 0,02–0,27 sn'dir
-  (`docs/hoca_geri_bildirim_analizi.md` §3).
+- Hesaplama süresi, veri hazırken rota başına 0,08–1,36 sn'dir (sıcak medyan; A*
+  araması 0,31–0,40 sn). Ölçüm `turbulans-performans rota` ile yapıldı ve
+  `docs/sonuclar/2026-10-07/rota_performansi.md` dosyasında. Dizüstü pildeyken ölçüldü;
+  aynı gün daha önceki bir ölçüm 0,02–0,86 sn verdi. 2 Ekim ölçümü 0,02–0,27 sn idi
+  (tarihçe, `docs/hoca_geri_bildirim_analizi.md` §3). Artışın nedeni (yarım daire
+  kuralıyla çok seviyeli arama, FRA kontrolleri ya da güç durumu) ayrıca incelenmedi.
 - Uçuş sırasında yeniden hesaplama mekanizması gösterim amaçlıdır.
 
 Sistem **sertifikalı değildir**. Herhangi bir EFB onayı yoktur ve
@@ -143,21 +147,27 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   ızgarada ~0,125°'ye kadar kayma olabilir.
 - Küp sınırının 0,125° dışına kadar (zamanda 3 saate kadar) noktalar kapsam
   içi sayılır ve kenar değerini alır.
-- Seyir irtifasındaki 6218 PIREP'te (64 gün) TI1'in tek başına ayırt
-  ediciliği orta düzeydedir (ROC-AUC 0,67 [0,65–0,69]; zamansal holdout'ta
-  0,71, `TI1_ESIK_ORTA_SIDDETLI`'de POD 0,49, POFD 0,16). Fizik düzeltmesinden
-  önce aynı örneklerde 0,64'tü; eski 0,44 değeri 300-400 feet'teki PIREP'leri
-  seçen hatalı bir irtifa filtresinden geliyordu. Ayrıntı: `docs/rapor/SONUCLAR.md`. Bu, tek başına KANITLANMAMIŞ bir gösterge olduğu anlamına
+- Seyir irtifasındaki 7.815 PIREP'te (80 gün) TI1'in tek başına ayırt
+  ediciliği orta düzeydedir: ROC-AUC 0,680 [0,662–0,697]. Altın test günlerinde
+  0,673 [0,639–0,704]; `TI1_ESIK_ORTA_SIDDETLI`'de (8e-7) POD 0,448, POFD 0,201.
+  Eğitim günlerinde Peirce'i en büyüten eşik 5,3e-7'dir; altın günlerde POD 0,605,
+  POFD 0,349. Sayılar `docs/sonuclar/2026-10-07/SAYILAR.md` ön paketinden alındı.
+  Fizik düzeltmesinden önce 0,64'tü (5 Ekim, tarihçe); eski 0,44 değeri 300-400 feet'teki
+  PIREP'leri seçen hatalı bir irtifa filtresinden geliyordu. Kapsam yalnız CAT'tir:
+  CB/TS/TCU/MTN WAVE/LLWS geçen raporlar dışlanınca altın günlerde TI1 0,669
+  [0,632–0,707]. Bu, tek başına KANITLANMAMIŞ bir gösterge olduğu anlamına
   gelir; bu not (`TI1_GUVENILIRLIK_NOTU`, bkz. `fizik/turbulans_indeksleri.py`)
   artık `POST /simulasyon/rota` ve `POST /turbulans/tahmin` yanıtlarında ayrı
   bir alan olarak (`ti1_guvenilirlik_notu`) ve iki web arayüzünde de
   gösteriliyor -- bugün rota güvenliğinin gerçek garantisi TI1'den değil
   SIGMET sert kısıtından geliyor (bkz. "Bağımsız kanıt" bölümü, PUE502 uçuşu).
-- EDR ölçekleme katsayısı 0.27'dir (Madde 2 fiziğiyle, gün bazlı bootstrap
-  %95 GA [0.25, 0.28], 6218 PIREP / 64 gün; önceki 0.40 eski fizikle). Tanh
-  ölçeği sabit ortalama tahmininden daha iyi tahmin etmez (test MSE 0.076 vs
-  0.067); görselleştirme ölçeğidir. Birleşik EDR log-normal eşlemeyi kullanır,
-  tanh yalnızca yedektir.
+- Arayüzdeki 0–1 değer EDR değildir. Önce birleşik gösterge ölçeği (log-normal
+  eşleme) kullanılır, o yoksa "TI1 görsel ölçeği" (tanh). Tanh katsayısı 0.27'dir;
+  EDR ölçümüne değil PIREP sınıf koduna uydurulmuştur (Madde 2 fiziği, gün bazlı
+  bootstrap %95 GA [0.25, 0.28], 6218 PIREP / 64 gün, 5 Ekim). Sabit ortalama
+  tahmininden daha iyi tahmin etmez (test MSE 0.076 vs 0.067). Bayrağın adı bu
+  yüzden `TI1_GORSEL_OLCEK_PIREP_SINIFINA_UYDURULDU` oldu (eski adı
+  `EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI`).
 
 **ML sınıflandırıcısı**
 - Aktif model (Random Forest, 5 Ekim 2026) doğru irtifalı PIREP'lerle eğitildi ve
@@ -283,17 +293,28 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
     CDN'den ~55 KB/s bağlantıda 106 sn sürüyordu); altlık harita yerel.
   - Küp belleği: İzmir-Van için pencereli okuma 1.2 MB (tüm küp 69 MB); eski
     davranış ilk istekte 16 küpü (92 MB) belleğe alıyordu.
-- **Backtest (15 Ocak 2019, ERA5):** Riskli nokta oranı, gerçek uçuşlarda
-  ortalama 0.28, önerilen rotalarda 0.00. Üç uçuşun ikisinde risk tırmanma
-  ile azaldı; büyük daireye göre ek süre 2-5 dakika. Bu ölçüm döngüseldir
-  (A* TI1'i düşürür, başarı TI1 ile ölçülür); bu uçuşlar için bağımsız kanıt
-  kaynağı yoktur.
+- **Sonuç paketi (Madde 8):** Doğruluk sayılarının tek kaynağı
+  `docs/sonuclar/<kesme>/` paketidir: commit hash'li JSON, `SAYILAR.md`, ROC,
+  güvenilirlik ve backtest şekilleri (`turbulans-ml-degerlendirme --cikti`). Şu an
+  7 Ekim ön paketi geçerlidir; 18 Ekim veri dondurmasında nihai paket üretilecek.
+- **Backtest (ERA5):** Veritabanındaki iki uçuşta riskli nokta oranı
+  (gerçek / büyük daire / A*): THY322 1 Ocak 2019 0,00 / 0,05 / 0,00; THY322 15 Ocak
+  2019 0,19 / 0,32 / 0,00 (`SAYILAR.md`, `backtest_ucus_basina.png`). Bu ölçüm
+  döngüseldir (A* TI1'i düşürür, başarı TI1 ile ölçülür); bu uçuşlar için bağımsız
+  kanıt kaynağı yoktur. Önceki "üç uçuşta ortalama 0,28" ölçümü (THY72C, THY606 dahil)
+  tarihçedir; o uçuşlar bugünkü veritabanında yok.
 - **Bağımsız kanıtlı backtest (26 Eylül 2026, canlı GFS):** Gerçek bir
   uçuşta (PUE502, Brezilya, FL350) aktif TURB SIGMET maruziyeti gerçek iz 30,
   büyük daire 28, A* 33 nokta/bacak; TI1 üç rotada da risk görmedi. TI1
   katmanı bu olayı yakalamadı; SIGMET sert kısıtı canlı kullanımda bunu
   telafi eder, ama TI1'in tek başına bağımsız becerisi şimdilik
-  kanıtlanmamıştır.
+  kanıtlanmamıştır. **A* maruziyetinin 28'den 33'e çıkmasının nedeni:** backtest'te A*
+  bağımsızlık için TURB/MTW SIGMET'lerini görmez ve TI1 de risk görmediği için bu
+  SIGMET'ler A*'ın amaç fonksiyonunda yoktu; rota büyük daireden başka bir ölçütle
+  (süre/rüzgâr ya da kalan sert kısıtlar) ayrıldı ve SIGMET alanında daha uzun kaldı.
+  Hangi ölçütün ayırdığı yeniden üretilemedi, çünkü uçuş ve rota yanıtı 3 Ekim öncesi
+  veritabanında kaldı ve yedeklerde de yok. Canlı sistemde TURB SIGMET sert kısıttır,
+  bu rota önerilmezdi. Bu sayılar sonuç paketinde değildir (tarihçe).
 
 - **Sanal PIREP (M6, 1 Ekim 2026):** Tespit sentetik izlerle (seyir, sapma,
   transponder sıçraması, kademeli tırmanış, veri boşluğu) ve gerçek THY322

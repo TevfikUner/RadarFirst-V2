@@ -29,7 +29,8 @@ kapsamadığı noktalar tahmin edilmez, "veri yok" olarak bırakılır.
 IEM PIREP arşivindeki `FL` alanının feet cinsinden olduğu, önceki veri setinin bu
 yüzden seyir yerine 300–400 ft'teki (pist/yaklaşma) raporları seçtiği bulundu.
 Etiket hattı ham arşivden doğru filtreyle (FL280–FL420) yeniden kuruldu. Doğru
-veride TI1'in ROC-AUC'si 0,44'ten 0,71'e çıktı (10 gün × 100 PIREP, gerçek CDS).
+veride TI1'in ROC-AUC'si 0,44'ten 0,71'e çıktı (tarihçe: 1 Ekim, 10 gün × 100 PIREP,
+gerçek CDS). Güncel değer 7.815 PIREP'te 0,680 (`docs/sonuclar/2026-10-07/SAYILAR.md`).
 - Kanıt: `ml/ml_veri_hatti.py`, `dogrulama/bagimsiz_kanit.py` (`pirepleri_normalize_et`).
 - Sınır: PIREP öznel ve gecikmelidir; nesnel EDR etiketi için NOAA MADIS başvurusu
   yapıldı (geliştirme planı M1).
@@ -63,13 +64,15 @@ durumuna çevrilir (hedef kapsama %90); gerçekleşen kapsama zamansal holdout't
 - En yakın çalışmadan farkı: Angelopoulos ve Bates (2021) çapraz-konformal yöntemi genel olarak anlatır; biz onu türbülans olasılığını "belirsiz" diyebilen üç durumlu bir karar çıktısına çevirip gerçekleşen kapsamayı holdout'ta ölçtük.
 
 **K6. Fizik göstergesinin sınırının ölçülmesi ve ürüne yansıtılması.**
-TI1'in bağımsız becerisi seyir PIREP'lerinde ölçüldü (6218 PIREP, ROC-AUC 0,67; holdout
-0,71, eşikte yakalama 0,49, yanlış alarm 0,16) ve gerçek bir uçuşta (PUE502) aktif TURB SIGMET'i
+TI1'in bağımsız becerisi seyir PIREP'lerinde ölçüldü: 7.815 PIREP, ROC-AUC 0,680
+[0,662–0,697]; altın test günlerinde 0,673, config eşiğinde yakalama 0,448, yanlış alarm
+0,201; MADIS ölçülen EDR'de 0,706 (`docs/sonuclar/2026-10-07/SAYILAR.md`). Gerçek bir
+uçuşta (PUE502) aktif TURB SIGMET'i
 yakalamadığı gösterildi. Sonuç, her rota yanıtında ve arayüzde gösterilen bir
 güvenilirlik notuna ve güvenliğin SIGMET sert kısıtına dayandırılmasına dönüştü.
 - Kanıt: `fizik/turbulans_indeksleri.py` (`TI1_GUVENILIRLIK_NOTU`),
   `dogrulama/bagimsiz_kanit.py`, `docs/SISTEM_KARTI.md` §6.
-- En yakın çalışmadan farkı: Kim vd. (2011) ile Sharman ve Pearson (2017) teşhislerin becerisini ölçüp operasyonel birleşime ağırlık olarak kullanır; biz ölçülen sınırı (TI1 ROC-AUC 0,67) ürün davranışına taşıdık: TI1 yumuşak, SIGMET sert kısıt, her yanıtta güvenilirlik notu.
+- En yakın çalışmadan farkı: Kim vd. (2011) ile Sharman ve Pearson (2017) teşhislerin becerisini ölçüp operasyonel birleşime ağırlık olarak kullanır; biz ölçülen sınırı (TI1 ROC-AUC 0,68) ürün davranışına taşıdık: TI1 yumuşak, SIGMET sert kısıt, her yanıtta güvenilirlik notu.
 
 ## 3. Karar ve işletim
 

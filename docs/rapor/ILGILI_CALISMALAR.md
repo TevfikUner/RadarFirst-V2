@@ -145,8 +145,8 @@ demeyin.
 
 | Çalışma | Yöntem | Veri / etiket | Metrik | Bu çalışmadaki karşılığı |
 |---|---|---|---|---|
-| Ellrod ve Knapp (1992) | TI1 = VWS × DEF | NWP, PIREP | Operasyonel doğrulama | TI1: PIREP ROC-AUC 0,67 (holdout 0,71), MADIS 0,74 (4 gün, ön sonuç) |
-| Sharman vd. (2006), GTG | Çok teşhisli ağırlıklı birleşim | NWP (RUC), PIREP | PODy–PODn / AUC | Birleşik EDR: PIREP 0,684, holdout 0,719 |
+| Ellrod ve Knapp (1992) | TI1 = VWS × DEF | NWP, PIREP | Operasyonel doğrulama | TI1: PIREP ROC-AUC 0,680, altın günler 0,673, MADIS 0,706 (6 gün) |
+| Sharman vd. (2006), GTG | Çok teşhisli ağırlıklı birleşim | NWP (RUC), PIREP | PODy–PODn / AUC | Birleşik EDR: PIREP 0,692, altın günler 0,687 |
 | Sharman ve Pearson (2017) | Teşhislerin log-normal EDR eşlemesi | NWP, yerinde EDR | EDR hatası, AUC | Aynı eşleme, ERA5 klimatolojisiyle (`edr_esleme.py`) |
 | Kim vd. (2011) | GTG teşhisleri, mevsimsel analiz | NWP, 6 yıl PIREP (Doğu Asya) | AUC | Yalnız ABD, 64 gün; mevsim analizi yok |
 | Gill (2014) | WAFC SIGWX + ızgara CAT | Yerinde ölçüm (GADS) | ROC | WAFS karşılaştırması yok (M3) |

@@ -1,8 +1,8 @@
 """
 degerlendirme.py
 -------------------
-Türbülans tahminlerinin doğrulama metrikleri: ROC-AUC, POD, POFD, Peirce
-beceri skoru, Brier (ve iklimsel referansa göre Brier becerisi), güvenilirlik
+Türbülans tahminlerinin doğrulama metrikleri: ROC-AUC, PR-AUC (ortalama
+kesinlik; dengesiz etiketlerde), POD, POFD, Peirce beceri skoru, Brier (ve iklimsel referansa göre Brier becerisi), güvenilirlik
 tablosu. Referans (baseline): tek başına TI1 ve config eşiği. Belirsizlik:
 gün bazlı blok bootstrap güven aralıkları ve modelin TI1'e karşı eşleştirilmiş
 ROC-AUC farkı (aynı gündeki PIREP'ler bağımsız değildir; günler birlikte
@@ -16,7 +16,7 @@ import json
 import numpy as np
 import pandas as pd
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import brier_score_loss, roc_auc_score, roc_curve
+from sklearn.metrics import average_precision_score, brier_score_loss, roc_auc_score, roc_curve
 
 from turbulans_radar import config
 
@@ -103,18 +103,24 @@ def _auc(y, skor):
     return float(roc_auc_score(y, skor)) if len(np.unique(y)) > 1 else float("nan")
 
 
+def _pr_auc(y, skor):
+    return float(average_precision_score(y, skor)) if len(np.unique(y)) > 1 else float("nan")
+
+
 _METRIKLER = {
     "roc_auc": _auc,
+    "pr_auc": _pr_auc,
     "brier": lambda y, p: float(brier_score_loss(y, np.clip(p, 0.0, 1.0))),
 }
 
 
 def bootstrap_guven_araligi(y, skor, gunler, metrik="roc_auc", tekrar=None, tohum=0, guven=0.95) -> dict:
     """Metriğin gün bazlı blok bootstrap yüzdelik güven aralığı. Tek sınıflı
-    tekrarlar (AUC tanımsız) sayılmaz; geçerli tekrar sayısı raporlanır."""
+    tekrarlar (AUC tanımsız) sayılmaz; geçerli tekrar sayısı raporlanır.
+    metrik: _METRIKLER'deki ad ya da (ad, fonksiyon(y, skor)) çifti."""
     tekrar = config.ML_BOOTSTRAP_TEKRAR if tekrar is None else tekrar
     y, skor = np.asarray(y, dtype=int), np.asarray(skor, dtype=float)
-    fonksiyon = _METRIKLER[metrik]
+    metrik, fonksiyon = metrik if isinstance(metrik, tuple) else (metrik, _METRIKLER[metrik])
     degerler = np.array([fonksiyon(y[i], skor[i]) for i in _bootstrap_ornekleri(gunler, tekrar, tohum)])
     degerler = degerler[np.isfinite(degerler)]
     alfa = (1 - guven) / 2
@@ -206,9 +212,21 @@ def degerlendirme_raporu(y, ti1, olasilik=None, gunler=None) -> dict:
 def ana(argv=None):
     ayristirici = argparse.ArgumentParser(
         description="ml_ornekleri'ndeki eşleşmiş PIREP'lerde aktif model ve tek başına TI1 referansının "
-        "doğrulama metrikleri (aktif model bu verinin bir kısmıyla eğitilmiş olabilir; sızıntıya dikkat)."
+        "doğrulama metrikleri (aktif model bu verinin bir kısmıyla eğitilmiş olabilir; sızıntıya dikkat). "
+        "--cikti verilirse donmuş sonuç paketi (Madde 8) yazılır."
     )
-    ayristirici.parse_args(argv)
+    ayristirici.add_argument("--cikti", metavar="KLASOR", help="Sonuç paketi: JSON, SAYILAR.md ve 3 PNG")
+    ayristirici.add_argument("--kesme", metavar="YYYY-AA-GG", help="Bu güne kadar (dahil) DB'ye girmiş örnekler")
+    ayristirici.add_argument("--tekrar", type=int, default=None, help="Bootstrap tekrar sayısı")
+    argumanlar = ayristirici.parse_args(argv)
+    if argumanlar.cikti:
+        from turbulans_radar.ml.sonuc_disa_aktarimi import disa_aktar
+
+        paket = disa_aktar(argumanlar.cikti, kesme=argumanlar.kesme, tekrar=argumanlar.tekrar)
+        print(f"Yazıldı: {argumanlar.cikti} (commit {paket['meta']['commit']})")
+        return
+    if argumanlar.kesme:
+        ayristirici.error("--kesme yalnız --cikti ile kullanılır")
     from turbulans_radar.ml.ml_otomatik_egitim import veritabanindan_veri_hazirla
     from turbulans_radar.ml.turbulans_ml_modeli import ozelliklerden_risk_tahmin_et
 

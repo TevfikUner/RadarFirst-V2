@@ -75,7 +75,8 @@ yapıldığı (önlem) yazılıdır.
   eşleştirilmişti. O veriyle TI1'in ROC-AUC'si 0,44 ölçülmüş (rastgeleden kötü), 167
   örnekli ilk model ve EDR ölçek katsayısı bu hatalı veriye dayanmıştı.
 - **Önlem:** Etiket hattı ham arşivden doğru birimle (FL280–FL420) yeniden kuruldu. Aynı
-  ölçüm doğru veride 0,71 verdi. Eski model kullanım dışı bırakıldı, eski hat açık bir
+  ölçüm doğru veride 0,71 verdi (tarihçe: 1 Ekim, 1.000 PIREP; güncel değer
+  `docs/sonuclar/` paketinde). Eski model kullanım dışı bırakıldı, eski hat açık bir
   hata mesajıyla kapatıldı (`ESKI_VERI_HATTI_MESAJI`). Ders: dış veri kaynağının
   birimini belgesine güvenmeden ham değerin dağılımıyla doğrula.
 

@@ -276,10 +276,12 @@ RISKLI_BOLUM_MIN_NM = _ortam_sayi("RISKLI_BOLUM_MIN_NM", 0.0)
 # tahmininden (MSE 0.067) daha kötü tahmin eder: görselleştirme ölçeğidir,
 # risk için ML olasılığı kullanılmalı. 0.40 (2026-10-01) eski fizikle uyduruldu.
 # Eski 0.23, 300-400 FEET'teki PIREP'lerle (hatalı irtifa filtresi) uyduruldu.
-# Proxy sertifikalı EDR değildir; katsayı bölgeden bağımsız bir ilişkiye dayanır.
+# Bu "TI1 görsel ölçeği"dir, EDR değildir: katsayı EDR ölçümüne değil PIREP sınıf
+# koduna (sinif/2) uydurulur (MET-05, VRB-09); bölgeden bağımsız bir ilişkiye dayanır.
 EDR_OLCEKLENDIRME_KATSAYISI = _ortam_sayi("EDR_OLCEKLENDIRME_KATSAYISI", 0.27)
 EDR_OLCEKLENDIRME_KATSAYISI_ESKI = 0.23
-EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI = _ortam_bool("EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI", True)
+# Eski adı EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI ("kalibre" EDR'ye kalibrasyon sanılıyordu).
+TI1_GORSEL_OLCEK_PIREP_SINIFINA_UYDURULDU = _ortam_bool("TI1_GORSEL_OLCEK_PIREP_SINIFINA_UYDURULDU", True)
 
 # toplu_analiz.py, art arda çok sayıda uçuş için Trino/OpenSky sorgusu atar.
 # OpenSky gibi servisler kısa sürede çok fazla istek gönderen hesapları

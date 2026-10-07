@@ -1,0 +1,1309 @@
+{
+  "meta": {
+    "kesme": "2026-10-07",
+    "uretim_zamani": "2026-10-07T20:23:44+00:00",
+    "commit": "34c6f9378072840bc16fb7fa2ae7495fc8d30ad2",
+    "kirli": false,
+    "bootstrap_tekrar": 1000,
+    "uyari": "Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır."
+  },
+  "veri": {
+    "kaynak": "ml_ornekleri: IEM PIREP, seyir irtifası, saatlik ERA5 özellikleri; etiket orta ve üstü",
+    "ornek": 7815,
+    "gun": 80,
+    "pozitif_orani": 0.5200255918106206,
+    "egitim_ornek": 6261,
+    "egitim_gun": 64,
+    "test_ornek": 1554,
+    "test_gun": 16,
+    "test_yontemi": "altın test günleri",
+    "test_gunleri": [
+      "2018-01-16",
+      "2018-01-24",
+      "2018-03-25",
+      "2018-08-12",
+      "2018-10-27",
+      "2018-11-21",
+      "2019-03-20",
+      "2019-05-14",
+      "2019-06-12",
+      "2019-08-07",
+      "2019-08-26",
+      "2019-11-02",
+      "2019-11-17",
+      "2019-12-05",
+      "2020-04-24",
+      "2020-06-06"
+    ]
+  },
+  "model": {
+    "secilen": "Lojistik Regresyon",
+    "secim": "gün gruplu CV ROC-AUC, 1-SE kuralı; sigmoid kalibrasyon; yalnız eğitim günleri",
+    "cv": {
+      "Lojistik Regresyon": {
+        "roc_auc": 0.6994139660696108,
+        "roc_auc_se": 0.009418320390339387
+      },
+      "Random Forest": {
+        "roc_auc": 0.7050439476805913,
+        "roc_auc_se": 0.009629115339319887
+      },
+      "Gradient Boosting": {
+        "roc_auc": 0.6975209095218746,
+        "roc_auc_se": 0.0087413253088674
+      }
+    }
+  },
+  "pirep_test": {
+    "ornek": 1554,
+    "pozitif": 747,
+    "taban_oran": 0.4806949806949807,
+    "gun": 16,
+    "skorlar": {
+      "Model": {
+        "roc_auc": 0.6811591678568881,
+        "roc_auc_ga": [
+          0.6463451486406379,
+          0.7161523322927458
+        ],
+        "pr_auc": 0.67203501456561,
+        "pr_auc_ga": [
+          0.6318674907757634,
+          0.7069769083261098
+        ],
+        "ti1_farki": {
+          "fark": 0.007826431707830928,
+          "alt": -0.006027380393236268,
+          "ust": 0.02227121185795002,
+          "p_degeri": 0.268,
+          "anlamli": false,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      },
+      "TI1": {
+        "roc_auc": 0.6733327361490572,
+        "roc_auc_ga": [
+          0.6393036402947396,
+          0.7042869761999072
+        ],
+        "pr_auc": 0.6663279598184675,
+        "pr_auc_ga": [
+          0.6239262648912155,
+          0.7021659286735267
+        ]
+      },
+      "1/Ri": {
+        "roc_auc": 0.6527016782537004,
+        "roc_auc_ga": [
+          0.6264922061013369,
+          0.6784536235283755
+        ],
+        "pr_auc": 0.6388860161702399,
+        "pr_auc_ga": [
+          0.595861328071505,
+          0.675645985688303
+        ],
+        "ti1_farki": {
+          "fark": -0.020631057895356797,
+          "alt": -0.05261217769178925,
+          "ust": 0.010622483151159315,
+          "p_degeri": 0.19,
+          "anlamli": false,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      },
+      "Birleşik EDR": {
+        "roc_auc": 0.6869070665147164,
+        "roc_auc_ga": [
+          0.6545993148709953,
+          0.7167323682191793
+        ],
+        "pr_auc": 0.6771962886198003,
+        "pr_auc_ga": [
+          0.637095155834948,
+          0.7096213023660323
+        ],
+        "ti1_farki": {
+          "fark": 0.013574330365659248,
+          "alt": 0.007283857561058497,
+          "ust": 0.02008173206658371,
+          "p_degeri": 0.0,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      }
+    }
+  },
+  "pirep_tum_gunler_fizik": {
+    "ornek": 7815,
+    "pozitif": 4064,
+    "taban_oran": 0.5200255918106206,
+    "gun": 80,
+    "skorlar": {
+      "TI1": {
+        "roc_auc": 0.6802106052559214,
+        "roc_auc_ga": [
+          0.6622993712357711,
+          0.6967507999153367
+        ],
+        "pr_auc": 0.7024669753543673,
+        "pr_auc_ga": [
+          0.6789737940978028,
+          0.726646260384722
+        ]
+      },
+      "1/Ri": {
+        "roc_auc": 0.6520063153762672,
+        "roc_auc_ga": [
+          0.6373814575708283,
+          0.6669741317461899
+        ],
+        "pr_auc": 0.6618955723920813,
+        "pr_auc_ga": [
+          0.6363543499585887,
+          0.6867322934677151
+        ],
+        "ti1_farki": {
+          "fark": -0.028204289879654176,
+          "alt": -0.04064264417442443,
+          "ust": -0.01488454463311007,
+          "p_degeri": 0.0,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      },
+      "Birleşik EDR": {
+        "roc_auc": 0.6924532723032388,
+        "roc_auc_ga": [
+          0.674802057557806,
+          0.7085354003806084
+        ],
+        "pr_auc": 0.7106845373922364,
+        "pr_auc_ga": [
+          0.687426441273715,
+          0.7338786874032892
+        ],
+        "ti1_farki": {
+          "fark": 0.012242667047317468,
+          "alt": 0.009020642227176133,
+          "ust": 0.015246210827800062,
+          "p_degeri": 0.0,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      }
+    }
+  },
+  "model_olasilik_test": {
+    "ornek": 1554,
+    "pozitif": 747,
+    "esik": 0.5,
+    "roc_auc": 0.6811591678568881,
+    "pod": 0.6465863453815262,
+    "pofd": 0.38166047087980176,
+    "far": 0.3893805309734513,
+    "csi": 0.45781990521327015,
+    "peirce": 0.2649258745017244,
+    "dogru_pozitif": 483,
+    "yanlis_pozitif": 308,
+    "yanlis_negatif": 264,
+    "dogru_negatif": 499,
+    "brier": 0.22598147824714254,
+    "brier_becerisi": 0.09472456115635353,
+    "ortalama_olasilik": 0.5231149274936208,
+    "gozlenen_oran": 0.4806949806949807,
+    "guvenilirlik": [
+      {
+        "aralik": [
+          0.1,
+          0.2
+        ],
+        "adet": 3,
+        "ortalama_tahmin": 0.19245380034448112,
+        "gozlenen_oran": 0.3333333333333333
+      },
+      {
+        "aralik": [
+          0.2,
+          0.3
+        ],
+        "adet": 136,
+        "ortalama_tahmin": 0.26459667019092026,
+        "gozlenen_oran": 0.25
+      },
+      {
+        "aralik": [
+          0.3,
+          0.4
+        ],
+        "adet": 302,
+        "ortalama_tahmin": 0.3535997276203365,
+        "gozlenen_oran": 0.3576158940397351
+      },
+      {
+        "aralik": [
+          0.4,
+          0.5
+        ],
+        "adet": 322,
+        "ortalama_tahmin": 0.45104069833589483,
+        "gozlenen_oran": 0.37577639751552794
+      },
+      {
+        "aralik": [
+          0.5,
+          0.6
+        ],
+        "adet": 269,
+        "ortalama_tahmin": 0.5514593737221332,
+        "gozlenen_oran": 0.4721189591078067
+      },
+      {
+        "aralik": [
+          0.6,
+          0.7
+        ],
+        "adet": 239,
+        "ortalama_tahmin": 0.6441988732117746,
+        "gozlenen_oran": 0.602510460251046
+      },
+      {
+        "aralik": [
+          0.7,
+          0.8
+        ],
+        "adet": 179,
+        "ortalama_tahmin": 0.7435235553944844,
+        "gozlenen_oran": 0.7094972067039106
+      },
+      {
+        "aralik": [
+          0.8,
+          0.9
+        ],
+        "adet": 90,
+        "ortalama_tahmin": 0.8438836000412021,
+        "gozlenen_oran": 0.8111111111111111
+      },
+      {
+        "aralik": [
+          0.9,
+          1.0
+        ],
+        "adet": 14,
+        "ortalama_tahmin": 0.9278231088856727,
+        "gozlenen_oran": 0.8571428571428571
+      }
+    ]
+  },
+  "esik_taramasi": {
+    "yontem": "eğitim günlerinde Peirce (POD - POFD) maksimum; altın test günlerine aynen uygulanır",
+    "peirce_esigi": 5.299043752773814e-07,
+    "egitim": {
+      "ornek": 6261,
+      "pozitif": 3317,
+      "esik": 5.299043752773814e-07,
+      "roc_auc": 0.682209453359505,
+      "pod": 0.6038589086523968,
+      "pofd": 0.31997282608695654,
+      "far": 0.3198641765704584,
+      "csi": 0.47029819206386475,
+      "peirce": 0.28388608256544023,
+      "dogru_pozitif": 2003,
+      "yanlis_pozitif": 942,
+      "yanlis_negatif": 1314,
+      "dogru_negatif": 2002
+    },
+    "test": {
+      "ornek": 1554,
+      "pozitif": 747,
+      "esik": 5.299043752773814e-07,
+      "roc_auc": 0.6733327361490572,
+      "pod": 0.6050870147255689,
+      "pofd": 0.34944237918215615,
+      "far": 0.38419618528610355,
+      "csi": 0.4392614188532556,
+      "peirce": 0.25564463554341277,
+      "dogru_pozitif": 452,
+      "yanlis_pozitif": 282,
+      "yanlis_negatif": 295,
+      "dogru_negatif": 525,
+      "peirce_ga": [
+        0.18803886750808674,
+        0.31290174654139546
+      ]
+    },
+    "config_esikleri": {
+      "TI1_ESIK_HAFIF": {
+        "esik": 4e-07,
+        "test": {
+          "ornek": 1554,
+          "pozitif": 747,
+          "esik": 4e-07,
+          "roc_auc": 0.6733327361490572,
+          "pod": 0.6827309236947792,
+          "pofd": 0.4399008674101611,
+          "far": 0.41040462427745666,
+          "csi": 0.4627949183303085,
+          "peirce": 0.24283005628461807,
+          "dogru_pozitif": 510,
+          "yanlis_pozitif": 355,
+          "yanlis_negatif": 237,
+          "dogru_negatif": 452
+        }
+      },
+      "TI1_ESIK_ORTA_SIDDETLI": {
+        "esik": 8e-07,
+        "test": {
+          "ornek": 1554,
+          "pozitif": 747,
+          "esik": 8e-07,
+          "roc_auc": 0.6733327361490572,
+          "pod": 0.4484605087014726,
+          "pofd": 0.20074349442379183,
+          "far": 0.32595573440643866,
+          "csi": 0.36853685368536854,
+          "peirce": 0.24771701427768075,
+          "dogru_pozitif": 335,
+          "yanlis_pozitif": 162,
+          "yanlis_negatif": 412,
+          "dogru_negatif": 645
+        }
+      }
+    },
+    "tarama": [
+      {
+        "yuzdelik": 5,
+        "esik": 6.144025069442804e-08,
+        "egitim_peirce": 0.03707361041931556,
+        "test_pod": 0.9598393574297188,
+        "test_pofd": 0.929368029739777,
+        "test_csi": 0.4789579158316633,
+        "test_peirce": 0.030471327689941874
+      },
+      {
+        "yuzdelik": 10,
+        "esik": 1.0181429333493485e-07,
+        "egitim_peirce": 0.07927643005072682,
+        "test_pod": 0.927710843373494,
+        "test_pofd": 0.8525402726146221,
+        "test_csi": 0.48292682926829267,
+        "test_peirce": 0.0751705707588719
+      },
+      {
+        "yuzdelik": 15,
+        "esik": 1.400514619371955e-07,
+        "egitim_peirce": 0.12340270313667401,
+        "test_pod": 0.9009370816599732,
+        "test_pofd": 0.781908302354399,
+        "test_csi": 0.488388969521045,
+        "test_peirce": 0.1190287793055742
+      },
+      {
+        "yuzdelik": 20,
+        "esik": 1.78170412585787e-07,
+        "egitim_peirce": 0.152141348586334,
+        "test_pod": 0.8607764390896921,
+        "test_pofd": 0.7038413878562577,
+        "test_csi": 0.48897338403041823,
+        "test_peirce": 0.15693505123343443
+      },
+      {
+        "yuzdelik": 25,
+        "esik": 2.136042858666478e-07,
+        "egitim_peirce": 0.18408574979355363,
+        "test_pod": 0.8259705488621151,
+        "test_pofd": 0.654275092936803,
+        "test_csi": 0.483921568627451,
+        "test_peirce": 0.1716954559253121
+      },
+      {
+        "yuzdelik": 30,
+        "esik": 2.5875633150044295e-07,
+        "egitim_peirce": 0.2102597906371656,
+        "test_pod": 0.7871485943775101,
+        "test_pofd": 0.5923172242874845,
+        "test_csi": 0.48,
+        "test_peirce": 0.1948313700900256
+      },
+      {
+        "yuzdelik": 35,
+        "esik": 3.0493521823876836e-07,
+        "egitim_peirce": 0.22361080845053805,
+        "test_pod": 0.7469879518072289,
+        "test_pofd": 0.5390334572490706,
+        "test_csi": 0.4720812182741117,
+        "test_peirce": 0.2079544945581583
+      },
+      {
+        "yuzdelik": 40,
+        "esik": 3.595767620549192e-07,
+        "egitim_peirce": 0.2459379423850782,
+        "test_pod": 0.713520749665328,
+        "test_pofd": 0.4882280049566295,
+        "test_csi": 0.4671340929009641,
+        "test_peirce": 0.22529274470869848
+      },
+      {
+        "yuzdelik": 45,
+        "esik": 4.156822966674658e-07,
+        "egitim_peirce": 0.2669827740165944,
+        "test_pod": 0.6733601070950469,
+        "test_pofd": 0.4275092936802974,
+        "test_csi": 0.4606227106227106,
+        "test_peirce": 0.24585081341474951
+      },
+      {
+        "yuzdelik": 50,
+        "esik": 4.850449748335162e-07,
+        "egitim_peirce": 0.2777691872239189,
+        "test_pod": 0.6265060240963856,
+        "test_pofd": 0.38166047087980176,
+        "test_csi": 0.44360189573459713,
+        "test_peirce": 0.2448455532165838
+      },
+      {
+        "yuzdelik": 55,
+        "esik": 5.591905391523171e-07,
+        "egitim_peirce": 0.2773545536170715,
+        "test_pod": 0.5890227576974565,
+        "test_pofd": 0.3308550185873606,
+        "test_csi": 0.4339250493096647,
+        "test_peirce": 0.2581677391100959
+      },
+      {
+        "yuzdelik": 60,
+        "esik": 6.452898136198718e-07,
+        "egitim_peirce": 0.27305481642657714,
+        "test_pod": 0.5408299866131191,
+        "test_pofd": 0.2788104089219331,
+        "test_csi": 0.4156378600823045,
+        "test_peirce": 0.262019577691186
+      },
+      {
+        "yuzdelik": 65,
+        "esik": 7.380934929833378e-07,
+        "egitim_peirce": 0.25819518357342286,
+        "test_pod": 0.4819277108433735,
+        "test_pofd": 0.23296158612143741,
+        "test_csi": 0.3850267379679144,
+        "test_peirce": 0.24896612472193608
+      },
+      {
+        "yuzdelik": 70,
+        "esik": 8.486475205520993e-07,
+        "egitim_peirce": 0.24525900417480437,
+        "test_pod": 0.42971887550200805,
+        "test_pofd": 0.1895910780669145,
+        "test_csi": 0.3566666666666667,
+        "test_peirce": 0.24012779743509355
+      },
+      {
+        "yuzdelik": 75,
+        "esik": 9.962324168754885e-07,
+        "egitim_peirce": 0.22206440635199434,
+        "test_pod": 0.37349397590361444,
+        "test_pofd": 0.1412639405204461,
+        "test_csi": 0.3240418118466899,
+        "test_peirce": 0.23223003538316833
+      },
+      {
+        "yuzdelik": 80,
+        "esik": 1.1917487885286207e-06,
+        "egitim_peirce": 0.1988698085291843,
+        "test_pod": 0.3172690763052209,
+        "test_pofd": 0.10408921933085502,
+        "test_csi": 0.2851985559566787,
+        "test_peirce": 0.21317985697436587
+      },
+      {
+        "yuzdelik": 85,
+        "esik": 1.4474187822198235e-06,
+        "egitim_peirce": 0.16477564113067072,
+        "test_pod": 0.24497991967871485,
+        "test_pofd": 0.06939281288723669,
+        "test_csi": 0.22789539227895392,
+        "test_peirce": 0.17558710679147815
+      },
+      {
+        "yuzdelik": 90,
+        "esik": 1.8608533359090318e-06,
+        "egitim_peirce": 0.12555226452006135,
+        "test_pod": 0.16331994645247658,
+        "test_pofd": 0.03469640644361834,
+        "test_csi": 0.15741935483870967,
+        "test_peirce": 0.12862354000885823
+      },
+      {
+        "yuzdelik": 95,
+        "esik": 2.6986500991257544e-06,
+        "egitim_peirce": 0.06901780681862867,
+        "test_pod": 0.07095046854082998,
+        "test_pofd": 0.011152416356877323,
+        "test_csi": 0.0701058201058201,
+        "test_peirce": 0.059798052183952656
+      }
+    ],
+    "seviyeye_gore": [
+      {
+        "seviye_hpa": 175.0,
+        "egitim_ornek": 516,
+        "test_ornek": 129,
+        "seviye_esigi": 5.729016711838198e-07,
+        "test_seviye_esigi": {
+          "ornek": 129,
+          "pozitif": 52,
+          "esik": 5.729016711838198e-07,
+          "roc_auc": 0.7072927072927073,
+          "pod": 0.5961538461538461,
+          "pofd": 0.2857142857142857,
+          "far": 0.41509433962264153,
+          "csi": 0.4189189189189189,
+          "peirce": 0.31043956043956045,
+          "dogru_pozitif": 31,
+          "yanlis_pozitif": 22,
+          "yanlis_negatif": 21,
+          "dogru_negatif": 55
+        },
+        "test_genel_esik": {
+          "ornek": 129,
+          "pozitif": 52,
+          "esik": 5.299043752773814e-07,
+          "roc_auc": 0.7072927072927073,
+          "pod": 0.6346153846153846,
+          "pofd": 0.3116883116883117,
+          "far": 0.42105263157894735,
+          "csi": 0.4342105263157895,
+          "peirce": 0.3229270729270729,
+          "dogru_pozitif": 33,
+          "yanlis_pozitif": 24,
+          "yanlis_negatif": 19,
+          "dogru_negatif": 53
+        }
+      },
+      {
+        "seviye_hpa": 200.0,
+        "egitim_ornek": 938,
+        "test_ornek": 269,
+        "seviye_esigi": 6.657792622405017e-07,
+        "test_seviye_esigi": {
+          "ornek": 269,
+          "pozitif": 131,
+          "esik": 6.657792622405017e-07,
+          "roc_auc": 0.6992753623188406,
+          "pod": 0.5267175572519084,
+          "pofd": 0.2463768115942029,
+          "far": 0.3300970873786408,
+          "csi": 0.41818181818181815,
+          "peirce": 0.2803407456577055,
+          "dogru_pozitif": 69,
+          "yanlis_pozitif": 34,
+          "yanlis_negatif": 62,
+          "dogru_negatif": 104
+        },
+        "test_genel_esik": {
+          "ornek": 269,
+          "pozitif": 131,
+          "esik": 5.299043752773814e-07,
+          "roc_auc": 0.6992753623188406,
+          "pod": 0.6106870229007634,
+          "pofd": 0.2971014492753623,
+          "far": 0.33884297520661155,
+          "csi": 0.46511627906976744,
+          "peirce": 0.31358557362540107,
+          "dogru_pozitif": 80,
+          "yanlis_pozitif": 41,
+          "yanlis_negatif": 51,
+          "dogru_negatif": 97
+        }
+      },
+      {
+        "seviye_hpa": 225.0,
+        "egitim_ornek": 1404,
+        "test_ornek": 361,
+        "seviye_esigi": 5.47499398523999e-07,
+        "test_seviye_esigi": {
+          "ornek": 361,
+          "pozitif": 155,
+          "esik": 5.47499398523999e-07,
+          "roc_auc": 0.6468524898214845,
+          "pod": 0.6193548387096774,
+          "pofd": 0.4029126213592233,
+          "far": 0.46368715083798884,
+          "csi": 0.40336134453781514,
+          "peirce": 0.21644221735045416,
+          "dogru_pozitif": 96,
+          "yanlis_pozitif": 83,
+          "yanlis_negatif": 59,
+          "dogru_negatif": 123
+        },
+        "test_genel_esik": {
+          "ornek": 361,
+          "pozitif": 155,
+          "esik": 5.299043752773814e-07,
+          "roc_auc": 0.6468524898214845,
+          "pod": 0.6258064516129033,
+          "pofd": 0.41262135922330095,
+          "far": 0.46703296703296704,
+          "csi": 0.4041666666666667,
+          "peirce": 0.21318509238960232,
+          "dogru_pozitif": 97,
+          "yanlis_pozitif": 85,
+          "yanlis_negatif": 58,
+          "dogru_negatif": 121
+        }
+      },
+      {
+        "seviye_hpa": 250.0,
+        "egitim_ornek": 2281,
+        "test_ornek": 528,
+        "seviye_esigi": 4.3156336857929284e-07,
+        "test_seviye_esigi": {
+          "ornek": 528,
+          "pozitif": 265,
+          "esik": 4.3156336857929284e-07,
+          "roc_auc": 0.6578664179639859,
+          "pod": 0.6150943396226415,
+          "pofd": 0.41064638783269963,
+          "far": 0.3985239852398524,
+          "csi": 0.43699731903485256,
+          "peirce": 0.20444795178994185,
+          "dogru_pozitif": 163,
+          "yanlis_pozitif": 108,
+          "yanlis_negatif": 102,
+          "dogru_negatif": 155
+        },
+        "test_genel_esik": {
+          "ornek": 528,
+          "pozitif": 265,
+          "esik": 5.299043752773814e-07,
+          "roc_auc": 0.6578664179639859,
+          "pod": 0.5622641509433962,
+          "pofd": 0.34980988593155893,
+          "far": 0.3817427385892116,
+          "csi": 0.4173669467787115,
+          "peirce": 0.21245426501183728,
+          "dogru_pozitif": 149,
+          "yanlis_pozitif": 92,
+          "yanlis_negatif": 116,
+          "dogru_negatif": 171
+        }
+      },
+      {
+        "seviye_hpa": 300.0,
+        "egitim_ornek": 844,
+        "test_ornek": 189,
+        "seviye_esigi": 5.147052312642012e-07,
+        "test_seviye_esigi": {
+          "ornek": 189,
+          "pozitif": 105,
+          "esik": 5.147052312642012e-07,
+          "roc_auc": 0.7418367346938776,
+          "pod": 0.6761904761904762,
+          "pofd": 0.2857142857142857,
+          "far": 0.25263157894736843,
+          "csi": 0.5503875968992248,
+          "peirce": 0.39047619047619053,
+          "dogru_pozitif": 71,
+          "yanlis_pozitif": 24,
+          "yanlis_negatif": 34,
+          "dogru_negatif": 60
+        },
+        "test_genel_esik": {
+          "ornek": 189,
+          "pozitif": 105,
+          "esik": 5.299043752773814e-07,
+          "roc_auc": 0.7418367346938776,
+          "pod": 0.6666666666666666,
+          "pofd": 0.2857142857142857,
+          "far": 0.2553191489361702,
+          "csi": 0.5426356589147286,
+          "peirce": 0.38095238095238093,
+          "dogru_pozitif": 70,
+          "yanlis_pozitif": 24,
+          "yanlis_negatif": 35,
+          "dogru_negatif": 60
+        }
+      },
+      {
+        "seviye_hpa": 350.0,
+        "egitim_ornek": 278,
+        "test_ornek": 78,
+        "seviye_esigi": 1.0604239536438511e-06,
+        "test_seviye_esigi": {
+          "ornek": 78,
+          "pozitif": 39,
+          "esik": 1.0604239536438511e-06,
+          "roc_auc": 0.6127547666009204,
+          "pod": 0.2564102564102564,
+          "pofd": 0.1282051282051282,
+          "far": 0.3333333333333333,
+          "csi": 0.22727272727272727,
+          "peirce": 0.1282051282051282,
+          "dogru_pozitif": 10,
+          "yanlis_pozitif": 5,
+          "yanlis_negatif": 29,
+          "dogru_negatif": 34
+        },
+        "test_genel_esik": {
+          "ornek": 78,
+          "pozitif": 39,
+          "esik": 5.299043752773814e-07,
+          "roc_auc": 0.6127547666009204,
+          "pod": 0.5897435897435898,
+          "pofd": 0.41025641025641024,
+          "far": 0.41025641025641024,
+          "csi": 0.41818181818181815,
+          "peirce": 0.17948717948717952,
+          "dogru_pozitif": 23,
+          "yanlis_pozitif": 16,
+          "yanlis_negatif": 16,
+          "dogru_negatif": 23
+        }
+      }
+    ],
+    "ri_peirce_esigi": {
+      "ters_ri": 0.42276093334578596,
+      "ri": 2.3654030472633023
+    }
+  },
+  "cat_alt_kumesi": {
+    "dislanan": "PIREP metninde CB, CBS, TCU, TS (+TSRA, VCTS, TSTM...), MTN WAVE ya da LLWS geçenler",
+    "ornek": 7815,
+    "metinli": 6764,
+    "cat_disi": 119,
+    "cat_disi_pozitif_orani": 0.42016806722689076,
+    "metinsiz_not": "Metni olmayan örnekler (Nisan 2020 sonrası günler) iki alt kümede de yok.",
+    "test_metinli": {
+      "ornek": 1369,
+      "pozitif": 646,
+      "taban_oran": 0.4718772826880935,
+      "gun": 14,
+      "skorlar": {
+        "Model": {
+          "roc_auc": 0.6766750596285687,
+          "roc_auc_ga": [
+            0.6352068634739255,
+            0.721729488799463
+          ],
+          "pr_auc": 0.6631515318525343,
+          "pr_auc_ga": [
+            0.6192675255145325,
+            0.7043724945539478
+          ],
+          "ti1_farki": {
+            "fark": 0.011075712224177692,
+            "alt": -0.002758520141700514,
+            "ust": 0.02672373334309078,
+            "p_degeri": 0.128,
+            "anlamli": false,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "TI1": {
+          "roc_auc": 0.665599347404391,
+          "roc_auc_ga": [
+            0.6292812743823887,
+            0.7031733371541189
+          ],
+          "pr_auc": 0.6558065825757246,
+          "pr_auc_ga": [
+            0.6085113007588042,
+            0.6977379079135376
+          ]
+        },
+        "1/Ri": {
+          "roc_auc": 0.6517081390319832,
+          "roc_auc_ga": [
+            0.6209457494870769,
+            0.684643519573052
+          ],
+          "pr_auc": 0.6391927615007668,
+          "pr_auc_ga": [
+            0.5877732599963605,
+            0.6829383308320233
+          ],
+          "ti1_farki": {
+            "fark": -0.01389120837240776,
+            "alt": -0.04474659679344516,
+            "ust": 0.021370899315186456,
+            "p_degeri": 0.416,
+            "anlamli": false,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "Birleşik EDR": {
+          "roc_auc": 0.6807323715684134,
+          "roc_auc_ga": [
+            0.6453438571671143,
+            0.7174960520785546
+          ],
+          "pr_auc": 0.6703456287694184,
+          "pr_auc_ga": [
+            0.6242054175072014,
+            0.7110297031824881
+          ],
+          "ti1_farki": {
+            "fark": 0.015133024164022402,
+            "alt": 0.009654634521402595,
+            "ust": 0.021235603326333775,
+            "p_degeri": 0.0,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        }
+      }
+    },
+    "test_cat": {
+      "ornek": 1353,
+      "pozitif": 639,
+      "taban_oran": 0.4722838137472284,
+      "gun": 14,
+      "skorlar": {
+        "Model": {
+          "roc_auc": 0.6784859483699582,
+          "roc_auc_ga": [
+            0.6380011063074436,
+            0.7241402413574274
+          ],
+          "pr_auc": 0.6649653540586072,
+          "pr_auc_ga": [
+            0.6216471702251495,
+            0.7059792490288956
+          ],
+          "ti1_farki": {
+            "fark": 0.009806113368664993,
+            "alt": -0.003951578527993439,
+            "ust": 0.025686041859837045,
+            "p_degeri": 0.17,
+            "anlamli": false,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "TI1": {
+          "roc_auc": 0.6686798350012932,
+          "roc_auc_ga": [
+            0.6324473300198871,
+            0.7069119789630409
+          ],
+          "pr_auc": 0.658743421051143,
+          "pr_auc_ga": [
+            0.6125258207483546,
+            0.7004896475758033
+          ]
+        },
+        "1/Ri": {
+          "roc_auc": 0.6518073583110866,
+          "roc_auc_ga": [
+            0.6213219981458075,
+            0.68455640412611
+          ],
+          "pr_auc": 0.6398945873064388,
+          "pr_auc_ga": [
+            0.588745539027477,
+            0.683777549434044
+          ],
+          "ti1_farki": {
+            "fark": -0.01687247669020664,
+            "alt": -0.04858934073828329,
+            "ust": 0.018216162315138496,
+            "p_degeri": 0.34,
+            "anlamli": false,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "Birleşik EDR": {
+          "roc_auc": 0.6832837986524813,
+          "roc_auc_ga": [
+            0.6491607151833203,
+            0.719962828146198
+          ],
+          "pr_auc": 0.673010700394124,
+          "pr_auc_ga": [
+            0.6270555345746915,
+            0.7129188920186841
+          ],
+          "ti1_farki": {
+            "fark": 0.014603963651188101,
+            "alt": 0.008871086303198581,
+            "ust": 0.020656362680372395,
+            "p_degeri": 0.0,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        }
+      }
+    },
+    "tum_gunler_metinli_fizik": {
+      "ornek": 6764,
+      "pozitif": 3523,
+      "taban_oran": 0.5208456534594914,
+      "gun": 68,
+      "skorlar": {
+        "TI1": {
+          "roc_auc": 0.6768420385174587,
+          "roc_auc_ga": [
+            0.6582766473614582,
+            0.6953261182808861
+          ],
+          "pr_auc": 0.697917255814712,
+          "pr_auc_ga": [
+            0.6751870651386693,
+            0.721893180006465
+          ]
+        },
+        "1/Ri": {
+          "roc_auc": 0.6516322455608199,
+          "roc_auc_ga": [
+            0.6365716911910236,
+            0.6671709980222434
+          ],
+          "pr_auc": 0.6612903541129262,
+          "pr_auc_ga": [
+            0.6346605198131856,
+            0.6879081227175855
+          ],
+          "ti1_farki": {
+            "fark": -0.025209792956638832,
+            "alt": -0.0392673906446927,
+            "ust": -0.011971075796346606,
+            "p_degeri": 0.0,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "Birleşik EDR": {
+          "roc_auc": 0.6892845385150503,
+          "roc_auc_ga": [
+            0.6719511612482498,
+            0.7071878751337198
+          ],
+          "pr_auc": 0.7062246892900057,
+          "pr_auc_ga": [
+            0.6827062772323079,
+            0.7307888809917172
+          ],
+          "ti1_farki": {
+            "fark": 0.012442499997591616,
+            "alt": 0.009117325676470701,
+            "ust": 0.015470985688476468,
+            "p_degeri": 0.0,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        }
+      }
+    },
+    "tum_gunler_cat_fizik": {
+      "ornek": 6645,
+      "pozitif": 3473,
+      "taban_oran": 0.5226486079759217,
+      "gun": 68,
+      "skorlar": {
+        "TI1": {
+          "roc_auc": 0.6787627868961388,
+          "roc_auc_ga": [
+            0.660264373426307,
+            0.6967831128342732
+          ],
+          "pr_auc": 0.7006675398143639,
+          "pr_auc_ga": [
+            0.6775065520527841,
+            0.7249238884888145
+          ]
+        },
+        "1/Ri": {
+          "roc_auc": 0.65332556427915,
+          "roc_auc_ga": [
+            0.6387767209079269,
+            0.6689689894364788
+          ],
+          "pr_auc": 0.6638830604699313,
+          "pr_auc_ga": [
+            0.6370071476527857,
+            0.6906729856873548
+          ],
+          "ti1_farki": {
+            "fark": -0.025437222616988775,
+            "alt": -0.039528370900634165,
+            "ust": -0.012414741984352835,
+            "p_degeri": 0.0,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        },
+        "Birleşik EDR": {
+          "roc_auc": 0.6915800015903626,
+          "roc_auc_ga": [
+            0.6739501031149019,
+            0.7094972291626584
+          ],
+          "pr_auc": 0.7091582994780704,
+          "pr_auc_ga": [
+            0.6848071316631938,
+            0.733514470931949
+          ],
+          "ti1_farki": {
+            "fark": 0.01281721469422381,
+            "alt": 0.009383603908163668,
+            "ust": 0.0159851617108734,
+            "p_degeri": 0.0,
+            "anlamli": true,
+            "guven": 0.95,
+            "gecerli_tekrar": 1000
+          }
+        }
+      }
+    }
+  },
+  "madis": {
+    "kaynak": "NOAA MADIS herkese açık ACARS maxEDR",
+    "hedef": "max EDR >= 0.1 (hafif ve üstü), sınıflar madis_edr.edr_sinifi ile yeniden",
+    "duzeltilen_sinif": 0,
+    "orta_ve_ustu": 0,
+    "not": "Yalnızca hafif sınıf var (orta ve üstü ölçüm yok ya da çok az); örnekler PIREP pencerelerinden (±1°, ±1 sa) geldiği için seçim yanlılığı vardır; QC 'Z' ön veridir.",
+    "ornek": 20144,
+    "pozitif": 607,
+    "taban_oran": 0.030133042096902304,
+    "gun": 6,
+    "skorlar": {
+      "Model": {
+        "roc_auc": 0.7340179268686231,
+        "roc_auc_ga": [
+          0.6639646102377055,
+          0.8195007862378573
+        ],
+        "pr_auc": 0.09183548633369863,
+        "pr_auc_ga": [
+          0.07079858710851286,
+          0.1278580625244688
+        ],
+        "ti1_farki": {
+          "fark": 0.028207787884248603,
+          "alt": 0.0023311697601967607,
+          "ust": 0.04524354952534171,
+          "p_degeri": 0.036,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      },
+      "TI1": {
+        "roc_auc": 0.7058101389843745,
+        "roc_auc_ga": [
+          0.6307276357911336,
+          0.8007657900989804
+        ],
+        "pr_auc": 0.09100937523083008,
+        "pr_auc_ga": [
+          0.06227949942838486,
+          0.1439723942797216
+        ]
+      },
+      "1/Ri": {
+        "roc_auc": 0.6958337152527468,
+        "roc_auc_ga": [
+          0.6483962983285033,
+          0.740858317383909
+        ],
+        "pr_auc": 0.07550489498425296,
+        "pr_auc_ga": [
+          0.046805983621132995,
+          0.10599809934896845
+        ],
+        "ti1_farki": {
+          "fark": -0.00997642373162766,
+          "alt": -0.07304900359050148,
+          "ust": 0.06916309658835003,
+          "p_degeri": 0.702,
+          "anlamli": false,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      },
+      "Birleşik EDR": {
+        "roc_auc": 0.7377373089830228,
+        "roc_auc_ga": [
+          0.6667332952880032,
+          0.8248657784335922
+        ],
+        "pr_auc": 0.10236634199181277,
+        "pr_auc_ga": [
+          0.07189969261368098,
+          0.15416799046589635
+        ],
+        "ti1_farki": {
+          "fark": 0.03192716999864831,
+          "alt": 0.01422390034945975,
+          "ust": 0.04944574991926738,
+          "p_degeri": 0.0,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      }
+    },
+    "model_olasilik": {
+      "ornek": 20144,
+      "pozitif": 607,
+      "esik": 0.5,
+      "roc_auc": 0.7340179268686231,
+      "pod": 0.7874794069192751,
+      "pofd": 0.46394021600040947,
+      "far": 0.9499056801509118,
+      "csi": 0.04942611932581946,
+      "peirce": 0.3235391909188656,
+      "dogru_pozitif": 478,
+      "yanlis_pozitif": 9064,
+      "yanlis_negatif": 129,
+      "dogru_negatif": 10473,
+      "brier": 0.2736714453953568,
+      "brier_becerisi": -8.36427898390674,
+      "ortalama_olasilik": 0.5103240308012631,
+      "gozlenen_oran": 0.030133042096902304
+    },
+    "guvenilirlik": [
+      {
+        "aralik": [
+          0.1,
+          0.2
+        ],
+        "adet": 9,
+        "ortalama_tahmin": 0.19459651660588131,
+        "gozlenen_oran": 0.0
+      },
+      {
+        "aralik": [
+          0.2,
+          0.3
+        ],
+        "adet": 948,
+        "ortalama_tahmin": 0.27140778454452186,
+        "gozlenen_oran": 0.004219409282700422
+      },
+      {
+        "aralik": [
+          0.3,
+          0.4
+        ],
+        "adet": 4263,
+        "ortalama_tahmin": 0.3558633114412127,
+        "gozlenen_oran": 0.011259676284306826
+      },
+      {
+        "aralik": [
+          0.4,
+          0.5
+        ],
+        "adet": 5382,
+        "ortalama_tahmin": 0.44965727174037434,
+        "gozlenen_oran": 0.014306949089557786
+      },
+      {
+        "aralik": [
+          0.5,
+          0.6
+        ],
+        "adet": 4172,
+        "ortalama_tahmin": 0.547315022542827,
+        "gozlenen_oran": 0.025167785234899327
+      },
+      {
+        "aralik": [
+          0.6,
+          0.7
+        ],
+        "adet": 2855,
+        "ortalama_tahmin": 0.6456078743892067,
+        "gozlenen_oran": 0.047285464098073555
+      },
+      {
+        "aralik": [
+          0.7,
+          0.8
+        ],
+        "adet": 1711,
+        "ortalama_tahmin": 0.7436302858156891,
+        "gozlenen_oran": 0.07422559906487435
+      },
+      {
+        "aralik": [
+          0.8,
+          0.9
+        ],
+        "adet": 687,
+        "ortalama_tahmin": 0.8399575430541605,
+        "gozlenen_oran": 0.12809315866084425
+      },
+      {
+        "aralik": [
+          0.9,
+          1.0
+        ],
+        "adet": 117,
+        "ortalama_tahmin": 0.9214494730229693,
+        "gozlenen_oran": 0.19658119658119658
+      }
+    ]
+  },
+  "backtest": [
+    {
+      "ucus": "THY322",
+      "tarih": "2019-01-01",
+      "veri_kaynagi": "era5",
+      "kacinma_stratejisi": "irtifa_yukari",
+      "gercek_riskli_oran": 0.0,
+      "gercek_sigmet_ihlali": 0,
+      "gercek_turb_sigmet": null,
+      "gercek_mog_pirep": null,
+      "buyuk_daire_riskli_oran": 0.04878048780487805,
+      "buyuk_daire_sigmet_ihlali": 0,
+      "buyuk_daire_turb_sigmet": null,
+      "buyuk_daire_mog_pirep": null,
+      "optimize_riskli_oran": 0.0,
+      "optimize_sigmet_ihlali": 0,
+      "optimize_turb_sigmet": null,
+      "optimize_mog_pirep": null,
+      "kanit_kaynaklari": []
+    },
+    {
+      "ucus": "THY322",
+      "tarih": "2019-01-15",
+      "veri_kaynagi": "era5",
+      "kacinma_stratejisi": "yanal",
+      "gercek_riskli_oran": 0.1891891891891892,
+      "gercek_sigmet_ihlali": 0,
+      "gercek_turb_sigmet": null,
+      "gercek_mog_pirep": null,
+      "buyuk_daire_riskli_oran": 0.3170731707317073,
+      "buyuk_daire_sigmet_ihlali": 0,
+      "buyuk_daire_turb_sigmet": null,
+      "buyuk_daire_mog_pirep": null,
+      "optimize_riskli_oran": 0.0,
+      "optimize_sigmet_ihlali": 0,
+      "optimize_turb_sigmet": null,
+      "optimize_mog_pirep": null,
+      "kanit_kaynaklari": []
+    }
+  ],
+  "backtest_notu": "Riskli oran TI1 ile ölçülür; A* de TI1'i düşürdüğü için ölçüm döngüseldir.",
+  "sekiller": [
+    "roc_ti1_ri.png",
+    "guvenilirlik_modeli.png",
+    "backtest_ucus_basina.png"
+  ]
+}

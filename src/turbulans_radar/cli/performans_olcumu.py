@@ -8,11 +8,13 @@ docs/PERFORMANS_RAPORU.md). Dört bölüm, her biri ayrı çalıştırılabilir:
   api    : eşzamanlı istek altında uç nokta gecikmesi (p50/p95/p99) ve verim
   gorev  : işçi kuyruğunun görev hızı (N uçuş analizi doğrudan kuyruğa)
   gece   : ML gece işinin CDS isteği başına süresi (analiz_gorevleri kayıtları)
+  rota   : rota kararı (A*) süresi, sabit senaryolarla (süreç içinde, ağsız, yerel ERA5)
 
     turbulans-performans analiz --tekrar 5
     TURBULANS_API_ANAHTARI=... turbulans-performans api --taban-url http://localhost:18000
     turbulans-performans gorev --adet 20
     turbulans-performans gece
+    turbulans-performans rota --tekrar 6
     turbulans-performans hepsi --json sonuc.json
 
 API anahtarı komut satırından değil TURBULANS_API_ANAHTARI (yoksa API_ANAHTARI)
@@ -119,6 +121,99 @@ def analiz_olc(tekrar=5, veritabanina_yaz=True) -> dict:
         "tekrar": tekrar,
         "soguk_toplam_ms": round(asamalar["toplam"][0], 1),
         "asamalar": {ad: ozet_istatistik(s[1:] or s) for ad, s in asamalar.items() if s},
+    }
+
+
+# --- rota -----------------------------------------------------------------
+
+# (ad, (bas_enlem, bas_boylam, bit_enlem, bit_boylam, irtifa_ft, zaman), kısıt).
+# Seviyeler yarım daire kuralına uygun. Sentetik SIGMET yalnız A* süresini ölçmek
+# içindir (FIR "TEST"); hava durumu iddiası taşımaz.
+ROTA_SENARYOLARI = (
+    ("S1 İstanbul→Antalya FL290", (41.0, 28.9, 36.9, 30.7, 29000, "2019-01-05T12:00:00"), None),
+    ("S2 İzmir→Van FL350", (38.4, 27.1, 38.5, 43.4, 35000, "2019-01-31T00:00:00"), None),
+    ("S3 İstanbul→Doğu Anadolu FL350", (40.9, 29.3, 40.6, 43.1, 35000, "2019-01-15T19:00:00"), None),
+    (
+        "S4 Malatya→Musul FL370 + örnek kısıtlı sahalar",
+        (38.35, 38.31, 36.34, 43.13, 37000, "2019-01-15T19:00:00"),
+        "saha",
+    ),
+    ("S5 İstanbul→New York FL340 (kapsam dışı)", (41.0, 28.9, 40.7, -74.0, 34000, "2019-01-15T10:00:00"), None),
+    ("S6 İzmir→Van FL350 + sentetik TURB SIGMET", (38.4, 27.1, 38.5, 43.4, 35000, "2019-01-31T00:00:00"), "sigmet"),
+)
+
+
+def _sentetik_sigmet(gun="2019-01-31"):
+    import pandas as pd
+
+    baslangic = pd.Timestamp(gun, tz="UTC") - pd.Timedelta(days=1)
+    enlem0, enlem1, boylam0, boylam1 = 38.2, 39.6, 34.5, 35.5
+    return {
+        "id": 0,
+        "fir_kodu": "TEST",
+        "tehlike": "TURB",
+        "taban_ft": None,
+        "tavan_ft": 45000,
+        "gecerlilik_baslangic": baslangic,
+        "gecerlilik_bitis": baslangic + pd.Timedelta(days=2),
+        "poligon": [[boylam0, enlem0], [boylam1, enlem0], [boylam1, enlem1], [boylam0, enlem1], [boylam0, enlem0]],
+    }
+
+
+def rota_olc(tekrar=6) -> dict:
+    """Her senaryo tekrar kez; ilki soğuk (küp okuma dahil), kalanlar sıcak.
+    A* süresi yalnız graf aramasıdır; toplam süre aday rotaların rüzgârla
+    zamanlanmasını ve TI1/kısıt kontrollerini de içerir."""
+    from turbulans_radar.rota import rota_optimizasyonu as ro
+    from turbulans_radar.veri.kisitli_saha_saglayici import ORNEK_DOSYA, ORNEK_KAYNAK, geojson_kayitlarina_cevir
+
+    eski_ayarlar = (config.ERA5_OTOMATIK_INDIRME, config.CANLI_HAVA_VERISI_ETKIN)
+    sahalar = geojson_kayitlarina_cevir(json.loads(ORNEK_DOSYA.read_text(encoding="utf-8")), ORNEK_KAYNAK)
+    a_yildiz_sureleri = []
+    asil_a_yildiz = ro._a_yildiz_ile_rota_ara
+
+    def olculen_a_yildiz(*argumanlar, **anahtarlar):
+        sonuc, ms = _sure(asil_a_yildiz, *argumanlar, **anahtarlar)
+        a_yildiz_sureleri.append(ms)
+        return sonuc
+
+    senaryolar = []
+    ro._a_yildiz_ile_rota_ara = olculen_a_yildiz
+    config.ERA5_OTOMATIK_INDIRME = config.CANLI_HAVA_VERISI_ETKIN = False
+    try:
+        for ad, girdi, kisit in ROTA_SENARYOLARI:
+            sigmetler = [_sentetik_sigmet()] if kisit == "sigmet" else []
+            kisitli = sahalar if kisit == "saha" else []
+            toplamlar, a_yildiz, sonuc = [], [], None
+            for _ in range(tekrar):
+                a_yildiz_sureleri.clear()
+                sonuc, ms = _sure(
+                    ro.rota_simulasyonu_olustur, *girdi, "A320", sigmetler=sigmetler, kisitli_sahalar=kisitli
+                )
+                toplamlar.append(ms)
+                a_yildiz.append(sum(a_yildiz_sureleri) if a_yildiz_sureleri else None)
+            sicak = toplamlar[1:] or toplamlar
+            sicak_a = [s for s in a_yildiz[1:] if s is not None]
+            senaryolar.append(
+                {
+                    "ad": ad,
+                    "veri": sonuc["ruzgar_verisi_kaynagi"],
+                    "mesafe_km": round(sonuc["normal_rota"]["mesafe_km"]),
+                    "strateji": sonuc["kacinma_stratejisi"],
+                    "soguk_ms": round(toplamlar[0], 1),
+                    "sicak_medyan_ms": round(statistics.median(sicak), 1),
+                    "sicak_maks_ms": round(max(sicak), 1),
+                    "a_yildiz_medyan_ms": round(statistics.median(sicak_a), 1) if sicak_a else None,
+                }
+            )
+    finally:
+        ro._a_yildiz_ile_rota_ara = asil_a_yildiz
+        config.ERA5_OTOMATIK_INDIRME, config.CANLI_HAVA_VERISI_ETKIN = eski_ayarlar
+    sicaklar = [s["sicak_medyan_ms"] for s in senaryolar]
+    return {
+        "tekrar": tekrar,
+        "senaryolar": senaryolar,
+        "sicak_aralik_sn": [round(min(sicaklar) / 1000, 2), round(max(sicaklar) / 1000, 2)],
     }
 
 
@@ -368,6 +463,20 @@ def markdown_tablosu(sonuc: dict) -> str:
             for c in sonuc["gece"]["calismalar"]
         ]
         satirlar.append("")
+    if "rota" in sonuc:
+        r = sonuc["rota"]
+        satirlar += [
+            f"### Rota kararı ({r['tekrar']} tekrar; sıcak medyan {r['sicak_aralik_sn'][0]}–{r['sicak_aralik_sn'][1]} sn)",
+            "",
+            "| Senaryo | Veri | Mesafe (km) | Strateji | Soğuk (ms) | Sıcak medyan (maks) | A* medyan (ms) |",
+            "|---|---|---|---|---|---|---|",
+        ]
+        satirlar += [
+            f"| {s['ad']} | {s['veri']} | {s['mesafe_km']} | {s['strateji']} | {s['soguk_ms']} "
+            f"| {s['sicak_medyan_ms']} ({s['sicak_maks_ms']}) | {s['a_yildiz_medyan_ms'] or 'çağrılmadı'} |"
+            for s in r["senaryolar"]
+        ]
+        satirlar.append("")
     return "\n".join(satirlar)
 
 
@@ -375,8 +484,8 @@ def ana(argv=None):
     ayristirici = argparse.ArgumentParser(
         description="Türbülans Radar performans ölçümü (bkz. docs/PERFORMANS_RAPORU.md)."
     )
-    ayristirici.add_argument("bolum", choices=["analiz", "api", "gorev", "gece", "hepsi"])
-    ayristirici.add_argument("--tekrar", type=int, default=5, help="analiz: tekrar sayısı")
+    ayristirici.add_argument("bolum", choices=["analiz", "api", "gorev", "gece", "rota", "hepsi"])
+    ayristirici.add_argument("--tekrar", type=int, default=None, help="analiz (5) / rota (6): tekrar sayısı")
     ayristirici.add_argument("--taban-url", default="http://localhost:8000", help="api: hedef sunucu")
     ayristirici.add_argument("--eszamanlilik", default="1,4,16", help="api: virgülle eşzamanlılık düzeyleri")
     ayristirici.add_argument(
@@ -386,12 +495,12 @@ def ana(argv=None):
     ayristirici.add_argument("--json", metavar="DOSYA", help="sonucu JSON olarak yaz")
     argumanlar = ayristirici.parse_args(argv)
 
-    bolumler = ["analiz", "api", "gorev", "gece"] if argumanlar.bolum == "hepsi" else [argumanlar.bolum]
+    bolumler = ["analiz", "api", "gorev", "gece", "rota"] if argumanlar.bolum == "hepsi" else [argumanlar.bolum]
     sonuc = {"zaman": datetime.now(UTC).isoformat(timespec="seconds"), "donanim": donanim_bilgisi()}
     for bolum in bolumler:
         print(f"[{bolum}] ölçülüyor...")
         if bolum == "analiz":
-            sonuc["analiz"] = analiz_olc(argumanlar.tekrar)
+            sonuc["analiz"] = analiz_olc(argumanlar.tekrar or 5)
         elif bolum == "api":
             sonuc["api"] = api_olc(
                 argumanlar.taban_url,
@@ -400,6 +509,8 @@ def ana(argv=None):
             )
         elif bolum == "gorev":
             sonuc["gorev"] = gorev_olc(argumanlar.adet)
+        elif bolum == "rota":
+            sonuc["rota"] = rota_olc(argumanlar.tekrar or 6)
         else:
             sonuc["gece"] = gece_olc()
     if argumanlar.json:
