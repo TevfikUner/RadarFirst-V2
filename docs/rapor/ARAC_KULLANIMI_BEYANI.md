@@ -25,7 +25,7 @@ paketinden (`docs/sonuclar/`) alındı; tasarım, dış bir inceleme raporunun m
 göre kabul kriterleriyle izlendi. Çekirdek modüllerin (`fizik/eslestirme.py`,
 `fizik/turbulans_indeksleri.py`, A* maliyet fonksiyonu ve sezgiseli,
 `ml/degerlendirme.py`) tasarımı ve doğrulanması savunmada yazar tarafından anlatılır
-(anlatım kartı: `docs/sunum/CEKIRDEK_ANLATIM_KARTI.md`).
+(proje işleyişi: `docs/sunum/PROJE_ISLEYISI.md`).
 
 ## Kaynak
 
