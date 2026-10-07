@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-08 (dal `claude/proje-isleyisi`)
+
+- ✅ Çekirdek anlatım kartı yerine tüm akışı anlatan `docs/sunum/PROJE_ISLEYISI.md` (veri → filtre → eşleştirme → rota → model → doğrulama).
+- ⚠️ Commit mesajlarındaki yapay zekâ satırlarının temizlenmesi (geçmişi yeniden yazma) güvenlik denetimince engellendi; kullanıcı kararı bekleniyor.
+
 ## 2026-10-08 (dal `claude/beyan-ve-anlatim-karti`, Madde 9 kullanıcı adımları)
 
 - ✅ YZ beyanı: biçim tek paragraf (yöntem sonu); yazar alanı git'ten (ilk 2 commit'ten kalan satır %1,9). Danışman e-postası taslak.
