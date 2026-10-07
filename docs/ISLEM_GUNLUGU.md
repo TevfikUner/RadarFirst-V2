@@ -2,6 +2,13 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-08 (dal `claude/tez-cercevesi-readme`, Madde 9 kapanışı)
+
+- ✅ README ilk ekranı: problem, araştırma sorusu, ön paket sayılarıyla kısa cevap, demo, çekirdek (K1/K2/K6/K7) ve ekler.
+- ✅ Sunum akışı: literatür özeti dolduruldu, çekirdek/mühendislik eki ayrımı, ekler yedek slaytta.
+- ✅ Araç kullanımı (YZ) beyanı taslağı `docs/rapor/ARAC_KULLANIMI_BEYANI.md`; biçim danışmana, `[YAZAR]` alanı Tevfik'te.
+- ✅ Literatür tablosundaki eski 0,730 ön paketle (LR 0,681, +0,008 anlamsız) değişti. Tam test 908 geçti.
+
 ## 2026-10-08 (dal `claude/esik-ve-rota-hizi`, Madde 8 açık kararları)
 
 - ✅ TI1 risk eşiği 8e-7 → 7e-7: eğitim günlerinde Peirce max'ın 1 SE'si içindeki en tutucu eşik (1-SE kuralı).

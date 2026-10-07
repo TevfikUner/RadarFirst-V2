@@ -1,11 +1,35 @@
 # Türbülans Radar
 
-Gerçek bir uçuşun (OpenSky/Trino) rotasını, gerçek bir hava durumu veri
-küpüyle (Copernicus/ERA5) eşleştirip Ellrod TI1 indeksi ve bulk Richardson
-sayısıyla türbülans şiddeti/dinamik kararsızlık tahmini üreten uçtan uca bir
-sistem. Sonuçlar PostgreSQL'e yazılır, zaman kaydırıcılı bir Folium
-haritasında görselleştirilir, bir FastAPI servisi ve MCP sunucusu üzerinden
-JSON/veritabanı olarak dışarıya açılır.
+**Problem.** Seyir irtifasındaki açık hava türbülansı (CAT) radarda görünmez; pilot
+raporu (PIREP) gönüllü, gecikmeli ve konumu kabadır; operasyonel ürünler (GTG, WAFS)
+NWP alanı üretir ve yerinde EDR ile doğrulanır.
+
+**Araştırma sorusu.** Yalnız açık veriyle (OpenSky ADS-B, ERA5, AWC SIGMET, IEM PIREP)
+gerçek bir uçuş izinde seyir türbülansı riski hangi ölçülmüş beceriyle gösterilebilir
+ve bu sınır rota kararına nasıl taşınmalıdır?
+
+**Kısa cevap** (ön paket [2026-10-07](docs/sonuclar/2026-10-07/SAYILAR.md); 18 Ekim'de
+nihai). Becerisi sınırlı: Ellrod TI1, 80 günde 7.815 seyir PIREP'inde ROC-AUC 0,680
+[0,662–0,697]; altın test günlerinde risk eşiğinde (7e-7) yakalama 0,50, yanlış alarm
+0,25. Birleşik gösterge TI1'i az ama anlamlı geçiyor (+0,014 [+0,007; +0,020]); ML
+modeli geçemedi (+0,008 [−0,006; +0,022]), kapı onu devreye almıyor. Bu yüzden güvenlik
+SIGMET'e (sert kısıt) dayanır, TI1 A* rotasında yalnız yumuşak kısıttır.
+
+**Demo.** Ağsız, kimlik bilgisiz: [Beş dakikada çalıştır](#beş-dakikada-çalıştır).
+Kapsam yalnız CAT ve seyir safhası, doğrulama ABD verisiyle; çıktılar sertifikalı EDR
+değildir, sistem karar destek aracıdır.
+
+**Çekirdek ve ekler.** Tezin çekirdeği dört katkıdır ([Katkılar](docs/rapor/KATKILAR.md)):
+K1 barometrik irtifayla iz–ERA5 eşleştirmesi (`fizik/eslestirme.py`), K2 seyir
+irtifası PIREP etiket hattı ve FL feet hatasının tespiti, K6 TI1 sınırının bağımsız
+etiketle ölçülüp ürüne yansıtılması (`fizik/turbulans_indeksleri.py`,
+`ml/degerlendirme.py`), K7 SIGMET sert / TI1 yumuşak kısıtlı A* rota
+(`rota/rota_optimizasyonu.py`). Sanal PIREP, contrail, IWXXM, n8n, MCP, 3B
+simülasyon ve CLI araçlarının çoğu mühendislik ekidir; tezin iddiasını taşımaz.
+
+**Ne yapar.** Gerçek bir uçuşun (OpenSky/Trino) izini ERA5 küpüyle barometrik
+irtifada eşleştirir, Ellrod TI1 ve bulk Richardson göstergelerini hesaplar, sonuçları
+PostgreSQL'e yazar; FastAPI, harita önyüzleri ve MCP sunucusu üzerinden sunar.
 
 **Önemli sınırlama:** TI1 ve 0–1 gösterge ölçeği (API alanı `edr_proxy`: birleşik
 gösterge ölçeği, o yoksa TI1 görsel ölçeği) bir EDR (Eddy Dissipation Rate) değeri

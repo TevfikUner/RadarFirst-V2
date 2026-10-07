@@ -148,9 +148,9 @@ demeyin.
 | Ellrod ve Knapp (1992) | TI1 = VWS × DEF | NWP, PIREP | Operasyonel doğrulama | TI1: PIREP ROC-AUC 0,680, altın günler 0,673, MADIS 0,706 (6 gün) |
 | Sharman vd. (2006), GTG | Çok teşhisli ağırlıklı birleşim | NWP (RUC), PIREP | PODy–PODn / AUC | Birleşik EDR: PIREP 0,692, altın günler 0,687 |
 | Sharman ve Pearson (2017) | Teşhislerin log-normal EDR eşlemesi | NWP, yerinde EDR | EDR hatası, AUC | Aynı eşleme, ERA5 klimatolojisiyle (`edr_esleme.py`) |
-| Kim vd. (2011) | GTG teşhisleri, mevsimsel analiz | NWP, 6 yıl PIREP (Doğu Asya) | AUC | Yalnız ABD, 64 gün; mevsim analizi yok |
+| Kim vd. (2011) | GTG teşhisleri, mevsimsel analiz | NWP, 6 yıl PIREP (Doğu Asya) | AUC | Yalnız ABD, 80 gün (64 eğitim, 16 altın test); mevsim analizi yok |
 | Gill (2014) | WAFC SIGWX + ızgara CAT | Yerinde ölçüm (GADS) | ROC | WAFS karşılaştırması yok (M3) |
-| Muñoz-Esparza vd. (2020) | Rastgele orman, gradyan artırımı | HRRR + GTG, yerinde EDR | EDR hatası, kategori ayrımı | Rastgele orman, ERA5 + PIREP; holdout ROC-AUC 0,730 (TI1'den +0,023) |
+| Muñoz-Esparza vd. (2020) | Rastgele orman, gradyan artırımı | HRRR + GTG, yerinde EDR | EDR hatası, kategori ayrımı | Protokolle seçilen lojistik regresyon, ERA5 + PIREP; altın günler ROC-AUC 0,681, TI1'den +0,008 [−0,006; +0,022], anlamsız (kapı geçilmedi) |
 | Kopeć vd. (2016) | ADS-B/Mode-S'ten EDR | Araştırma uçağı ivmeölçeri | Karşılaştırma | ADS-B'den yalnız olay (EDR yok), POD 1/8, POFD 0/8 |
 | Cheung (2018) | A* ile CAT'ten kaçınan rota | NWP CAT alanı | Örnek olay | A* + SIGMET sert / TI1 yumuşak kısıt, yakıt bedeliyle |
 
