@@ -19,7 +19,8 @@ Katmanlar:
                          düğüm arasındaki bacağın poligonu KESİP KESMEDİĞİNE
                          de bakar -- seyrek ızgarada küçük bir alan iki düğüm
                          arasından "atlanmasın" diye.
-  - SigmetKisitKatmani : aktif SIGMET'ler (kaçınılan tehlike türleri)
+  - SigmetKisitKatmani : aktif SIGMET'ler (kaçınılan tehlike türleri), yanal ve
+                         dikey tamponla (config.SIGMET_YANAL_TAMPON_NM, _DIKEY_TAMPON_FT)
   - KisitliSahaKatmani : çatışma bölgesi / yasak / kısıtlı sahalar (süresiz
                          olabilir -- boş geçerlilik sınırı = sınırsız)
 """
@@ -39,6 +40,7 @@ from turbulans_radar.veri.saha_aktivasyonu import aktif_maskesi
 TURBULANS_CEZASI_SANIYE = 6 * 3600.0
 _KM_PER_DERECE = 111.2
 _KT_KM_SAAT = 1.852
+_NM_KM = 1.852
 
 
 @dataclass
@@ -109,19 +111,43 @@ class Ti1CezaKatmani:
         )
 
 
-def sigmet_geometrisi(poligon):
-    """SIGMET köşelerinden -180..180 boylam uzayında GEÇERLİ bir geometri.
-    Kendini kesen halkalar (AWC akışında gerçekten görülüyor) make_valid ile
-    onarılır; 180°'yi aşan (antimeridyen, bkz. sigmet_saglayici) parça -360
-    kaydırılarak batı yarım küreye taşınır."""
-    geometri = shapely.make_valid(shapely.Polygon(poligon))
-    if max(boylam for boylam, _ in poligon) <= 180.0:
+def _km_tamponla(geometri, tampon_km):
+    """Geometriyi yerel eşdikdörtgen km düzleminde tamponlar. Boylam ölçeği
+    geometrinin EN YÜKSEK mutlak enleminden (75°'ye kelepçeli) alınır:
+    derece cinsinden en geniş tampon, her noktada en az `tampon_km` verir
+    (bkz. rota_optimizasyonu._km_boylam_derecesine_cevir)."""
+    if tampon_km <= 0 or geometri.is_empty:
         return geometri
-    dogu = shapely.intersection(geometri, shapely.box(-180.0, -90.0, 180.0, 90.0))
-    bati = shapely.affinity.translate(
-        shapely.intersection(geometri, shapely.box(180.0, -90.0, 540.0, 90.0)), xoff=-360.0
-    )
-    return shapely.union(dogu, bati)
+    _, enlem0, _, enlem1 = shapely.bounds(geometri)
+    kos_enlem = np.cos(np.radians(min(max(abs(enlem0), abs(enlem1)), 75.0)))
+    olcek = (_KM_PER_DERECE * kos_enlem, _KM_PER_DERECE)
+    km = shapely.affinity.scale(geometri, *olcek, origin=(0.0, 0.0))
+    tamponlu = shapely.buffer(km, tampon_km, quad_segs=8)
+    return shapely.affinity.scale(tamponlu, 1.0 / olcek[0], 1.0 / olcek[1], origin=(0.0, 0.0))
+
+
+def _antimeridyende_bol(geometri):
+    """-180..180 dışına taşan parçaları 360° kaydırarak karşı yarım küreye taşır."""
+    minx, _, maxx, _ = shapely.bounds(geometri)
+    if minx >= -180.0 and maxx <= 180.0:
+        return geometri
+    parcalar = [
+        shapely.affinity.translate(shapely.intersection(geometri, shapely.box(x0, -90.0, x1, 90.0)), xoff=kayma)
+        for x0, x1, kayma in ((-540.0, -180.0, 360.0), (-180.0, 180.0, 0.0), (180.0, 540.0, -360.0))
+    ]
+    return shapely.union_all([p for p in parcalar if not p.is_empty])
+
+
+def sigmet_geometrisi(poligon, tampon_km=0.0, geometri=None):
+    """SIGMET köşelerinden (ya da hazır `geometri`den) -180..180 boylam
+    uzayında GEÇERLİ bir geometri. Kendini kesen halkalar (AWC akışında
+    gerçekten görülüyor) make_valid ile onarılır. Tampon, antimeridyen
+    bölmesinden ÖNCE kesintisiz boylam uzayında uygulanır; 180°'yi aşan
+    (antimeridyen, bkz. sigmet_saglayici) ya da tamponla taşan parça 360°
+    kaydırılarak karşı yarım küreye taşınır."""
+    if geometri is None:
+        geometri = shapely.make_valid(shapely.Polygon(poligon))
+    return _antimeridyende_bol(_km_tamponla(geometri, tampon_km))
 
 
 class PoligonKisitKatmani:
@@ -130,23 +156,29 @@ class PoligonKisitKatmani:
     sınırsız, None geçerlilik sınırı = o yönde süresiz."""
 
     ad = "poligon"
+    dikey_tampon_ft = 0.0
 
     def __init__(self, kayitlar):
         self.kayitlar = list(kayitlar)
-        self._poligonlar = [k.get("_geometri") or sigmet_geometrisi(k["poligon"]) for k in self.kayitlar]
+        self._poligonlar = [
+            sigmet_geometrisi(k.get("poligon"), self.yanal_tampon_nm(k) * _NM_KM, k.get("_geometri"))
+            for k in self.kayitlar
+        ]
         for poligon in self._poligonlar:
             shapely.prepare(poligon)
         self._sinirlar = [shapely.bounds(p) for p in self._poligonlar]
         self._kos_enlemler = [max(np.cos(np.radians(shapely.centroid(p).y)), 0.05) for p in self._poligonlar]
 
+    def yanal_tampon_nm(self, kayit) -> float:
+        return 0.0
+
     @staticmethod
     def _saniye(zaman) -> float | None:
         return None if zaman is None else _utc(zaman).value / 1e9
 
-    @staticmethod
-    def _irtifada_mi(kayit, irtifa_ft) -> bool:
-        taban = kayit["taban_ft"] if kayit["taban_ft"] is not None else 0
-        tavan = kayit["tavan_ft"] if kayit["tavan_ft"] is not None else float("inf")
+    def _irtifada_mi(self, kayit, irtifa_ft) -> bool:
+        taban = kayit["taban_ft"] - self.dikey_tampon_ft if kayit["taban_ft"] is not None else -float("inf")
+        tavan = kayit["tavan_ft"] + self.dikey_tampon_ft if kayit["tavan_ft"] is not None else float("inf")
         return taban <= irtifa_ft <= tavan
 
     def _aktif_maskesi(self, kayit, t, d) -> np.ndarray:
@@ -274,12 +306,34 @@ class PoligonKisitKatmani:
 
 
 class SigmetKisitKatmani(PoligonKisitKatmani):
+    """tamponlu=False: poligonun kendisi (bağımsız kanıt ölçümü gibi kaçınma
+    dışı kullanımlar); True: config.SIGMET_YANAL_TAMPON_NM / SIGMET_DIKEY_TAMPON_FT."""
+
     ad = "sigmet"
 
-    def __init__(self, sigmetler, tehlikeler=None):
+    def __init__(self, sigmetler, tehlikeler=None, tamponlu=True):
         tehlikeler = {t.upper() for t in (tehlikeler or config.SIGMET_KACINILACAK_TEHLIKELER)}
         tehlikeler.add(config.SIGMET_BILINMEYEN_TEHLIKE)
+        self.tamponlu = tamponlu
+        self.dikey_tampon_ft = config.SIGMET_DIKEY_TAMPON_FT if tamponlu else 0.0
         super().__init__(s for s in sigmetler if s["tehlike"].upper() in tehlikeler)
+
+    def yanal_tampon_nm(self, kayit) -> float:
+        if not self.tamponlu:
+            return 0.0
+        tehlike = kayit["tehlike"].upper()
+        if tehlike == config.SIGMET_BILINMEYEN_TEHLIKE:
+            return max([config.SIGMET_YANAL_TAMPON_VARSAYILAN_NM, *config.SIGMET_YANAL_TAMPON_NM.values()])
+        return config.SIGMET_YANAL_TAMPON_NM.get(tehlike, config.SIGMET_YANAL_TAMPON_VARSAYILAN_NM)
+
+    def tampon_ozeti(self) -> dict:
+        return {
+            "yanal_nm": {**config.SIGMET_YANAL_TAMPON_NM, "DIGER": config.SIGMET_YANAL_TAMPON_VARSAYILAN_NM}
+            if self.tamponlu
+            else {},
+            "dikey_ft": self.dikey_tampon_ft,
+            "aciklama": "Parametrik varsayım, kalibre edilmedi (SIGMET poligonu kaba; hat pratiği payı).",
+        }
 
     @property
     def sigmetler(self) -> list[dict]:

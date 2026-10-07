@@ -517,7 +517,12 @@ SIGMET kısıtı **dört boyutludur**: yatay poligon + irtifa bandı (`taban_ft`
 `tavan_ft`, boş taban = yerden) + uçağın o noktaya VARIŞ zamanında
 geçerlilik. Kenar kontrolü, iki ızgara düğümü arasındaki bacağın poligonu
 kesip kesmediğine de bakar (seyrek ızgarada küçük bir SIGMET "atlanmasın").
-Varsayılan kaçınılan tehlikeler: `TURB, MTW, TS, CONVECTIVE, VA, TC`
+Poligona **yanal ve dikey tampon** eklenir: TS/CONVECTIVE 20 NM, TURB/MTW
+10 NM, diğer türler 10 NM, tehlikesi bilinmeyen en büyük tampon; taban altı
+ve tavan üstü 1000 ft (`SIGMET_YANAL_TAMPON_NM`, `SIGMET_DIKEY_TAMPON_FT`).
+Bunlar **parametrik varsayımdır, kalibre edilmedi**; uygulanan tampon
+yanıtta `sigmet_kontrolu.tampon` ve SIGMET başına `yanal_tampon_nm` ile
+raporlanır. Varsayılan kaçınılan tehlikeler: `TURB, MTW, TS, CONVECTIVE, VA, TC`
 (`SIGMET_KACINILACAK_TEHLIKELER`). Öncelik sırası: (1) SIGMET'e girmemek,
 (2) TI1 riskinden kaçınmak, (3) en ucuz yakıt/süre. SIGMET'e girmeyen hiçbir
 rota bulunamazsa (örn. varış noktası SIGMET içinde) sistem **öneri yapmaz**:

@@ -230,6 +230,15 @@ class SigmetOzetiYaniti(BaseModel):
     poligon: list[list[float]]
     hareket_yonu_derece: float | None = None
     hareket_hizi_kt: float | None = None
+    yanal_tampon_nm: float | None = None
+
+
+class SigmetTamponuYaniti(BaseModel):
+    """Kaçınmada poligona eklenen pay; parametrik varsayım, kalibre edilmedi."""
+
+    yanal_nm: dict[str, float] = {}
+    dikey_ft: float = 0.0
+    aciklama: str | None = None
 
 
 class SigmetKontroluYaniti(BaseModel):
@@ -246,6 +255,7 @@ class SigmetKontroluYaniti(BaseModel):
     # düşen kısmı: yok | kismi | tam (o kısım için SIGMET henüz yayımlanmamış olabilir).
     yayin_ufku_disi: str = "yok"
     yayin_ufku_saat: float | None = None
+    tampon: SigmetTamponuYaniti | None = None
 
 
 class KisitliSahaYaniti(BaseModel):

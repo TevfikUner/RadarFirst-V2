@@ -101,7 +101,7 @@ GERCEK_SENARYOLAR = {
         "riskisiz": (41.0, 28.9, 40.1, 32.99, 35000, "2019-01-15T19:00:00"),
         "riskli": (40.9, 29.3, 40.6, 43.1, 35000, "2019-01-15T19:00:00"),
         "kismi": (41.0, 28.9, 39.9, 41.3, 31000, "2019-01-15T19:00:00"),
-        "sigmet": ((40.0, 41.2, 30.5, 31.5), "2019-01-15"),
+        "sigmet": ((40.2, 41.0, 30.6, 31.4), "2019-01-15"),
     },
 }
 
@@ -247,6 +247,8 @@ def test_rota_ortasindaki_sigmetten_yanal_sapmayla_kacinilir(gercek_senaryo):
     kutu, gun = gercek_senaryo["sigmet"]
     sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskisiz"], "A320", sigmetler=[_kare_sigmet(*kutu, gun=gun)])
     assert sonuc["sigmet_kontrolu"]["durum"] == "uygulandi"
+    assert sonuc["sigmet_kontrolu"]["tampon"]["dikey_ft"] == 1000
+    assert sonuc["sigmet_kontrolu"]["sigmetler"][0]["yanal_tampon_nm"] == 10
     assert sonuc["normal_rota"]["sigmet_ihlali_sayisi"] > 0
     assert sonuc["optimize_rota"]["sigmet_ihlali_sayisi"] == 0
     assert sonuc["guvenli_rota_bulundu_mu"] is True

@@ -42,11 +42,11 @@ def test_aktif_sigmet_icindeki_dugum_ve_onu_kesen_kenar_yasak():
 @pytest.mark.parametrize(
     "sigmet, irtifa_ft, zaman",
     [
-        (_kare_sigmet(), 41000, SIMDI),
+        (_kare_sigmet(), 42000, SIMDI),
         (_kare_sigmet(taban=None, tavan=None), 1000, SIMDI - timedelta(hours=3)),
         (_kare_sigmet(tehlike="ICE"), 34000, SIMDI),
     ],
-    ids=["tavanin_ustunde", "gecerlilik_disinda", "kacinilmayan_tehlike"],
+    ids=["tavanin_dikey_tampon_ustunde", "gecerlilik_disinda", "kacinilmayan_tehlike"],
 )
 def test_irtifa_zaman_ve_tehlike_disinda_kalan_sigmet_uygulanmaz(sigmet, irtifa_ft, zaman):
     sonuc = _degerlendir(SigmetKisitKatmani([sigmet]), irtifa_ft=irtifa_ft, zaman=zaman)
@@ -139,3 +139,57 @@ def test_rota_ihlali_hareketli_sigmetin_konumuna_gore_sayilir():
     zamanlar = [SIMDI] * 2
     assert katman.rota_ihlal_sayisi([39.0, 39.0], [30.5, 31.5], zamanlar, 10000.0) == 0
     assert katman.rota_ihlal_sayisi([39.0, 39.0], [33.0, 34.0], zamanlar, 10000.0) == 3
+
+
+_BES_NM_BOYLAM = 9.26 / (111.2 * 0.7771)
+
+
+@pytest.mark.parametrize(
+    "tehlike, tampon_nm, uzaklik_nm, yasak",
+    [("TURB", 10, 5, True), ("TURB", 10, 15, False), ("TS", 20, 15, True), ("TS", 20, 25, False)],
+)
+def test_yanal_tampon_icinden_gecen_rota_ihlal_sayilir(tehlike, tampon_nm, uzaklik_nm, yasak):
+    katman = SigmetKisitKatmani([_kare_sigmet(tehlike=tehlike)])
+    assert katman.yanal_tampon_nm(katman.sigmetler[0]) == tampon_nm
+    boylam = 32.0 + _BES_NM_BOYLAM * uzaklik_nm / 5
+    ihlal = katman.rota_ihlal_sayisi([39.0, 41.0], [boylam, boylam], [SIMDI] * 2, 10000.0)
+    assert (ihlal > 0) is yasak
+
+
+def test_tamponsuz_katman_ve_kisitli_saha_poligonun_kendisini_kullanir():
+    boylam = 32.0 + _BES_NM_BOYLAM
+    sigmet = _kare_sigmet()
+    assert SigmetKisitKatmani([sigmet], tamponlu=False).rota_ihlal_sayisi([39.0], [boylam], [SIMDI], 10000.0) == 0
+    assert KisitliSahaKatmani([sigmet]).rota_ihlal_sayisi([39.0], [boylam], [SIMDI], 10000.0) == 0
+    assert SigmetKisitKatmani([sigmet]).rota_ihlal_sayisi([39.0], [boylam], [SIMDI], 10000.0) == 1
+
+
+@pytest.mark.parametrize("irtifa_ft, yasak", [(39000, True), (40000, False), (36500, True), (36000, False)])
+def test_dikey_tampon_tavan_ustu_ve_taban_alti_payi_ekler(irtifa_ft, yasak):
+    sonuc = _degerlendir(SigmetKisitKatmani([_kare_sigmet(taban=37500, tavan=38000)]), irtifa_ft=irtifa_ft)
+    assert (sonuc.yasak_dugumler == {"ic"}) is yasak
+
+
+def test_tampon_antimeridyeni_asarsa_karsi_yarim_kureye_tasinir():
+    sigmet = {
+        **_kare_sigmet(),
+        "poligon": [[170.0, 30.0], [179.95, 30.0], [179.95, 40.0], [170.0, 40.0], [170.0, 30.0]],
+    }
+    konumlar = {"bati_tamponda": (35.0, -179.9), "bati_uzak": (35.0, -179.0), "dogu_ic": (35.0, 175.0)}
+    sonuc = SigmetKisitKatmani([sigmet]).degerlendir(konumlar, dict.fromkeys(konumlar, SIMDI), [], 34000 * 0.3048)
+    assert sonuc.yasak_dugumler == {"bati_tamponda", "dogu_ic"}
+
+
+def test_antimeridyeni_kesen_sigmetin_tamponu_iki_yarim_kurede_uygulanir():
+    sigmet = {**_kare_sigmet(), "poligon": [[175.0, 30.0], [185.0, 30.0], [185.0, 40.0], [175.0, 40.0], [175.0, 30.0]]}
+    konumlar = {"bati_tamponda": (35.0, -174.9), "dogu_tamponda": (35.0, 174.9), "bati_uzak": (35.0, -174.0)}
+    sonuc = SigmetKisitKatmani([sigmet]).degerlendir(konumlar, dict.fromkeys(konumlar, SIMDI), [], 34000 * 0.3048)
+    assert sonuc.yasak_dugumler == {"bati_tamponda", "dogu_tamponda"}
+
+
+def test_tampon_ozeti_yanitta_raporlanir():
+    ozet = SigmetKisitKatmani([]).tampon_ozeti()
+    assert ozet["yanal_nm"]["TS"] == 20 and ozet["yanal_nm"]["TURB"] == 10
+    assert ozet["dikey_ft"] == 1000
+    assert "kalibre edilmedi" in ozet["aciklama"]
+    assert SigmetKisitKatmani([_kare_sigmet(tehlike="BILINMIYOR")]).yanal_tampon_nm({"tehlike": "BILINMIYOR"}) == 20

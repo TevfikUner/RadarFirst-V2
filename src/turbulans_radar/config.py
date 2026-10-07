@@ -386,6 +386,23 @@ SIGMET_BILINMEYEN_TEHLIKE = "BILINMIYOR"
 # Hareket yönü verilmiş ama hızı bilinmeyen ("MOV NE", spd=UNK) SIGMET için
 # varsayılan en yüksek hız: alan 0 ile bu hız arasındaki tüm konumları süpürür.
 SIGMET_BILINMEYEN_HIZ_KT = _ortam_sayi("SIGMET_BILINMEYEN_HIZ_KT", 30.0)
+# SIGMET kaçınmasında poligona eklenen yanal (NM, tehlike türüne göre) ve dikey
+# (ft, taban altı/tavan üstü) tampon. PARAMETRİK VARSAYIM, KALİBRE EDİLMEDİ:
+# SIGMET poligonları kabadır; konvektif alandan ~20 NM uzak durma hat pratiği
+# (FAA AC 00-24C'ye atfedilir, kaynaktan teyit edilmedi), TURB/MTW için 10 NM
+# ve RVSM dikey ayırması kadar 1000 ft seçildi. Listede olmayan tür
+# SIGMET_YANAL_TAMPON_VARSAYILAN_NM alır; tehlikesi bilinmeyen SIGMET en büyük
+# tamponu alır (muhafazakâr). Ortam: "TS:20,CONVECTIVE:20,TURB:10,MTW:10".
+SIGMET_YANAL_TAMPON_NM = {
+    tur.strip().upper(): float(nm)
+    for tur, nm in (
+        parca.split(":")
+        for parca in _ortam_str("SIGMET_YANAL_TAMPON_NM", "TS:20,CONVECTIVE:20,TURB:10,MTW:10").split(",")
+        if parca.strip()
+    )
+}
+SIGMET_YANAL_TAMPON_VARSAYILAN_NM = _ortam_sayi("SIGMET_YANAL_TAMPON_VARSAYILAN_NM", 10.0)
+SIGMET_DIKEY_TAMPON_FT = _ortam_sayi("SIGMET_DIKEY_TAMPON_FT", 1000.0)
 # Koordinatsız SIGMET'lerin FIR'ın tamamı olarak uygulanması için FIR sınırları
 # (turbulans-statik indirir; bkz. veri/fir_sinirlari.py).
 FIR_SINIRLARI_DOSYASI = _ortam_str("FIR_SINIRLARI_DOSYASI", os.path.join("veri_dosyalari", "fir_sinirlari.geojson"))
