@@ -43,15 +43,20 @@ yazılmamalıdır.
 
 ## 3. Mevcut çözümler ve boşluk
 
-- GTG (Graphical Turbulence Guidance), WAFS türbülans ürünleri, Ellrod–Knapp TI1:
-  [kısa özet ve atıflar, E3]
-- Bu projenin farkı (E3'teki "Katkılar" bölümüyle aynı dil):
-  - Gerçek ADS-B izi + barometrik irtifayla seviye seçimi + ERA5 eşleştirmesi tek
-    hatta; risk, rota optimizasyonuna (A*) sert ve yumuşak kısıt olarak giriyor.
-  - Seyir irtifası PIREP veri hattı ve PIREP irtifa hatasının (FL feet) tespiti ve
-    düzeltilmesi.
-  - Kapılı model aktivasyonu (TI1 referansı + aktif model), konformal "belirsiz" durumu.
-  - ADS-B'den gözleme dayalı sanal PIREP kanalı (M6).
+- Ellrod ve Knapp (1992) TI1; GTG çok teşhisli birleşimi (Sharman vd., 2006);
+  log-normal EDR eşlemesi (Sharman ve Pearson, 2017); WAFS ızgara CAT ürünleri (Gill,
+  2014). Hepsi NWP alanı üretir, yerinde EDR ya da PIREP'le doğrulanır.
+- ML ile EDR tahmini (Muñoz-Esparza vd., 2020) kapalı yerinde EDR'ye dayanır; ADS-B'den
+  EDR (Kopeć vd., 2016) araştırma uçağı ivmeölçeriyle doğrulanır; A* ile CAT'ten kaçınma
+  (Cheung, 2018) tek örnek olaydır. Künyeler ve tablo: `docs/rapor/ILGILI_CALISMALAR.md` §9.
+- Bu projenin farkı, yalnız çekirdek (E3'teki "Katkılar" bölümüyle aynı dil; "ilk"
+  denmez):
+  - K1: Gerçek ADS-B izi + barometrik irtifayla seviye seçimi + ERA5 eşleştirmesi.
+  - K2: Seyir irtifası PIREP etiket hattı; IEM FL feet hatasının tespiti (yan katkı).
+  - K6: TI1'in sınırı bağımsız etiketle (PIREP, MADIS EDR) ölçüldü ve ürüne yansıdı.
+  - K7: Bu sınır rota kararının yapısına taşındı: SIGMET sert, TI1 yumuşak kısıt (A*).
+- Mühendislik ekleri (kapılı ML, konformal "belirsiz", sanal PIREP, contrail, IWXXM,
+  n8n, MCP) ana slaytlarda anılmaz; yedek slaytlardadır.
 
 ## 4. Yaklaşım
 
@@ -147,6 +152,17 @@ OGC API – EDR ve IWXXM.
 - Depo, demo komutu ve belge bağlantıları; "Sorularınız?"
 
 ## Yedek slaytlar
+
+Mühendislik ekleri (çekirdek K1, K2, K6, K7 değil; soru gelirse açılır, yeni özellik
+eklenmez):
+
+- Kapılı model aktivasyonu ve konformal "belirsiz" durumu (K4, K5; ADR 0004, 0010).
+- Sanal PIREP: ADS-B'den gözleme dayalı olay kanalı (K8, M6).
+- İz bulutu (contrail) duyarlılığı, IWXXM dışa aktarımı, n8n otomasyonu, MCP sunucusu,
+  3B uçuş simülasyonu.
+- İşletim: kuyruk, dağıtık kilit, yedek, sağlayıcı sınırları (K9).
+
+Diğer:
 
 - Test ve CI: 825 test (birim, PostgreSQL, gerçek veri, Playwright); CI'da 5 iş
   (lint, güvenlik, test, tarayıcı, docker); sır taraması ve SBOM.
