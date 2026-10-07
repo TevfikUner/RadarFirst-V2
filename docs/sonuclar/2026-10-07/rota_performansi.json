@@ -1,5 +1,5 @@
 {
-  "zaman": "2026-10-07T20:28:27+00:00",
+  "zaman": "2026-10-07T21:20:22+00:00",
   "donanim": {
     "isletim_sistemi": "Linux-6.18.40.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
     "python": "3.14.4",
@@ -15,19 +15,19 @@
         "veri": "era5_gercek",
         "mesafe_km": 482,
         "strateji": "yanal",
-        "soguk_ms": 2598.2,
-        "sicak_medyan_ms": 1265.1,
-        "sicak_maks_ms": 1382.5,
-        "a_yildiz_medyan_ms": 342.6
+        "soguk_ms": 1069.8,
+        "sicak_medyan_ms": 398.4,
+        "sicak_maks_ms": 429.3,
+        "a_yildiz_medyan_ms": 101.4
       },
       {
         "ad": "S2 İzmir→Van FL350",
         "veri": "era5_gercek",
         "mesafe_km": 1418,
         "strateji": "yok",
-        "soguk_ms": 220.8,
-        "sicak_medyan_ms": 195.1,
-        "sicak_maks_ms": 247.0,
+        "soguk_ms": 55.9,
+        "sicak_medyan_ms": 55.4,
+        "sicak_maks_ms": 75.2,
         "a_yildiz_medyan_ms": null
       },
       {
@@ -35,29 +35,29 @@
         "veri": "era5_gercek",
         "mesafe_km": 1162,
         "strateji": "irtifa_yukari",
-        "soguk_ms": 1376.8,
-        "sicak_medyan_ms": 1262.3,
-        "sicak_maks_ms": 1314.0,
-        "a_yildiz_medyan_ms": 313.1
+        "soguk_ms": 467.2,
+        "sicak_medyan_ms": 382.2,
+        "sicak_maks_ms": 401.2,
+        "a_yildiz_medyan_ms": 88.1
       },
       {
         "ad": "S4 Malatya→Musul FL370 + örnek kısıtlı sahalar",
         "veri": "era5_gercek",
         "mesafe_km": 481,
         "strateji": "yanal",
-        "soguk_ms": 1347.3,
-        "sicak_medyan_ms": 1358.2,
-        "sicak_maks_ms": 1417.0,
-        "a_yildiz_medyan_ms": 397.2
+        "soguk_ms": 457.7,
+        "sicak_medyan_ms": 446.0,
+        "sicak_maks_ms": 506.3,
+        "a_yildiz_medyan_ms": 135.1
       },
       {
         "ad": "S5 İstanbul→New York FL340 (kapsam dışı)",
         "veri": "era5_kapsam_disi",
         "mesafe_km": 8066,
         "strateji": "yok",
-        "soguk_ms": 157.9,
-        "sicak_medyan_ms": 77.1,
-        "sicak_maks_ms": 119.9,
+        "soguk_ms": 21.8,
+        "sicak_medyan_ms": 25.5,
+        "sicak_maks_ms": 46.8,
         "a_yildiz_medyan_ms": null
       },
       {
@@ -65,15 +65,15 @@
         "veri": "era5_gercek",
         "mesafe_km": 1418,
         "strateji": "yanal",
-        "soguk_ms": 1282.8,
-        "sicak_medyan_ms": 1283.3,
-        "sicak_maks_ms": 1331.1,
-        "a_yildiz_medyan_ms": 367.6
+        "soguk_ms": 414.7,
+        "sicak_medyan_ms": 391.6,
+        "sicak_maks_ms": 422.8,
+        "a_yildiz_medyan_ms": 108.1
       }
     ],
     "sicak_aralik_sn": [
-      0.08,
-      1.36
+      0.03,
+      0.45
     ]
   }
 }

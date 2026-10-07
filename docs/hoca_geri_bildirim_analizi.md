@@ -399,9 +399,9 @@ için darboğaz değildir. Belirleyici olan veri tazeliği ve ilk veri indirmesi
 (saniyeler–dakika).
 
 **Tekrar üretim:** Bu tablo tarihçedir (2 Ekim). Ölçüm artık
-`turbulans-performans rota` alt komutuyla tekrarlanır (Madde 8). 7 Ekim ölçümü
-sıcak medyan 0,08–1,36 sn verdi (dizüstü pildeyken; aynı gün daha önce 0,02–0,86 sn),
-A* araması 0,31–0,40 sn: `docs/sonuclar/2026-10-07/rota_performansi.md`.
+`turbulans-performans rota` alt komutuyla tekrarlanır (Madde 8). 8 Ekim ölçümü
+(şarjda) sıcak medyan 0,03–0,45 sn: `docs/sonuclar/2026-10-07/rota_performansi.md`.
+Artış Pareto seçeneklerinin dört A* çalıştırmasından ve seviye adaylarından gelir.
 
 ---
 

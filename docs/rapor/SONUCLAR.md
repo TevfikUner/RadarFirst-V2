@@ -62,7 +62,8 @@ olduğu gibi uygulandı. Taramanın tamamı JSON'da `esik_taramasi.tarama` altı
 |---|---|---|---|
 | Peirce eşiği 5,3e-7 (eğitim günlerinden) | 0,605 | 0,349 | 0,439 |
 | `TI1_ESIK_HAFIF` 4e-7 | 0,683 | 0,440 | 0,463 |
-| `TI1_ESIK_ORTA_SIDDETLI` 8e-7 (config, risk eşiği) | 0,448 | 0,201 | 0,369 |
+| 1-SE eşiği 7,06e-7 (eğitim günlerinden) | 0,498 | 0,247 | 0,393 |
+| `TI1_ESIK_ORTA_SIDDETLI` 7e-7 (config, risk eşiği; 8 Ekim'e kadar 8e-7) | 0,502 | 0,252 | 0,395 |
 
 Peirce eşiğinde altın günlerdeki Peirce 0,256 [0,188–0,313]. Ri için aynı yöntem Ri < 2,37
 verdi. Klasik 0,25 sınırı ERA5 çözünürlüğünde çok seyrek aşılır (bkz. §1.1).
@@ -80,8 +81,16 @@ Seviyeye göre (her seviyede eşik o seviyenin eğitim örnekleriyle seçildi):
 
 175–300 hPa'da seviye eşikleri genel eşiğe yakın (4,3–6,7e-7) ve CSI'yi belirgin
 iyileştirmiyor. 350 hPa'da eğitim örneği az ve seviye eşiği testte kötüleşiyor. Tek genel
-eşik yeterli görünüyor. Config eşiği (8e-7) Peirce eşiğinden yüksektir: yanlış alarm daha
-az, yakalama da daha azdır. Config'i değiştirmek ürün kararıdır; şimdilik değiştirilmedi.
+eşik yeterli görünüyor.
+
+**Risk eşiği kararı (8 Ekim).** Peirce'i en büyüten eşik ile daha yüksek eşikler arasındaki
+beceri farkı küçüktür; yüksek eşik daha az yanlış alarm verir. Gerçek olay oranı düşük
+olduğu için (MADIS'te %3) yanlış alarm pahalıdır. Bu yüzden model seçimindeki 1-SE
+kuralının eşik karşılığı uygulandı: eğitim günlerinde Peirce'i en yüksek değerin (0,284)
+gün bazlı bootstrap standart hatası (0,018) içinde kalan en yüksek eşik, 7,06e-7.
+`TI1_ESIK_ORTA_SIDDETLI` 8e-7'den 7e-7'ye indi. Eski 8e-7 bu bandın dışındaydı (eğitim
+Peirce'i 0,250). Kural yalnız eğitim günlerini kullanır; 18 Ekim paketinde aynı kuralla
+yeniden hesaplanır (`esik_taramasi.bir_se`).
 
 ### 0.3 Yalnız CAT alt kümesi (MET-07)
 
@@ -122,8 +131,8 @@ taban oranına göre kalibre olduğu için ölçülen sıklık olarak okunamaz (
 
 ### 0.5 Rota backtest'i
 
-Veritabanındaki iki uçuşta riskli nokta oranı (gerçek / büyük daire / A*): THY322 1 Ocak
-2019 0,00 / 0,05 / 0,00; THY322 15 Ocak 2019 0,19 / 0,32 / 0,00
+Veritabanındaki iki uçuşta riskli nokta oranı (gerçek / büyük daire / A*), 7e-7 eşiğiyle:
+THY322 1 Ocak 2019 0,00 / 0,20 / 0,00; THY322 15 Ocak 2019 0,24 / 0,39 / 0,02
 ([şekil](../sonuclar/2026-10-07/backtest_ucus_basina.png)). Ölçüm döngüseldir. PUE502
 (bağımsız kanıtlı tek uçuş) bu veritabanında yok; açıklaması `docs/SISTEM_KARTI.md` §6'da.
 
@@ -337,5 +346,5 @@ tarihteki veritabanı yedeğinden yukarıdaki komutlarla yeniden üretilir. Dond
 önce açık işler:
 
 - ~~Penceresiz 1.597 örneğin yeni fizikle yeniden indirilmesi~~ (7 Eki: penceresiz eşleşmiş örnek kalmadı)
-- ~~TI1 eşiklerinin yeni fiziğe göre yeniden değerlendirilmesi~~ (7 Eki: §0.2; config değişikliği ürün kararı, açık)
+- ~~TI1 eşiklerinin yeni fiziğe göre yeniden değerlendirilmesi~~ (8 Eki: §0.2, 1-SE kuralıyla 7e-7)
 - ~~MADIS'te en az 5 güne ulaşılması (GA için)~~ (7 Eki: 6 gün, §0.4)

@@ -65,8 +65,8 @@ durumuna çevrilir (hedef kapsama %90); gerçekleşen kapsama zamansal holdout't
 
 **K6. Fizik göstergesinin sınırının ölçülmesi ve ürüne yansıtılması.**
 TI1'in bağımsız becerisi seyir PIREP'lerinde ölçüldü: 7.815 PIREP, ROC-AUC 0,680
-[0,662–0,697]; altın test günlerinde 0,673, config eşiğinde yakalama 0,448, yanlış alarm
-0,201; MADIS ölçülen EDR'de 0,706 (`docs/sonuclar/2026-10-07/SAYILAR.md`). Gerçek bir
+[0,662–0,697]; altın test günlerinde 0,673, veriden seçilen eşikte (7e-7) yakalama 0,502,
+yanlış alarm 0,252; MADIS ölçülen EDR'de 0,706 (`docs/sonuclar/2026-10-07/SAYILAR.md`). Gerçek bir
 uçuşta (PUE502) aktif TURB SIGMET'i
 yakalamadığı gösterildi. Sonuç, her rota yanıtında ve arayüzde gösterilen bir
 güvenilirlik notuna ve güvenliğin SIGMET sert kısıtına dayandırılmasına dönüştü.

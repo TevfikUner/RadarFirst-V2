@@ -1,8 +1,8 @@
 {
   "meta": {
     "kesme": "2026-10-07",
-    "uretim_zamani": "2026-10-07T20:23:44+00:00",
-    "commit": "34c6f9378072840bc16fb7fa2ae7495fc8d30ad2",
+    "uretim_zamani": "2026-10-07T21:18:22+00:00",
+    "commit": "d7858e80a6bf49ce3752d4f0b9e3e98a2e5767ad",
     "kirli": false,
     "bootstrap_tekrar": 1000,
     "uyari": "Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır."
@@ -338,6 +338,13 @@
         0.31290174654139546
       ]
     },
+    "bir_se": {
+      "peirce_max": 0.28388608256544023,
+      "peirce_max_esigi": 5.299043752773814e-07,
+      "se": 0.017634536929668113,
+      "esik": 7.055876906569356e-07,
+      "yontem": "Peirce'i en yüksek eşiğin 1 SE'si içindeki en yüksek eşik (eğitim günleri)"
+    },
     "config_esikleri": {
       "TI1_ESIK_HAFIF": {
         "esik": 4e-07,
@@ -358,23 +365,38 @@
         }
       },
       "TI1_ESIK_ORTA_SIDDETLI": {
-        "esik": 8e-07,
+        "esik": 7e-07,
         "test": {
           "ornek": 1554,
           "pozitif": 747,
-          "esik": 8e-07,
+          "esik": 7e-07,
           "roc_auc": 0.6733327361490572,
-          "pod": 0.4484605087014726,
-          "pofd": 0.20074349442379183,
-          "far": 0.32595573440643866,
-          "csi": 0.36853685368536854,
-          "peirce": 0.24771701427768075,
-          "dogru_pozitif": 335,
-          "yanlis_pozitif": 162,
-          "yanlis_negatif": 412,
-          "dogru_negatif": 645
+          "pod": 0.5020080321285141,
+          "pofd": 0.25154894671623296,
+          "far": 0.35121107266435986,
+          "csi": 0.39473684210526316,
+          "peirce": 0.2504590854122811,
+          "dogru_pozitif": 375,
+          "yanlis_pozitif": 203,
+          "yanlis_negatif": 372,
+          "dogru_negatif": 604
         }
       }
+    },
+    "bir_se_test": {
+      "ornek": 1554,
+      "pozitif": 747,
+      "esik": 7.055876906569356e-07,
+      "roc_auc": 0.6733327361490572,
+      "pod": 0.4979919678714859,
+      "pofd": 0.24659231722428748,
+      "far": 0.34851138353765326,
+      "csi": 0.39323467230443976,
+      "peirce": 0.25139965064719844,
+      "dogru_pozitif": 372,
+      "yanlis_pozitif": 199,
+      "yanlis_negatif": 375,
+      "dogru_negatif": 608
     },
     "tarama": [
       {
@@ -1270,7 +1292,7 @@
       "gercek_sigmet_ihlali": 0,
       "gercek_turb_sigmet": null,
       "gercek_mog_pirep": null,
-      "buyuk_daire_riskli_oran": 0.04878048780487805,
+      "buyuk_daire_riskli_oran": 0.1951219512195122,
       "buyuk_daire_sigmet_ihlali": 0,
       "buyuk_daire_turb_sigmet": null,
       "buyuk_daire_mog_pirep": null,
@@ -1285,15 +1307,15 @@
       "tarih": "2019-01-15",
       "veri_kaynagi": "era5",
       "kacinma_stratejisi": "yanal",
-      "gercek_riskli_oran": 0.1891891891891892,
+      "gercek_riskli_oran": 0.24324324324324326,
       "gercek_sigmet_ihlali": 0,
       "gercek_turb_sigmet": null,
       "gercek_mog_pirep": null,
-      "buyuk_daire_riskli_oran": 0.3170731707317073,
+      "buyuk_daire_riskli_oran": 0.3902439024390244,
       "buyuk_daire_sigmet_ihlali": 0,
       "buyuk_daire_turb_sigmet": null,
       "buyuk_daire_mog_pirep": null,
-      "optimize_riskli_oran": 0.0,
+      "optimize_riskli_oran": 0.024390243902439025,
       "optimize_sigmet_ihlali": 0,
       "optimize_turb_sigmet": null,
       "optimize_mog_pirep": null,

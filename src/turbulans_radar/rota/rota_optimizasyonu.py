@@ -678,6 +678,36 @@ def ruzgar_bilesenlerini_toplu_al(veri_kupu, enlemler, boylamlar, basinc_hpa, za
     return dilim["u"].to_numpy(), dilim["v"].to_numpy()
 
 
+def _bacak_ruzgar_okuyucu(veri_kupu, orta_enlemler, orta_boylamlar, basinc_hpa):
+    """Bacak orta noktaları için (bacak, zaman) -> (u, v). Konum ve seviye "nearest"
+    indisleri bir kez bulunur, u/v tüm zamanlarla tek seferde okunur; zaman indisi
+    çağrıda seçilir. ruzgar_bilesenlerini_al ile aynı pandas indekslemesi, aynı sonuç.
+    Küp beklenen 4 boyutta değilse None (çağıran nokta nokta okur)."""
+    boyutlar = (config.BASINC_BOYUTU, "latitude", "longitude", "valid_time")
+    if set(veri_kupu["u"].dims) != set(boyutlar) or set(veri_kupu["v"].dims) != set(boyutlar):
+        return None
+    indeksler = veri_kupu.indexes
+    seviyeler = np.sort(veri_kupu[config.BASINC_BOYUTU].values)
+    seviye = en_yakin_basinc_seviyesi(basinc_hpa, seviyeler)
+    secim = {
+        config.BASINC_BOYUTU: xr.DataArray(
+            np.full(len(orta_enlemler), indeksler[config.BASINC_BOYUTU].get_indexer([seviye], method="nearest")[0]),
+            dims="bacak",
+        ),
+        "latitude": xr.DataArray(indeksler["latitude"].get_indexer(orta_enlemler, method="nearest"), dims="bacak"),
+        "longitude": xr.DataArray(indeksler["longitude"].get_indexer(orta_boylamlar, method="nearest"), dims="bacak"),
+    }
+    u = veri_kupu["u"].isel(secim).transpose("bacak", "valid_time").to_numpy()
+    v = veri_kupu["v"].isel(secim).transpose("bacak", "valid_time").to_numpy()
+    zaman_indeksi = indeksler["valid_time"]
+
+    def oku(i, zaman):
+        t = zaman_indeksi.get_indexer([_tz_sizlestir(zaman)], method="nearest")[0]
+        return float(u[i, t]), float(v[i, t])
+
+    return oku
+
+
 # ---------------------------------------------------------------------------
 # Bir rotanın uçuş süresini/yakıtını hesaplama
 # ---------------------------------------------------------------------------
@@ -701,6 +731,11 @@ def _rotayi_zamanla(enlemler, boylamlar, irtifa_m, baslangic_zamani, tas_ms, ver
         zaman = zaman.tz_localize("UTC")
     zamanlar = [zaman]
     toplam_saniye = 0.0
+    okuyucu = None
+    if ruzgarli_mi and len(enlemler) > 1:
+        orta_enlemler = [(enlemler[i] + enlemler[i + 1]) / 2 for i in range(len(enlemler) - 1)]
+        orta_boylamlar = [(boylamlar[i] + boylamlar[i + 1]) / 2 for i in range(len(boylamlar) - 1)]
+        okuyucu = _bacak_ruzgar_okuyucu(veri_kupu, orta_enlemler, orta_boylamlar, basinc_hpa)
 
     for i in range(len(enlemler) - 1):
         mesafe_km = buyuk_daire_mesafesi_km(enlemler[i], boylamlar[i], enlemler[i + 1], boylamlar[i + 1])
@@ -710,7 +745,10 @@ def _rotayi_zamanla(enlemler, boylamlar, irtifa_m, baslangic_zamani, tas_ms, ver
             yon_derece = _ilk_yon_derece(enlemler[i], boylamlar[i], enlemler[i + 1], boylamlar[i + 1])
             orta_enlem = (enlemler[i] + enlemler[i + 1]) / 2
             orta_boylam = (boylamlar[i] + boylamlar[i + 1]) / 2
-            u, v = ruzgar_bilesenlerini_al(veri_kupu, orta_enlem, orta_boylam, basinc_hpa, zaman)
+            if okuyucu is not None:
+                u, v = okuyucu(i, zaman)
+            else:
+                u, v = ruzgar_bilesenlerini_al(veri_kupu, orta_enlem, orta_boylam, basinc_hpa, zaman)
             yer_hizi_ms = _yer_hizi_ms(tas_ms, u, v, yon_derece)
 
         bacak_saniye = (mesafe_km * 1000.0) / yer_hizi_ms
@@ -1294,7 +1332,8 @@ def rota_simulasyonu_olustur(
         # _irtifa_degisimi_maliyeti). Bazı CAT katmanları ve SIGMET'ler
         # irtifaya bağlıdır; seviye değiştirmek bazen en ucuz güvenli seçenektir.
         sert_katmanlar = [k for k in (sigmet_katmani, saha_katmani) if k is not None]
-        risk_katmanlari = ([Ti1CezaKatmani(veri_kupu)] if ruzgarli_mi else []) + sert_katmanlar
+        ti1_onbellegi = {}
+        risk_katmanlari = ([Ti1CezaKatmani(veri_kupu, onbellek=ti1_onbellegi)] if ruzgarli_mi else []) + sert_katmanlar
         pareto_cezalari = config.ROTA_PARETO_CEZALARI_SANIYE if ruzgarli_mi else []
         adaylar = []
         irtifa_secenekleri = (
@@ -1304,7 +1343,10 @@ def rota_simulasyonu_olustur(
             for strateji_adi, katmanlar in [
                 ("yanal", risk_katmanlari),
                 *(
-                    (f"yanal_ceza_{c:g}", [Ti1CezaKatmani(veri_kupu, ceza_saniye=c), *sert_katmanlar])
+                    (
+                        f"yanal_ceza_{c:g}",
+                        [Ti1CezaKatmani(veri_kupu, ceza_saniye=c, onbellek=ti1_onbellegi), *sert_katmanlar],
+                    )
                     for c in pareto_cezalari
                 ),
             ]:
@@ -1332,7 +1374,9 @@ def rota_simulasyonu_olustur(
                 adaylar.append(_aday(strateji_adi, yol[0], yol[1], aday_irtifa_m, ekstra=ekstra))
             for ceza in pareto_cezalari:
                 strateji_adi = f"ats_ceza_{ceza:g}"
-                yol = _ats_yolu(irtifa_m, [Ti1CezaKatmani(veri_kupu, ceza_saniye=ceza), *sert_katmanlar])
+                yol = _ats_yolu(
+                    irtifa_m, [Ti1CezaKatmani(veri_kupu, ceza_saniye=ceza, onbellek=ti1_onbellegi), *sert_katmanlar]
+                )
                 if yol is not None:
                     ats_yollari[strateji_adi] = yol
                     adaylar.append(_aday(strateji_adi, yol[0], yol[1], irtifa_m))

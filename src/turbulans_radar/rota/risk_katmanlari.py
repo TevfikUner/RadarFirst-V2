@@ -88,22 +88,32 @@ def rota_ti1_degerleri(enlemler, boylamlar, irtifa_m, zamanlar, veri_kupu) -> np
 class Ti1CezaKatmani:
     ad = "ti1"
 
-    def __init__(self, veri_kupu, esik=None, ceza_saniye=TURBULANS_CEZASI_SANIYE):
+    def __init__(self, veri_kupu, esik=None, ceza_saniye=TURBULANS_CEZASI_SANIYE, onbellek=None):
+        """onbellek: aynı küp ve aynı ızgara için TI1'i paylaşan sözlük (tek rota isteği
+        içinde, yalnız ceza düzeyi farklı katmanlar arasında)."""
         self.veri_kupu = veri_kupu
         self.esik = config.TI1_ESIK_ORTA_SIDDETLI if esik is None else esik
         self.ceza_saniye = ceza_saniye
+        self.onbellek = onbellek
 
     def degerlendir(self, konumlar, zamanlar, kenarlar, irtifa_m, zaman_belirsizligi=None) -> RiskDegerlendirmesi:
         dugumler = list(konumlar)
         if not dugumler:
             return RiskDegerlendirmesi()
-        ti1 = rota_ti1_degerleri(
-            np.array([konumlar[d][0] for d in dugumler]),
-            np.array([konumlar[d][1] for d in dugumler]),
-            irtifa_m,
-            [zamanlar[d] for d in dugumler],
-            self.veri_kupu,
-        )
+        anahtar = None
+        if self.onbellek is not None:
+            anahtar = (float(irtifa_m), tuple(konumlar[d] for d in dugumler), tuple(zamanlar[d] for d in dugumler))
+        ti1 = None if anahtar is None else self.onbellek.get(anahtar)
+        if ti1 is None:
+            ti1 = rota_ti1_degerleri(
+                np.array([konumlar[d][0] for d in dugumler]),
+                np.array([konumlar[d][1] for d in dugumler]),
+                irtifa_m,
+                [zamanlar[d] for d in dugumler],
+                self.veri_kupu,
+            )
+            if anahtar is not None:
+                self.onbellek[anahtar] = ti1
         return RiskDegerlendirmesi(
             dugum_cezasi={
                 d: self.ceza_saniye for d, t in zip(dugumler, ti1, strict=True) if not np.isnan(t) and t >= self.esik

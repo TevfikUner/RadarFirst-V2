@@ -137,7 +137,7 @@ def ti1_indeksi_hesapla(vws, deformasyon):
 TI1_GUVENILIRLIK_NOTU = (
     "TI1 fiziksel göstergesi, gerçek türbülans olaylarını TEK BAŞINA güvenilir şekilde ayırt ettiği bağımsız "
     "olarak KANITLANMAMIŞTIR (seyir irtifasındaki 7815 PIREP'te [80 gün] ROC-AUC 0.68, altın test "
-    "günlerinde 0.67 [%95 GA 0.64-0.70]; config eşiğinde altın günlerde yakalama 0.45, yanlış alarm 0.20; "
+    "günlerinde 0.67 [%95 GA 0.64-0.70]; risk eşiğinde altın günlerde yakalama 0.50, yanlış alarm 0.25; "
     "gerçek bir uçuşta [PUE502] aktif SIGMET'in işaret ettiği türbülansı TI1 hiç "
     "yakalamadı). Bugün güvenlik garantisi TI1'den değil SIGMET sert kısıtından "
     "gelir; TI1 yalnızca ek/yumuşak bir gösterge olarak değerlendirilmelidir. Kapsam yalnızca açık hava "

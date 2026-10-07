@@ -1,6 +1,6 @@
 # Sayılar (sonuç paketi)
 
-Kesme: 2026-10-07 · üretim: 2026-10-07T20:23:44+00:00 · commit `34c6f9378072840bc16fb7fa2ae7495fc8d30ad2`
+Kesme: 2026-10-07 · üretim: 2026-10-07T21:18:22+00:00 · commit `d7858e80a6bf49ce3752d4f0b9e3e98a2e5767ad`
 
 Bu dosya `turbulans-ml-degerlendirme --cikti` ile üretilir; elle düzenlenmez. Kaynak: `sonuc_paketi.json` (anahtar sütunu). GA: gün bazlı blok bootstrap %95. Çıktılar sertifikalı EDR değildir; sistem karar destek aracıdır.
 
@@ -31,9 +31,11 @@ Bu dosya `turbulans-ml-degerlendirme --cikti` ile üretilir; elle düzenlenmez. 
 | TI1 Peirce eşiği (eğitim günleri) | 5.30e-07 | `esik_taramasi.peirce_esigi` |
 | Peirce eşiğinde test POD / POFD / CSI | 0,605 / 0,349 / 0,439 | `esik_taramasi.test` |
 | Peirce eşiğinde test Peirce | 0,256 [0,188–0,313] | `esik_taramasi.test.peirce` |
+| TI1 1-SE eşiği (eğitim günleri; Peirce max − SE) | 7.06e-07 (Peirce max 0,284, SE 0,018) | `esik_taramasi.bir_se` |
+| 1-SE eşiğinde test POD / POFD / CSI | 0,498 / 0,247 / 0,393 | `esik_taramasi.bir_se_test` |
 | Ri Peirce eşiği (eğitim günleri; Ri altı riskli) | 2,37 | `esik_taramasi.ri_peirce_esigi.ri` |
 | TI1_ESIK_HAFIF (4e-07) test POD / POFD / CSI | 0,683 / 0,440 / 0,463 | `esik_taramasi.config_esikleri.TI1_ESIK_HAFIF.test` |
-| TI1_ESIK_ORTA_SIDDETLI (8e-07) test POD / POFD / CSI | 0,448 / 0,201 / 0,369 | `esik_taramasi.config_esikleri.TI1_ESIK_ORTA_SIDDETLI.test` |
+| TI1_ESIK_ORTA_SIDDETLI (7e-07) test POD / POFD / CSI | 0,502 / 0,252 / 0,395 | `esik_taramasi.config_esikleri.TI1_ESIK_ORTA_SIDDETLI.test` |
 | 175 hPa: eşik; test POD/POFD/CSI seviye eşiğiyle | genel eşikle | 5.7e-07; 0,596/0,286/0,419 | 0,635/0,312/0,434 (test n=129) | `esik_taramasi.seviyeye_gore[0]` |
 | 200 hPa: eşik; test POD/POFD/CSI seviye eşiğiyle | genel eşikle | 6.7e-07; 0,527/0,246/0,418 | 0,611/0,297/0,465 (test n=269) | `esik_taramasi.seviyeye_gore[1]` |
 | 225 hPa: eşik; test POD/POFD/CSI seviye eşiğiyle | genel eşikle | 5.5e-07; 0,619/0,403/0,403 | 0,626/0,413/0,404 (test n=361) | `esik_taramasi.seviyeye_gore[2]` |
@@ -66,5 +68,5 @@ Bu dosya `turbulans-ml-degerlendirme --cikti` ile üretilir; elle düzenlenmez. 
 | MADIS taban oran (hafif ve üstü) | 0,030 | `madis.taban_oran` |
 | MADIS model ortalama olasılık | 0,510 | `madis.model_olasilik.ortalama_olasilik` |
 | MADIS model Brier becerisi | -8,364 | `madis.model_olasilik.brier_becerisi` |
-| Backtest THY322 2019-01-01 riskli oran (gerçek / büyük daire / A*) | 0,00 / 0,05 / 0,00 | `backtest[0]` |
-| Backtest THY322 2019-01-15 riskli oran (gerçek / büyük daire / A*) | 0,19 / 0,32 / 0,00 | `backtest[1]` |
+| Backtest THY322 2019-01-01 riskli oran (gerçek / büyük daire / A*) | 0,00 / 0,20 / 0,00 | `backtest[0]` |
+| Backtest THY322 2019-01-15 riskli oran (gerçek / büyük daire / A*) | 0,24 / 0,39 / 0,02 | `backtest[1]` |

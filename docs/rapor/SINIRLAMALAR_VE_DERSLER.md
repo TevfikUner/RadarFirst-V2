@@ -29,10 +29,12 @@ pozitif oranı %52, aynı yerlerdeki MADIS ölçümlerinde hafif ve üstü %3. M
 olasılıkları bu yüzden mutlak sıklık değildir. MADIS ölçümleri yalnız 4 gündür, kalite
 kontrolsüzdür (QC "Z") ve PIREP pencerelerinin içinden gelir; sonuçlar ön sonuçtur.
 
-**İstatistiksel sınırlar.** Birleşik EDR'nin ve modelin TI1'e üstünlüğü anlamlı ama
-küçüktür (holdout'ta +0,012 ve +0,023 ROC-AUC). Holdout 13 gündür; güven aralıkları
-geniştir. Sanal PIREP 16 PIREP'le ölçüldü ve eşikleri kalibre edilmedi. Sabit TI1
-eşikleri (4e-7, 8e-7) eski fizik hesabına göre konmuştu.
+**İstatistiksel sınırlar.** Birleşik EDR'nin TI1'e üstünlüğü anlamlı ama küçüktür
+(altın test günlerinde +0,014 ROC-AUC); model TI1'i geçemedi (+0,008, GA 0'ı içeriyor;
+`docs/sonuclar/2026-10-07/SAYILAR.md`). Altın test 16 gündür; güven aralıkları geniştir.
+Sanal PIREP 16 PIREP'le ölçüldü ve eşikleri kalibre edilmedi. TI1 risk eşiği 8 Ekim'de
+eğitim günlerinden 1-SE kuralıyla 7e-7 seçildi; hafif eşiği (4e-7) hâlâ kaba bir
+başlangıç değeridir.
 
 **Çözünürlük.** ERA5'in 0,25° ızgarası ve 25 hPa'lık katmanı, uçağın algıladığı
 ölçeği (yaklaşık 100 m – 1 km) çözemez; ince kararsız katmanlar (Ri < 0,25)

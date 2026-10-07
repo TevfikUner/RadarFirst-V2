@@ -76,6 +76,9 @@ def test_esik_taramasi_egitimde_secip_testte_uygular_seviyeye_ayirir():
     assert sonuc["test"]["peirce"] > 0.5 and len(sonuc["test"]["peirce_ga"]) == 2
     assert len(sonuc["tarama"]) == len(sda.TARAMA_YUZDELIKLERI)
     assert set(sonuc["config_esikleri"]) == {"TI1_ESIK_HAFIF", "TI1_ESIK_ORTA_SIDDETLI"}
+    bs = sonuc["bir_se"]
+    assert bs["peirce_max_esigi"] == pytest.approx(sonuc["peirce_esigi"]) and bs["se"] > 0
+    assert bs["esik"] >= bs["peirce_max_esigi"] and sonuc["bir_se_test"]["esik"] == bs["esik"]
     seviyeler = {s["seviye_hpa"]: s for s in sonuc["seviyeye_gore"]}
     assert "seviye_esigi" in seviyeler[250.0] and "test_seviye_esigi" in seviyeler[250.0]
     assert seviyeler[350.0]["egitim_ornek"] == 56
