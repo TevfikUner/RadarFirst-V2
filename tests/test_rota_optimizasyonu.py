@@ -649,7 +649,10 @@ def test_ti1_onbellegi_rota_yanitini_degistirmez_hesabi_azaltir(gercek_senaryo, 
     import json
 
     from turbulans_radar.rota import risk_katmanlari as rk
+    from turbulans_radar.rota import rota_optimizasyonu as ro
 
+    asil_ufuk = ro.planlama_ufku
+    monkeypatch.setattr(ro, "planlama_ufku", lambda z, simdi=None: asil_ufuk(z, simdi="2026-10-08T00:00:00Z"))
     sayac = {"n": 0}
     asil = rk.rota_ti1_degerleri
 

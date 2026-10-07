@@ -2,6 +2,12 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-08 (dal `claude/beyan-ve-anlatim-karti`, Madde 9 kullanıcı adımları)
+
+- ✅ YZ beyanı: biçim tek paragraf (yöntem sonu); yazar alanı git'ten (ilk 2 commit'ten kalan satır %1,9). Danışman e-postası taslak.
+- ✅ Çekirdek anlatım kartı `docs/sunum/CEKIRDEK_ANLATIM_KARTI.md`: 4 modül, formüller, satır bağlantıları, jüri soruları.
+- ⚠️ Kararsız test düzeldi: TI1 önbellek testinde `kalkisa_kalan_saat` şimdiye bağlıydı (36 sn yuvarlama); saat sabitlendi.
+
 ## 2026-10-08 (dal `claude/tez-cercevesi-readme`, Madde 9 kapanışı)
 
 - ✅ README ilk ekranı: problem, araştırma sorusu, ön paket sayılarıyla kısa cevap, demo, çekirdek (K1/K2/K6/K7) ve ekler.
