@@ -34,6 +34,7 @@ from turbulans_radar.fizik.edr_esleme import RI_TABANI, birlesik_edr
 from turbulans_radar.ml.degerlendirme import (
     _auc,
     _pr_auc,
+    bir_se_esigi,
     bootstrap_guven_araligi,
     eslestirilmis_auc_farki,
     guvenilirlik_tablosu,
@@ -197,6 +198,10 @@ def esik_taramasi(egitim: pd.DataFrame, test: pd.DataFrame, tekrar=None) -> dict
         "peirce_esigi": esik,
         "egitim": ikili_metrikler(egitim["y"], egitim["ti1"], esik),
         "test": test_metrik,
+        "bir_se": {
+            **bir_se_esigi(egitim["y"], egitim["ti1"], egitim["gun"], tekrar),
+            "yontem": "Peirce'i en yüksek eşiğin 1 SE'si içindeki en yüksek eşik (eğitim günleri)",
+        },
         "config_esikleri": {
             ad: {"esik": deger, "test": ikili_metrikler(test["y"], test["ti1"], deger)}
             for ad, deger in (
@@ -205,6 +210,7 @@ def esik_taramasi(egitim: pd.DataFrame, test: pd.DataFrame, tekrar=None) -> dict
             )
         },
     }
+    sonuc["bir_se_test"] = ikili_metrikler(test["y"], test["ti1"], sonuc["bir_se"]["esik"])
     tarama = []
     for yuzdelik in TARAMA_YUZDELIKLERI:
         deger = float(np.percentile(egitim["ti1"], yuzdelik))
@@ -467,6 +473,20 @@ def sayilar_tablosu(paket: dict) -> str:
             f"{_s(tm['peirce'])} [{_s(tm['peirce_ga'][0])}–{_s(tm['peirce_ga'][1])}]",
             "esik_taramasi.test.peirce",
         )
+    bs = e.get("bir_se")
+    if bs:
+        bt = e.get("bir_se_test") or {}
+        ekle(
+            "TI1 1-SE eşiği (eğitim günleri; Peirce max − SE)",
+            f"{bs['esik']:.2e} (Peirce max {_s(bs['peirce_max'])}, SE {_s(bs['se'])})",
+            "esik_taramasi.bir_se",
+        )
+        if bt:
+            ekle(
+                "1-SE eşiğinde test POD / POFD / CSI",
+                f"{_s(bt['pod'])} / {_s(bt['pofd'])} / {_s(bt['csi'])}",
+                "esik_taramasi.bir_se_test",
+            )
     ri = e.get("ri_peirce_esigi") or {}
     if ri.get("ri"):
         ekle("Ri Peirce eşiği (eğitim günleri; Ri altı riskli)", _s(ri["ri"], 2), "esik_taramasi.ri_peirce_esigi.ri")

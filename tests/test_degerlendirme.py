@@ -27,8 +27,11 @@ def test_guvenilirlik_tablosu_kutulari_ve_gozlenen_oranlari():
 
 
 def test_ti1_referansi_config_esigini_kullanir():
-    m = dg.ti1_referansi([1, 0], [9e-7, 7e-7])
-    assert (m["esik"], m["pod"], m["pofd"]) == (8e-7, 1.0, 0.0)
+    from turbulans_radar import config
+
+    esik = config.TI1_ESIK_ORTA_SIDDETLI
+    m = dg.ti1_referansi([1, 0], [esik * 1.1, esik * 0.9])
+    assert (m["esik"], m["pod"], m["pofd"]) == (esik, 1.0, 0.0)
 
 
 def test_tek_sinifli_veride_auc_nan_olur():
@@ -94,3 +97,16 @@ def test_kalibre_ti1_olasilik_uretir_ve_monotondur():
     model = dg.kalibre_ti1_egit(y, ti1)
     p = dg.kalibre_ti1_olasiligi(model, [1e-8, 1e-7, 1e-6])
     assert ((0 < p) & (p < 1)).all() and p[0] < p[1] < p[2]
+
+
+def test_bir_se_esigi_esdeger_beceride_en_tutucu_esigi_secer():
+    from turbulans_radar.ml.degerlendirme import bir_se_esigi, ikili_metrikler
+
+    rng = np.random.default_rng(3)
+    y = rng.integers(0, 2, 2000)
+    skor = y + rng.normal(0, 1, 2000)
+    gunler = np.repeat([f"g{i}" for i in range(20)], 100)
+    sonuc = bir_se_esigi(y, skor, gunler, tekrar=50)
+    assert sonuc["esik"] > sonuc["peirce_max_esigi"] and sonuc["se"] > 0
+    assert ikili_metrikler(y, skor, sonuc["esik"])["peirce"] >= sonuc["peirce_max"] - sonuc["se"] - 1e-12
+    assert ikili_metrikler(y, skor, sonuc["esik"])["pofd"] < ikili_metrikler(y, skor, sonuc["peirce_max_esigi"])["pofd"]

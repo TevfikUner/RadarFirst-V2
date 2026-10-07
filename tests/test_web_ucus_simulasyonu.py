@@ -107,7 +107,13 @@ def test_kalan_risk_yoksa_kabin_bildirimi_cikmaz(canli_sunucu, tarayici_sayfasi)
     _simule_et(
         canli_sunucu,
         sayfa,
-        {"#baslangic-enlem": "38.40", "#baslangic-boylam": "27.10", "#bitis-enlem": "38.50", "#bitis-boylam": "43.40"},
+        {
+            "#baslangic-enlem": "38.40",
+            "#baslangic-boylam": "27.10",
+            "#bitis-enlem": "38.50",
+            "#bitis-boylam": "43.40",
+            "#irtifa-ft": "35000",
+        },
         "2019-01-31T00:00",
     )
     assert not sayfa.is_visible("#kabin-bildirimi")

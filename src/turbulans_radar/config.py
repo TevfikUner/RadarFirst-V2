@@ -254,14 +254,17 @@ BASINC_BOYUTU = _ortam_str("BASINC_BOYUTU", "pressure_level")
 # 200-300 hPa küpünde yaklaşık FL265-FL445 kabul edilir.
 DIKEY_KAPSAM_TOLERANSI_HPA = _ortam_sayi("DIKEY_KAPSAM_TOLERANSI_HPA", 50.0)
 
-# Ellrod TI1 indeksi için şiddet eşikleri (s^-2 cinsinden).
-# (harita.py bunları kullanıyordu ama config.py'de hiç tanımlı değildi --
-# eksikti, eklendi.) Bu değerler Ellrod & Knapp (1992) literatüründeki
-# tipik CAT (Clear Air Turbulence) sınıflandırma aralıklarına yakın kaba
-# başlangıç değerleridir -- gerçek PIREP/AMDAR gözlemleriyle kalibre
-# edilmesi önerilir, "kesin" bir eşik değildir.
+# Ellrod TI1 indeksi için şiddet eşikleri (s^-2 cinsinden). Hafif eşiği
+# Ellrod & Knapp (1992) çevresindeki kaba bir başlangıç değeridir (yalnız
+# görsel sınıf). Risk eşiği (orta ve üstü) veriden seçildi (Madde 8, 8 Ekim
+# 2026): altın test günleri dışındaki 64 günde, Peirce'i en yüksek eşiğin
+# (5,3e-7) gün bazlı bootstrap 1 SE'si içindeki en tutucu eşik 7,06e-7
+# (degerlendirme.bir_se_esigi; model seçimindeki 1-SE kuralıyla aynı mantık:
+# beceride eşdeğer seçenekler arasında daha az yanlış alarm). Eski 8e-7 bu
+# bandın dışındaydı. 18 Ekim nihai paketinde aynı kuralla yeniden hesaplanır
+# (sonuc_paketi.json: esik_taramasi.bir_se). Kesin bir eşik değildir.
 TI1_ESIK_HAFIF = _ortam_sayi("TI1_ESIK_HAFIF", 4e-7)
-TI1_ESIK_ORTA_SIDDETLI = _ortam_sayi("TI1_ESIK_ORTA_SIDDETLI", 8e-7)
+TI1_ESIK_ORTA_SIDDETLI = _ortam_sayi("TI1_ESIK_ORTA_SIDDETLI", 7e-7)
 # Dispeç ekranında bundan kısa riskli bölümler listelenmez. 0 = her riskli nokta
 # (mevcut davranış); eşik kalibre edilmedi.
 RISKLI_BOLUM_MIN_NM = _ortam_sayi("RISKLI_BOLUM_MIN_NM", 0.0)

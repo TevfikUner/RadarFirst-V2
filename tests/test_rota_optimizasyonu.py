@@ -94,12 +94,12 @@ def test_ti1_guvenilirlik_notu_her_yanitta_bulunur():
 GERCEK_SENARYOLAR = {
     "ana": {
         "riskisiz": (38.4, 27.1, 38.5, 43.4, 35000, "2019-01-31T00:00:00"),
-        "riskli": (41.0, 28.9, 36.9, 30.7, 29000, "2019-01-05T12:00:00"),
+        "riskli": (40.9, 29.3, 40.6, 43.1, 35000, "2019-01-15T19:00:00"),
         "kismi": (41.0, 28.9, 36.9, 30.7, 31000, "2019-01-01T06:00:00"),
         "sigmet": ((38.2, 39.6, 34.5, 35.5), "2019-01-31"),
     },
     "demo": {
-        "riskisiz": (41.0, 28.9, 40.1, 32.99, 35000, "2019-01-15T19:00:00"),
+        "riskisiz": (41.0, 28.9, 40.1, 32.99, 37000, "2019-01-15T19:00:00"),
         "riskli": (40.9, 29.3, 40.6, 43.1, 35000, "2019-01-15T19:00:00"),
         "kismi": (41.0, 28.9, 39.9, 41.3, 31000, "2019-01-15T19:00:00"),
         "sigmet": ((40.2, 41.0, 30.6, 31.4), "2019-01-15"),
@@ -621,3 +621,50 @@ def test_yanal_sapma_yonu_seyir_yonune_gore_sol_sag():
     assert yanal_sapma_yonu([40.0, 39.0, 40.0], [30.0, 35.0, 40.0]) == "R"
     assert yanal_sapma_yonu([40.0, 39.0, 40.0], [40.0, 35.0, 30.0]) == "L"
     assert yanal_sapma_yonu([40.0, 40.0], [30.0, 40.0]) is None
+
+
+def test_bacak_ruzgar_okuyucu_nokta_nokta_okumayla_birebir_ayni(monkeypatch):
+    import numpy as np
+    import xarray as xr
+
+    from turbulans_radar.cli import demo
+    from turbulans_radar.rota import rota_optimizasyonu as ro
+
+    with xr.open_dataset(demo.demo_dosyalari()["era5"]) as kup:
+        kup = kup.load()
+    rotalar = [
+        (np.linspace(40.9, 40.6, 40), np.linspace(29.3, 43.1, 40), 10668.0, "2019-01-15T19:00:00"),
+        (np.linspace(41.0, 39.9, 25), np.linspace(28.9, 41.3, 25), 9449.0, "2019-01-15T17:40:00"),
+        (np.linspace(60.0, 61.0, 5), np.linspace(10.0, 12.0, 5), 11000.0, "2019-01-14T00:00:00"),
+    ]
+    assert ro._bacak_ruzgar_okuyucu(kup, [40.0], [30.0], 250.0) is not None
+    yeni = [ro._rotayi_zamanla(e, b, h, z, 230.0, kup, True) for e, b, h, z in rotalar]
+    monkeypatch.setattr(ro, "_bacak_ruzgar_okuyucu", lambda *a, **k: None)
+    eski = [ro._rotayi_zamanla(e, b, h, z, 230.0, kup, True) for e, b, h, z in rotalar]
+    for (y_sn, y_z), (e_sn, e_z) in zip(yeni, eski, strict=True):
+        assert y_sn == e_sn and y_z == e_z
+
+
+def test_ti1_onbellegi_rota_yanitini_degistirmez_hesabi_azaltir(gercek_senaryo, monkeypatch):
+    import json
+
+    from turbulans_radar.rota import risk_katmanlari as rk
+
+    sayac = {"n": 0}
+    asil = rk.rota_ti1_degerleri
+
+    def sayan(*a, **k):
+        sayac["n"] += 1
+        return asil(*a, **k)
+
+    monkeypatch.setattr(rk, "rota_ti1_degerleri", sayan)
+    girdi = (*gercek_senaryo["kismi"], "A320")
+    onbellekli = json.dumps(rota_simulasyonu_olustur(*girdi, sigmetler=[], kisitli_sahalar=[]), default=str)
+    onbellekli_sayi = sayac["n"]
+
+    asil_init = rk.Ti1CezaKatmani.__init__
+    monkeypatch.setattr(rk.Ti1CezaKatmani, "__init__", lambda self, *a, onbellek=None, **k: asil_init(self, *a, **k))
+    sayac["n"] = 0
+    onbelleksiz = json.dumps(rota_simulasyonu_olustur(*girdi, sigmetler=[], kisitli_sahalar=[]), default=str)
+    assert onbellekli == onbelleksiz
+    assert onbellekli_sayi < sayac["n"]

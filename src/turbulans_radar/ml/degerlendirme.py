@@ -182,6 +182,28 @@ def peirce_esigi(y, skor) -> float:
     return float(esikler[i])
 
 
+def bir_se_esigi(y, skor, gunler, tekrar=None, tohum=0) -> dict:
+    """Peirce'i en yüksek eşiğin gün bazlı bootstrap standart hatası içinde kalan en
+    yüksek (en tutucu, en az yanlış alarmlı) eşik. Model seçimindeki 1-SE kuralının
+    eşik karşılığı; yalnız eğitim günlerinde çağrılır."""
+    tekrar = config.ML_BOOTSTRAP_TEKRAR if tekrar is None else tekrar
+    y, skor = np.asarray(y, dtype=int), np.asarray(skor, dtype=float)
+    yanlis, dogru, esikler = roc_curve(y, skor)
+    gecerli = np.isfinite(esikler)
+    peirce, esikler = (dogru - yanlis)[gecerli], esikler[gecerli]
+    i = int(np.argmax(peirce))
+    degerler = [
+        ikili_metrikler(y[k], skor[k], esikler[i])["peirce"] for k in _bootstrap_ornekleri(gunler, tekrar, tohum)
+    ]
+    se = float(np.std(degerler, ddof=1))
+    return {
+        "peirce_max": float(peirce[i]),
+        "peirce_max_esigi": float(esikler[i]),
+        "se": se,
+        "esik": float(esikler[peirce >= peirce[i] - se].max()),
+    }
+
+
 def _ti1_girdisi(ti1) -> np.ndarray:
     return np.log10(np.clip(np.asarray(ti1, dtype=float), 1e-12, None)).reshape(-1, 1)
 
