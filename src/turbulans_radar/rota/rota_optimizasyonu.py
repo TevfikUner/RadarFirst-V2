@@ -517,7 +517,9 @@ def _zaman_belirsizligi(gecen: pd.Timedelta) -> pd.Timedelta:
     return gecen * config.ROTA_ZAMAN_BELIRSIZLIK_ORANI + pd.Timedelta(minutes=config.ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA)
 
 
-def _ats_ile_rota_ara(ag, bas, bit, irtifa_m, baslangic_zamani, tas_ms, veri_kupu, risk_katmanlari=()):
+def _ats_ile_rota_ara(
+    ag, bas, bit, irtifa_m, baslangic_zamani, tas_ms, veri_kupu, risk_katmanlari=(), meydanlar=(None, None)
+):
     """hava_yolu_agi grafında, ızgara aramasıyla AYNI maliyet (rüzgarlı süre +
     TI1 cezası) ve AYNI risk katmanlarıyla A*. Düğüm zamanı: ToC'den büyük daire
     uzaklığı / TAS (nominal); belirsizlik payı ızgarayla aynı. Hava küpünün
@@ -529,8 +531,11 @@ def _ats_ile_rota_ara(ag, bas, bit, irtifa_m, baslangic_zamani, tas_ms, veri_kup
     zamanlar = {d: _ats_dugum_zamani(kalkis, bas, k, tas_ms) for d, k in tum_konumlar.items()}
     belirsizlik = {d: _zaman_belirsizligi(t - kalkis) for d, t in zamanlar.items()}
     konumlar, komsular, kenarlar = hava_yolu_agi.arama_grafi(
-        ag, bas, bit, irtifa_m / 0.3048, kalkis, {d: (t, t + belirsizlik[d]) for d, t in zamanlar.items()}
+        ag, bas, bit, irtifa_m / 0.3048, kalkis, {d: (t, t + belirsizlik[d]) for d, t in zamanlar.items()}, *meydanlar
     )
+    for d in konumlar.keys() - zamanlar.keys():
+        zamanlar[d] = _ats_dugum_zamani(kalkis, bas, konumlar[d], tas_ms)
+        belirsizlik[d] = _zaman_belirsizligi(zamanlar[d] - kalkis)
     dugumler = list(konumlar)
     if veri_kupu is not None:
         disi = kapsam_disi_maskesi(
@@ -1107,12 +1112,16 @@ def rota_simulasyonu_olustur(
     canli_bekleme_saniye=None,
     arama_uzayi="koridor",
     ats_agi=None,
+    kalkis_meydani=None,
+    varis_meydani=None,
 ):
     """
     arama_uzayi: "koridor" (büyük daire etrafında yanal ızgara) ya da "ats"
     (ATS yolu/FRA ağı, bkz. hava_yolu_agi.py; ats_agi verilmezse
     config.ATS_AGI_DOSYASI). ATS modunda normal rota ağdaki en hızlı yol,
-    optimize rota aynı risk katmanlarıyla ağda aranan yoldur.
+    optimize rota aynı risk katmanlarıyla ağda aranan yoldur. kalkis_meydani/
+    varis_meydani (ICAO, isteğe bağlı): ToC/ToD o meydanın AIP FRA bağlantı
+    noktalarına bağlanır.
     İki gerçek rota üretir: büyük daire ("normal") ve "optimize" rota.
     Öncelik sırası: (1) aktif SIGMET'lere ve kısıtlı hava sahalarına GİRMEMEK
     (sert kısıtlar, bkz. risk_katmanlari.SigmetKisitKatmani/KisitliSahaKatmani),
@@ -1217,7 +1226,14 @@ def rota_simulasyonu_olustur(
 
         def _ats_yolu(aday_irtifa_m, katmanlar):
             return _ats_ile_rota_ara(
-                ag, *uclar, aday_irtifa_m, zaman_iso, tas_ms, veri_kupu if ruzgarli_mi else None, katmanlar
+                ag,
+                *uclar,
+                aday_irtifa_m,
+                zaman_iso,
+                tas_ms,
+                veri_kupu if ruzgarli_mi else None,
+                katmanlar,
+                (kalkis_meydani, varis_meydani),
             )
 
         planli = _ats_yolu(irtifa_m, [])
@@ -1393,7 +1409,7 @@ def rota_simulasyonu_olustur(
                     dict.fromkeys(
                         u
                         for yol in (ats_yollari["yok"], ats_yollari.get(en_iyi["strateji"], ats_yollari["yok"]))
-                        for u in ag.rol_uyarilari(yol[2], *uclar)
+                        for u in ag.rol_uyarilari(yol[2], *uclar, kalkis_meydani, varis_meydani)
                     )
                 ),
                 "buyuk_daire_km": sum(

@@ -139,6 +139,9 @@ class RotaSimulasyonuIstegi(BaseModel):
     ucak_modeli: str
     # koridor: büyük daire etrafında yanal ızgara; ats: yüklü ATS yolu/FRA ağı.
     arama_uzayi: Literal["koridor", "ats"] = "koridor"
+    # ats modunda: ToC/ToD bu meydanların AIP FRA kalkış/varış bağlantı noktalarına bağlanır.
+    kalkis_meydani: str | None = Field(default=None, pattern=r"^[A-Z]{4}$")
+    varis_meydani: str | None = Field(default=None, pattern=r"^[A-Z]{4}$")
 
     @field_validator("zaman")
     @classmethod
@@ -332,9 +335,11 @@ class AtsNoktasiYaniti(BaseModel):
 
 class AtsRotaYaniti(BaseModel):
     kaynak: str
+    etiket: str = ""
     normal_rota: list[AtsNoktasiYaniti]
     optimize_rota: list[AtsNoktasiYaniti]
     buyuk_daire_km: float
+    uyarilar: list[str] = []
 
 
 class PlanlamaUfkuYaniti(BaseModel):

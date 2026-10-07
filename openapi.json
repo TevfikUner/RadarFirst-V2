@@ -2743,6 +2743,11 @@
             "type": "string",
             "title": "Kaynak"
           },
+          "etiket": {
+            "type": "string",
+            "title": "Etiket",
+            "default": ""
+          },
           "normal_rota": {
             "items": {
               "$ref": "#/components/schemas/AtsNoktasiYaniti"
@@ -2760,6 +2765,14 @@
           "buyuk_daire_km": {
             "type": "number",
             "title": "Buyuk Daire Km"
+          },
+          "uyarilar": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Uyarilar",
+            "default": []
           }
         },
         "type": "object",
@@ -4582,6 +4595,30 @@
             ],
             "title": "Arama Uzayi",
             "default": "koridor"
+          },
+          "kalkis_meydani": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z]{4}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Kalkis Meydani"
+          },
+          "varis_meydani": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^[A-Z]{4}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Varis Meydani"
           }
         },
         "type": "object",

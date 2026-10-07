@@ -48,11 +48,17 @@ turbulans-kisitli-saha ice-aktar ats_verisi/aip_enr51.geojson --kaynak aip_enr51
     belirsizlik payı (`ROTA_ZAMAN_BELIRSIZLIK_*`) kapanıştan önce olmalı.
   - Bağlantı rolleri (§5.2.2–5.2.3): ToC yalnız D/E, ToD yalnız A/X rollü
     noktalara bağlanır; FIR içindeki uç önce D/A'yı dener, 150 km içinde yoksa
-    E/X noktası kullanılır ve yanıtta `ats.uyarilar` bunu söyler. AIP'te A/D
-    rolleri meydana özgüdür ("FRA (A): LTFM"); API meydan almadığı için rol
-    genel sayılır. Örnek: IST→VAN ToD'si Muş VOR'una (MUS, A/D) bağlanır, oysa
-    LTCI'nin AIP'teki varış bağlantı noktaları EZS ve DYB'dir (~290–360 km
-    uzakta, ardından UG81 bağlantı rotası). Bağlantı rotaları modellenmez.
+    E/X noktası kullanılır ve yanıtta `ats.uyarilar` bunu söyler.
+  - A/D rolleri meydana özgüdür ("FRA (AD): LTAC, LTAD"); ayrıştırıcı listeyi
+    `fra_meydanlari` olarak yazar (41 meydan). İstekte `kalkis_meydani`/
+    `varis_meydani` verilirse ToC/ToD yalnız o meydanın bağlantı noktalarına,
+    en fazla `ATS_AGI_MEYDAN_BAGLANTI_KM` (500 km) mesafeyle bağlanır; kenar
+    adı `BAGLANTI`'dır ve risk kontrolü için 60 km'lik parçalara bölünür.
+    ENR 1.3'teki bağlantı rotaları (ör. LTCI: EZS G/UG81 T/UT368 BEYAZ) düz
+    çizgiyle yaklaşıklanır, yanıtta uyarı olarak yazılır. Örnek IST→VAN
+    (LTFM→LTCI, 21:00 UTC): `ToC (bağlantı) ESB … EZS (bağlantı) ToD`.
+    Meydan verilmezse genel seçilen noktanın hangi meydanlara ait olduğu
+    uyarıda yazılır (ör. MUS yalnız LTCE için).
   - Bu saatler ilk uygulamada (2025–26 kışı) geçerliydi; 2026–27 kışında H24'e
     geçilmesi planlanıyor. Her AIRAC'ta ENR 1.3 yeniden kontrol edilmeli.
 - **ENR 5.1:** Kural tabanlı alınır; kurala uymayanlar gerekçesiyle "ATLANDI"

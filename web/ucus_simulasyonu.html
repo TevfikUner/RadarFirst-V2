@@ -104,6 +104,10 @@
       <option value="koridor">Serbest koridor (büyük daire çevresi)</option>
       <option value="ats">FRATURK serbest rota (FL305+, 20:00–02:00 UTC)</option>
     </select>
+    <div class="satir">
+      <div><label>Kalkış meydanı (ICAO, FRA)</label><input id="kalkis-meydani" maxlength="4" placeholder="LTFM"></div>
+      <div><label>Varış meydanı (ICAO, FRA)</label><input id="varis-meydani" maxlength="4" placeholder="LTCI"></div>
+    </div>
 
     <button id="simule-et-buton">Simüle Et</button>
     <button id="yeniden-hesapla-buton" style="display:none; background:#e67e22; margin-top:6px;">
@@ -358,7 +362,8 @@ function sonucPanelDoldur(sonuc) {
     yok: "",
   };
   const atsMetni = (noktalar) => noktalar
-    .map((n) => (n.yol ? `${n.yol} ` : "") + n.nokta.replace("<ToC>", "ToC").replace("<ToD>", "ToD"))
+    .map((n) => (n.yol ? `${n.yol === "BAGLANTI" ? "(bağlantı rotası)" : n.yol} ` : "") +
+      n.nokta.replace("<ToC>", "ToC").replace("<ToD>", "ToD"))
     .join(" ");
   const sapmaNm = (sonuc.optimize_rota.maks_yanal_sapma_km || 0) / NM_KM;
   document.getElementById("strateji-satiri").textContent =
@@ -505,6 +510,14 @@ async function sonucuSahneyeUygula(sonuc, kameraUcsunMu) {
 
 let yenidenDenemeSayisi = 0;
 
+function meydanlariEkle(govde, kalkisDahil) {
+  if (govde.arama_uzayi !== "ats") return;
+  for (const [alan, kimlik] of [["kalkis_meydani", "kalkis-meydani"], ["varis_meydani", "varis-meydani"]]) {
+    const icao = document.getElementById(kimlik).value.trim().toUpperCase();
+    if (icao && (kalkisDahil || alan === "varis_meydani")) govde[alan] = icao;
+  }
+}
+
 async function simulasyonuCalistir() {
   const govde = {
     baslangic_enlem: Number(document.getElementById("baslangic-enlem").value),
@@ -516,6 +529,7 @@ async function simulasyonuCalistir() {
     ucak_modeli: document.getElementById("ucak-modeli").value,
     arama_uzayi: document.getElementById("arama-uzayi").value,
   };
+  meydanlariEkle(govde, true);
   const anahtar = anahtarAl();
   if (!anahtar) { durumGoster("API anahtarı gerekli.", "hata"); return; }
   if (!govde.ucak_modeli) { durumGoster("Uçak modeli listesi yüklenemedi -- API anahtarını kontrol et.", "hata"); return; }
@@ -574,6 +588,7 @@ async function ucusSirasindaYenidenHesapla() {
     ucak_modeli: sonUcakModeli,
     arama_uzayi: document.getElementById("arama-uzayi").value,
   };
+  meydanlariEkle(govde, false);
 
   const buton = document.getElementById("yeniden-hesapla-buton");
   buton.disabled = true;

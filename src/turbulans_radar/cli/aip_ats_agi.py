@@ -42,6 +42,8 @@ _KOORDINAT = re.compile(r"(\d{6}(?:\.\d+)?)([NS])\s*(\d{7}(?:\.\d+)?)([EW])")
 _AIRAC = re.compile(r"AIRAC AMDT (\d{2})/(\d{2})")
 _YOL = re.compile(r"\b(?:[A-Z]/)?U?[A-Z]{1,2}\d{1,4}\b")
 _ROLLER = {"E", "X", "I", "A", "D"}
+_MEYDAN_LISTESI = re.compile(r"FRA\s*\(([A-Z]+)\)\s*:\s*((?:LT[A-Z]{2}\b[\s,]*)+)")
+_MEYDAN = re.compile(r"LT[A-Z]{2}")
 
 
 def koordinat_cevir(deger: str, yon: str, derece_basamak: int) -> float:
@@ -54,6 +56,15 @@ def koordinat_cevir(deger: str, yon: str, derece_basamak: int) -> float:
         raise ValueError(f"Geçersiz koordinat: {deger}")
     sonuc = derece + dakika / 60 + saniye / 3600
     return -sonuc if yon in "SW" else sonuc
+
+
+def fra_meydanlari(govde: str) -> dict[str, list[str]]:
+    """'FRA (AD): LTAC, LTAD' -> {"A": [...], "D": [...]}: A/D rolleri meydana özgüdür."""
+    meydanlar: dict[str, set] = {}
+    for etiket, liste in _MEYDAN_LISTESI.findall(govde):
+        for rol in set(etiket) & {"A", "D"}:
+            meydanlar.setdefault(rol, set()).update(_MEYDAN.findall(liste))
+    return {rol: sorted(m) for rol, m in sorted(meydanlar.items())}
 
 
 def metni_ayristir(metin: str) -> tuple[list[dict], str | None]:
@@ -75,6 +86,7 @@ def metni_ayristir(metin: str) -> tuple[list[dict], str | None]:
                 "yollar": sorted(set(_YOL.findall(yol_kismi))),
                 "fir_siniri": "FIR BDRY" in yol_kismi,
                 "fra_rolleri": sorted(roller),
+                "fra_meydanlari": fra_meydanlari(govde),
             }
         )
     return kayitlar, en_yeni_airac(metin)
@@ -107,6 +119,7 @@ def enr41_ayristir(metin: str) -> list[dict]:
                 "yollar": [],
                 "fir_siniri": False,
                 "fra_rolleri": sorted(roller),
+                "fra_meydanlari": fra_meydanlari(govde),
                 "tur": m.group(1).replace("\\", "/").rstrip("/"),
             }
         )
@@ -162,6 +175,7 @@ def fra_agi(
         ),
         "noktalar": [
             {"ad": k["ad"], "enlem": k["enlem"], "boylam": k["boylam"], "fra_rolleri": k["fra_rolleri"]}
+            | ({"fra_meydanlari": k["fra_meydanlari"]} if k.get("fra_meydanlari") else {})
             for k in kayitlar
         ],
         "yollar": [],
