@@ -1,6 +1,6 @@
 # Sonuçlar (rapor bölümü, Madde 8)
 
-Ölçüm tarihi 5 Ekim 2026. Ham sayılar `docs/rapor/veri/` altında JSON olarak durur;
+Güncel sayılar §0'dadır. §1–§3 ölçüm tarihi 5 Ekim 2026. Ham sayılar `docs/rapor/veri/` altında JSON olarak durur;
 her tablo aşağıdaki komutlarla yeniden üretilir. Güven aralıkları (GA) gün bazlı blok
 bootstrap ile %95'tir (aynı günün raporları birlikte örneklenir; bkz.
 `docs/deney_protokolu.md`). "TI1'e göre fark" aynı bootstrap örnekleriyle
@@ -18,7 +18,116 @@ Veri: seyir irtifasında (FL280–FL420) IEM PIREP'leri, ABD hava sahası, 64 g�
 etiket "orta ve üstü" (LGT-MOD dahil). Nesnel etiket: NOAA MADIS herkese açık ACARS
 maxEDR (QC "Z", ön veri), PIREP pencerelerinin içinden (±1°, ±1 sa).
 
-## 1. Fizik çekirdeği (Madde 2)
+## 0. Güncel sonuç paketi (Madde 8)
+
+Güncel sayılar [`docs/sonuclar/2026-10-07/`](../sonuclar/2026-10-07/SAYILAR.md) ön
+paketindendir: kesme 7 Ekim 2026, commit `34c6f93`, tek liste `SAYILAR.md`. Paket 18 Ekim
+veri dondurmasında `docs/sonuclar/2026-10-18/` ile değiştirilir. Aşağıdaki §1–§3
+ölçümleri 5 Ekim tarihlidir ve o günkü zamansal holdout'u kullanır; tarihçe olarak durur.
+
+```
+turbulans-ml-degerlendirme --kesme 2026-10-07 --cikti docs/sonuclar/2026-10-07
+```
+
+### 0.1 Altın test günleri
+
+Değerlendirme günleri, 7 Ekim'de dondurulan 16 altın test günüdür (1.554 PIREP). Model bu
+günleri görmedi: 64 eğitim gününde (6.261 PIREP) gün gruplu CV ve 1-SE kuralıyla seçildi,
+seçilen Lojistik Regresyon oldu. Altın günlerde pozitif oranı 0,481'dir; PR-AUC'nin
+rastgele tabanı bu orandır.
+
+| Gösterge | ROC-AUC [%95 GA] | PR-AUC [%95 GA] | TI1'e göre ROC-AUC farkı |
+|---|---|---|---|
+| Birleşik EDR | 0,687 [0,655–0,717] | 0,677 [0,637–0,710] | +0,014 [+0,007; +0,020], p < 0,001 |
+| Model (LR) | 0,681 [0,646–0,716] | 0,672 [0,632–0,707] | +0,008 [−0,006; +0,022], p 0,268 |
+| TI1 | 0,673 [0,639–0,704] | 0,666 [0,624–0,702] | — |
+| 1/Ri | 0,653 [0,626–0,678] | 0,639 [0,596–0,676] | −0,021 [−0,053; +0,011], p 0,190 |
+
+Fizik göstergeleri eğitilmediği için tüm 80 günde de ölçülebilir: TI1 0,680
+[0,662–0,697], birleşik EDR 0,692 [0,675–0,709], 1/Ri 0,652 [0,637–0,667].
+
+Model altın günlerde TI1'i geçemedi (GA 0'ı içeriyor). Bu, 18 Ekim kapısının ön sonucudur.
+Birleşik EDR'nin TI1'e üstünlüğü küçük ama tutarlı. Model olasılığında Brier 0,226, Brier
+becerisi 0,095; ortalama olasılık 0,523, gözlenen oran 0,481.
+
+Şekiller: [ROC (TI1 ve Ri)](../sonuclar/2026-10-07/roc_ti1_ri.png),
+[güvenilirlik diyagramı](../sonuclar/2026-10-07/guvenilirlik_modeli.png).
+
+### 0.2 TI1 eşik taraması
+
+Eşik eğitim günlerinde Peirce'i (POD − POFD) en büyütecek biçimde seçildi ve altın günlere
+olduğu gibi uygulandı. Taramanın tamamı JSON'da `esik_taramasi.tarama` altında.
+
+| Eşik | Altın günlerde POD | POFD | CSI |
+|---|---|---|---|
+| Peirce eşiği 5,3e-7 (eğitim günlerinden) | 0,605 | 0,349 | 0,439 |
+| `TI1_ESIK_HAFIF` 4e-7 | 0,683 | 0,440 | 0,463 |
+| `TI1_ESIK_ORTA_SIDDETLI` 8e-7 (config, risk eşiği) | 0,448 | 0,201 | 0,369 |
+
+Peirce eşiğinde altın günlerdeki Peirce 0,256 [0,188–0,313]. Ri için aynı yöntem Ri < 2,37
+verdi. Klasik 0,25 sınırı ERA5 çözünürlüğünde çok seyrek aşılır (bkz. §1.1).
+
+Seviyeye göre (her seviyede eşik o seviyenin eğitim örnekleriyle seçildi):
+
+| Seviye | Seviye eşiği | POD / POFD / CSI (seviye eşiği) | POD / POFD / CSI (genel eşik) | Test örneği |
+|---|---|---|---|---|
+| 175 hPa | 5,7e-7 | 0,596 / 0,286 / 0,419 | 0,635 / 0,312 / 0,434 | 129 |
+| 200 hPa | 6,7e-7 | 0,527 / 0,246 / 0,418 | 0,611 / 0,297 / 0,465 | 269 |
+| 225 hPa | 5,5e-7 | 0,619 / 0,403 / 0,403 | 0,626 / 0,413 / 0,404 | 361 |
+| 250 hPa | 4,3e-7 | 0,615 / 0,411 / 0,437 | 0,562 / 0,350 / 0,417 | 528 |
+| 300 hPa | 5,1e-7 | 0,676 / 0,286 / 0,550 | 0,667 / 0,286 / 0,543 | 189 |
+| 350 hPa | 1,1e-6 | 0,256 / 0,128 / 0,227 | 0,590 / 0,410 / 0,418 | 78 |
+
+175–300 hPa'da seviye eşikleri genel eşiğe yakın (4,3–6,7e-7) ve CSI'yi belirgin
+iyileştirmiyor. 350 hPa'da eğitim örneği az ve seviye eşiği testte kötüleşiyor. Tek genel
+eşik yeterli görünüyor. Config eşiği (8e-7) Peirce eşiğinden yüksektir: yanlış alarm daha
+az, yakalama da daha azdır. Config'i değiştirmek ürün kararıdır; şimdilik değiştirilmedi.
+
+### 0.3 Yalnız CAT alt kümesi (MET-07)
+
+Sistemin kapsamı açık hava türbülansıdır. PIREP metninde CB, TS (+TSRA, VCTS, TSTM gibi
+türevler), TCU, MTN WAVE ya da LLWS geçen raporlar dışlandı. Ham metin yalnız yerel IEM
+arşivinde (2018–Mart 2020) var: 6.764 örneğin metni bulundu, 119'u (%1,8) CAT dışı
+işaretlendi ve bunların pozitif oranı 0,420. Altın günlerde metinli 1.369 örnekten 1.353'ü
+kaldı.
+
+| Gösterge | Yalnız CAT, altın günler | Yalnız CAT, tüm günler |
+|---|---|---|
+| Birleşik EDR | 0,683 [0,649–0,720] | 0,692 [0,674–0,709] |
+| Model | 0,678 [0,638–0,724] | — |
+| TI1 | 0,669 [0,632–0,707] | 0,679 [0,660–0,697] |
+| 1/Ri | 0,652 [0,621–0,685] | 0,653 [0,639–0,669] |
+
+CAT dışı raporlar çok az olduğu için dışlamak sonucu değiştirmiyor. Nisan 2020 sonrası
+günlerin metni yok; bu günler iki alt kümede de yer almıyor.
+
+### 0.4 Nesnel etiket: MADIS ölçülen EDR
+
+20.144 ölçüm, 607'si hafif ve üstü (taban oran 0,030), 6 gün. Sınıflar
+`madis_edr.edr_sinifi` ile yeniden hesaplandı. Orta ve üstü ölçüm yok (0), yani
+değerlendirme yalnız hafif sınıfı ayırt etmeyi ölçer. Örnekler PIREP pencerelerinden
+geldiği için seçim yanlılığı vardır; QC "Z" ön veridir.
+
+| Gösterge | ROC-AUC [%95 GA] | PR-AUC [%95 GA] | TI1'e göre fark |
+|---|---|---|---|
+| Birleşik EDR | 0,738 [0,667–0,825] | 0,102 [0,072–0,154] | +0,032 [+0,014; +0,049], p < 0,001 |
+| Model | 0,734 [0,664–0,820] | 0,092 [0,071–0,128] | +0,028 [+0,002; +0,045], p 0,036 |
+| TI1 | 0,706 [0,631–0,801] | 0,091 [0,062–0,144] | — |
+| 1/Ri | 0,696 [0,648–0,741] | 0,076 [0,047–0,106] | −0,010 [−0,073; +0,069], p 0,702 |
+
+PR-AUC taban orandan yaklaşık üç kat yüksek, ama mutlak değeri düşük. %3'lük bir olayda
+ROC-AUC 0,7 sıralamanın rastgeleden iyi olduğunu söyler; uyarıların çoğunun yanlış alarm
+olacağını gizler. Model olasılığı ortalama 0,510, Brier becerisi −8,36: olasılık PIREP
+taban oranına göre kalibre olduğu için ölçülen sıklık olarak okunamaz (§4).
+
+### 0.5 Rota backtest'i
+
+Veritabanındaki iki uçuşta riskli nokta oranı (gerçek / büyük daire / A*): THY322 1 Ocak
+2019 0,00 / 0,05 / 0,00; THY322 15 Ocak 2019 0,19 / 0,32 / 0,00
+([şekil](../sonuclar/2026-10-07/backtest_ucus_basina.png)). Ölçüm döngüseldir. PUE502
+(bağımsız kanıtlı tek uçuş) bu veritabanında yok; açıklaması `docs/SISTEM_KARTI.md` §6'da.
+
+## 1. Fizik çekirdeği (Madde 2) — tarihçe, 5 Ekim
 
 ### 1.1 Düzeltmenin etkisi
 
@@ -80,7 +189,7 @@ MADIS hafif ve üstü (12.232 ölçüm, 372 pozitif, **4 gün**, ön sonuç, GA 
 birleşik EDR 0,773, TI1 0,735, 1/Ri 0,729, TI2 0,696, VWS 0,691, DEF 0,669. Orta ve
 üstü MADIS ölçümü yok (0 örnek).
 
-## 2. Makine öğrenmesi modeli (PIREP)
+## 2. Makine öğrenmesi modeli (PIREP) — §2.1–2.2 tarihçe, 5 Ekim
 
 ### 2.1 Holdout sonuçları
 
@@ -174,7 +283,7 @@ günlerine bakılarak görüldü. Seçim kuralını buna göre değiştirmek tes
 model seçmek olur. Bu yüzden 18 Ekim dondurmasında protokol değişmeden uygulanır; bulgu
 yalnız tartışma bölümünde yer alır.
 
-## 3. Nesnel değerlendirme: MADIS ölçülen EDR (M1)
+## 3. Nesnel değerlendirme: MADIS ölçülen EDR (M1) — tarihçe, 5 Ekim (güncel: §0.4)
 
 Etiket: MADIS maxEDR ≥ 0,1 (hafif ve üstü). 12.232 ölçüm, 372 pozitif (%3,0), 4 gün.
 Gün bazlı GA için en az 5 gün gerektiğinden aralık verilmedi; sonuçlar **ön sonuçtur**.
@@ -228,5 +337,5 @@ tarihteki veritabanı yedeğinden yukarıdaki komutlarla yeniden üretilir. Dond
 önce açık işler:
 
 - ~~Penceresiz 1.597 örneğin yeni fizikle yeniden indirilmesi~~ (7 Eki: penceresiz eşleşmiş örnek kalmadı)
-- TI1 eşiklerinin yeni fiziğe göre yeniden değerlendirilmesi
-- MADIS'te en az 5 güne ulaşılması (GA için)
+- ~~TI1 eşiklerinin yeni fiziğe göre yeniden değerlendirilmesi~~ (7 Eki: §0.2; config değişikliği ürün kararı, açık)
+- ~~MADIS'te en az 5 güne ulaşılması (GA için)~~ (7 Eki: 6 gün, §0.4)

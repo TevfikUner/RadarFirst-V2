@@ -398,10 +398,10 @@ A* aramasının payı 30–45 ms. Hesaplama süresi hem planlama hem taktik kull
 için darboğaz değildir. Belirleyici olan veri tazeliği ve ilk veri indirmesidir
 (saniyeler–dakika).
 
-**Tekrar üretim:** Ölçüm betiği `rota_simulasyonu_olustur`'u doğrudan çağırıp
-`_a_yildiz_ile_rota_ara`'yı zamanlayan küçük bir Python betiğidir; depoya
-eklenmedi. İstenirse `turbulans-performans` aracına "rota senaryoları" bölümü
-olarak eklenebilir.
+**Tekrar üretim:** Bu tablo tarihçedir (2 Ekim). Ölçüm artık
+`turbulans-performans rota` alt komutuyla tekrarlanır (Madde 8). 7 Ekim ölçümü
+sıcak medyan 0,08–1,36 sn verdi (dizüstü pildeyken; aynı gün daha önce 0,02–0,86 sn),
+A* araması 0,31–0,40 sn: `docs/sonuclar/2026-10-07/rota_performansi.md`.
 
 ---
 

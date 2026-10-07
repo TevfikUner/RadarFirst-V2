@@ -7,13 +7,14 @@ sistem. Sonuçlar PostgreSQL'e yazılır, zaman kaydırıcılı bir Folium
 haritasında görselleştirilir, bir FastAPI servisi ve MCP sunucusu üzerinden
 JSON/veritabanı olarak dışarıya açılır.
 
-**Önemli sınırlama:** TI1/EDR proxy, sertifikalı bir EDR (Eddy Dissipation
-Rate) değeri DEĞİLDİR -- ~25-30 km çözünürlüklü reanaliz verisinden
-hesaplanan bir araştırma/görselleştirme göstergesidir. Ölçeklendirme
-katsayısı artık gerçek IEM PIREP + ERA5 gözlemleriyle kalibre edildi (bkz.
-[Sınırlamalar](#bilinmesi-gerekenler--sınırlamalar), `kalibrasyon.py`) --
-ama bu bölgeden bağımsız, kaba bir kalibrasyondur, sertifikalı bir EDR
-sensörünün yerini TUTMAZ.
+**Önemli sınırlama:** TI1 ve 0–1 gösterge ölçeği (API alanı `edr_proxy`: birleşik
+gösterge ölçeği, o yoksa TI1 görsel ölçeği) bir EDR (Eddy Dissipation Rate) değeri
+DEĞİLDİR -- ~25-30 km çözünürlüklü reanaliz verisinden hesaplanan bir
+araştırma/görselleştirme göstergesidir. TI1 görsel ölçeğinin katsayısı EDR ölçümüne
+değil IEM PIREP sınıf koduna uydurulmuştur (bkz.
+[Sınırlamalar](#bilinmesi-gerekenler--sınırlamalar), `kalibrasyon.py`); bölgeden
+bağımsız, kaba bir ölçektir, sertifikalı bir EDR sensörünün yerini TUTMAZ.
+Doğruluk sayılarının tek kaynağı `docs/sonuclar/` paketidir.
 
 Sistemin kullanım sınıfı, veri kaynakları, hata durumlarındaki davranışı ve
 bilinen sınırları için bkz. **[Sistem Kartı](docs/SISTEM_KARTI.md)**. Mimari
@@ -124,7 +125,7 @@ turbulans_radar/
               kisitli_saha_saglayici.py        -> kısıtlı/yasak hava sahaları (GeoJSON içe aktarma, örnek veri)
               veri_indirme.py                  -> ERA5 indirme altyapısı (güvenlik sınırlı, varsayılan kuru deneme)
               kimlik_dogrulama.py              -> .env'den OpenSky kimlik bilgisi
-  fizik/      turbulans_indeksleri.py          -> Ellrod TI1, Richardson, EDR proxy
+  fizik/      turbulans_indeksleri.py          -> Ellrod TI1, Richardson, TI1 görsel ölçeği
               eslestirme.py                    -> rota <-> hava küpü vektörel eşleştirme, 3 boyutlu kapsam kontrolü
               birim_donusumleri.py             -> irtifa <-> basınç (ISA)
               kalibrasyon.py                   -> EDR ölçekleme katsayısı kalibrasyonu (bootstrap GA)
@@ -775,7 +776,10 @@ maruziyetli uçuş oranlarını verir.
   uçuşta TI1 katmanı, tahmincilerin FL340-410 için yayınladığı türbülansı
   yakalayamadı -- döngüsel ölçümün gizleyeceği bir kör nokta. Canlı sistemde
   bu SIGMET'lerden sert kısıt olarak yine kaçınılır; backtest yalnızca TI1'in
-  bağımsız becerisini ölçer.
+  bağımsız becerisini ölçer. A*'ın 28'den 33'e çıkması, backtest'te TURB/MTW
+  SIGMET'lerini görmeyen ve TI1'de risk bulmayan A*'ın rotayı başka bir ölçütle
+  (süre/rüzgâr ya da kalan sert kısıtlar) ayırıp SIGMET alanında daha uzun kalmasından
+  gelir; hangi ölçüt olduğu, kayıt veritabanında kalmadığı için yeniden üretilemedi.
 - Bu bulgu tek bir uçuşla sınırlı kalmayıp **her rota yanıtına** taşınır:
   `POST /simulasyon/rota` ve `POST /turbulans/tahmin` yanıtlarında ayrı bir
   `ti1_guvenilirlik_notu` alanı (`fizik/turbulans_indeksleri.
@@ -1143,7 +1147,9 @@ verilmişse odur; verilmezse modelin eğitim günlerindeki Peirce eşiği, o da 
 
 ```bash
 turbulans-ml-degerlendirme          # aktif model + tek başına TI1 referansı, güvenilirlik tablosu
-turbulans-edr-kalibrasyon           # EDR proxy katsayısı, gün bazlı bootstrap güven aralığı
+turbulans-ml-degerlendirme --kesme 2026-10-18 --cikti docs/sonuclar/2026-10-18  # sonuç paketi (Madde 8)
+turbulans-performans rota            # rota kararı ve A* süresi, sabit senaryolar
+turbulans-edr-kalibrasyon           # TI1 görsel ölçeği katsayısı (EDR değildir), gün bazlı bootstrap GA
 turbulans-ml --listele               # kayıtlı model sürümleri (aktif edildi / saklandı + gerekçe)
 turbulans-ml --geri-al VERSIYON_ID   # tek komutla geri alma
 turbulans-ml --altin-gunleri-dondur  # altın test günlerini bir kez seçer (dosya varsa yazmaz)
@@ -1154,9 +1160,10 @@ turbulans-ml --dondurma-raporu KLASOR  # bir kez eğit + değerlendir, sonucu KL
 doğru irtifalı PIREP'lerle yeniden uydurur: en son günler test için ayrılır,
 güven aralığı gün bazlı bootstrap ile hesaplanır (aynı günün raporları
 bağımsız değildir), eski (0.23) ve yeni katsayının test hatası karşılaştırılır.
-Eski değer `EDR_OLCEKLENDIRME_KATSAYISI_ESKI` olarak saklanır. EDR proxy
-sertifikalı EDR değildir; PIREP şiddet sınıfının beklenen değerine uyan
-görsel bir ölçektir.
+Eski değer `EDR_OLCEKLENDIRME_KATSAYISI_ESKI` olarak saklanır. Bu "TI1 görsel
+ölçeği" EDR değildir; PIREP şiddet sınıfının beklenen değerine uyan görsel bir
+ölçektir. Bayrağı `TI1_GORSEL_OLCEK_PIREP_SINIFINA_UYDURULDU`'dur (eski adı
+`EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI`).
 
 **Ek özellikler:** eşleştirme her nokta için düşey rüzgar kayması, yatay
 deformasyon, yatay diverjans ve Ellrod-Knox TI2'yi (VWS × (DEF + yakınsama))
@@ -1564,7 +1571,7 @@ python -m uv pip compile requirements-era5.txt -c ana_kisit.txt --python-version
 
 ## Bilinmesi gerekenler / sınırlamalar
 
-- **TI1/EDR proxy, sertifikalı bir EDR değeri değildir** -- yukarıya bakın.
+- **TI1 ve gösterge ölçeği EDR değildir** -- yukarıya bakın.
 - **Seviye seçimi barometrik irtifayla yapılır:** seyirde altimetre 1013,25
   hPa'ya ayarlı olduğu için ADS-B baro irtifası doğrudan ISA basınç
   irtifasıdır; GPS (geo) irtifası sıcaklığa bağlı olarak yüzlerce metre sapar

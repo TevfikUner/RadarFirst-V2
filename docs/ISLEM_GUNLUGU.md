@@ -2,6 +2,15 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-07 (dal `claude/sonuc-paketi-dondurma`, Madde 8)
+
+- ✅ `turbulans-ml-degerlendirme --kesme --cikti`: commit hash'li JSON + SAYILAR.md + 3 PNG; ön paket `docs/sonuclar/2026-10-07/`.
+- ⚠️ Altın günlerde LR 0,681 vs TI1 0,673, fark [−0,006; +0,022] → kapı geçilmedi (ön sonuç). Birleşik EDR TI1'i geçiyor (+0,014).
+- ✅ TI1 Peirce eşiği 5,3e-7 (config 8e-7 değişmedi, karar açık); CAT alt kümesi sonucu değiştirmiyor; MADIS 6 gün, GA'lı.
+- ✅ "EDR proxy" → gösterge/TI1 görsel ölçeği (EDR değildir); bayrak `TI1_GORSEL_OLCEK_PIREP_SINIFINA_UYDURULDU`.
+- ⚠️ `turbulans-performans rota`: sıcak 0,08–1,36 sn (pilde), eski iddia 0,02–0,27 sn; A* 0,3–0,4 sn. Nedeni incelenmedi.
+- ✅ PUE502 28→33 nedeni SISTEM_KARTI §6 ve README'de (kayıt DB'de yok, yeniden üretilemedi).
+
 ## 2026-10-07 (dal `claude/ml-duyarlilik`, Madde 7 isteğe bağlı)
 
 - ✅ `turbulans-ml-duyarlilik`: gün/ISO hafta/ay gruplu CV; LR AUC 0,699/0,698/0,698 → sızıntı izi yok.

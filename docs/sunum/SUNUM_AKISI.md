@@ -96,17 +96,30 @@ Bulgu: tek süreçte GIL darboğazı; 4 süreçle aynı donanımda verim ~3 kat.
 
 ## 8. Sonuçlar: doğruluk ve ML
 
-- **TI1'in bağımsız becerisi sınırlı:** Seyir irtifasındaki 6218 PIREP'te ROC-AUC 0,67
-  (holdout 0,71); config eşiğinde yakalama 0,49, yanlış alarm 0,16. Gerçek bir uçuşta (PUE502) aktif
+Bu bölümdeki her sayı `docs/sonuclar/2026-10-07/SAYILAR.md` ön paketinden alındı. 18 Ekim
+dondurmasından sonra nihai paketle değiştirilir. Aralıklar gün bazlı blok bootstrap %95 GA'dır.
+
+- **TI1'in bağımsız becerisi sınırlı:** Seyir irtifasındaki 7.815 PIREP'te (80 gün) ROC-AUC
+  0,680 [0,662–0,697]. Altın test günlerinde 0,673 [0,639–0,704]. Config eşiğinde (8e-7)
+  yakalama 0,448, yanlış alarm 0,201. Gerçek bir uçuşta (PUE502, 26 Eylül, tarihçe) aktif
   TURB SIGMET'in işaret ettiği türbülansı TI1 yakalamadı. Bu yüzden güvenlik garantisi
   SIGMET sert kısıtından gelir; TI1 yumuşak göstergedir.
-- **Backtest (15 Ocak 2019):** Riskli nokta oranı gerçek uçuşlarda 0,28, önerilen
-  rotalarda 0,00; büyük daireye göre +2–5 dk. Ölçüm döngüseldir (A* TI1'i düşürür,
-  başarı TI1 ile ölçülür); bunu açıkça söyleyin.
-- **ML:** [İlk gerçek eğitimden sonra doldurulacak — 60 eşleşmiş gün eşiği: F1, ROC-AUC
-  ve %95 güven aralıkları (gün blok bootstrap), TI1'e göre eşleştirilmiş AUC farkı ve
-  p-değeri, zamansal holdout'ta konformal kapsama (hedef %90)]. Kaynak:
-  `GET /api/v1/turbulans/model-bilgisi`.
+- **Eşik veriden seçildi:** Eğitim günlerinde Peirce'i en büyüten TI1 eşiği 5,3e-7'dir.
+  Altın günlerde POD 0,605, POFD 0,349, CSI 0,439. Config eşiği henüz değiştirilmedi.
+- **Yalnız CAT:** CB/TS/TCU/MTN WAVE/LLWS geçen raporlar dışlanınca altın günlerde TI1
+  0,669 [0,632–0,707]; sonuç değişmiyor.
+- **Backtest (ERA5, THY322):** Riskli nokta oranı (gerçek / büyük daire / A*): 1 Ocak 2019
+  0,00 / 0,05 / 0,00; 15 Ocak 2019 0,19 / 0,32 / 0,00. Ölçüm döngüseldir (A* TI1'i
+  düşürür, başarı TI1 ile ölçülür); bunu açıkça söyleyin.
+- **ML (ön sonuç, olumsuz):** Protokol modeli (Lojistik Regresyon, 1-SE) altın test
+  günlerinde (16 gün, 1.554 PIREP) ROC-AUC 0,681 [0,646–0,716]. TI1'e göre fark +0,008
+  [−0,006; +0,022], p 0,268. Kapı geçilmedi. Birleşik EDR ise TI1'i küçük ama anlamlı
+  farkla geçiyor: 0,687, fark +0,014 [+0,007; +0,020], p < 0,001. F1 ve konformal kapsama
+  18 Ekim dondurma raporundadır (`turbulans-ml --dondurma-raporu`).
+- **Nesnel etiket (MADIS):** 20.144 ölçüm, 6 gün, yalnız hafif sınıf (taban oran 0,030).
+  ROC-AUC model 0,734 [0,664–0,820], TI1 0,706 [0,631–0,801]; PR-AUC 0,092 ve 0,091.
+  Model olasılığı ortalama 0,510; PIREP yanlılığı nedeniyle mutlak sıklık değildir.
+  Seçim yanlılığı var: örnekler PIREP pencerelerinden geliyor.
 - **Sanal PIREP (M6):** İlk küçük ölçüm (2 Ekim 2026, 16 değerlendirilebilir PIREP):
   POD 1/8 = 0,13 (%95 Wilson 0,02–0,47), POFD 0/8 = 0 (0–0,32). Dedektör tutucu;
   örneklem küçük, aralıklar geniş. Eşik bu örneklemle ayarlanmadı.
