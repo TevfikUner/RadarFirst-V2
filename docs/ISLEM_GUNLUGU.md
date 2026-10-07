@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-08 (dal `claude/hizli-tarama`, hızlı tarama)
+
+- ✅ ruff temiz, 908 test geçti (atlanan yok), yığın sağlıklı, belgelerde kırık bağlantı yok; kod değişikliği gerekmedi.
+- ⚠️ Canlı GFS 7 Eki 19:05 UTC'de DNS hatası (geçici; DNS şimdi çalışıyor, sonraki ısıtmada düzelir). Madde 10 ertelendi.
+
 ## 2026-10-08 (dal `claude/proje-isleyisi`)
 
 - ✅ Çekirdek anlatım kartı yerine tüm akışı anlatan `docs/sunum/PROJE_ISLEYISI.md` (veri → filtre → eşleştirme → rota → model → doğrulama).
