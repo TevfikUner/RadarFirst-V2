@@ -439,6 +439,17 @@ def sayilar_tablosu(paket: dict) -> str:
         ekle(f"{ad} PR-AUC (altın günler)", _ga(kayit, "pr_auc"), f"{k}.pr_auc")
         if "ti1_farki" in kayit:
             ekle(f"{ad} − TI1 ROC-AUC farkı", _fark(kayit), f"{k}.ti1_farki")
+    mo = paket["model_olasilik_test"]
+    ekle(
+        "Model Brier / Brier becerisi (altın günler)",
+        f"{_s(mo['brier'])} / {_s(mo['brier_becerisi'])}",
+        "model_olasilik_test.brier, brier_becerisi",
+    )
+    ekle(
+        "Model ortalama olasılık / gözlenen oran (altın günler)",
+        f"{_s(mo['ortalama_olasilik'])} / {_s(mo['gozlenen_oran'])}",
+        "model_olasilik_test",
+    )
     tu = paket["pirep_tum_gunler_fizik"]
     for ad, kayit in tu["skorlar"].items():
         ekle(f"{ad} ROC-AUC (tüm günler)", _ga(kayit, "roc_auc"), f"pirep_tum_gunler_fizik.skorlar.{ad}.roc_auc")
@@ -456,6 +467,9 @@ def sayilar_tablosu(paket: dict) -> str:
             f"{_s(tm['peirce'])} [{_s(tm['peirce_ga'][0])}–{_s(tm['peirce_ga'][1])}]",
             "esik_taramasi.test.peirce",
         )
+    ri = e.get("ri_peirce_esigi") or {}
+    if ri.get("ri"):
+        ekle("Ri Peirce eşiği (eğitim günleri; Ri altı riskli)", _s(ri["ri"], 2), "esik_taramasi.ri_peirce_esigi.ri")
     for ad, kayit in e["config_esikleri"].items():
         ct = kayit["test"]
         ekle(
@@ -463,9 +477,29 @@ def sayilar_tablosu(paket: dict) -> str:
             f"{_s(ct['pod'])} / {_s(ct['pofd'])} / {_s(ct['csi'])}",
             f"esik_taramasi.config_esikleri.{ad}.test",
         )
+    for i, sv in enumerate(e["seviyeye_gore"]):
+        if "seviye_esigi" not in sv:
+            continue
+        ts, tg = sv["test_seviye_esigi"], sv["test_genel_esik"]
+        ekle(
+            f"{sv['seviye_hpa']:.0f} hPa: eşik; test POD/POFD/CSI seviye eşiğiyle | genel eşikle",
+            f"{sv['seviye_esigi']:.1e}; {_s(ts['pod'])}/{_s(ts['pofd'])}/{_s(ts['csi'])} | "
+            f"{_s(tg['pod'])}/{_s(tg['pofd'])}/{_s(tg['csi'])} (test n={_s(sv['test_ornek'])})",
+            f"esik_taramasi.seviyeye_gore[{i}]",
+        )
     c = paket["cat_alt_kumesi"]
     if "test_cat" in c:
         ekle("Metni olan / CAT dışı işaretli örnek", f"{_s(c['metinli'])} / {_s(c['cat_disi'])}", "cat_alt_kumesi")
+        ekle(
+            "CAT dışı örneklerde pozitif oranı",
+            _s(c["cat_disi_pozitif_orani"]),
+            "cat_alt_kumesi.cat_disi_pozitif_orani",
+        )
+        ekle(
+            "Altın günlerde metinli / yalnız CAT örnek",
+            f"{_s(c['test_metinli']['ornek'])} / {_s(c['test_cat']['ornek'])}",
+            "cat_alt_kumesi.test_metinli.ornek, test_cat.ornek",
+        )
         for ad, kayit in c["test_cat"]["skorlar"].items():
             ekle(
                 f"{ad} ROC-AUC, yalnız CAT (altın günler)",
@@ -485,6 +519,14 @@ def sayilar_tablosu(paket: dict) -> str:
         for ad, kayit in md["skorlar"].items():
             ekle(f"MADIS {ad} ROC-AUC", _ga(kayit, "roc_auc"), f"madis.skorlar.{ad}.roc_auc")
             ekle(f"MADIS {ad} PR-AUC", _ga(kayit, "pr_auc"), f"madis.skorlar.{ad}.pr_auc")
+            if "ti1_farki" in kayit:
+                ekle(f"MADIS {ad} − TI1 ROC-AUC farkı", _fark(kayit), f"madis.skorlar.{ad}.ti1_farki")
+        ekle("MADIS taban oran (hafif ve üstü)", _s(md["taban_oran"]), "madis.taban_oran")
+        ekle(
+            "MADIS model ortalama olasılık",
+            _s(md["model_olasilik"]["ortalama_olasilik"]),
+            "madis.model_olasilik.ortalama_olasilik",
+        )
         ekle(
             "MADIS model Brier becerisi",
             _s(md["model_olasilik"]["brier_becerisi"]),
