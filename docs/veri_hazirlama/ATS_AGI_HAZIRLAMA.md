@@ -17,13 +17,16 @@ Her komut DHMİ'ye yalnızca bir istek atar:
 
 ```bash
 pip install -r requirements-dev.txt          # pypdf
-turbulans-aip-ats --indir                     # ENR 4.4 -> ats_verisi/ats_agi.json (FRA ağı)
+turbulans-aip-ats --indir                     # ENR 4.4 + 4.1 -> ats_verisi/ats_agi.json (FRA ağı)
 turbulans-aip-sahalar --indir                 # ENR 5.1 -> ats_verisi/aip_enr51.geojson
 turbulans-kisitli-saha ice-aktar ats_verisi/aip_enr51.geojson --kaynak aip_enr51
 ```
 
 - **ENR 4.4:** Tüm önemli noktalar koordinatları ve FRA rolleriyle alınır. FRA
   noktaları arasında 200 km'ye kadar doğrudan (DCT) kenarlar kurulur.
+- **ENR 4.1:** VOR/DME, NDB, VORTAC istasyonları (62, AIRAC 06/26) aynı
+  biçimde eklenir; meydanların A/D bağlantı noktalarının bir kısmı bunlardır
+  (ör. LTCI için EZS, DYB). `--enr41` dosyası yoksa atlanır ve uyarı verilir.
 - **FRA kuralları (AIP ENR 1.3 §5, AIRAC 01/26, 2 Ekim 2026'da okundu):**
   - FRATURK Ankara ve İstanbul FIR'larında **FL305–FL660**, yalnızca
     **20:00–02:00 UTC** arasında uygulanır. Ağ bu saatleri `fra.saatler_utc`
@@ -35,7 +38,7 @@ turbulans-kisitli-saha ice-aktar ats_verisi/aip_enr51.geojson --kaynak aip_enr51
     DCT yasak (§5.2.5) ve yalnızca yayımlanmış noktalar kullanılabilir. Ağ
     `fra.firler` (LTAA, LTBB) ve `fra.sinir_tamponu_nm` (5) taşır; DCT'ler ağ
     yüklenirken FIR birleşiminin 5 NM içeri daraltılmış alanına göre süzülür
-    (20.514 adaydan 724'ü elendi, AIRAC 09/26). Sınırdaki E/X noktalarından
+    (ENR 4.4 + 4.1 ile 24.838 adaydan 879'u elendi). Sınırdaki E/X noktalarından
     çıkan kenarın bant içindeki uç parçası muaftır, ama en fazla ucun iç
     bölgeye uzaklığının 2 katı (≥30° açıyla uzaklaşma; bizim varsayımımız) ve
     FIR dışına yalnız ucun kendisi dışarıdaysa. FIR sınırı VATSIM'in yaklaşık
@@ -44,10 +47,12 @@ turbulans-kisitli-saha ice-aktar ats_verisi/aip_enr51.geojson --kaynak aip_enr51
     Her FRA kenarına giriş pencere içinde, kenar sonuna nominal varış +
     belirsizlik payı (`ROTA_ZAMAN_BELIRSIZLIK_*`) kapanıştan önce olmalı.
   - Bağlantı rolleri (§5.2.2–5.2.3): ToC yalnız D/E, ToD yalnız A/X rollü
-    noktalara bağlanır; FIR içindeki uç önce D/A'yı dener. Ağda ENR 4.1
-    seyrüsefer yardımcıları (ör. LTCI'nin varış bağlantı noktaları EZS, DYB)
-    olmadığı için bazı meydanlarda 150 km içinde A/D noktası yoktur; o zaman
-    E/X noktası kullanılır ve yanıtta `ats.uyarilar` bunu söyler.
+    noktalara bağlanır; FIR içindeki uç önce D/A'yı dener, 150 km içinde yoksa
+    E/X noktası kullanılır ve yanıtta `ats.uyarilar` bunu söyler. AIP'te A/D
+    rolleri meydana özgüdür ("FRA (A): LTFM"); API meydan almadığı için rol
+    genel sayılır. Örnek: IST→VAN ToD'si Muş VOR'una (MUS, A/D) bağlanır, oysa
+    LTCI'nin AIP'teki varış bağlantı noktaları EZS ve DYB'dir (~290–360 km
+    uzakta, ardından UG81 bağlantı rotası). Bağlantı rotaları modellenmez.
   - Bu saatler ilk uygulamada (2025–26 kışı) geçerliydi; 2026–27 kışında H24'e
     geçilmesi planlanıyor. Her AIRAC'ta ENR 1.3 yeniden kontrol edilmeli.
 - **ENR 5.1:** Kural tabanlı alınır; kurala uymayanlar gerekçesiyle "ATLANDI"

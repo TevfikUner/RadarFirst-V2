@@ -67,3 +67,36 @@ def test_fra_saatleri_ayristirilir_ve_aga_yazilir():
     assert aip.fra_saatlerini_ayristir("") == []
     veri = aip.fra_agi([], "01/26", 200, 305, 660, aip.fra_saatlerini_ayristir("20:00-02:00"))
     assert veri["fra"]["saatler_utc"] == [{"baslangic": "20:00", "bitis": "02:00"}] and veri["fra"]["ust_fl"] == 660
+
+
+METIN_41 = r"""ENR 4.1 RADIO NAVIGATION AIDS — EN-ROUTE
+TESTKENT
+VOR/DME TKA 112.7 MHZ
+CH74X H24 365626.1N
+0351237.4E 21 M FRA (I)
+FRA (A): LTXX
+ÇİFTKENT
+VOR\DME TKB 112.7 MHZ
+CH74X H24 394229.1N
+0393144.5E 1153 M
+Coverage 80 NM
+FRA (I)
+FRA(AD): LTXX, LTYY,
+LTZZ
+AIRAC AMDT 06/26
+DENEME
+NDB TKC 307 KHZ H24 404414.9N
+0300416.9E FRA (I)
+"""
+
+
+def test_enr41_seyrusefer_yardimcilari_rolleriyle_ayristirilir():
+    kayitlar = aip.enr41_ayristir(METIN_41)
+    k = {x["ad"]: x for x in kayitlar}
+    assert list(k) == ["TKA", "TKB", "TKC"]
+    assert k["TKA"]["fra_rolleri"] == ["A", "I"] and k["TKA"]["tur"] == "VOR/DME"
+    assert k["TKB"]["fra_rolleri"] == ["A", "D", "I"] and k["TKB"]["tur"] == "VOR/DME"
+    assert k["TKC"]["tur"] == "NDB" and k["TKC"]["enlem"] == pytest.approx(40 + 44 / 60 + 14.9 / 3600)
+    assert aip.en_yeni_airac(METIN_41) == "06/26" and aip.dogrula(kayitlar) == []
+    with pytest.raises(ValueError, match="TKD"):
+        aip.enr41_ayristir("VOR/DME TKD 112.7 MHZ\nkoordinatsız")

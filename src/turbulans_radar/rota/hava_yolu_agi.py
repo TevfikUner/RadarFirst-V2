@@ -122,8 +122,8 @@ class HavaYoluAgi:
     def uc_baglantisi(self, enlem, boylam, ic_rol, dis_rol) -> list[tuple[str, float]]:
         """ToC (D/E) ya da ToD (A/X) bağlantıları. FRA alanı biliniyorsa dışarıdaki
         uç yalnız dis_rol (E/X) noktalarına; içerideki önce ic_rol (D/A), menzilde
-        yoksa ic_rol/dis_rol (ENR 1.3 §5.2.2-5.2.3; ağda ENR 4.1 seyrüsefer
-        yardımcıları yok, bkz. rol_uyarilari)."""
+        yoksa ic_rol/dis_rol (ENR 1.3 §5.2.2-5.2.3; bkz. rol_uyarilari). AIP'te
+        A/D rolleri meydana özgüdür; meydan bilinmediği için genel sayılır."""
         icinde = self.fra_alaninda_mi(enlem, boylam)
         if icinde is False:
             return uc_baglantilari(self, enlem, boylam, roller=frozenset(dis_rol))
@@ -138,8 +138,8 @@ class HavaYoluAgi:
             if self.fra_alaninda_mi(*uc) and nokta in self.fra_rolleri and rol not in self.fra_rolleri[nokta]:
                 uyarilar.append(
                     f"{nokta} FRA {ad} bağlantı noktası ({rol}) değil, yatay giriş/çıkış noktası "
-                    f"({''.join(sorted(self.fra_rolleri[nokta]))}): {config.ATS_AGI_BAGLANTI_KM:.0f} km içinde {rol} rollü nokta yok "
-                    "(ENR 4.1 seyrüsefer yardımcıları ağda değil). ENR 1.3 §5.2.3'e tam uymaz."
+                    f"({''.join(sorted(self.fra_rolleri[nokta]))}): {config.ATS_AGI_BAGLANTI_KM:.0f} km içinde "
+                    f"{rol} rollü nokta yok. ENR 1.3 §5.2.3'e tam uymaz."
                 )
         return uyarilar
 

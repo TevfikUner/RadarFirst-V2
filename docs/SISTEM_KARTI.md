@@ -21,9 +21,9 @@ ve bitiş seyre giriş (ToC) ve seyirden çıkış (ToD) noktası kabul edilir; 
 tırmanış, alçalış, SID/STAR ve yaklaşma kapsam dışıdır. Rota, ATS yolları yerine
 büyük daire etrafındaki bir koridorda aranır. İsteğe bağlı olarak FRATURK serbest
 rota ağında da aranabilir (`arama_uzayi="ats"`; FL305+, yalnız 20:00–02:00 UTC).
-Bu ağ AIP ENR 4.4 noktalarından otomatik kurulur ve **yalnız FRA DCT
-kenarlarından** oluşur; klasik/RNAV ATS yolları (ENR 3.1/3.2) ve ENR 4.1
-seyrüsefer yardımcıları ağda yoktur.
+Bu ağ AIP ENR 4.4 noktaları ve ENR 4.1 seyrüsefer yardımcılarından (VOR/DME,
+NDB) otomatik kurulur ve **yalnız FRA DCT kenarlarından** oluşur; klasik/RNAV
+ATS yolları (ENR 3.1/3.2) ve meydan bağlantı rotaları ağda yoktur.
 Diğer trafikle ayırmayı dikkate almaz; ATC talimatlarının yerini tutmaz. Geçmiş
 trafikle varsayımsal minima karşılaştırması yalnızca gösterge olarak vardır
 (`turbulans-ayirma`). Her rota yanıtı kapsamı `kapsam` alanında taşır.
@@ -189,7 +189,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Koridor modunda hava yolu yapısı modellenmez. FRA modunda ENR 1.3 §5
   kurallarının bir kısmı uygulanır: FRA penceresi (her FRA kenarına giriş
   pencere içinde, kenar sonu belirsizlik payıyla kapanıştan önce), ToC/ToD
-  rolleri (FIR içinde D/A, dışında E/X; menzilde D/A yoksa E/X ve uyarı),
+  rolleri (FIR içinde D/A, dışında E/X; menzilde D/A yoksa E/X ve uyarı;
+  AIP'te A/D rolleri meydana özgüdür, API meydan almadığı için genel sayılır),
   DCT'nin FIR içinde ve sınıra 5 NM'den uzak kalması. FIR sınırı VATSIM'in
   yaklaşık çizimidir. FLOS (çift/tek FL değişimi), RAD kısıtları ve
   bağlantı rotaları modellenmez. ATC kısıtları modellenmez. Kısıtlı/yasak sahalar ve
