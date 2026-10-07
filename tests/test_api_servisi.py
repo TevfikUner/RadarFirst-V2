@@ -1461,6 +1461,14 @@ async def test_turbulans_tahmini_konformal_risk_durumunu_doner(istemci, api_anah
         sonuclar[olasilik] = yanit.json()
     assert [sonuclar[p]["ml_risk_durumu"] for p in (0.93, 0.5, 0.04)] == ["yuksek_risk", "belirsiz", "dusuk_risk"]
     assert sonuclar[0.93]["ml_konformal_hedef_kapsama"] == pytest.approx(0.9)
+    assert sonuclar[0.93]["veri_kaynagi"] == "era5" and sonuclar[0.93]["ml_konformal_notu"] is None
+
+    monkeypatch.setattr(api_servisi, "veri_kupu_kaynagi", lambda kup: "gfs")
+    yanit = await istemci.post("/api/v1/turbulans/tahmin", json=govde, headers={"X-API-Key": api_anahtari})
+    gfs = yanit.json()
+    assert gfs["veri_kaynagi"] == "gfs" and gfs["ml_konformal_hedef_kapsama"] is None
+    assert "doğrulanmadı" in gfs["ml_konformal_notu"]
+    monkeypatch.setattr(api_servisi, "veri_kupu_kaynagi", lambda kup: "era5")
 
     monkeypatch.setattr(api_servisi, "model_bilgisini_yukle", lambda: {"secilen_model": "eski"})
     yanit = await istemci.post("/api/v1/turbulans/tahmin", json=govde, headers={"X-API-Key": api_anahtari})

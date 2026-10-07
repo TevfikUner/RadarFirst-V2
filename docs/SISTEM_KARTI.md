@@ -168,11 +168,15 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   yanlılığı nedeniyle mutlak sıklık olarak okunmamalıdır.
   TI1'i geçmek için ROC-AUC farkı hem `ML_TI1_AUC_USTUNLUGU`'nu aşmalı hem de
   gün bazlı eşleştirilmiş bootstrap aralığının alt sınırı 0'ın üstünde
-  olmalıdır (holdout her gece yeniden kullanılır). Aday, gün gruplu CV
-  ROC-AUC'siyle seçilir; özellikler TI1, Richardson, rüzgar hızı, basınç,
-  düşey kayma, deformasyon, diverjans ve TI2'dir.
+  olmalıdır; aktif modele karşı da aynı kural geçerlidir. Değerlendirme bir kez
+  dondurulmuş altın test günlerindedir; bu günler hiçbir eğitime girmez. Aday,
+  gün gruplu CV ROC-AUC'siyle 1-SE kuralıyla seçilir (fark küçükse Lojistik
+  Regresyon); özellikler TI1, Richardson, rüzgar hızı, basınç, düşey kayma,
+  deformasyon, diverjans ve TI2'dir.
 - Yalnızca ABD verisiyle doğrulanmıştır. `ml_riski_var_mi` için olasılık eşiği
-  `ML_KARAR_ESIGI` (varsayılan 0.5) ile yapılandırılır.
+  `ML_KARAR_ESIGI` ile yapılandırılır; verilmezse modelin eğitim günlerinde
+  Peirce'ı maksimize eden eşiği kullanılır. GFS girdisinde konformal kapsama
+  doğrulanmadığı için `null` döner.
 - Konformal belirsizlik: yeni veri hattıyla eğitilen her model bir konformal
   eşikle saklanır; `POST /turbulans/tahmin` olasılığın yanında
   `ml_risk_durumu` (`dusuk_risk` / `yuksek_risk` / `belirsiz`) döner. Hedef

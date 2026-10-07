@@ -41,23 +41,26 @@ def test_zamansal_holdout_en_son_gunleri_ayirir():
     assert me.zamansal_holdout(gunler, oran=0.4).tolist() == [False, False, False, True, True, True]
 
 
+_GECER = {"fark": 0.05, "alt": 0.01, "ust": 0.09}
+
+
 @pytest.mark.parametrize(
-    "aday,sampiyon,beklenen",
+    "sampiyon_farki,beklenen",
     [
-        ({"f1": 0.7, "recall": 0.7}, None, True),
-        ({"f1": 0.7, "recall": 0.7}, {"f1": 0.6, "recall": 0.7}, True),
-        ({"f1": 0.605, "recall": 0.7}, {"f1": 0.6, "recall": 0.7}, False),
-        ({"f1": 0.8, "recall": 0.6}, {"f1": 0.6, "recall": 0.7}, False),
-        ({"f1": 0.8, "recall": 0.69}, {"f1": 0.6, "recall": 0.7}, True),
+        (None, True),
+        (_GECER, True),
+        ({"fark": 0.05, "alt": -0.01, "ust": 0.1}, False),
+        ({"fark": 0.015, "alt": 0.001, "ust": 0.03}, False),
+        ({"fark": float("nan"), "alt": float("nan"), "ust": float("nan")}, False),
     ],
 )
-def test_terfi_karari(aday, sampiyon, beklenen):
+def test_terfi_aktif_modele_karsi_eslestirilmis_auc_kapisi(sampiyon_farki, beklenen):
     y = pd.Series([1] * 40 + [0] * 40)
-    assert me.terfi_karari(aday, sampiyon, y)[0] is beklenen
+    assert me.terfi_karari(y, _GECER, sampiyon_farki)[0] is beklenen
 
 
 def test_holdout_yetersizse_hic_terfi_edilmez():
-    terfi, gerekce = me.terfi_karari({"f1": 1.0, "recall": 1.0}, None, pd.Series([1] * 30 + [0] * 2))
+    terfi, gerekce = me.terfi_karari(pd.Series([1] * 30 + [0] * 2), _GECER)
     assert not terfi and "yetersiz" in gerekce.lower()
 
 
@@ -99,7 +102,7 @@ def test_aday_aktif_modeli_gecemezse_aktif_model_degismez(monkeypatch, gecici_mo
         assert dosya.read() == b"aktif"
     assert not os.path.exists(me.MODEL_BILGI_DOSYA_YOLU)
     surum = tm.model_versiyonlarini_listele()[0]
-    assert surum["aktiflestirildi"] is False and surum["holdout"]["aktif_model"]["f1"] == 1.0
+    assert surum["aktiflestirildi"] is False and surum["holdout"]["aktif_model"]["roc_auc"] == 1.0
 
 
 def test_tek_basina_ti1_kadar_iyi_olmayan_aday_aktiflestirilmez(monkeypatch, gecici_model_klasoru):
@@ -129,26 +132,26 @@ def test_aday_olasiliklari_kalibre_edilir_ve_brier_raporlanir(monkeypatch, gecic
     assert tm.risk_durumlarini_hesapla([0.0, 1.0], surum)[0] in ("dusuk_risk", "belirsiz")
 
 
-@pytest.mark.parametrize("aday_auc,beklenen", [(0.74, True), (0.72, False)])
-def test_terfi_ti1_referansina_gore_kapilidir(aday_auc, beklenen):
-    y = pd.Series([1] * 40 + [0] * 40)
-    aday = {"f1": 0.7, "recall": 0.7, "roc_auc": aday_auc}
-    assert me.terfi_karari(aday, None, y, {"roc_auc": 0.71})[0] is beklenen
-
-
 @pytest.mark.parametrize(
-    "fark,beklenen", [({"alt": 0.01, "ust": 0.05}, True), ({"alt": -0.01, "ust": 0.07}, False), ({}, False)]
+    "fark,beklenen",
+    [
+        ({"fark": 0.03, "alt": 0.01, "ust": 0.05}, True),
+        ({"fark": 0.01, "alt": 0.001, "ust": 0.02}, False),
+        ({"fark": 0.03, "alt": -0.01, "ust": 0.07}, False),
+        ({"fark": 0.03, "alt": 0.0, "ust": 0.07}, False),
+        ({}, False),
+        (None, False),
+    ],
 )
-def test_terfi_ti1_farkinin_guven_araligina_gore_kapilidir(fark, beklenen):
+def test_terfi_ti1_farkinin_nokta_ve_guven_araligina_gore_kapilidir(fark, beklenen):
     y = pd.Series([1] * 40 + [0] * 40)
-    aday = {"f1": 0.7, "recall": 0.7, "roc_auc": 0.74}
-    terfi, gerekce = me.terfi_karari(aday, None, y, {"roc_auc": 0.71}, fark)
+    terfi, gerekce = me.terfi_karari(y, fark)
     assert terfi is beklenen
     if not beklenen:
         assert "TI1 referansını geçemedi" in gerekce
 
 
-def test_aday_cv_roc_auc_ile_secilir_ve_tum_ozellikleri_kullanir(monkeypatch, gecici_model_klasoru):
+def test_aday_1se_kuraliyla_secilir_ve_tum_ozellikleri_kullanir(monkeypatch, gecici_model_klasoru):
     X, y, gunler = _veri()
     monkeypatch.setattr(me, "veritabanindan_veri_hazirla", lambda motor=None: (X, y, gunler))
     yakalanan = {}
@@ -156,15 +159,71 @@ def test_aday_cv_roc_auc_ile_secilir_ve_tum_ozellikleri_kullanir(monkeypatch, ge
 
     def _kayitli(*args, **kwargs):
         sonuclar, degerlendirme = gercek(*args, **kwargs)
-        yakalanan.update({ad: m["roc_auc"] for ad, (_, m, _) in sonuclar.items()})
+        yakalanan.update({ad: m for ad, (_, m, _) in sonuclar.items()})
         return sonuclar, degerlendirme
 
     monkeypatch.setattr(me, "modelleri_egit_ve_karsilastir", _kayitli)
     sonuc = me.otomatik_egitim_calistir(sampiyon_yukleyici=lambda: None, kat_sayisi=3, tekrar_sayisi=1)
-    assert sonuc["secilen_model"] == max(yakalanan, key=yakalanan.get)
+    assert sonuc["secilen_model"] == me.bir_se_kurali_ile_sec(yakalanan)
     surum = tm.model_versiyonlarini_listele()[0]
     assert surum["ozellik_sutunlari"] == tm.MODEL_OZELLIK_SUTUNLARI
-    assert surum["secim_olcutu"] == "gün gruplu CV ROC-AUC"
+    assert surum["secim_olcutu"].startswith("gün gruplu CV ROC-AUC, 1-SE")
+
+
+def test_esikler_egitim_gunlerinde_peirce_ile_secilir_ve_kalibre_ti1_raporlanir(monkeypatch, gecici_model_klasoru):
+    monkeypatch.setattr(me, "veritabanindan_veri_hazirla", lambda motor=None: _veri())
+    sonuc = me.otomatik_egitim_calistir(sampiyon_yukleyici=lambda: None, kat_sayisi=3, tekrar_sayisi=1)
+    esikler = sonuc["esikler"]
+    assert 0.0 < esikler["model"] < 1.0 and 1e-8 < esikler["ti1"] < 1e-5
+    assert sonuc["aday_holdout"]["esik"] == pytest.approx(esikler["model"])
+    assert sonuc["ti1_referansi_holdout"]["esik"] == pytest.approx(esikler["ti1"])
+    assert 0.0 <= sonuc["kalibre_ti1_holdout"]["brier"] <= 0.25
+    assert tm.ml_karar_esigi(tm.model_versiyonlarini_listele()[0]) == pytest.approx(esikler["model"])
+
+
+def test_altin_test_gunleri_bir_kez_dondurulur(tmp_path):
+    yol = str(tmp_path / "altin.json")
+    gunler = pd.Series(pd.date_range("2019-01-01", periods=80).strftime("%Y-%m-%d"))
+    kayit = me.altin_test_gunlerini_dondur(gunler, yol=yol)
+    assert len(kayit["gunler"]) == 16 and set(kayit["gunler"]) <= set(gunler)
+    assert kayit["gunler"] == me.altin_test_gunlerini_sec(gunler) == me.altin_test_gunleri(yol)
+    assert kayit["gunler"] != sorted(gunler)[-16:]
+    with pytest.raises(FileExistsError):
+        me.altin_test_gunlerini_dondur(gunler, yol=yol)
+
+
+def test_altin_test_gunleri_hicbir_surumun_egitimine_girmez(monkeypatch, gecici_model_klasoru):
+    X, y, gunler = _veri()
+    altin = me.altin_test_gunlerini_dondur(gunler)["gunler"]
+    monkeypatch.setattr(me, "veritabanindan_veri_hazirla", lambda motor=None: (X, y, gunler))
+    ilk = me.otomatik_egitim_calistir(sampiyon_yukleyici=lambda: None, kat_sayisi=3, tekrar_sayisi=1)
+    X2, y2, gunler2 = _veri(gun_sayisi=90, tohum=1)
+    monkeypatch.setattr(me, "veritabanindan_veri_hazirla", lambda motor=None: (X2, y2, gunler2))
+    me.otomatik_egitim_calistir(kat_sayisi=3, tekrar_sayisi=1)
+    surumler = tm.model_versiyonlarini_listele()
+    assert len(surumler) == 2 and ilk["holdout_yontemi"] == "altın test günleri"
+    for surum in surumler:
+        assert not set(altin) & set(surum["egitim_gunleri"])
+        assert surum["holdout"]["gunler"] == sorted(altin)
+        assert len(surum["egitim_gunleri"]) + len(altin) == surum["farkli_gun_sayisi"]
+
+
+def test_altin_gunleri_goren_aktif_model_karsilastirmada_yok_sayilir(monkeypatch, gecici_model_klasoru):
+    me.altin_test_gunlerini_dondur(pd.Series(["2019-01-01", "2019-01-02", "2019-01-03", "2019-01-04", "2019-01-05"]))
+    altin = me.altin_test_gunleri()
+    monkeypatch.setattr(me, "model_kullanilabilir_mi", lambda bilgi, model_var_mi: (True, None))
+    monkeypatch.setattr(me.joblib, "load", lambda yol: "model")
+    with open(me.MODEL_DOSYA_YOLU, "wb") as dosya:
+        dosya.write(b"aktif")
+    for egitim_gunleri, beklenen in [(None, None), (altin, None), (["2018-12-31"], "model")]:
+        with open(me.MODEL_BILGI_DOSYA_YOLU, "w", encoding="utf-8") as dosya:
+            json.dump({} if egitim_gunleri is None else {"egitim_gunleri": egitim_gunleri}, dosya)
+        assert me._aktif_modeli_yukle() == beklenen
+
+
+def test_gun_anahtari_utc_gunudur():
+    assert me._utc_gunu(pd.Timestamp("2019-01-02T01:30:00+03:00")) == "2019-01-01"
+    assert me._utc_gunu(pd.Timestamp("2019-01-02T01:30:00")) == "2019-01-02"
 
 
 def test_cli_surumleri_listeler_ve_geri_alir(monkeypatch, gecici_model_klasoru, capsys):

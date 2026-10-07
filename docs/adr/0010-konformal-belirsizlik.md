@@ -18,20 +18,23 @@ verilmesi gerekiyordu.
 - Tahmin kümesi {y : 1 − p(y) ≤ q}. {1} → `yuksek_risk`, {0} → `dusuk_risk`,
   {0, 1} ya da boş küme → `belirsiz`.
 - Kalibrasyon skorları gün gruplu çapraz doğrulamanın kat dışı, Platt kalibre
-  olasılıklarındandır (aynı günün PIREP'leri aynı katta). Yayındaki model tüm
-  veriyle eğitildiği için ayrı bir kalibrasyon kümesi kalmaz; çapraz-konformal
+  olasılıklarındandır (aynı günün PIREP'leri aynı katta). Eğitim günlerinin
+  tamamı modele girdiği için ayrı bir kalibrasyon kümesi kalmaz; çapraz-konformal
   bu yüzden seçildi.
-- Aynı yöntem yalnızca eğitim günleriyle tekrarlanıp zamansal holdout'ta
-  gerçekleşen kapsama ölçülür ve sürüm kaydına yazılır
-  (`konformal.holdout_dogrulamasi`).
-- `ml_riski_var_mi` eşiği `ML_KARAR_ESIGI` ile yapılandırılabilir (risk iştahı).
+- Eşik eğitim günlerinden kurulur; gerçekleşen kapsama altın test günlerinde
+  (ADR 0004) ölçülür ve sürüm kaydına yazılır (`konformal.holdout_dogrulamasi`).
+- Kapsama yalnızca ERA5 girdisinde doğrulanmıştır. Tahmin canlı GFS küpünden
+  yapılırsa `ml_konformal_hedef_kapsama` `null` döner ve `ml_konformal_notu`
+  "doğrulanmadı" der; yanıtta `veri_kaynagi` alanı bulunur (Uzman Madde 7).
+- `ml_riski_var_mi` eşiği: `ML_KARAR_ESIGI` verilmişse o (risk iştahı), yoksa
+  modelin eğitim günlerinde Peirce'ı maksimize eden eşiği, o da yoksa 0,5.
 
 ## Sonuçlar
 
 - API ve 3B harita "belirsiz" durumunu ayrı gösterir; kapsama her eğitimde ölçülür.
 - Güvence değiştirilebilirlik varsayımına dayanır; mevsimsel kayma bunu bozabilir.
-  Bu nedenle kapsama zamansal holdout'ta (en son günler) raporlanır ve her
-  gece yeniden hesaplanır.
+  Bu nedenle kapsama altın test günlerinde raporlanır ve her gece yeniden
+  hesaplanır.
 - Kat dışı skorlarla kurulan eşik, ayrı bir kalibrasyon kümesi kullanan bölünmüş
   konformal kadar sıkı bir garanti vermez (CV+ türü yöntemlerde kuramsal alt sınır
   1−2α'dır). Bu yüzden belirleyici olan, holdout'ta ölçülen gerçek kapsamadır.

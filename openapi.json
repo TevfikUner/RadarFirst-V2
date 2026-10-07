@@ -5911,6 +5911,17 @@
             "type": "boolean",
             "title": "Kapsam Icinde Mi"
           },
+          "veri_kaynagi": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Veri Kaynagi"
+          },
           "ti1_indeksi": {
             "anyOf": [
               {
@@ -5986,6 +5997,17 @@
               }
             ],
             "title": "Ml Konformal Hedef Kapsama"
+          },
+          "ml_konformal_notu": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ml Konformal Notu"
           },
           "aciklama": {
             "type": "string",

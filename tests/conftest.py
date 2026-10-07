@@ -213,6 +213,13 @@ def _model_versiyonlari_gecici_klasorde(monkeypatch, tmp_path):
     monkeypatch.setattr(tm, "MODEL_VERSIYONLARI_MANIFEST_YOLU", str(klasor / "manifest.json"))
 
 
+@pytest.fixture(autouse=True)
+def _altin_test_gunleri_gecici(monkeypatch, tmp_path):
+    from turbulans_radar import config
+
+    monkeypatch.setattr(config, "ML_ALTIN_TEST_DOSYASI", str(tmp_path / "altin_test_gunleri.json"))
+
+
 @pytest.fixture
 def gorev_kuyrugunu_temizle():
     """Test sırasında kuyruğa eklenip bitmemiş (kuyrukta/calisiyor) görevleri siler."""

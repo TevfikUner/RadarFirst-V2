@@ -27,6 +27,7 @@ tahminidir. Kaydedilen nihai model TÜM veriyle eğitilir.
 
 import os
 
+import numpy as np
 import pandas as pd
 from sklearn.ensemble import GradientBoostingClassifier, RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
@@ -41,6 +42,7 @@ from sklearn.metrics import (
 from sklearn.model_selection import StratifiedGroupKFold, StratifiedKFold, cross_val_predict
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import StandardScaler
+from sklearn.utils.class_weight import compute_sample_weight
 
 from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
 from turbulans_radar.ml.turbulans_ml_modeli import (
@@ -60,6 +62,17 @@ ERA5_KLASORU = "era5_egitim_verisi"
 
 KAT_SAYISI = 5
 TEKRAR_SAYISI = 5
+SADE_MODEL = "Lojistik Regresyon"
+
+
+class DengeliGradientBoosting(GradientBoostingClassifier):
+    """GradientBoostingClassifier'ın class_weight'i yok; diğer adaylar gibi
+    sınıf dengeli eğitilsin diye ağırlık verilmezse 'balanced' ağırlık kullanılır."""
+
+    def fit(self, X, y, sample_weight=None, **kwargs):
+        if sample_weight is None:
+            sample_weight = compute_sample_weight("balanced", y)
+        return super().fit(X, y, sample_weight=sample_weight, **kwargs)
 
 
 def veriyi_hazirla():
@@ -74,7 +87,7 @@ def _aday_modeller():
         "Random Forest": RandomForestClassifier(
             n_estimators=200, max_depth=5, class_weight="balanced", random_state=42
         ),
-        "Gradient Boosting": GradientBoostingClassifier(n_estimators=150, max_depth=3, random_state=42),
+        "Gradient Boosting": DengeliGradientBoosting(n_estimators=150, max_depth=3, random_state=42),
     }
 
 
@@ -106,7 +119,7 @@ def modelleri_egit_ve_karsilastir(X, y, gruplar=None, kat_sayisi=KAT_SAYISI, tek
 
     sonuclar, oof_olasiliklar = {}, {}
     for isim, model in _aday_modeller().items():
-        tekrar_metrikleri = []
+        tekrar_metrikleri, standart_hatalar = [], []
         for tohum in range(tekrar_sayisi):
             if gruplar is not None:
                 bolucu = StratifiedGroupKFold(n_splits=kat_sayisi, shuffle=True, random_state=tohum)
@@ -114,12 +127,20 @@ def modelleri_egit_ve_karsilastir(X, y, gruplar=None, kat_sayisi=KAT_SAYISI, tek
                 bolucu = StratifiedKFold(n_splits=kat_sayisi, shuffle=True, random_state=tohum)
             olasilik = cross_val_predict(model, X, y, groups=gruplar, cv=bolucu, method="predict_proba")[:, 1]
             tekrar_metrikleri.append(_tahmin_metrikleri(y, olasilik))
+            kat_auc = [
+                roc_auc_score(y.iloc[test_i], olasilik[test_i])
+                for _, test_i in bolucu.split(X, y, gruplar)
+                if y.iloc[test_i].nunique() > 1
+            ]
+            if len(kat_auc) > 1:
+                standart_hatalar.append(float(np.std(kat_auc, ddof=1) / np.sqrt(len(kat_auc))))
             if tohum == 0:
                 oof_olasiliklar[isim] = olasilik
 
         tekrar_df = pd.DataFrame(tekrar_metrikleri)
         metrikler = {anahtar: float(tekrar_df[anahtar].mean()) for anahtar in tekrar_df.columns}
         metrikler.update({f"{anahtar}_std": float(tekrar_df[anahtar].std(ddof=0)) for anahtar in tekrar_df.columns})
+        metrikler["roc_auc_se"] = float(np.mean(standart_hatalar)) if standart_hatalar else float("nan")
         tn, fp, fn, tp = confusion_matrix(y, (oof_olasiliklar[isim] >= 0.5).astype(int), labels=[0, 1]).ravel()
         metrikler.update(
             {
@@ -151,6 +172,18 @@ def modelleri_egit_ve_karsilastir(X, y, gruplar=None, kat_sayisi=KAT_SAYISI, tek
         print()
 
     return sonuclar, {"y": y, "oof_olasilik": oof_olasiliklar}
+
+
+def bir_se_kurali_ile_sec(metrikler: dict[str, dict], sade=SADE_MODEL) -> str:
+    """CV ROC-AUC'si en yüksek model; sade modelle farkı en iyinin kat ROC-AUC
+    standart hatasından küçükse sade model (1-SE kuralı, Hastie vd.)."""
+    en_iyi = max(metrikler, key=lambda ad: metrikler[ad]["roc_auc"])
+    if sade not in metrikler or en_iyi == sade:
+        return en_iyi
+    se = metrikler[en_iyi].get("roc_auc_se", float("nan"))
+    if np.isfinite(se) and metrikler[en_iyi]["roc_auc"] - metrikler[sade]["roc_auc"] < se:
+        return sade
+    return en_iyi
 
 
 def en_iyi_modeli_sec_ve_kaydet(sonuclar, egitim_orneklem_sayisi, test_orneklem_sayisi):

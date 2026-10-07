@@ -117,13 +117,14 @@ def _egitim_gunlerinde_model(X, y, gunler, egitim, isim):
 def calistir(motor=None, tekrar=None, model_turu=None) -> dict:
     from turbulans_radar.depo.veritabani import motor_al
     from turbulans_radar.ml.madis_hatti import degerlendirme_verisi
-    from turbulans_radar.ml.ml_otomatik_egitim import veritabanindan_veri_hazirla, zamansal_holdout
+    from turbulans_radar.ml.ml_otomatik_egitim import degerlendirme_gunleri_maskesi, veritabanindan_veri_hazirla
     from turbulans_radar.ml.turbulans_ml_modeli import model_bilgisini_yukle
 
     motor = motor or motor_al()
     X, y, gunler = veritabanindan_veri_hazirla(motor)
     X, y, gunler = X.reset_index(drop=True), y.reset_index(drop=True), gunler.reset_index(drop=True)
-    holdout = zamansal_holdout(gunler).to_numpy()
+    holdout_maskesi, holdout_yontemi = degerlendirme_gunleri_maskesi(gunler)
+    holdout = holdout_maskesi.to_numpy()
     isim = model_turu or (model_bilgisini_yukle() or {}).get("secilen_model", "Random Forest")
     with contextlib.redirect_stdout(io.StringIO()):
         model = _egitim_gunlerinde_model(X, y, gunler, ~holdout, isim)
@@ -137,6 +138,7 @@ def calistir(motor=None, tekrar=None, model_turu=None) -> dict:
     pirep, py, ps, pg = _skor_karsilastirmasi(y[holdout], pirep_skor, gunler[holdout], tekrar)
     pirep["model"] = _model_bolumu(py, ps["Model"], pg, tekrar)
     pirep["holdout_gunleri"] = sorted(set(gunler[holdout]))
+    pirep["holdout_yontemi"] = holdout_yontemi
 
     rapor = {
         "model_turu": isim,

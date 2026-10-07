@@ -45,7 +45,7 @@ optional-dependencies = { dev = { file = ["requirements-dev.txt"] }, era5 = { fi
 where = ["src"]
 
 [tool.setuptools.package-data]
-turbulans_radar = ["veri/*.geojson", "fizik/*.json"]
+turbulans_radar = ["veri/*.geojson", "fizik/*.json", "ml/*.json"]
 
 [tool.ruff]
 line-length = 120
