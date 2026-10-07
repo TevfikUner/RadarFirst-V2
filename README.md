@@ -644,7 +644,7 @@ Doç. Dr. Fulya Aybek Çetek'in önerileri ve proje ekibinin analizi:
   - `POST /api/v1/simulasyon/rota` gövdesinde `"arama_uzayi": "ats"`, ya da
     arayüzde "Arama uzayı → FRATURK serbest rota (FL305+, 20:00–02:00 UTC)".
   - Rota, `ats_verisi/ats_agi.json` ağında graf tabanlı A* ile aranır. Ağ, AIP
-    Türkiye ENR 4.4 noktalarından `turbulans-aip-ats` ile kurulur ve yalnız FRA
+    Türkiye ENR 4.4 noktaları ve ENR 4.1 VOR/NDB'lerinden `turbulans-aip-ats` ile kurulur ve yalnız FRA
     DCT kenarlarından oluşur; ATS yolları (ENR 3.1/3.2) ağda yoktur. Depoya
     konmaz: [docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md](docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md).
   - Ağ yoksa istek 400 döner. Varsayılan `koridor` modu değişmedi.

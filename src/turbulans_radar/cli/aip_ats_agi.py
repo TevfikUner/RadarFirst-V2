@@ -2,22 +2,24 @@
 aip_ats_agi.py
 -----------------
 AIP Türkiye ENR 4.4 (önemli noktalar: ad, koordinat, bağlı ATS yolları, FRA
-rolü) PDF'inden hava_yolu_agi.py biçiminde bir FRA ağı üretir (hoca önerisi 1).
+rolü) ve ENR 4.1 (seyrüsefer yardımcıları: VOR/DME, NDB, VORTAC; ör. EZS, DYB
+LTCI'nin FRA varış bağlantı noktalarıdır) PDF'lerinden hava_yolu_agi.py
+biçiminde bir FRA ağı üretir (hoca önerisi 1).
 Veri uydurulmaz: her nokta doğrudan resmi tablodan gelir; çıktı ve indirilen
 PDF depoya konmaz (ats_verisi/ .gitignore'da; yeniden dağıtım izni doğrulanmadı).
 
-FRA rolleri (ENR 4.4 açıklaması): E yatay giriş, X yatay çıkış, I ara nokta,
+FRA rolleri (ENR 4.4/4.1 açıklaması): E yatay giriş, X yatay çıkış, I ara nokta,
 A varış bağlantısı, D kalkış bağlantısı (EX, AD birleşik).
 
 Kurulan ağ: FRA rolü olan tüm noktalar arasında dct_maks_km'ye kadar doğrudan
 (DCT) kenarlar, FRA alt sınırından itibaren (FL305; ENR 1.3 §5.1.1). DCT'ler
 Ankara ve İstanbul FIR'ları içinde, sınıra 5 NM'den yakın olmamalı (ENR 1.3
-§5.2.1.6, §5.2.5); bu süzme ağ yüklenirken hava_yolu_agi.agi_kur'da yapılır. ENR 4.4 hava yollarının nokta SIRASINI
-vermediği için klasik/RNAV yolları (ENR 3.1/3.2) bu araçla kurulmaz; FRA alt
+§5.2.1.6, §5.2.5); bu süzme ağ yüklenirken hava_yolu_agi.agi_kur'da yapılır.
+ENR 4.4 hava yollarının nokta SIRASINI vermediği için klasik/RNAV yolları (ENR 3.1/3.2) bu araçla kurulmaz; FRA alt
 sınırının altındaki seviyelerde ATS modu rota bulamaz (dürüstçe hata verir).
 
-    turbulans-aip-ats --indir                       (ENR 4.4'ü DHMİ'den tek istekle indirir)
-    turbulans-aip-ats --enr44 ats_verisi/kaynak/LT_ENR_4_4_en.pdf
+    turbulans-aip-ats --indir                       (ENR 4.4 ve 4.1'i DHMİ'den indirir, belge başına tek istek)
+    turbulans-aip-ats --enr44 ats_verisi/kaynak/LT_ENR_4_4_en.pdf --enr41 ats_verisi/kaynak/LT_ENR_4_1_en.pdf
 """
 
 import argparse
@@ -28,11 +30,15 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 ENR44_URL = "https://www.dhmi.gov.tr/AIPDocuments/LT_ENR_4_4_en.pdf"
+ENR41_URL = "https://www.dhmi.gov.tr/AIPDocuments/LT_ENR_4_1_en.pdf"
 VARSAYILAN_PDF = os.path.join("ats_verisi", "kaynak", "LT_ENR_4_4_en.pdf")
+VARSAYILAN_ENR41 = os.path.join("ats_verisi", "kaynak", "LT_ENR_4_1_en.pdf")
 VARSAYILAN_CIKTI = os.path.join("ats_verisi", "ats_agi.json")
 
 _KAYIT = re.compile(r"(?m)^([A-Z]{5})\s+(\d{6}(?:\.\d+)?)([NS])\s*-\s*(\d{7}(?:\.\d+)?)([EW])")
-_FRA = re.compile(r"FRA \(([A-Z]+)\)")
+_FRA = re.compile(r"FRA\s*\(([A-Z]+)\)")
+_ISTASYON = re.compile(r"(?m)^(D?VOR[/\\]DME/?|NDB/DME|NDB|VORTAC|D?VOR)\s+([A-Z]{2,3})\s+\d")
+_KOORDINAT = re.compile(r"(\d{6}(?:\.\d+)?)([NS])\s*(\d{7}(?:\.\d+)?)([EW])")
 _AIRAC = re.compile(r"AIRAC AMDT (\d{2})/(\d{2})")
 _YOL = re.compile(r"\b(?:[A-Z]/)?U?[A-Z]{1,2}\d{1,4}\b")
 _ROLLER = {"E", "X", "I", "A", "D"}
@@ -71,9 +77,40 @@ def metni_ayristir(metin: str) -> tuple[list[dict], str | None]:
                 "fra_rolleri": sorted(roller),
             }
         )
+    return kayitlar, en_yeni_airac(metin)
+
+
+def en_yeni_airac(metin: str) -> str | None:
+    """Belgedeki en yeni AIRAC değişikliği ('MM/YY')."""
     surumler = [(int(yy), int(mm)) for mm, yy in _AIRAC.findall(metin)]
     en_yeni = max(surumler) if surumler else None
-    return kayitlar, (f"{en_yeni[1]:02d}/{en_yeni[0]:02d}" if en_yeni else None)
+    return f"{en_yeni[1]:02d}/{en_yeni[0]:02d}" if en_yeni else None
+
+
+def enr41_ayristir(metin: str) -> list[dict]:
+    """ENR 4.1 metninden seyrüsefer yardımcıları (metni_ayristir'la aynı biçim)."""
+    eslesmeler = list(_ISTASYON.finditer(metin))
+    kayitlar = []
+    for sira, m in enumerate(eslesmeler):
+        govde = metin[m.end() : eslesmeler[sira + 1].start() if sira + 1 < len(eslesmeler) else len(metin)]
+        koordinat = _KOORDINAT.search(govde)
+        if koordinat is None:
+            raise ValueError(f"ENR 4.1 {m.group(2)}: koordinat bulunamadı")
+        roller = set()
+        for etiket in _FRA.findall(govde):
+            roller |= set(etiket) & _ROLLER
+        kayitlar.append(
+            {
+                "ad": m.group(2),
+                "enlem": round(koordinat_cevir(koordinat.group(1), koordinat.group(2), 2), 6),
+                "boylam": round(koordinat_cevir(koordinat.group(3), koordinat.group(4), 3), 6),
+                "yollar": [],
+                "fir_siniri": False,
+                "fra_rolleri": sorted(roller),
+                "tur": m.group(1).replace("\\", "/").rstrip("/"),
+            }
+        )
+    return kayitlar
 
 
 def pdf_metni(yol: str) -> str:
@@ -116,10 +153,13 @@ def fra_agi(
     saatler_utc=None,
     firler=("LTAA", "LTBB"),
     sinir_tamponu_nm=5.0,
+    belgeler="ENR 4.4",
 ) -> dict:
     fra_noktalari = [k["ad"] for k in kayitlar if k["fra_rolleri"]]
     return {
-        "kaynak": f"AIP Türkiye ENR 4.4, AIRAC AMDT {airac or '?'} (DHMİ), {datetime.now(UTC):%Y-%m-%d} ayrıştırıldı",
+        "kaynak": (
+            f"AIP Türkiye {belgeler}, AIRAC AMDT {airac or '?'} (DHMİ), {datetime.now(UTC):%Y-%m-%d} ayrıştırıldı"
+        ),
         "noktalar": [
             {"ad": k["ad"], "enlem": k["enlem"], "boylam": k["boylam"], "fra_rolleri": k["fra_rolleri"]}
             for k in kayitlar
@@ -153,7 +193,12 @@ def indir(hedef: str = VARSAYILAN_PDF, url: str = ENR44_URL) -> str:
 def ana(argv=None):
     ayristirici = argparse.ArgumentParser(description="AIP Türkiye ENR 4.4'ten FRA ağı (ats_verisi/ats_agi.json).")
     ayristirici.add_argument("--enr44", default=VARSAYILAN_PDF)
-    ayristirici.add_argument("--indir", action="store_true", help="ENR 4.4'ü DHMİ'den indir (tek istek).")
+    ayristirici.add_argument(
+        "--enr41", default=VARSAYILAN_ENR41, help="ENR 4.1 (seyrüsefer yardımcıları); dosya yoksa atlanır."
+    )
+    ayristirici.add_argument(
+        "--indir", action="store_true", help="ENR 4.4 ve 4.1'i DHMİ'den indir (belge başına tek istek)."
+    )
     ayristirici.add_argument("--cikti", default=VARSAYILAN_CIKTI)
     ayristirici.add_argument("--dct-km", type=float, default=200.0, help="FRA noktaları arası en uzun DCT kenarı (km).")
     ayristirici.add_argument(
@@ -173,8 +218,16 @@ def ana(argv=None):
     )
     argumanlar = ayristirici.parse_args(argv)
     if argumanlar.indir:
-        print("İndirildi:", indir(argumanlar.enr44))
+        print("İndirildi:", indir(argumanlar.enr44), indir(argumanlar.enr41, ENR41_URL))
     kayitlar, airac = metni_ayristir(pdf_metni(argumanlar.enr44))
+    belgeler = "ENR 4.4"
+    if os.path.isfile(argumanlar.enr41):
+        metin41 = pdf_metni(argumanlar.enr41)
+        kayitlar += enr41_ayristir(metin41)
+        belgeler = f"ENR 4.4 (AIRAC AMDT {airac or '?'}) + ENR 4.1"
+        airac = en_yeni_airac(metin41)
+    else:
+        print(f"[Uyarı] {argumanlar.enr41} yok; ENR 4.1 seyrüsefer yardımcıları ağa girmedi.")
     sorunlar = dogrula(kayitlar)
     for sorun in sorunlar:
         print("[Uyarı]", sorun)
@@ -187,6 +240,7 @@ def ana(argv=None):
         fra_saatlerini_ayristir(argumanlar.fra_saatleri),
         [k.strip().upper() for k in argumanlar.firler.split(",") if k.strip()],
         argumanlar.sinir_tamponu_nm,
+        belgeler,
     )
     Path(argumanlar.cikti).parent.mkdir(parents=True, exist_ok=True)
     Path(argumanlar.cikti).write_text(json.dumps(ag, ensure_ascii=False, indent=1), encoding="utf-8")

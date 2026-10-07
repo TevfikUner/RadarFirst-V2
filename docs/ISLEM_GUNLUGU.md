@@ -2,6 +2,12 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-07 (dal `claude/enr41-seyrusefer`, Madde 5 ek)
+
+- ✅ ENR 4.1 (62 VOR/NDB, FRA rolleriyle) ağa eklendi; tek PDF isteği. Ağ: 681 nokta, 24.838 DCT adayından 879'u elendi.
+- ✅ IST→VAN artık YASEN(D) … MUS(A/D), uyarısız. A/D rolleri AIP'te meydana özgü; API meydan almadığı için genel sayılıyor.
+- ✅ Sınır uç-parça muafiyeti (≤2× iç bölge uzaklığı) korundu. Tam test: 851 geçti.
+
 ## 2026-10-07 (dal `claude/fraturk-kurallari`, Uzman Madde 5)
 
 - ✅ FRA penceresi düğüm zamanıyla: kenar sonu (belirsizlik payıyla) 02:00'den önce olmalı (ENR 1.3 §5.5.2.1).
