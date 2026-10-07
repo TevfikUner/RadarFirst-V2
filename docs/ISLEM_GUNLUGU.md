@@ -8,6 +8,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ✅ Seçim CV AUC + 1-SE (LR), GB dengeli; kapı TI1 ve aktif modele karşı fark ≥0,02 ve GA alt > 0; Peirce eşikleri, kalibre TI1.
 - ✅ API `veri_kaynagi`; GFS'de konformal kapsama `null` + "doğrulanmadı". README eski tablo tarihçeye indi.
 - ✅ Docker imajı yeniden derlendi; api/worker yeni protokolde (16 altın gün yüklü).
+- ✅ CI 6 Eki'den beri kırmızıydı: gitleaks RFC 6455 örnek WebSocket anahtarını sır sandı; yanlış pozitif işaretlendi (PR #20), CI yeşil.
 - ⚠️ Ön sonuç (geçici klasör): LR, AUC 0,681 vs TI1 0,673, fark [−0,006; 0,022] → kapı geçilmedi. 18 Eki dondurma bekliyor.
 
 ## 2026-10-07 (dal `claude/sapma-yonu`, Madde 6 kapanış)
