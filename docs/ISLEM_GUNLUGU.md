@@ -7,6 +7,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ✅ Altın test günleri donduruldu (80 günden rastgele 16, tohum 0, `ml/altin_test_gunleri.json`); hiçbir eğitime girmez.
 - ✅ Seçim CV AUC + 1-SE (LR), GB dengeli; kapı TI1 ve aktif modele karşı fark ≥0,02 ve GA alt > 0; Peirce eşikleri, kalibre TI1.
 - ✅ API `veri_kaynagi`; GFS'de konformal kapsama `null` + "doğrulanmadı". README eski tablo tarihçeye indi.
+- ✅ Docker imajı yeniden derlendi; api/worker yeni protokolde (16 altın gün yüklü).
 - ⚠️ Ön sonuç (geçici klasör): LR, AUC 0,681 vs TI1 0,673, fark [−0,006; 0,022] → kapı geçilmedi. 18 Eki dondurma bekliyor.
 
 ## 2026-10-07 (dal `claude/sapma-yonu`, Madde 6 kapanış)
