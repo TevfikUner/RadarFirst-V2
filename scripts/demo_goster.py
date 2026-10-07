@@ -676,7 +676,7 @@ def ws_el_sikismasi(taban_url, sorgu=""):
             s.sendall(
                 (
                     f"GET /ws/uyarilar{sorgu} HTTP/1.1\r\nHost: {adres}\r\nUpgrade: websocket\r\nConnection: Upgrade\r\n"
-                    "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n"
+                    "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\nSec-WebSocket-Version: 13\r\n\r\n"  # gitleaks:allow
                 ).encode()
             )
             return s.recv(200).decode(errors="replace").split("\r\n")[0]
