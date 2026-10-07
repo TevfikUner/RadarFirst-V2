@@ -24,6 +24,7 @@ from turbulans_radar.rota.rota_optimizasyonu import (
     buyuk_daire_rotasi_olustur,
     rota_simulasyonu_olustur,
     simulasyonu_czml_e_cevir,
+    yanal_sapma_yonu,
 )
 
 xr = pytest.importorskip("xarray")
@@ -613,3 +614,10 @@ def test_riskli_bolumler_ardisik_noktalari_birlestirir_ve_min_nm_ile_suzer(monke
     assert len(riskli_bolumler(aday)) == 1
     assert riskli_bolumler(_sentetik_aday(np.full(10, np.nan))) is None
     assert kabin_onerisi([]) is None
+
+
+def test_yanal_sapma_yonu_seyir_yonune_gore_sol_sag():
+    assert yanal_sapma_yonu([40.0, 41.0, 40.0], [30.0, 35.0, 40.0]) == "L"
+    assert yanal_sapma_yonu([40.0, 39.0, 40.0], [30.0, 35.0, 40.0]) == "R"
+    assert yanal_sapma_yonu([40.0, 39.0, 40.0], [40.0, 35.0, 30.0]) == "L"
+    assert yanal_sapma_yonu([40.0, 40.0], [30.0, 40.0]) is None

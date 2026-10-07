@@ -4836,6 +4836,21 @@
             ],
             "title": "Maks Yanal Sapma Km"
           },
+          "maks_yanal_sapma_yonu": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "L",
+                  "R"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Maks Yanal Sapma Yonu"
+          },
           "irtifa_ft": {
             "anyOf": [
               {

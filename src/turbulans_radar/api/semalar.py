@@ -204,6 +204,8 @@ class RotaSonucuYaniti(BaseModel):
     tahmini_yakit_kg: float
     tahmini_co2_kg: float
     maks_yanal_sapma_km: float | None = None
+    # Büyük daireye göre en büyük sapmanın yönü (seyir yönüne bakarak): L sol, R sağ.
+    maks_yanal_sapma_yonu: Literal["L", "R"] | None = None
     irtifa_ft: float | None = None
     maks_ti1: float | None = None
     # None: risk hesaplanmadı (kapsam dışı / veri yok); 0 risk değildir.
