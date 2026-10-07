@@ -51,7 +51,11 @@ class OlcumYaniti(BaseModel):
     enlem: float
     boylam: float
     ti1_indeksi: float | None = None
-    edr_proxy: float | None = None
+    edr_proxy: float | None = Field(
+        None,
+        description="Gösterge ölçeği (0-1): birleşik log-normal gösterge eşlemesi, yoksa TI1 görsel ölçeği "
+        "(tanh). EDR değildir; ölçülmüş ya da sertifikalı EDR yerine kullanılamaz.",
+    )
     richardson_sayisi: float | None = None
     dinamik_kararsizlik: bool | None = None
     basinc_hpa: float | None = None

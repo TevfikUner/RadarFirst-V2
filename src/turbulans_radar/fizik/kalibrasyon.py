@@ -183,6 +183,6 @@ if __name__ == "__main__":
 
     print(
         "\nBu değeri config.py içindeki EDR_OLCEKLENDIRME_KATSAYISI'ye yaz ve "
-        "EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI'yi True yap -- böylece "
-        "main.py artık 'kalibre edilmedi' uyarısı vermez."
+        "TI1_GORSEL_OLCEK_PIREP_SINIFINA_UYDURULDU'yu True yap -- böylece "
+        "analiz artık 'uydurulmadı' uyarısı vermez. Bu ölçek EDR değildir."
     )

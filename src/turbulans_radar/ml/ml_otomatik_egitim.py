@@ -190,6 +190,14 @@ def kat_disi_olasiliklar(model, X, y, gunler, kat_sayisi=5) -> np.ndarray:
     return olasilik
 
 
+def protokol_adayi(Xe, ye, ge, kat_sayisi=5, tekrar_sayisi=3):
+    """Eğitim günlerinde gün gruplu CV + 1-SE seçimi ve olasılık kalibrasyonu.
+    Dönüş: (seçilen ad, tüm adayların CV sonuçları, kalibre aday model)."""
+    sonuclar, _ = modelleri_egit_ve_karsilastir(Xe, ye, ge, kat_sayisi=kat_sayisi, tekrar_sayisi=tekrar_sayisi)
+    isim = bir_se_kurali_ile_sec({ad: m for ad, (_, m, _) in sonuclar.items()})
+    return isim, sonuclar, olasilik_kalibre_et(sonuclar[isim][0], Xe, ye, ge, kat_sayisi)
+
+
 def _olasilik(model, X) -> np.ndarray:
     sutunlar = modelin_ozellik_sutunlari(model) if hasattr(model, "feature_names_in_") else list(X.columns)
     return model.predict_proba(X[sutunlar])[:, 1]
@@ -255,10 +263,8 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
     egitim = ~holdout
     Xe, ye, ge = X[egitim], y[egitim], gunler[egitim]
     Xh, yh, gh = X[holdout], y[holdout], gunler[holdout]
-    sonuclar, _ = modelleri_egit_ve_karsilastir(Xe, ye, ge, kat_sayisi=kat_sayisi, tekrar_sayisi=tekrar_sayisi)
-    isim = bir_se_kurali_ile_sec({ad: m for ad, (_, m, _) in sonuclar.items()})
+    isim, sonuclar, aday_model = protokol_adayi(Xe, ye, ge, kat_sayisi, tekrar_sayisi)
     taban_model, cv_metrikleri, _ = sonuclar[isim]
-    aday_model = olasilik_kalibre_et(taban_model, Xe, ye, ge, kat_sayisi)
     egitim_kat_disi = kat_disi_olasiliklar(taban_model, Xe, ye, ge, kat_sayisi)
 
     model_esik = peirce_esigi(ye, egitim_kat_disi)

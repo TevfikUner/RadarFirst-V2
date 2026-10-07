@@ -87,12 +87,13 @@ def gruplu_cv_duyarliligi(X, y, gunler, kat_sayisi=5, tekrar_sayisi=3) -> dict:
     return sonuc
 
 
-def arsiv_net_etiketleri(klasor=None) -> pd.Series:
-    """pirep_anahtari -> net etiket (0/1); aynı anahtarda çelişen metinler elenir."""
+def arsiv_metinleri(klasor=None) -> pd.DataFrame:
+    """Yerel IEM arşivindeki seyir irtifası PIREP'leri: anahtar, metin (TURBULENCE alanı), rapor (tam metin)."""
     klasor = klasor or config.ML_PIREP_ARSIV_KLASORU
+    sutunlar = ["VALID", "REPORT", "TURBULENCE", "FL", "LAT", "LON"]
     parcalar = []
     for dosya in sorted(glob.glob(os.path.join(klasor, "*.csv"))):
-        ham = pd.read_csv(dosya, dtype=str, on_bad_lines="skip", usecols=["VALID", "TURBULENCE", "FL", "LAT", "LON"])
+        ham = pd.read_csv(dosya, dtype=str, on_bad_lines="skip", usecols=lambda sutun: sutun in sutunlar)
         df = pd.DataFrame(
             {
                 "zaman": pd.to_datetime(ham["VALID"], format="%Y%m%d%H%M", utc=True, errors="coerce"),
@@ -100,24 +101,26 @@ def arsiv_net_etiketleri(klasor=None) -> pd.Series:
                 "boylam": pd.to_numeric(ham["LON"], errors="coerce"),
                 "irtifa_ft": pd.to_numeric(ham["FL"], errors="coerce"),
                 "metin": ham["TURBULENCE"],
+                "rapor": ham["REPORT"].fillna("") if "REPORT" in ham else "",
             }
         ).dropna()
         df = df[df["irtifa_ft"].between(config.ML_MIN_IRTIFA_FT, config.ML_MAKS_IRTIFA_FT)]
         df = df[df["metin"].map(pirep_siddet_sinifi).notna()]
+        anahtar = [pirep_anahtari(*s) for s in df[["zaman", "enlem", "boylam", "irtifa_ft"]].itertuples(index=False)]
         parcalar.append(
-            pd.DataFrame(
-                {
-                    "anahtar": [
-                        pirep_anahtari(*s)
-                        for s in df[["zaman", "enlem", "boylam", "irtifa_ft"]].itertuples(index=False)
-                    ],
-                    "net": df["metin"].map(net_etiket),
-                }
-            )
+            pd.DataFrame({"anahtar": anahtar, "metin": df["metin"].to_numpy(), "rapor": df["rapor"].to_numpy()})
         )
     if not parcalar:
+        return pd.DataFrame(columns=["anahtar", "metin", "rapor"])
+    return pd.concat(parcalar, ignore_index=True)
+
+
+def arsiv_net_etiketleri(klasor=None) -> pd.Series:
+    """pirep_anahtari -> net etiket (0/1); aynı anahtarda çelişen metinler elenir."""
+    tum = arsiv_metinleri(klasor)
+    if tum.empty:
         return pd.Series(dtype=float)
-    tum = pd.concat(parcalar, ignore_index=True)
+    tum = pd.DataFrame({"anahtar": tum["anahtar"], "net": tum["metin"].map(net_etiket)})
     cesit = tum.groupby("anahtar")["net"].agg(lambda s: s.nunique(dropna=False))
     tek = tum.drop_duplicates("anahtar").set_index("anahtar")["net"]
     return tek[cesit[tek.index] == 1]

@@ -4107,7 +4107,8 @@
                 "type": "null"
               }
             ],
-            "title": "Edr Proxy"
+            "title": "Edr Proxy",
+            "description": "Gösterge ölçeği (0-1): birleşik log-normal gösterge eşlemesi, yoksa TI1 görsel ölçeği (tanh). EDR değildir; ölçülmüş ya da sertifikalı EDR yerine kullanılamaz."
           },
           "richardson_sayisi": {
             "anyOf": [

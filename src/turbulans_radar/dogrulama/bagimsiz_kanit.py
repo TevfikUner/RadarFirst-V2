@@ -61,6 +61,21 @@ def pirep_siddet_sinifi(metin) -> int | None:
     return 1 if re.search(r"MOD|MDT", metin) else 0
 
 
+# CAT dışı türbülans işareti (MET-07): konvektif (CB, TCU, TS ve +TSRA/VCTS/TSTM gibi
+# türevleri), dağ dalgası, alçak seviye rüzgâr kesmesi. Rapor metninin tamamında aranır;
+# TSE gibi istasyon kodları TS sayılmaz.
+_CAT_DISI_DESENI = re.compile(
+    r"\b(?:CB|CBS|TCU|LLWS)\b|MTN\s*WAVE|MTN\s*WV|(?<![A-Z])(?:VC|\+|-)?TS(?:RA|GR|GS|SN|PL|TMS?)*\b"
+)
+
+
+def cat_disi_mi(rapor) -> bool | None:
+    """True: PIREP metni konvektif/dağ dalgası/LLWS işareti taşıyor; None: metin yok."""
+    if not isinstance(rapor, str) or not rapor.strip():
+        return None
+    return bool(_CAT_DISI_DESENI.search(rapor.upper()))
+
+
 def pirepleri_normalize_et(ham: pd.DataFrame) -> pd.DataFrame:
     if "REPORT" in ham.columns:
         ham = ham[~ham["REPORT"].fillna("").str.contains(_KONUM_BILINMIYOR_DESENI)]

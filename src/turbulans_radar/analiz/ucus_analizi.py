@@ -90,13 +90,12 @@ def _ozet_yazdir(eslesmis_df, ucus_numarasi, tarih_str):
                 f"(dinamik kararsızlık, TI1'den BAĞIMSIZ ek gösterge): "
                 f"{kararsiz_sayisi} nokta ({kararsiz_sayisi / gecerli_sayisi * 100:.1f}%)"
             )
-    if not config.EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI:
+    if not config.TI1_GORSEL_OLCEK_PIREP_SINIFINA_UYDURULDU:
         print(
-            f"[Uyarı] EDR proxy ölçeklendirme katsayısı ({config.EDR_OLCEKLENDIRME_KATSAYISI}) "
-            f"HENÜZ GERÇEK PIREP/AMDAR VERİSİYLE KALİBRE EDİLMEDİ -- keyfi bir başlangıç "
-            f"değeridir. Kalibre etmek için kalibrasyon.py'yi kullan, sonucu "
-            f"config.EDR_OLCEKLENDIRME_KATSAYISI'ye yaz ve "
-            f"EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI = True yap."
+            f"[Uyarı] TI1 görsel ölçeğinin (EDR değildir) katsayısı ({config.EDR_OLCEKLENDIRME_KATSAYISI}) "
+            f"henüz PIREP sınıflarına uydurulmadı -- keyfi bir başlangıç değeridir. "
+            f"turbulans-edr-kalibrasyon ile uydur, sonucu config.EDR_OLCEKLENDIRME_KATSAYISI'ye yaz ve "
+            f"TI1_GORSEL_OLCEK_PIREP_SINIFINA_UYDURULDU = True yap."
         )
     print("=" * 60 + "\n")
 

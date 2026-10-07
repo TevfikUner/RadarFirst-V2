@@ -1,7 +1,7 @@
 """
 api_servisi.py
 -----------------
-Hava durumu eşleştirme sonuçlarını (Ellrod TI1, Richardson, EDR proxy) JSON
+Hava durumu eşleştirme sonuçlarını (Ellrod TI1, Richardson, gösterge ölçeği -- EDR değildir) JSON
 olarak dışarıya sunan FastAPI servis katmanı.
 
 Güvenlik: /api/v1/* altındaki TÜM uç noktalar 'X-API-Key' başlığıyla
