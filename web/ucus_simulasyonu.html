@@ -102,7 +102,7 @@
     <label>Arama uzayı</label>
     <select id="arama-uzayi">
       <option value="koridor">Serbest koridor (büyük daire çevresi)</option>
-      <option value="ats">ATS yolları / FRA (yüklü ağ)</option>
+      <option value="ats">FRATURK serbest rota (FL305+, 20:00–02:00 UTC)</option>
     </select>
 
     <button id="simule-et-buton">Simüle Et</button>
@@ -305,7 +305,8 @@ function sonucPanelDoldur(sonuc) {
     ? "geçmiş tarihli analiz"
     : `uçuş öncesi planlama, kalkışa ${ufuk.kalkisa_kalan_saat.toFixed(1)} sa`;
   document.getElementById("kapsam-satiri").textContent =
-    `Kapsam: yalnız seyir safhası (ToC–ToD); ATS yolları ve trafik ayırması dikkate alınmaz${kullanim ? " · " + kullanim : ""}.`;
+    `Kapsam: yalnız seyir safhası (ToC–ToD); ${sonuc.ats ? `rota ağı: ${sonuc.ats.etiket}` : "ATS yolları dikkate alınmaz"}; ` +
+    `trafik ayırması dikkate alınmaz${kullanim ? " · " + kullanim : ""}.`;
 
   const kaynakEl = document.getElementById("kaynak-etiketi");
   if (sonuc.ruzgar_verisi_kaynagi === "era5_gercek") {
@@ -363,7 +364,8 @@ function sonucPanelDoldur(sonuc) {
   document.getElementById("strateji-satiri").textContent =
     (stratejiEtiketleri[sonuc.kacinma_stratejisi] || "") +
     (sonuc.kacinma_stratejisi === "yanal" ? ` (rotadan en çok ${sapmaNm.toFixed(0)} NM)` : "") +
-    (sonuc.ats ? ` · ATS: ${atsMetni(sonuc.ats.optimize_rota)} (${sonuc.ats.kaynak})` : "");
+    (sonuc.ats ? ` · FRA: ${atsMetni(sonuc.ats.optimize_rota)} (${sonuc.ats.kaynak})` : "") +
+    (sonuc.ats?.uyarilar?.length ? ` · ⚠ ${sonuc.ats.uyarilar.join(" ")}` : "");
 
   // Önce GÜVENLİK durumu, sonra yakıt etkisi ayrı ayrı gösterilir -- ikisini
   // tek bir "iyi/kötü" yargısına karıştırmıyoruz (bkz. rota_optimizasyonu.py

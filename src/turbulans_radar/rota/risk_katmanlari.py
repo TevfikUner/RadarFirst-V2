@@ -111,12 +111,12 @@ class Ti1CezaKatmani:
         )
 
 
-def _km_tamponla(geometri, tampon_km):
-    """Geometriyi yerel eşdikdörtgen km düzleminde tamponlar. Boylam ölçeği
-    geometrinin EN YÜKSEK mutlak enleminden (75°'ye kelepçeli) alınır:
-    derece cinsinden en geniş tampon, her noktada en az `tampon_km` verir
-    (bkz. rota_optimizasyonu._km_boylam_derecesine_cevir)."""
-    if tampon_km <= 0 or geometri.is_empty:
+def km_tamponla(geometri, tampon_km):
+    """Geometriyi yerel eşdikdörtgen km düzleminde tamponlar (negatifse
+    daraltır). Boylam ölçeği geometrinin EN YÜKSEK mutlak enleminden (75°'ye
+    kelepçeli) alınır: derece cinsinden en geniş tampon, her noktada en az
+    `|tampon_km|` verir (bkz. rota_optimizasyonu._km_boylam_derecesine_cevir)."""
+    if tampon_km == 0 or geometri.is_empty:
         return geometri
     _, enlem0, _, enlem1 = shapely.bounds(geometri)
     kos_enlem = np.cos(np.radians(min(max(abs(enlem0), abs(enlem1)), 75.0)))
@@ -147,7 +147,7 @@ def sigmet_geometrisi(poligon, tampon_km=0.0, geometri=None):
     kaydırılarak karşı yarım küreye taşınır."""
     if geometri is None:
         geometri = shapely.make_valid(shapely.Polygon(poligon))
-    return _antimeridyende_bol(_km_tamponla(geometri, tampon_km))
+    return _antimeridyende_bol(km_tamponla(geometri, tampon_km))
 
 
 class PoligonKisitKatmani:

@@ -31,10 +31,23 @@ turbulans-kisitli-saha ice-aktar ats_verisi/aip_enr51.geojson --kaynak aip_enr51
     girmez ve ATS modu nedenini söyleyen bir hatayla döner (ağda ENR 3.1 yolları yok).
   - AIP'te en uzun DCT sınırı yoktur; 200 km bizim hesap kolaylığı için koyduğumuz
     üst sınırdır (`--dct-km`), uzun bacaklar birden çok FRA noktasından geçer.
-  - FRA sınırına 5 NM'den yakın DCT planlanamaz ve yalnızca yayımlanmış noktalar
-    kullanılabilir. İkinci kural sağlanıyor (ağda yalnız ENR 4.4 noktaları var;
-    ara noktalar yalnız risk değerlendirmesi içindir); 5 NM sınır tamponu
-    modellenmedi.
+  - FRA sınırına 5 NM'den yakın DCT planlanamaz (§5.2.1.6), FIR dışına taşan
+    DCT yasak (§5.2.5) ve yalnızca yayımlanmış noktalar kullanılabilir. Ağ
+    `fra.firler` (LTAA, LTBB) ve `fra.sinir_tamponu_nm` (5) taşır; DCT'ler ağ
+    yüklenirken FIR birleşiminin 5 NM içeri daraltılmış alanına göre süzülür
+    (20.514 adaydan 724'ü elendi, AIRAC 09/26). Sınırdaki E/X noktalarından
+    çıkan kenarın bant içindeki uç parçası muaftır, ama en fazla ucun iç
+    bölgeye uzaklığının 2 katı (≥30° açıyla uzaklaşma; bizim varsayımımız) ve
+    FIR dışına yalnız ucun kendisi dışarıdaysa. FIR sınırı VATSIM'in yaklaşık
+    çizimidir (bazı E/X noktaları çizimin 7 km'ye kadar dışında kalıyor).
+  - FRA kapanışı (§5.5.2.1): FRA uçuşu 02:00'den önce FRATURK'tan çıkmalı.
+    Her FRA kenarına giriş pencere içinde, kenar sonuna nominal varış +
+    belirsizlik payı (`ROTA_ZAMAN_BELIRSIZLIK_*`) kapanıştan önce olmalı.
+  - Bağlantı rolleri (§5.2.2–5.2.3): ToC yalnız D/E, ToD yalnız A/X rollü
+    noktalara bağlanır; FIR içindeki uç önce D/A'yı dener. Ağda ENR 4.1
+    seyrüsefer yardımcıları (ör. LTCI'nin varış bağlantı noktaları EZS, DYB)
+    olmadığı için bazı meydanlarda 150 km içinde A/D noktası yoktur; o zaman
+    E/X noktası kullanılır ve yanıtta `ats.uyarilar` bunu söyler.
   - Bu saatler ilk uygulamada (2025–26 kışı) geçerliydi; 2026–27 kışında H24'e
     geçilmesi planlanıyor. Her AIRAC'ta ENR 1.3 yeniden kontrol edilmeli.
 - **ENR 5.1:** Kural tabanlı alınır; kurala uymayanlar gerekçesiyle "ATLANDI"
@@ -99,7 +112,7 @@ python -c "from turbulans_radar.rota.hava_yolu_agi import agi_yukle; a = agi_yuk
 - Hatalı bir dosya hangi satırda ne sorun olduğunu söyler; örneğin `yollar[3] (UL333): tanımsız nokta(lar): XXXXX`.
 - Docker'da `./ats_verisi` klasörü konteynere salt okunur bağlanır; dosyayı
   değiştirince API'yi yeniden başlatmak gerekmez.
-- Arayüzde "Arama uzayı → ATS yolları / FRA" seçilir. API'de
+- Arayüzde "Arama uzayı → FRATURK serbest rota (FL305+, 20:00–02:00 UTC)" seçilir. API'de
   `"arama_uzayi": "ats"` kullanılır.
 
 ### Sistem bu veriyi nasıl kullanır

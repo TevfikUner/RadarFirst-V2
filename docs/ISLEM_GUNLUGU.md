@@ -2,6 +2,13 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-07 (dal `claude/fraturk-kurallari`, Uzman Madde 5)
+
+- ✅ FRA penceresi düğüm zamanıyla: kenar sonu (belirsizlik payıyla) 02:00'den önce olmalı (ENR 1.3 §5.5.2.1).
+- ✅ ToC D/E, ToD A/X rollü noktalara; FIR içinde önce D/A, yoksa E/X + `ats.uyarilar` (ENR 4.1 noktaları ağda yok).
+- ✅ DCT'ler FIR içinde ve sınıra ≥5 NM (§5.2.1.6, §5.2.5): 20.514 adaydan 724'ü elendi; VATSIM sınırı yaklaşık.
+- ✅ Etiket "FRATURK serbest rota (FL305+, 20:00–02:00 UTC)"; SISTEM_KARTI/README düzeltildi. Tam test: 850 geçti.
+
 ## 2026-10-07 (dal `claude/sigmet-tampon`, Uzman Madde 4)
 
 - ✅ Gece işi: ml_veri 11:38 UTC'de başladı (çalışıyor); 6 Eki eğitimi kapıyı geçmedi (F1 0,680 / 0,701).
