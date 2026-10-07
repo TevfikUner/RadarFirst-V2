@@ -5472,6 +5472,16 @@
               }
             ],
             "title": "Yayin Ufku Saat"
+          },
+          "tampon": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/SigmetTamponuYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -5572,6 +5582,17 @@
               }
             ],
             "title": "Hareket Hizi Kt"
+          },
+          "yanal_tampon_nm": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yanal Tampon Nm"
           }
         },
         "type": "object",
@@ -5582,6 +5603,37 @@
           "poligon"
         ],
         "title": "SigmetOzetiYaniti"
+      },
+      "SigmetTamponuYaniti": {
+        "properties": {
+          "yanal_nm": {
+            "additionalProperties": {
+              "type": "number"
+            },
+            "type": "object",
+            "title": "Yanal Nm",
+            "default": {}
+          },
+          "dikey_ft": {
+            "type": "number",
+            "title": "Dikey Ft",
+            "default": 0.0
+          },
+          "aciklama": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "title": "SigmetTamponuYaniti",
+        "description": "Kaçınmada poligona eklenen pay; parametrik varsayım, kalibre edilmedi."
       },
       "SigmetYaniti": {
         "properties": {

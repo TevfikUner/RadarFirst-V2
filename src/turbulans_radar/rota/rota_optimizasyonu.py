@@ -942,10 +942,12 @@ def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, t
             "poligon": sg["poligon"],
             "hareket_yonu_derece": sg.get("hareket_yonu_derece"),
             "hareket_hizi_kt": sg.get("hareket_hizi_kt"),
+            "yanal_tampon_nm": katman.yanal_tampon_nm(sg),
         }
         for sg in katman.sigmetler
     ]
     ozet["aktif_sigmet_sayisi"] = len(katman.sigmetler)
+    ozet["tampon"] = katman.tampon_ozeti()
     ozet.update(sigmet_ufku(baslangic, bitis))
     if not katman.sigmetler:
         return None, ozet

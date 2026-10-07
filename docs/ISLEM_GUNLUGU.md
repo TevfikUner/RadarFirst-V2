@@ -2,6 +2,13 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-07 (dal `claude/sigmet-tampon`, Uzman Madde 4)
+
+- ✅ Gece işi: ml_veri 11:38 UTC'de başladı (çalışıyor); 6 Eki eğitimi kapıyı geçmedi (F1 0,680 / 0,701).
+- ✅ SIGMET yanal tampon (TS/CONVECTIVE 20 NM, TURB/MTW 10 NM) + dikey 1000 ft; parametrik varsayım, kalibre edilmedi.
+- ✅ Tampon antimeridyen bölmesinden önce km düzleminde; yanıtta `sigmet_kontrolu.tampon`; bağımsız kanıt tamponsuz.
+- ✅ Tam test: 835 geçti. Demo SIGMET test kutusu küçültüldü (tamponla rota bulunamıyordu).
+
 ## 2026-10-06 (dal `claude/denetim-duzeltmeleri`, uçtan uca denetim + düzeltmeler)
 
 - ✅ Denetim raporu `test_raporu/2026-10-06/RAPOR.md` + `ozet.html`; `scripts/tam_denetim.sh`, `scripts/demo_goster.py`.

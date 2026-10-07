@@ -205,7 +205,7 @@ def rota_maruziyeti(kanit: BagimsizKanit, enlemler, boylamlar, zamanlar, irtifa_
     sonuc = {"turb_sigmet": None, "pirep_raporu": None, "mog_pirep": None}
     zamanlar = list(zamanlar)
     if kanit.turb_sigmetleri is not None:
-        katman = SigmetKisitKatmani(kanit.turb_sigmetleri, tehlikeler=TURBULANS_TEHLIKELERI)
+        katman = SigmetKisitKatmani(kanit.turb_sigmetleri, tehlikeler=TURBULANS_TEHLIKELERI, tamponlu=False)
         irtifa_m = float(np.median(np.asarray(irtifa_ft, dtype=float))) * 0.3048
         sonuc["turb_sigmet"] = katman.rota_ihlal_sayisi(enlemler, boylamlar, zamanlar, irtifa_m)
     if kanit.pirepler is not None:
