@@ -104,8 +104,12 @@ def test_rota_olc_a_yildizi_ayri_zamanlar_ve_geri_yukler(monkeypatch):
         }
 
     monkeypatch.setattr(ro, "rota_simulasyonu_olustur", sahte_rota)
+    from turbulans_radar import config
+
+    canli_once = config.CANLI_HAVA_VERISI_ETKIN
     sonuc = po.rota_olc(tekrar=2)
     assert ro._a_yildiz_ile_rota_ara is yerlesik and asil is not None
+    assert config.CANLI_HAVA_VERISI_ETKIN == canli_once
     assert len(cagrilar) == 2 * len(po.ROTA_SENARYOLARI)
     senaryolar = {s["ad"][:2]: s for s in sonuc["senaryolar"]}
     assert senaryolar["S6"]["a_yildiz_medyan_ms"] is not None and senaryolar["S2"]["a_yildiz_medyan_ms"] is None

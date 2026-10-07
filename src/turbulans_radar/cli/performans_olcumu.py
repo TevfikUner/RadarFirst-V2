@@ -167,8 +167,7 @@ def rota_olc(tekrar=6) -> dict:
     from turbulans_radar.rota import rota_optimizasyonu as ro
     from turbulans_radar.veri.kisitli_saha_saglayici import ORNEK_DOSYA, ORNEK_KAYNAK, geojson_kayitlarina_cevir
 
-    config.ERA5_OTOMATIK_INDIRME = False
-    config.CANLI_HAVA_VERISI_ETKIN = False
+    eski_ayarlar = (config.ERA5_OTOMATIK_INDIRME, config.CANLI_HAVA_VERISI_ETKIN)
     sahalar = geojson_kayitlarina_cevir(json.loads(ORNEK_DOSYA.read_text(encoding="utf-8")), ORNEK_KAYNAK)
     a_yildiz_sureleri = []
     asil_a_yildiz = ro._a_yildiz_ile_rota_ara
@@ -180,6 +179,7 @@ def rota_olc(tekrar=6) -> dict:
 
     senaryolar = []
     ro._a_yildiz_ile_rota_ara = olculen_a_yildiz
+    config.ERA5_OTOMATIK_INDIRME = config.CANLI_HAVA_VERISI_ETKIN = False
     try:
         for ad, girdi, kisit in ROTA_SENARYOLARI:
             sigmetler = [_sentetik_sigmet()] if kisit == "sigmet" else []
@@ -208,6 +208,7 @@ def rota_olc(tekrar=6) -> dict:
             )
     finally:
         ro._a_yildiz_ile_rota_ara = asil_a_yildiz
+        config.ERA5_OTOMATIK_INDIRME, config.CANLI_HAVA_VERISI_ETKIN = eski_ayarlar
     sicaklar = [s["sicak_medyan_ms"] for s in senaryolar]
     return {
         "tekrar": tekrar,
