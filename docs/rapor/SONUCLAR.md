@@ -129,6 +129,51 @@ anlamlı ama küçük bir farkla geçti (+0,023, GA alt sınırı +0,002).
 eğitilen bir aday aktif modeli geçtiğinde kendiliğinden kapanır; gece işi her gece
 aday üretir.
 
+### 2.3 Duyarlılık analizleri (Madde 7, isteğe bağlı)
+
+7 Ekim 2026'daki veriyle yapıldı: 7.815 örnek, 80 gün. Altın test günleri 16 gün ve
+1.554 örnek. Komut `turbulans-ml-duyarlilik --cikti docs/rapor/veri`, ham sayılar
+[`veri/ml_duyarlilik.json`](veri/ml_duyarlilik.json). Bu analizler eğitim protokolünü
+ve aktif modeli değiştirmez.
+
+**Gruplu CV (VRB-07).** Altın günler dışındaki 64 günde 5 kat ve 3 tekrarla CV yapıldı.
+Gruplar gün, ISO hafta ya da takvim ayıdır.
+
+| Gruplama | Grup | LR ROC-AUC (±SE) | RF | GB | 1-SE seçimi |
+|---|---|---|---|---|---|
+| Gün | 64 | 0,699 ± 0,009 | 0,705 | 0,698 | LR |
+| ISO hafta | 50 | 0,698 ± 0,012 | 0,704 | 0,698 | LR |
+| Ay | 27 | 0,698 ± 0,008 | 0,705 | 0,698 | LR |
+
+Aynı veride TI1'in ROC-AUC'si 0,682'dir. Gruplar kabalaştıkça AUC değişmiyor; komşu
+günler arasında sızıntıya dair bir iz yok. Sınırlama: günler 2018–2020'ye seyrek
+dağılmış, 64 gün 50 ayrı haftaya düşüyor. Bu yüzden hafta gruplaması güne çok yakın ve
+testin gücü sınırlı.
+
+**Net örnek deneyi.** Bu deneyde yalnız net örneklerle eğitim yapıldı. Net negatif:
+PIREP metni NEG/SMOOTH/SMTH ve hafif yok. Net pozitif: orta ve üstü, LGT/LT yok.
+LGT-MOD gibi karışık raporlar dışarıda kaldı. Her model türü, altın günlerde standart
+etiketle ölçüldü. Ham metin yalnız yerel IEM arşivinde (2018–Mart 2020) var. Eşleşmiş
+örneklerin 6.759'unun metni bulundu; Nisan 2020 sonrası 12 günün metni yok, bu günler
+net ve metinli eğitime girmedi. Kalibrasyon yapılmadı; ROC-AUC sıralamaya bağlı
+olduğundan karşılaştırma için yeterli.
+
+| Eğitim verisi | Örnek (pozitif oranı) | LR | RF | GB | Net − tüm, GA'sı 0'ı içeriyor mu |
+|---|---|---|---|---|---|
+| Tümü | 6.261 (%53) | 0,681 | 0,704 | 0,706 | — |
+| Metni olanlar | 5.390 (%53) | 0,680 | 0,704 | 0,701 | — |
+| Yalnız net | 2.390 (%73) | 0,685 | 0,701 | 0,708 | Üçünde de evet (LR +0,004 [−0,001; +0,008]) |
+
+Aynı günlerde TI1'in ROC-AUC'si 0,673. Net etiketle eğitmek anlamlı bir iyileşme
+getirmedi. LGT-MOD'u pozitife katan etiket tanımı korunuyor.
+
+**Yan bulgu (karar değil).** Altın günlerde kalibre edilmemiş RF ve GB, TI1'i
+sırasıyla +0,031 [+0,016; +0,047] ve +0,033 [+0,013; +0,053] farkla geçiyor. Protokolün
+1-SE kuralıyla seçtiği LR ise geçemiyor (+0,008 [−0,006; +0,022]). Bu fark yalnız test
+günlerine bakılarak görüldü. Seçim kuralını buna göre değiştirmek test verisine bakarak
+model seçmek olur. Bu yüzden 18 Ekim dondurmasında protokol değişmeden uygulanır; bulgu
+yalnız tartışma bölümünde yer alır.
+
 ## 3. Nesnel değerlendirme: MADIS ölçülen EDR (M1)
 
 Etiket: MADIS maxEDR ≥ 0,1 (hafif ve üstü). 12.232 ölçüm, 372 pozitif (%3,0), 4 gün.
@@ -182,6 +227,6 @@ etiket tanımı, holdout kuralı ve kapı ölçütü değişmez. Rapordaki nihai
 tarihteki veritabanı yedeğinden yukarıdaki komutlarla yeniden üretilir. Dondurmadan
 önce açık işler:
 
-- Penceresiz 1.597 örneğin yeni fizikle yeniden indirilmesi (gece işi kuyruğunda)
+- ~~Penceresiz 1.597 örneğin yeni fizikle yeniden indirilmesi~~ (7 Eki: penceresiz eşleşmiş örnek kalmadı)
 - TI1 eşiklerinin yeni fiziğe göre yeniden değerlendirilmesi
 - MADIS'te en az 5 güne ulaşılması (GA için)

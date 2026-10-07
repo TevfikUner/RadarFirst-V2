@@ -2,6 +2,13 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-07 (dal `claude/ml-duyarlilik`, Madde 7 isteğe bağlı)
+
+- ✅ `turbulans-ml-duyarlilik`: gün/ISO hafta/ay gruplu CV; LR AUC 0,699/0,698/0,698 → sızıntı izi yok.
+- ✅ Net örnek deneyi (NEG/SMOOTH vs LGT'siz MOD+): anlamlı iyileşme yok; etiket tanımı korunur.
+- ⚠️ Yan bulgu: altın günlerde RF/GB TI1'i geçiyor, 1-SE'nin seçtiği LR geçmiyor; protokol değişmez (test'e bakarak seçim olur).
+- ✅ Penceresiz eşleşmiş örnek kalmadı (SONUCLAR §6 güncellendi). Ayrıntı: `docs/rapor/SONUCLAR.md` §2.3.
+
 ## 2026-10-07 (dal `claude/ml-protokolu`, Madde 7)
 
 - ✅ Altın test günleri donduruldu (80 günden rastgele 16, tohum 0, `ml/altin_test_gunleri.json`); hiçbir eğitime girmez.

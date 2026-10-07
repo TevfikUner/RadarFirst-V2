@@ -1,0 +1,299 @@
+{
+  "ornek": 7815,
+  "gun": 80,
+  "cv_duyarliligi": {
+    "ti1_roc_auc": 0.682209453359505,
+    "gruplamalar": {
+      "gun": {
+        "grup_sayisi": 64,
+        "kat_sayisi": 5,
+        "secilen_model": "Lojistik Regresyon",
+        "modeller": {
+          "Lojistik Regresyon": {
+            "roc_auc": 0.6994139660696108,
+            "roc_auc_std": 0.0005563673431952812,
+            "roc_auc_se": 0.009418320390339387
+          },
+          "Random Forest": {
+            "roc_auc": 0.7050439476805913,
+            "roc_auc_std": 0.00043531218530754647,
+            "roc_auc_se": 0.009629115339319887
+          },
+          "Gradient Boosting": {
+            "roc_auc": 0.6975209095218746,
+            "roc_auc_std": 0.000829858848024078,
+            "roc_auc_se": 0.0087413253088674
+          }
+        }
+      },
+      "iso_hafta": {
+        "grup_sayisi": 50,
+        "kat_sayisi": 5,
+        "secilen_model": "Lojistik Regresyon",
+        "modeller": {
+          "Lojistik Regresyon": {
+            "roc_auc": 0.6978941548642696,
+            "roc_auc_std": 0.0007795604641781211,
+            "roc_auc_se": 0.011836203873767102
+          },
+          "Random Forest": {
+            "roc_auc": 0.7042814990464143,
+            "roc_auc_std": 0.001291438064209581,
+            "roc_auc_se": 0.01147719457364002
+          },
+          "Gradient Boosting": {
+            "roc_auc": 0.6975761052526948,
+            "roc_auc_std": 0.0006872436834226994,
+            "roc_auc_se": 0.012688384582045393
+          }
+        }
+      },
+      "ay": {
+        "grup_sayisi": 27,
+        "kat_sayisi": 5,
+        "secilen_model": "Lojistik Regresyon",
+        "modeller": {
+          "Lojistik Regresyon": {
+            "roc_auc": 0.6982922672999873,
+            "roc_auc_std": 0.0004244851946763359,
+            "roc_auc_se": 0.007664587897958185
+          },
+          "Random Forest": {
+            "roc_auc": 0.7053858915479329,
+            "roc_auc_std": 0.000793128987794454,
+            "roc_auc_se": 0.007303241166638489
+          },
+          "Gradient Boosting": {
+            "roc_auc": 0.6975719408252612,
+            "roc_auc_std": 0.002021907762913369,
+            "roc_auc_se": 0.008549902622313468
+          }
+        }
+      }
+    }
+  },
+  "net_ornek_deneyi": {
+    "kural": "net negatif: NEG/SMOOTH/SMTH ve LGT/LT yok; net pozitif: orta ve üstü, LGT/LT yok",
+    "metinli_ornek": 6759,
+    "holdout": {
+      "yontem": "altın test günleri",
+      "ornek": 1554,
+      "pozitif": 747,
+      "gun": 16
+    },
+    "ti1_roc_auc": 0.6733327361490572,
+    "varyantlar": {
+      "tum": {
+        "egitim_ornek": 6261,
+        "egitim_pozitif_orani": 0.5297875738699889,
+        "egitim_gun": 64,
+        "modeller": {
+          "Lojistik Regresyon": {
+            "roc_auc": 0.6812570397243662,
+            "eksi_ti1": {
+              "fark": 0.007924303575309044,
+              "alt": -0.005920789517858514,
+              "ust": 0.022478685560091034,
+              "p_degeri": 0.264,
+              "anlamli": false,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            }
+          },
+          "Random Forest": {
+            "roc_auc": 0.7043697300561188,
+            "eksi_ti1": {
+              "fark": 0.031036993907061605,
+              "alt": 0.015911778851865344,
+              "ust": 0.04674052440085905,
+              "p_degeri": 0.0,
+              "anlamli": true,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            }
+          },
+          "Gradient Boosting": {
+            "roc_auc": 0.7064150862018914,
+            "eksi_ti1": {
+              "fark": 0.03308235005283422,
+              "alt": 0.012951568164842985,
+              "ust": 0.052972128311233144,
+              "p_degeri": 0.002,
+              "anlamli": true,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            }
+          }
+        }
+      },
+      "metinli": {
+        "egitim_ornek": 5390,
+        "egitim_pozitif_orani": 0.5330241187384045,
+        "egitim_gun": 54,
+        "modeller": {
+          "Lojistik Regresyon": {
+            "roc_auc": 0.6798768805084028,
+            "eksi_ti1": {
+              "fark": 0.006544144359345583,
+              "alt": -0.008280969755676416,
+              "ust": 0.02217872654805217,
+              "p_degeri": 0.392,
+              "anlamli": false,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            },
+            "eksi_tum": {
+              "fark": -0.0013801592159634612,
+              "alt": -0.0023988430458725504,
+              "ust": -0.0001802294855694636,
+              "p_degeri": 0.018,
+              "anlamli": true,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            }
+          },
+          "Random Forest": {
+            "roc_auc": 0.7039881956574751,
+            "eksi_ti1": {
+              "fark": 0.03065545950841786,
+              "alt": 0.015390122382023955,
+              "ust": 0.04719491036850349,
+              "p_degeri": 0.0,
+              "anlamli": true,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            },
+            "eksi_tum": {
+              "fark": -0.00038153439864374583,
+              "alt": -0.002848281810349467,
+              "ust": 0.002319150627705795,
+              "p_degeri": 0.732,
+              "anlamli": false,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            }
+          },
+          "Gradient Boosting": {
+            "roc_auc": 0.7011582057266654,
+            "eksi_ti1": {
+              "fark": 0.02782546957760823,
+              "alt": 0.008861370057801432,
+              "ust": 0.046763321875321645,
+              "p_degeri": 0.004,
+              "anlamli": true,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            },
+            "eksi_tum": {
+              "fark": -0.005256880475225989,
+              "alt": -0.01392762116784076,
+              "ust": 0.00219549526282807,
+              "p_degeri": 0.194,
+              "anlamli": false,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            }
+          }
+        }
+      },
+      "net": {
+        "egitim_ornek": 2390,
+        "egitim_pozitif_orani": 0.7317991631799163,
+        "egitim_gun": 54,
+        "modeller": {
+          "Lojistik Regresyon": {
+            "roc_auc": 0.6848119450125989,
+            "eksi_ti1": {
+              "fark": 0.011479208863541701,
+              "alt": -0.0018651597389161146,
+              "ust": 0.025591112231518318,
+              "p_degeri": 0.092,
+              "anlamli": false,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            },
+            "eksi_tum": {
+              "fark": 0.003554905288232657,
+              "alt": -0.0008781461477879134,
+              "ust": 0.008355144291474477,
+              "p_degeri": 0.132,
+              "anlamli": false,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            },
+            "eksi_metinli": {
+              "fark": 0.004935064504196118,
+              "alt": -0.00031798156077459934,
+              "ust": 0.010574099508366798,
+              "p_degeri": 0.086,
+              "anlamli": false,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            }
+          },
+          "Random Forest": {
+            "roc_auc": 0.7013804909850057,
+            "eksi_ti1": {
+              "fark": 0.028047754835948457,
+              "alt": 0.014032952530309875,
+              "ust": 0.04329194272721736,
+              "p_degeri": 0.0,
+              "anlamli": true,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            },
+            "eksi_tum": {
+              "fark": -0.002989239071113148,
+              "alt": -0.007729720635210502,
+              "ust": 0.00146093679507763,
+              "p_degeri": 0.196,
+              "anlamli": false,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            },
+            "eksi_metinli": {
+              "fark": -0.002607704672469402,
+              "alt": -0.008475711798692602,
+              "ust": 0.003039852915760585,
+              "p_degeri": 0.41,
+              "anlamli": false,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            }
+          },
+          "Gradient Boosting": {
+            "roc_auc": 0.7078441813515939,
+            "eksi_ti1": {
+              "fark": 0.034511445202536684,
+              "alt": 0.016561426392563347,
+              "ust": 0.053660150528257074,
+              "p_degeri": 0.0,
+              "anlamli": true,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            },
+            "eksi_tum": {
+              "fark": 0.001429095149702464,
+              "alt": -0.009080499785387998,
+              "ust": 0.012181160899047918,
+              "p_degeri": 0.714,
+              "anlamli": false,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            },
+            "eksi_metinli": {
+              "fark": 0.006685975624928453,
+              "alt": -0.0036796878272188547,
+              "ust": 0.01756237463267154,
+              "p_degeri": 0.196,
+              "anlamli": false,
+              "guven": 0.95,
+              "gecerli_tekrar": 1000
+            }
+          }
+        }
+      }
+    }
+  },
+  "uyari": "Karar destek analizidir; eğitim protokolünü ve aktif modeli değiştirmez."
+}
