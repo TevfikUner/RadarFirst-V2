@@ -5,9 +5,11 @@ ATS yolu ya da AIP verisi değildir (gerçek ağ depoya konmaz).
 """
 
 import json
+import os
 
 import pandas as pd
 import pytest
+import shapely
 
 from turbulans_radar import config
 from turbulans_radar.rota import hava_yolu_agi as hya
@@ -215,3 +217,176 @@ def test_fra_kapaliyken_ats_modu_nedenini_soyler():
     with pytest.raises(AtsAgiKullanilamazHatasi, match="FRA.*10:00 UTC.*20:00-02:00 UTC"):
         _rota(ag)
     assert _rota(ag, zaman="2019-01-15T21:00:00")["kapsam"]["arama_uzayi"] == "ats"
+
+
+@pytest.mark.parametrize(
+    "giris, sure_dk, uygun",
+    [("20:00", 0, True), ("21:00", 90, True), ("00:25", 95, True), ("01:55", 4, True), ("01:55", 10, False)],
+)
+def test_fra_penceresi_cikisi_kapanistan_once_ister(giris, sure_dk, uygun):
+    ag = _yalniz_fra([{"baslangic": "20:00", "bitis": "02:00"}])
+    t = pd.Timestamp(f"2019-01-15T{giris}Z")
+    assert ag.fra_penceresinde_mi(t, t + pd.Timedelta(minutes=sure_dk)) is uygun
+
+
+def test_tum_gun_fra_penceresi_her_zaman_acik():
+    ag = _yalniz_fra([{"baslangic": "00:00", "bitis": "24:00"}])
+    t = pd.Timestamp("2019-01-15T23:50Z")
+    assert ag.fra_penceresinde_mi(t, t + pd.Timedelta(hours=3))
+
+
+def test_fra_kapanisini_asan_ucusa_rota_yok():
+    """01:55 kalkış, ~70 dk nominal (belirsizlik payıyla ~90 dk) uçuş: FRATURK
+    02:00'de kapanır; IFPS bu planı reddeder (ENR 1.3 §5.5.2.1)."""
+    ag = _yalniz_fra([{"baslangic": "20:00", "bitis": "02:00"}])
+    with pytest.raises(AtsAgiKullanilamazHatasi, match=r"§5\.5\.2\.1.*01:55 UTC"):
+        _rota(ag, zaman="2019-01-15T01:55:00")
+    assert _rota(ag, zaman="2019-01-15T00:00:00")["kapsam"]["arama_uzayi"] == "ats"
+
+
+def test_fra_kenari_dugum_zamanina_gore_elenir():
+    ag = _yalniz_fra([{"baslangic": "20:00", "bitis": "02:00"}])
+    t0 = pd.Timestamp("2019-01-15T01:30Z")
+    zamanlar = {d: (t0, t0) for d in ag.noktalar} | {"TESTE": (t0, t0 + pd.Timedelta(minutes=40))}
+    _, komsular, _ = hya.arama_grafi(ag, TOC, TOD, irtifa_ft=36000, zaman=t0, dugum_zamanlari=zamanlar)
+    assert [h for h, _ in komsular["TESTS"]] == ["TESTW"]
+
+
+def _rollu_veri():
+    veri = _veri(
+        yollar=[],
+        fra={"noktalar": ["TESTW", "TESTD", "TESTS", "TESTA", "TESTE"], "dct_maks_km": 450, "alt_fl": 305},
+    )
+    veri["noktalar"] = [
+        {"ad": "TESTW", "enlem": 45.0, "boylam": -40.0, "fra_rolleri": ["I"]},
+        {"ad": "TESTD", "enlem": 45.5, "boylam": -40.0, "fra_rolleri": ["D", "I"]},
+        {"ad": "TESTS", "enlem": 45.0, "boylam": -35.0, "fra_rolleri": ["I"]},
+        {"ad": "TESTA", "enlem": 45.5, "boylam": -30.0, "fra_rolleri": ["A"]},
+        {"ad": "TESTE", "enlem": 45.0, "boylam": -30.0, "fra_rolleri": ["E", "X"]},
+    ]
+    return veri
+
+
+def test_toc_yalniz_kalkis_tod_yalniz_varis_rollerine_baglanir():
+    ag = hya.agi_kur(_rollu_veri(), ara_nokta_km=0)
+    _, komsular, _ = hya.arama_grafi(ag, TOC, TOD, irtifa_ft=36000)
+    assert [h for h, _ in komsular[hya.BASLANGIC]] == ["TESTD"]
+    assert sorted(a for a, hedefler in komsular.items() if (hya.BITIS, "DCT") in hedefler) == ["TESTA", "TESTE"]
+    sonuc = _rota(ag, irtifa_ft=36000)
+    noktalar = [n["nokta"] for n in sonuc["ats"]["normal_rota"]]
+    assert noktalar[1] == "TESTD" and noktalar[-2] in ("TESTA", "TESTE")
+    assert sonuc["ats"]["etiket"] == "FRA serbest rota (FL305+)"
+
+
+def test_fra_alani_icindeki_uc_d_a_disindaki_e_x_noktasina_baglanir():
+    ag = hya.agi_kur(_rollu_veri(), ara_nokta_km=0, fra_siniri=shapely.box(-42.0, 44.0, -29.5, 46.0))
+    _, komsular, _ = hya.arama_grafi(ag, TOC, TOD, irtifa_ft=36000)
+    assert [h for h, _ in komsular[hya.BASLANGIC]] == ["TESTD"]
+    assert [a for a, hedefler in komsular.items() if (hya.BITIS, "DCT") in hedefler] == ["TESTE"]
+    _, komsular, _ = hya.arama_grafi(ag, TOC, (45.2, -30.2), irtifa_ft=36000)
+    assert [a for a, hedefler in komsular.items() if (hya.BITIS, "DCT") in hedefler] == ["TESTA"]
+    assert not ag.rol_uyarilari([hya.BASLANGIC, "TESTD", "TESTA", hya.BITIS], TOC, (45.2, -30.2))
+
+
+def test_alan_icinde_varis_noktasi_yoksa_e_x_kullanilir_ve_uyarilir():
+    veri = _rollu_veri()
+    veri["noktalar"][3]["fra_rolleri"] = ["I"]
+    ag = hya.agi_kur(veri, ara_nokta_km=0, fra_siniri=shapely.box(-42.0, 44.0, -28.0, 46.0))
+    sonuc = _rota(ag, irtifa_ft=36000)
+    assert [n["nokta"] for n in sonuc["ats"]["normal_rota"]][-2] == "TESTE"
+    assert len(sonuc["ats"]["uyarilar"]) == 1 and "TESTE" in sonuc["ats"]["uyarilar"][0]
+
+
+def test_hatali_fra_rolu_reddedilir():
+    veri = _rollu_veri()
+    veri["noktalar"][0]["fra_rolleri"] = ["Q"]
+    with pytest.raises(hya.AtsAgiHatasi, match="fra_rolleri"):
+        hya.agi_kur(veri)
+
+
+def test_sinir_disina_tasan_dct_kenari_aga_girmez():
+    veri = _veri(yollar=[], fra={"noktalar": ["TESTW", "TESTS", "TESTE"], "dct_maks_km": 450})
+    sinir = shapely.box(-41.0, 44.0, -29.0, 46.0).difference(shapely.box(-37.6, 44.5, -37.4, 46.0))
+    ag = hya.agi_kur(veri, ara_nokta_km=0, fra_siniri=sinir)
+    dct = {(a, k.hedef) for a, kenarlar in ag.komsular.items() for k in kenarlar}
+    assert ("TESTS", "TESTE") in dct and ("TESTW", "TESTS") not in dct
+    assert ag.sinir_disi_dct_sayisi == 1
+
+
+def test_fir_birlesimi_ve_5_nm_sinir_kurali(monkeypatch):
+    from turbulans_radar.veri import fir_sinirlari
+
+    firler = {"TST1": shapely.box(-41.0, 44.0, -35.0, 46.0), "TST2": shapely.box(-35.0, 44.0, -29.0, 46.0)}
+    monkeypatch.setattr(fir_sinirlari, "fir_geometrisi", firler.get)
+    sinir = hya.fra_siniri_geometrisi(["TST1", "TST2"])
+    assert sinir.equals(shapely.box(-41.0, 44.0, -29.0, 46.0))
+    noktalar = {
+        "IC1": (45.0, -39.0),
+        "IC2": (45.0, -31.0),
+        "BANT1": (45.95, -39.0),
+        "BANT2": (45.95, -31.0),
+        "SINIR": (46.0, -36.0),
+        "DIK": (45.0, -36.0),
+        "YATIK": (45.85, -33.0),
+    }
+    ciftler = [("IC1", "IC2"), ("BANT1", "BANT2"), ("SINIR", "DIK"), ("SINIR", "YATIK")]
+    assert hya.sinir_icindeki_dct_maskesi(sinir, 5.0, ciftler, noktalar) == [True, False, True, False]
+    veri = _veri(
+        yollar=[],
+        fra={
+            "noktalar": ["TESTW", "TESTS", "TESTE"],
+            "dct_maks_km": 450,
+            "firler": ["TST1", "TST2"],
+            "sinir_tamponu_nm": 5,
+        },
+    )
+    veri["noktalar"][0]["enlem"] = 45.95
+    ag = hya.agi_kur(veri, ara_nokta_km=0)
+    dct = {(a, k.hedef) for a, kenarlar in ag.komsular.items() for k in kenarlar}
+    assert dct == {("TESTS", "TESTE"), ("TESTE", "TESTS")} and ag.sinir_disi_dct_sayisi == 1
+    with pytest.raises(hya.AtsAgiHatasi, match="YOK1"):
+        hya.fra_siniri_geometrisi(["TST1", "YOK1"])
+
+
+@pytest.mark.gercek_veri
+def test_gercek_fraturk_agi_sinir_ve_rol_kurallarina_uyar():
+    if not os.path.isfile(config.ATS_AGI_DOSYASI) or not os.path.isfile(config.FIR_SINIRLARI_DOSYASI):
+        pytest.skip("ats_verisi/ats_agi.json ya da FIR sınırı yok (turbulans-aip-ats, turbulans-statik)")
+    veri = json.loads(open(config.ATS_AGI_DOSYASI, encoding="utf-8").read())
+    noktalar = {n["ad"]: (n["enlem"], n["boylam"]) for n in veri["noktalar"]}
+    fra = veri["fra"]["noktalar"]
+    ciftler = [
+        (a, b)
+        for i, a in enumerate(fra)
+        for b in fra[i + 1 :]
+        if hya.mesafe_km(*noktalar[a], *noktalar[b]) <= veri["fra"]["dct_maks_km"]
+    ]
+    fir = hya.fra_siniri_geometrisi(["LTAA", "LTBB"])
+    gecerli = hya.sinir_icindeki_dct_maskesi(fir, 5.0, ciftler, noktalar)
+    tasan = []
+    for (a, b), ok in zip(ciftler, gecerli, strict=True):
+        if not ok:
+            continue
+        (e1, b1), (e2, b2) = noktalar[a], noktalar[b]
+        cizgi = shapely.LineString([hya._ara_nokta(e1, b1, e2, b2, i / 40)[::-1] for i in range(41)])
+        uclar = [shapely.Point(noktalar[x][1], noktalar[x][0]) for x in (a, b)]
+        for parca in shapely.get_parts(shapely.difference(cizgi, fir)):
+            if not parca.is_empty and not any(parca.distance(u) < 1e-9 and not fir.contains(u) for u in uclar):
+                tasan.append((a, b))
+    assert not tasan
+    ag = hya.agi_yukle()
+    assert ag.sinir_disi_dct_sayisi == gecerli.count(False)
+    bagli = {a for a, kenarlar in ag.komsular.items() if any(k.fra for k in kenarlar)}
+    assert all(ad in bagli for ad, rol in ag.fra_rolleri.items() if rol & set("EX"))
+    ist, van = (41.275, 28.752), (38.468, 43.332)
+    _, komsular, _ = hya.arama_grafi(ag, ist, van, irtifa_ft=35000, zaman=pd.Timestamp("2026-01-15T21:00Z"))
+    konum = {**ag.noktalar, hya.BASLANGIC: ist, hya.BITIS: van}
+    dugumler, _ = hya.a_yildiz(
+        komsular,
+        hya.BASLANGIC,
+        hya.BITIS,
+        lambda a, b: hya.mesafe_km(*konum[a], *konum[b]),
+        lambda d: hya.mesafe_km(*konum[d], *van),
+    )
+    assert "D" in ag.fra_rolleri[dugumler[1]] and ag.fra_rolleri[dugumler[-2]] & set("AX")
+    assert bool(ag.rol_uyarilari(dugumler, ist, van)) is ("A" not in ag.fra_rolleri[dugumler[-2]])

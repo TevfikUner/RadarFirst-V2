@@ -640,17 +640,24 @@ Doç. Dr. Fulya Aybek Çetek'in önerileri ve proje ekibinin analizi:
     (geçmiş analiz ya da uçuş öncesi planlama, kalkışa kalan saat) taşır.
   - Uçuşun SIGMET yayın ufkunun (4 sa) ötesindeki kısmı için `sigmet_ufuk_disi`
     uyarısı verilir.
-- **ATS yolu / FRA ağı:**
+- **FRATURK serbest rota ağı:**
   - `POST /api/v1/simulasyon/rota` gövdesinde `"arama_uzayi": "ats"`, ya da
-    arayüzde "Arama uzayı → ATS yolları".
+    arayüzde "Arama uzayı → FRATURK serbest rota (FL305+, 20:00–02:00 UTC)".
   - Rota, `ats_verisi/ats_agi.json` ağında graf tabanlı A* ile aranır. Ağ, AIP
-    Türkiye ENR 3/4.4'ten elle hazırlanır, depoya konmaz:
-    [docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md](docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md).
+    Türkiye ENR 4.4 noktalarından `turbulans-aip-ats` ile kurulur ve yalnız FRA
+    DCT kenarlarından oluşur; ATS yolları (ENR 3.1/3.2) ağda yoktur. Depoya
+    konmaz: [docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md](docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md).
   - Ağ yoksa istek 400 döner. Varsayılan `koridor` modu değişmedi.
   - Ağ otomatik hazırlanabilir: `turbulans-aip-ats --indir` (AIP Türkiye ENR 4.4,
     FL305–FL660 FRA). Kısıtlı sahalar için `turbulans-aip-sahalar --indir` (ENR 5.1).
   - FRA yalnızca AIP ENR 1.3'teki saatlerde (20:00–02:00 UTC, AIRAC 01/26)
-    kullanılır; bu saatlerin dışında ATS modu nedenini söyleyen 400 döner.
+    kullanılır. Her FRA kenarına girişin pencere içinde, kenar sonuna varışın
+    (belirsizlik payıyla) 02:00'den önce olması gerekir (§5.5.2.1); olmuyorsa
+    ATS modu nedenini söyleyen 400 döner.
+  - ToC yalnız D/E, ToD yalnız A/X rollü noktalara bağlanır (FIR içinde önce
+    D/A; menzilde yoksa E/X ve yanıtta `ats.uyarilar`). DCT kenarları FIR
+    içinde ve sınıra 5 NM'den uzak kalmalı (§5.2.1.6, §5.2.5); sınır VATSIM'in
+    yaklaşık çizimidir.
 - **Ayırma göstergesi:** `turbulans-ayirma UCUS TARIH [--sorgu-izni]`.
   - Gerçek iz, büyük daire ve önerilen rota; aynı zaman penceresinde uçmuş
     trafiğin ADS-B izleriyle karşılaştırılır.

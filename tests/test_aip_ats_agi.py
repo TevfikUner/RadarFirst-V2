@@ -1,6 +1,7 @@
 """AIP ENR 4.4 ayrıştırıcısı: metin AIP biçiminde ama noktalar SENTETİKTİR."""
 
 import pytest
+import shapely
 
 from turbulans_radar.cli import aip_ats_agi as aip
 from turbulans_radar.rota.hava_yolu_agi import agi_kur
@@ -50,7 +51,9 @@ def test_fra_agi_hava_yolu_agina_kurulur():
     veri = aip.fra_agi(kayitlar, airac, dct_maks_km=2000, alt_fl=305)
     assert "AIRAC AMDT 09/26" in veri["kaynak"]
     assert "TESTE" not in veri["fra"]["noktalar"]
-    ag = agi_kur(veri, ara_nokta_km=0)
+    assert veri["fra"]["firler"] == ["LTAA", "LTBB"] and veri["fra"]["sinir_tamponu_nm"] == 5.0
+    ag = agi_kur(veri, ara_nokta_km=0, fra_siniri=shapely.box(20.0, 30.0, 50.0, 50.0))
+    assert ag.fra_rolleri["TESTD"] == frozenset("ADI")
     assert {k.yol for kenarlar in ag.komsular.values() for k in kenarlar} == {"DCT"}
     assert all(k.alt_fl == 305 for kenarlar in ag.komsular.values() for k in kenarlar)
 

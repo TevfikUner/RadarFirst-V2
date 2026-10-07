@@ -417,11 +417,7 @@ def _a_yildiz_ile_rota_ara(
     # gereksiz "öneri yok"a düşebiliyordu; bu yüzden her düğümün zamanı,
     # kalkıştan geçen sürenin ROTA_ZAMAN_BELIRSIZLIK_ORANI'sı + sabit pay kadar
     # belirsiz sayılır.
-    belirsizlik = {
-        d: (nominal_zamanlar[d[0]] - nominal_zamanlar[0]) * config.ROTA_ZAMAN_BELIRSIZLIK_ORANI
-        + pd.Timedelta(minutes=config.ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA)
-        for d in dugumler
-    }
+    belirsizlik = {d: _zaman_belirsizligi(nominal_zamanlar[d[0]] - nominal_zamanlar[0]) for d in dugumler}
     risk = degerlendirmeleri_birlestir(
         katman.degerlendir(
             {d: konumlar[d] for d in dugumler},
@@ -513,6 +509,14 @@ def antimeridyeni_kesiyor_mu(boylamlar) -> bool:
     return bool(np.any(np.abs(np.diff(np.asarray(boylamlar, dtype=float))) > 180.0))
 
 
+def _ats_dugum_zamani(kalkis, bas, konum, tas_ms) -> pd.Timestamp:
+    return kalkis + pd.Timedelta(seconds=buyuk_daire_mesafesi_km(*bas, *konum) * 1000.0 / tas_ms)
+
+
+def _zaman_belirsizligi(gecen: pd.Timedelta) -> pd.Timedelta:
+    return gecen * config.ROTA_ZAMAN_BELIRSIZLIK_ORANI + pd.Timedelta(minutes=config.ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA)
+
+
 def _ats_ile_rota_ara(ag, bas, bit, irtifa_m, baslangic_zamani, tas_ms, veri_kupu, risk_katmanlari=()):
     """hava_yolu_agi grafında, ızgara aramasıyla AYNI maliyet (rüzgarlı süre +
     TI1 cezası) ve AYNI risk katmanlarıyla A*. Düğüm zamanı: ToC'den büyük daire
@@ -520,13 +524,14 @@ def _ats_ile_rota_ara(ag, bas, bit, irtifa_m, baslangic_zamani, tas_ms, veri_kup
     kapsamadığı düğümler elenir. Dönüş: (enlemler, boylamlar, düğümler, yollar)
     ya da yol yoksa None."""
     kalkis = pd.Timestamp(baslangic_zamani)
-    kalkis = kalkis.tz_localize("UTC") if kalkis.tzinfo is None else kalkis
-    konumlar, komsular, kenarlar = hava_yolu_agi.arama_grafi(ag, bas, bit, irtifa_m / 0.3048, kalkis.tz_convert("UTC"))
+    kalkis = kalkis.tz_localize("UTC") if kalkis.tzinfo is None else kalkis.tz_convert("UTC")
+    tum_konumlar = {**ag.noktalar, hava_yolu_agi.BASLANGIC: bas, hava_yolu_agi.BITIS: bit}
+    zamanlar = {d: _ats_dugum_zamani(kalkis, bas, k, tas_ms) for d, k in tum_konumlar.items()}
+    belirsizlik = {d: _zaman_belirsizligi(t - kalkis) for d, t in zamanlar.items()}
+    konumlar, komsular, kenarlar = hava_yolu_agi.arama_grafi(
+        ag, bas, bit, irtifa_m / 0.3048, kalkis, {d: (t, t + belirsizlik[d]) for d, t in zamanlar.items()}
+    )
     dugumler = list(konumlar)
-    zamanlar = {
-        d: kalkis + pd.Timedelta(seconds=buyuk_daire_mesafesi_km(*bas, *konumlar[d]) * 1000.0 / tas_ms)
-        for d in dugumler
-    }
     if veri_kupu is not None:
         disi = kapsam_disi_maskesi(
             veri_kupu,
@@ -537,11 +542,6 @@ def _ats_ile_rota_ara(ag, bas, bit, irtifa_m, baslangic_zamani, tas_ms, veri_kup
         dugumler = [d for d, x in zip(dugumler, disi, strict=True) if not x]
     gecerli = set(dugumler)
     kenarlar = [(a, b) for a, b in kenarlar if a in gecerli and b in gecerli]
-    belirsizlik = {
-        d: (zamanlar[d] - kalkis) * config.ROTA_ZAMAN_BELIRSIZLIK_ORANI
-        + pd.Timedelta(minutes=config.ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA)
-        for d in dugumler
-    }
     risk = degerlendirmeleri_birlestir(
         katman.degerlendir(
             {d: konumlar[d] for d in dugumler},
@@ -988,9 +988,12 @@ _KAPSAM_ORTAK = (
 )
 
 
-def kapsam(arama_uzayi="koridor", ats_kaynagi=None) -> dict:
+def kapsam(arama_uzayi="koridor", ats_kaynagi=None, ats_etiketi=None) -> dict:
     if arama_uzayi == "ats":
-        arama = f"Rota, yüklü ATS yolu/FRA ağı ({ats_kaynagi}) üzerinde aranır; ToC/ToD ağa doğrudan (DCT) bağlanır. "
+        arama = (
+            f"Rota, yüklü ağda ({ats_etiketi or 'ATS/FRA'}; {ats_kaynagi}) aranır; ToC/ToD ağa doğrudan (DCT) "
+            "bağlanır. "
+        )
     else:
         arama = "Rota, ATS yolları yerine büyük daire etrafındaki bir koridorda aranır. "
     return {
@@ -1226,6 +1229,14 @@ def rota_simulasyonu_olustur(
                 f"{ag.fra_saatleri_metni()}, AIP ENR 1.3); bu saatte ATS yolları (ENR 3.1) gerekir ve ağda yok. "
                 "Koridor modunu kullanın ya da FRA saatinde planlayın."
             )
+        tod = _ats_dugum_zamani(kalkis_utc, uclar[0], uclar[1], tas_ms)
+        tod_gec = tod + _zaman_belirsizligi(tod - kalkis_utc)
+        if planli is None and not ag.fra_penceresinde_mi(kalkis_utc, tod_gec):
+            raise AtsAgiKullanilamazHatasi(
+                f"FRA uçuşu FRA kapanmadan önce FRATURK'tan çıkmalı ({ag.fra_saatleri_metni()}, AIP ENR 1.3 "
+                f"§5.5.2.1); {kalkis_utc:%H:%M} UTC kalkışla tahmini ToD {tod:%H:%M} UTC (belirsizlik payıyla "
+                f"{tod_gec:%H:%M}). Daha erken planlayın ya da koridor modunu kullanın."
+            )
         if planli is None:
             raise AtsAgiKullanilamazHatasi(
                 f"ToC/ToD ATS ağına bağlanamadı (en yakın nokta {config.ATS_AGI_BAGLANTI_KM:.0f} km'den uzak) ya da "
@@ -1368,15 +1379,23 @@ def rota_simulasyonu_olustur(
         "co2_farki_kg": normal_yakit_kg * CO2_KG_PER_KG_YAKIT - optimize_yakit_kg * CO2_KG_PER_KG_YAKIT,
         "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
         "secenekler": secenekler,
-        "kapsam": kapsam(arama_uzayi, ag.kaynak if ag is not None else None),
+        "kapsam": kapsam(arama_uzayi, *((ag.kaynak, ag.etiket()) if ag is not None else ())),
         "planlama_ufku": planlama_ufku(zaman_iso),
         "ats": (
             None
             if ag is None
             else {
                 "kaynak": ag.kaynak,
+                "etiket": ag.etiket(),
                 "normal_rota": hava_yolu_agi.rota_ozeti(*ats_yollari["yok"][2:]),
                 "optimize_rota": hava_yolu_agi.rota_ozeti(*ats_yollari.get(en_iyi["strateji"], ats_yollari["yok"])[2:]),
+                "uyarilar": list(
+                    dict.fromkeys(
+                        u
+                        for yol in (ats_yollari["yok"], ats_yollari.get(en_iyi["strateji"], ats_yollari["yok"]))
+                        for u in ag.rol_uyarilari(yol[2], *uclar)
+                    )
+                ),
                 "buyuk_daire_km": sum(
                     buyuk_daire_mesafesi_km(enlemler_gc[i], boylamlar_gc[i], enlemler_gc[i + 1], boylamlar_gc[i + 1])
                     for i in range(len(enlemler_gc) - 1)

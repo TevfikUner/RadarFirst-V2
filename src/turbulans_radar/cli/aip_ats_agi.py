@@ -10,8 +10,9 @@ FRA rolleri (ENR 4.4 açıklaması): E yatay giriş, X yatay çıkış, I ara no
 A varış bağlantısı, D kalkış bağlantısı (EX, AD birleşik).
 
 Kurulan ağ: FRA rolü olan tüm noktalar arasında dct_maks_km'ye kadar doğrudan
-(DCT) kenarlar, FRA alt sınırından itibaren (varsayılan FL305; DHMİ duyurusu,
-AIP FRA kurallarından doğrulanmalı). ENR 4.4 hava yollarının nokta SIRASINI
+(DCT) kenarlar, FRA alt sınırından itibaren (FL305; ENR 1.3 §5.1.1). DCT'ler
+Ankara ve İstanbul FIR'ları içinde, sınıra 5 NM'den yakın olmamalı (ENR 1.3
+§5.2.1.6, §5.2.5); bu süzme ağ yüklenirken hava_yolu_agi.agi_kur'da yapılır. ENR 4.4 hava yollarının nokta SIRASINI
 vermediği için klasik/RNAV yolları (ENR 3.1/3.2) bu araçla kurulmaz; FRA alt
 sınırının altındaki seviyelerde ATS modu rota bulamaz (dürüstçe hata verir).
 
@@ -107,7 +108,14 @@ def fra_saatlerini_ayristir(metin: str) -> list[dict]:
 
 
 def fra_agi(
-    kayitlar: list[dict], airac: str | None, dct_maks_km: float, alt_fl: float, ust_fl=None, saatler_utc=None
+    kayitlar: list[dict],
+    airac: str | None,
+    dct_maks_km: float,
+    alt_fl: float,
+    ust_fl=None,
+    saatler_utc=None,
+    firler=("LTAA", "LTBB"),
+    sinir_tamponu_nm=5.0,
 ) -> dict:
     fra_noktalari = [k["ad"] for k in kayitlar if k["fra_rolleri"]]
     return {
@@ -123,6 +131,8 @@ def fra_agi(
             "alt_fl": alt_fl,
             "ust_fl": ust_fl,
             "saatler_utc": saatler_utc or [],
+            "firler": list(firler),
+            "sinir_tamponu_nm": sinir_tamponu_nm,
         },
     }
 
@@ -155,6 +165,12 @@ def ana(argv=None):
         default="20:00-02:00",
         help="FRA uygulama saatleri, UTC (ENR 1.3 §5.1.1, AIRAC 01/26: 20:00-02:00). Boş = her zaman.",
     )
+    ayristirici.add_argument(
+        "--firler", default="LTAA,LTBB", help="FRATURK'u oluşturan FIR'lar (ENR 1.3 §5.1.1: Ankara, İstanbul)."
+    )
+    ayristirici.add_argument(
+        "--sinir-tamponu-nm", type=float, default=5.0, help="DCT'nin FRA sınırına en yakın mesafesi (ENR 1.3 §5.2.1.6)."
+    )
     argumanlar = ayristirici.parse_args(argv)
     if argumanlar.indir:
         print("İndirildi:", indir(argumanlar.enr44))
@@ -169,6 +185,8 @@ def ana(argv=None):
         argumanlar.alt_fl,
         argumanlar.ust_fl,
         fra_saatlerini_ayristir(argumanlar.fra_saatleri),
+        [k.strip().upper() for k in argumanlar.firler.split(",") if k.strip()],
+        argumanlar.sinir_tamponu_nm,
     )
     Path(argumanlar.cikti).parent.mkdir(parents=True, exist_ok=True)
     Path(argumanlar.cikti).write_text(json.dumps(ag, ensure_ascii=False, indent=1), encoding="utf-8")
