@@ -26,12 +26,24 @@ Durum: `GET /api/v1/ml/durum` → `eslesmis_gun_sayisi`, `egitime_hazir`.
 
 ## 3. Bölme
 
-1. **Zamansal holdout:** en son `ML_HOLDOUT_ORANI` = %20 gün tamamen ayrılır;
-   model seçimi ve kalibrasyon bu günleri görmez (`zamansal_holdout`).
-2. **Model seçimi:** kalan günlerde gün gruplu, sınıf oranı korunan 5 katlı çapraz
-   doğrulama (`StratifiedGroupKFold`), 3 tekrar, tekrar tohumları 0, 1, 2. Aday
-   modeller: lojistik regresyon, rastgele orman, gradient boosting (model tohumu 42).
+1. **Altın test günleri:** 2026-10-07'de eşleşmiş 80 günden rastgele 16'sı
+   (%20, `numpy.random.default_rng(0)`) seçilip `ml/altin_test_gunleri.json`
+   dosyasına donduruldu (`turbulans-ml --altin-gunleri-dondur`; dosya varsa
+   üzerine yazmaz). Bu günler hiçbir sürümün model seçimine, kalibrasyonuna ya da
+   nihai eğitimine girmez; her sürümün eğitim gün listesi kayda yazılır
+   (`egitim_gunleri`). Dosya yoksa en son %20 gün (zamansal holdout) kullanılır.
+   Rastgele seçim, 2018–2020'ye dağınık günlerde testin tek mevsime (yalnız
+   2020 baharı) yığılmasını önler.
+2. **Model seçimi:** eğitim günlerinde gün gruplu, sınıf oranı korunan 5 katlı
+   çapraz doğrulama (`StratifiedGroupKFold`), 3 tekrar, tekrar tohumları 0, 1, 2.
+   Aday modeller: lojistik regresyon, rastgele orman, gradient boosting (sınıf
+   dengeli ağırlık; model tohumu 42). Ölçüt CV ROC-AUC; en iyi modelle lojistik
+   regresyonun farkı en iyi modelin kat ROC-AUC standart hatasından küçükse
+   lojistik regresyon seçilir (1-SE kuralı).
 3. **Olasılık kalibrasyonu:** sigmoid (Platt), aynı gün gruplu bölmelerle.
+4. **Eşikler:** model ve TI1 için eğitim günlerinde Peirce'ı (POD − POFD)
+   maksimize eden eşik seçilir (model için kat dışı kalibre olasılıklar) ve
+   test günlerine olduğu gibi uygulanır.
 
 Aynı gündeki PIREP'ler aynı hava sistemini gördüğü için rastgele bölme yapılmaz
 (bkz. [ADR 0003](adr/0003-gun-bazli-gruplu-dogrulama.md)).
@@ -40,9 +52,10 @@ Aynı gündeki PIREP'ler aynı hava sistemini gördüğü için rastgele bölme 
 
 | Referans | Kullanım |
 |---|---|
-| Tek başına TI1 | Sürekli skor olarak ROC-AUC; `TI1_ESIK_ORTA_SIDDETLI` (8e-7 s⁻²) eşiğinde POD/POFD |
+| Tek başına TI1 | Sürekli skor olarak ROC-AUC; eğitim günlerindeki Peirce eşiğinde POD/POFD |
+| Kalibre TI1 | Tek değişkenli lojistik (log10 TI1), eğitim günlerinde; Brier referansı |
 | İklimsel (sabit oran) | Brier becerisi = 1 − Brier / [p(1−p)] |
-| Aktif model | Champion/challenger: F1 ve recall |
+| Aktif model | Champion/challenger: eşleştirilmiş ROC-AUC farkı |
 | WAFS | Planlandı (geliştirme planı M3); şu an yok |
 
 ## 5. Metrikler ve belirsizlik
@@ -60,12 +73,15 @@ Aynı gündeki PIREP'ler aynı hava sistemini gördüğü için rastgele bölme 
 
 ## 6. Karar kuralı (model aktivasyonu)
 
-[ADR 0004](adr/0004-champion-challenger-ti1-kapisi.md): holdout yeterli olmalı
-(≥50 örnek, her sınıftan ≥5), aday ROC-AUC'si TI1'i en az 0,02 geçmeli ve aktif
-model varsa F1'de ≥0,01 iyileşip recall'ı en fazla 0,02 düşürmelidir. Güven
-aralıkları ve p değeri kararla birlikte sürüm kaydına yazılır; kapı şimdilik
-nokta tahminine dayanır (60 günlük holdout'ta ~12 gün ile anlamlılık şartı modeli
-pratikte hiç aktifleştirmeyebilir; veri büyüdükçe yeniden değerlendirilecek).
+[ADR 0004](adr/0004-champion-challenger-ti1-kapisi.md): test kümesi yeterli
+olmalı (≥50 örnek, her sınıftan ≥5). Aday − TI1 ROC-AUC farkı ≥ 0,02 **ve** gün
+bazlı eşleştirilmiş bootstrap %95 GA alt sınırı > 0 olmalı; aktif model varsa
+ona karşı da aynı kural uygulanır. Altın günleri eğitiminde görmüş aktif model
+karşılaştırmada yok sayılır. 0,02 parametriktir, kalibre edilmedi.
+
+**Veri dondurma:** 18 Ekim 2026'daki `ml_ornekleri` ile bir kez eğitim ve
+değerlendirme yapılır (`turbulans-ml --dondurma-raporu docs/sonuclar/2026-10-18`).
+Sonuç ne çıkarsa raporlanır; "model TI1'i geçemedi" de geçerli bir bulgudur.
 
 ## 7. Raporlama şablonu
 

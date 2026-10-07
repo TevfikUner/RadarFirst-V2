@@ -15,7 +15,8 @@ import json
 
 import numpy as np
 import pandas as pd
-from sklearn.metrics import brier_score_loss, roc_auc_score
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import brier_score_loss, roc_auc_score, roc_curve
 
 from turbulans_radar import config
 
@@ -161,6 +162,31 @@ def guven_araliklari(y, ti1, gunler, olasilik=None, tekrar=None, tohum=0) -> dic
         sonuc["model_brier"] = bootstrap_guven_araligi(y, olasilik, gunler, "brier", tekrar=tekrar, tohum=tohum)
         sonuc["model_eksi_ti1_roc_auc"] = eslestirilmis_auc_farki(y, olasilik, ti1, gunler, tekrar=tekrar, tohum=tohum)
     return sonuc
+
+
+def peirce_esigi(y, skor) -> float:
+    """POD - POFD'yi (Peirce) maksimize eden eşik; skor >= eşik pozitif sayılır.
+    Eğitim günlerinde seçilip test günlerine olduğu gibi uygulanır."""
+    y, skor = np.asarray(y, dtype=int), np.asarray(skor, dtype=float)
+    if len(np.unique(y)) < 2:
+        return float("nan")
+    yanlis, dogru, esikler = roc_curve(y, skor)
+    gecerli = np.isfinite(esikler)
+    i = int(np.argmax(np.where(gecerli, dogru - yanlis, -np.inf)))
+    return float(esikler[i])
+
+
+def _ti1_girdisi(ti1) -> np.ndarray:
+    return np.log10(np.clip(np.asarray(ti1, dtype=float), 1e-12, None)).reshape(-1, 1)
+
+
+def kalibre_ti1_egit(y, ti1) -> LogisticRegression:
+    """Tek değişkenli lojistik (log10 TI1): TI1'in olasılığa çevrilmiş hâli, Brier referansı."""
+    return LogisticRegression().fit(_ti1_girdisi(ti1), np.asarray(y, dtype=int))
+
+
+def kalibre_ti1_olasiligi(model, ti1) -> np.ndarray:
+    return model.predict_proba(_ti1_girdisi(ti1))[:, 1]
 
 
 def ti1_referansi(y, ti1, esik=None) -> dict:

@@ -76,3 +76,21 @@ def test_rapor_gun_verilince_guven_araliklarini_icerir():
     rapor = dg.degerlendirme_raporu(y, iyi, 1 / (1 + np.exp(-iyi)), gunler=gunler)
     assert set(rapor["guven_araliklari"]) == {"ti1_roc_auc", "model_roc_auc", "model_brier", "model_eksi_ti1_roc_auc"}
     assert "guven_araliklari" not in dg.degerlendirme_raporu(y, iyi)
+
+
+def test_peirce_esigi_pod_eksi_pofd_yi_maksimize_eder():
+    y = [0, 0, 0, 1, 0, 1, 1, 1]
+    skor = [0.1, 0.2, 0.3, 0.35, 0.4, 0.6, 0.7, 0.8]
+    esik = dg.peirce_esigi(y, skor)
+    assert esik == pytest.approx(0.6)
+    assert dg.ikili_metrikler(y, skor, esik)["peirce"] == pytest.approx(0.75)
+    assert np.isnan(dg.peirce_esigi([1, 1], [0.2, 0.3]))
+
+
+def test_kalibre_ti1_olasilik_uretir_ve_monotondur():
+    rng = np.random.default_rng(0)
+    y = rng.integers(0, 2, 400)
+    ti1 = 10 ** (-7 + 0.8 * y + rng.normal(0, 0.5, 400))
+    model = dg.kalibre_ti1_egit(y, ti1)
+    p = dg.kalibre_ti1_olasiligi(model, [1e-8, 1e-7, 1e-6])
+    assert ((0 < p) & (p < 1)).all() and p[0] < p[1] < p[2]

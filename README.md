@@ -943,16 +943,51 @@ versiyonu olurdu), ABD hava sahasına özgü, halka açık **IEM PIREP arşivind
 + eşleşen gerçek **ERA5** verisi indirilip (`ml_veri_indir.py`,
 `ml_egitimi.py`) GERÇEK bir eğitim kümesi kuruldu:
 
+- Güncel model `ml_ornekleri` tablosundaki seyir irtifası PIREP'leriyle,
+  dondurulmuş altın test günleri ayrı tutularak eğitilir ve değerlendirilir
+  (aşağıda "ML veri hattı ve gece otomasyonu"). İlk 167 örneklik sonuçlar
+  hatalı veriye dayandığı için bölüm sonundaki tarihçeye taşındı.
+- Özellikler bilinçli olarak **bölgeden bağımsız** tutuldu (enlem/boylam
+  KASITLI OLARAK dışarıda bırakıldı -- yoksa model ABD'nin bölgesel hava
+  düzenine ezberler, Türkiye gibi hiç görmediği bir bölgede anlamsızlaşırdı):
+  `ti1_indeksi`, `richardson_sayisi`, `ruzgar_hizi_ms`, `basinc_hpa`.
+- `POST /api/v1/turbulans/tahmin`, tek bir nokta için hem fizik (TI1) hem
+  ML olasılığını karşılaştırmalı döner. Model dosyası (`*.joblib`) repoya
+  DAHİL DEĞİL (üretilmiş/büyük artefakt, `.gitignore`) -- `ml_veri_indir.py`
+  ardından `ml_egitimi.py` ile yeniden üretilebilir. Model henüz
+  üretilmediyse `turbulans_riski_tahmin_et` uydurma bir tahmin dönmez,
+  dürüstçe `None` döner.
+- `ml_egitimi.py`, seçilen modeli (`*.joblib`) kaydederken YANINDA
+  `turbulans_ml_modeli_bilgisi.json`'ı da yazar (seçilen model adı, test
+  metrikleri, özellik listesi, eğitim tarihi) -- bu da repoya dahil değil
+  (üretilmiş artefakt). `GET /api/v1/turbulans/model-bilgisi`, bu dosyayı
+  okuyup döner; henüz eğitilmediyse `egitildi_mi: false` ile dürüstçe
+  bildirir.
+- **Model versiyonlama/rollback:** her `ml_egitimi.py` çalıştırması,
+  aktif modelin YANINDA `model_versiyonlari/` klasörüne KALICI bir kopya +
+  manifest kaydı bırakır (repoya dahil değil, üretilmiş artefakt).
+  `GET /api/v1/turbulans/model-versiyonlari` geçmiş TÜM versiyonları listeler,
+  `POST /api/v1/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir` ise
+  yeniden eğitim gerekmeden geçmiş bir versiyona döner -- örn. yeni bir
+  eğitim çalıştırması beklenenden kötü çıkarsa.
+
+```bash
+python -m turbulans_radar.ml.ml_veri_indir   # IEM PIREP + eşleşen gerçek ERA5 verisini indirir (Copernicus CDS API anahtarı gerekir, ~/.cdsapirc)
+python -m turbulans_radar.ml.ml_egitimi      # 3 modeli gün bazında gruplu CV ile karşılaştırır, recall'a göre en iyisini (tüm veriyle eğitip) turbulans_ml_modeli.joblib olarak kaydeder
+```
+
+### Tarihçe (hatalı veri): 167 örneklik ilk model
+
+Bu bölümdeki sayılar FL feet hatalı PIREP CSV'sine dayanır (yerdeki raporlar);
+yalnızca tarihçe olarak tutulur, sonuç olarak kullanılmaz. Güncel değerlendirme
+protokolü için aşağıdaki "Aktivasyon kapısı" paragrafına bakın.
+
 - 167 gerçek, etiketli örnek (57 pozitif orta-şiddetli+ türbülans / 110
   negatif, 42 farklı gün) -- FL300-400 arası, projenin
   `TI1_ESIK_ORTA_SIDDETLI` eşiğiyle AYNI ikili eşik felsefesiyle etiketlendi.
   (Önceki sürümde 179 örnek vardı; 12'si, aralıklı indirilmiş ERA5
   küplerinin zaman BOŞLUĞUNA düşüp günlerce uzaktaki bir saatin havasıyla
   eşleşen PIREP'lerdi -- artık kapsam dışı sayılıyor.)
-- Özellikler bilinçli olarak **bölgeden bağımsız** tutuldu (enlem/boylam
-  KASITLI OLARAK dışarıda bırakıldı -- yoksa model ABD'nin bölgesel hava
-  düzenine ezberler, Türkiye gibi hiç görmediği bir bölgede anlamsızlaşırdı):
-  `ti1_indeksi`, `richardson_sayisi`, `ruzgar_hizi_ms`, `basinc_hpa`.
 - Üç sınıflandırıcı (Lojistik Regresyon, Random Forest, Gradient Boosting)
   eğitilip **recall'a** göre karşılaştırıldı (accuracy değil -- havacılık
   güvenliğinde kaçırılan gerçek türbülans/false negative en kritik hata
@@ -981,30 +1016,6 @@ versiyonu olurdu), ABD hava sahasına özgü, halka açık **IEM PIREP arşivind
   ROC-AUC'si 0.44 (tek başına ayırt edici değil); model, TI1 + Richardson +
   rüzgar + basınç birleşimiyle bundan daha iyi. Model tahmini bir karar
   aracı değil, fizik göstergesinin yanında ek bir işarettir.
-- `POST /api/v1/turbulans/tahmin`, tek bir nokta için hem fizik (TI1) hem
-  ML olasılığını karşılaştırmalı döner. Model dosyası (`*.joblib`) repoya
-  DAHİL DEĞİL (üretilmiş/büyük artefakt, `.gitignore`) -- `ml_veri_indir.py`
-  ardından `ml_egitimi.py` ile yeniden üretilebilir. Model henüz
-  üretilmediyse `turbulans_riski_tahmin_et` uydurma bir tahmin dönmez,
-  dürüstçe `None` döner.
-- `ml_egitimi.py`, seçilen modeli (`*.joblib`) kaydederken YANINDA
-  `turbulans_ml_modeli_bilgisi.json`'ı da yazar (seçilen model adı, test
-  metrikleri, özellik listesi, eğitim tarihi) -- bu da repoya dahil değil
-  (üretilmiş artefakt). `GET /api/v1/turbulans/model-bilgisi`, bu dosyayı
-  okuyup döner; henüz eğitilmediyse `egitildi_mi: false` ile dürüstçe
-  bildirir.
-- **Model versiyonlama/rollback:** her `ml_egitimi.py` çalıştırması,
-  aktif modelin YANINDA `model_versiyonlari/` klasörüne KALICI bir kopya +
-  manifest kaydı bırakır (repoya dahil değil, üretilmiş artefakt).
-  `GET /api/v1/turbulans/model-versiyonlari` geçmiş TÜM versiyonları listeler,
-  `POST /api/v1/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir` ise
-  yeniden eğitim gerekmeden geçmiş bir versiyona döner -- örn. yeni bir
-  eğitim çalıştırması beklenenden kötü çıkarsa.
-
-```bash
-python -m turbulans_radar.ml.ml_veri_indir   # IEM PIREP + eşleşen gerçek ERA5 verisini indirir (Copernicus CDS API anahtarı gerekir, ~/.cdsapirc)
-python -m turbulans_radar.ml.ml_egitimi      # 3 modeli gün bazında gruplu CV ile karşılaştırır, recall'a göre en iyisini (tüm veriyle eğitip) turbulans_ml_modeli.joblib olarak kaydeder
-```
 
 > **Önemli veri hatası (2026-09-30'da bulundu):** yukarıdaki 167 örneğin
 > kaynağı `pirep_ust_seviye_siniflandirilmis.csv` "FL 300-400" filtresiyle
@@ -1057,20 +1068,23 @@ Eğitim verisi artık `ml_ornekleri` tablosunda tutulur (`ml/ml_veri_hatti.py`):
    turbulans-ml-depo --eksikleri-kuyruga-al  # depo öncesi eşleşmiş örnekleri yeniden indir
    ```
 4. **Eğitim (champion/challenger, `ml/ml_otomatik_egitim.py`):** en az
-   `ML_MIN_ORNEK` örnek ve `ML_MIN_GUN` farklı gün varsa, en son günlerden
-   `ML_HOLDOUT_ORANI` kadarı ayrılır; aday kalan günlerde gün bazlı gruplu
-   CV ROC-AUC'si en yüksek model olarak seçilir (eskiden recall'a göre
-   seçiliyordu; 0,5 eşiğindeki recall her şeye "pozitif" diyen modeli
-   ödüllendirebiliyordu). Özellikler: `ti1_indeksi`, `richardson_sayisi`,
+   `ML_MIN_ORNEK` örnek ve `ML_MIN_GUN` farklı gün varsa, dondurulmuş altın
+   test günleri (`ml/altin_test_gunleri.json`; yoksa en son `ML_HOLDOUT_ORANI`
+   gün) ayrılır. Bu günler hiçbir sürümün eğitimine girmez; yayına giren model
+   de yalnızca eğitim günleriyle eğitilir ve sürüm kaydına `egitim_gunleri`
+   yazılır. Aday, eğitim günlerinde gün bazlı gruplu CV ROC-AUC'siyle seçilir;
+   Lojistik Regresyon ile farkı en iyi modelin kat standart hatasından küçükse
+   Lojistik Regresyon seçilir (1-SE kuralı). Gradient Boosting sınıf dengeli
+   ağırlıkla eğitilir. Özellikler: `ti1_indeksi`, `richardson_sayisi`,
    `ruzgar_hizi_ms`, `basinc_hpa` ve tahmin anında aynı küpten hesaplanan
    `dusey_ruzgar_kaymasi`, `yatay_deformasyon`, `yatay_diverjans`,
    `ti2_indeksi`. Kapı iki aşamalıdır: (1) holdout'ta ROC-AUC tek başına
    TI1'i en az `ML_TI1_AUC_USTUNLUGU` geçmeli **ve** gün bazlı eşleştirilmiş
    bootstrap ile farkın %95 güven aralığının alt sınırı 0'ın üstünde olmalı
-   (holdout her gece yeni adaylarla yeniden kullanıldığı için nokta farkı
-   şansla geçilebilirdi); (2) aktif model varsa F1'i en az
-   `ML_MIN_F1_IYILESME` artırmalı ve recall'ı `ML_RECALL_TOLERANSI`'ndan fazla
-   düşürmemeli. Aksi halde yalnızca versiyon olarak (`aktiflestirildi:
+   (test günleri her gece yeni adaylarla yeniden kullanıldığı için nokta farkı
+   şansla geçilebilirdi); (2) aktif model varsa ona karşı da aynı kural
+   (`ML_SAMPIYON_AUC_USTUNLUGU`, 0,02). Altın günleri eğitiminde görmüş aktif
+   model karşılaştırmada yok sayılır. Aksi halde yalnızca versiyon olarak (`aktiflestirildi:
    false`, karar gerekçesiyle) saklanır ve elle `/aktiflestir` ile açılabilir.
    Ek özelliklerden önce kaydedilen MADIS EDR örnekleri için
    `turbulans-madis ozellik-tamamla` eksik özellikleri pencere deposundan
@@ -1100,21 +1114,30 @@ dağıtık kilit yalnızca birini çalıştırır. Durum: `GET /api/v1/ml/durum`
 IEM imleci, aktif model sürümü, son ML görevleri).
 
 **Aktivasyon kapısı:** aday modelin olasılıkları gün bazında gruplu çapraz
-doğrulamayla sigmoid (Platt) yöntemiyle kalibre edilir. Aday, holdout'ta
-(1) tek başına TI1'in ROC-AUC'sini en az `ML_TI1_AUC_USTUNLUGU` (0.02)
-geçmeli ve (2) aktif modeli F1/recall ölçütlerinde geçmelidir; aksi halde
-yalnızca sürüm olarak saklanır. Holdout raporu ROC-AUC, POD, POFD, Peirce,
-Brier ve Brier becerisini içerir (`ml/degerlendirme.py`); her metrik gün
-bazlı blok bootstrap %95 güven aralığıyla, modelin TI1'e karşı ROC-AUC farkı
-eşleştirilmiş bootstrap p değeriyle raporlanır ([deney protokolü](docs/deney_protokolu.md)).
+doğrulamayla sigmoid (Platt) yöntemiyle kalibre edilir. Aday, altın test
+günlerinde (1) TI1'i ve (2) varsa aktif modeli eşleştirilmiş ROC-AUC farkıyla
+geçmelidir: nokta farkı ≥ 0,02 **ve** gün bazlı bootstrap %95 GA alt sınırı > 0
+([ADR 0004](docs/adr/0004-champion-challenger-ti1-kapisi.md)); aksi halde
+yalnızca sürüm olarak saklanır. Test raporu ROC-AUC, POD, POFD, Peirce, Brier
+ve Brier becerisini içerir (`ml/degerlendirme.py`). POD/POFD/Peirce her iki skor
+için de eğitim günlerinde Peirce'ı maksimize eden eşikle (`esikler`), Brier
+referansı tek değişkenli lojistik "kalibre TI1" ile hesaplanır. Her metrik gün
+bazlı blok bootstrap %95 güven aralığıyla raporlanır ([deney protokolü](docs/deney_protokolu.md)).
+
+**Veri dondurma (18 Ekim 2026):** `turbulans-ml --dondurma-raporu docs/sonuclar/2026-10-18`
+o günkü `ml_ornekleri` ile bir kez eğitip değerlendirir ve sürüm kaydını klasöre
+yazar. Sonuç ne çıkarsa raporlanır; "model TI1'i geçemedi" de geçerli bir bulgudur.
 
 **Belirsizlik ("emin değilim" diyebilen çıktı):** eğitimde gün gruplu kat dışı
 olasılıklardan konformal bir eşik hesaplanıp modelle saklanır (`ml/belirsizlik.py`).
 `POST /api/v1/turbulans/tahmin` olasılığın yanında `ml_risk_durumu` döner:
 `yuksek_risk`, `dusuk_risk` ya da veri iki sınıfı bu güven düzeyinde ayıramıyorsa
-`belirsiz`. Hedef kapsama `1 - ML_KONFORMAL_ALFA` (%90); holdout'ta ölçülen
-kapsama ve belirsiz oranı sürüm kaydında ve 3B haritanın model panelinde görünür.
-`ML_KARAR_ESIGI` (varsayılan 0.5) `ml_riski_var_mi` eşiğidir (risk iştahı).
+`belirsiz`. Hedef kapsama `1 - ML_KONFORMAL_ALFA` (%90); altın test günlerinde
+ölçülen kapsama ve belirsiz oranı sürüm kaydında ve 3B haritanın model panelinde
+görünür. Kapsama yalnızca ERA5 girdisinde doğrulanmıştır: yanıt `veri_kaynagi`
+içerir, canlı GFS'de `ml_konformal_hedef_kapsama` `null` ve `ml_konformal_notu`
+"doğrulanmadı" döner. `ml_riski_var_mi` eşiği `ML_KARAR_ESIGI` (risk iştahı)
+verilmişse odur; verilmezse modelin eğitim günlerindeki Peirce eşiği, o da yoksa 0,5.
 
 **Doğrulama, EDR kalibrasyonu ve sürüm yönetimi (CLI):**
 
@@ -1123,6 +1146,8 @@ turbulans-ml-degerlendirme          # aktif model + tek başına TI1 referansı,
 turbulans-edr-kalibrasyon           # EDR proxy katsayısı, gün bazlı bootstrap güven aralığı
 turbulans-ml --listele               # kayıtlı model sürümleri (aktif edildi / saklandı + gerekçe)
 turbulans-ml --geri-al VERSIYON_ID   # tek komutla geri alma
+turbulans-ml --altin-gunleri-dondur  # altın test günlerini bir kez seçer (dosya varsa yazmaz)
+turbulans-ml --dondurma-raporu KLASOR  # bir kez eğit + değerlendir, sonucu KLASOR'e yaz
 ```
 
 `turbulans-edr-kalibrasyon`, `EDR_OLCEKLENDIRME_KATSAYISI`'nı ml_ornekleri'ndeki

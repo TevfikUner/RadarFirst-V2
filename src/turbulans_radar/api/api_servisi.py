@@ -156,6 +156,7 @@ from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.isci.gorev_iscisi import BILDIRIM_KANALI, GorevIscisi, bildirim_yayinla
 from turbulans_radar.ml.turbulans_ml_modeli import (
+    ml_karar_esigi,
     model_bilgisini_yukle,
     model_kullanilabilir_mi,
     model_versiyonlarini_listele,
@@ -190,7 +191,7 @@ from turbulans_radar.veri.sigmet_saglayici import (
     sigmetleri_guncelle,
     son_guncelleme_zamani,
 )
-from turbulans_radar.veri.veri_saglayicilari import canli_durum_anahtari, canli_indirme_durumu
+from turbulans_radar.veri.veri_saglayicilari import canli_durum_anahtari, canli_indirme_durumu, veri_kupu_kaynagi
 from turbulans_radar.veri.veri_yukleme import hava_durumu_dosyalari, onbellek_durumu
 from turbulans_radar.webhook import webhook_url_dogrula
 
@@ -226,6 +227,7 @@ async def _yasam_dongusu(uygulama):
 
 
 ZAMANLAYICI_LIDER_KILIDI = "api_zamanlayicilari"
+KONFORMAL_DOGRULANAN_KAYNAKLAR = {"era5"}
 
 
 def _zamanlayici_fabrikalari() -> list:
@@ -1241,16 +1243,22 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi, request: Request, rol:
         bilgi = model_bilgisini_yukle() if ml_olasilik is not None else None
         durumlar = risk_durumlarini_hesapla([ml_olasilik], bilgi) if ml_olasilik is not None else None
         konformal = (bilgi or {}).get("konformal") if durumlar is not None else None
+        kaynak = veri_kupu_kaynagi(veri_kupu)
+        konformal_notu = None
+        if konformal and kaynak not in KONFORMAL_DOGRULANAN_KAYNAKLAR:
+            konformal, konformal_notu = None, f"Konformal kapsama {kaynak} girdisinde doğrulanmadı (yalnızca ERA5)."
 
         return {
             "kapsam_icinde_mi": True,
+            "veri_kaynagi": kaynak,
             "ti1_indeksi": float(ti1),
             "ti1_riskli_mi": bool(ti1 >= config.TI1_ESIK_ORTA_SIDDETLI),
             "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
-            "ml_riski_var_mi": (ml_olasilik >= config.ML_KARAR_ESIGI) if ml_olasilik is not None else None,
+            "ml_riski_var_mi": (ml_olasilik >= ml_karar_esigi(bilgi)) if ml_olasilik is not None else None,
             "ml_olasilik": ml_olasilik,
             "ml_risk_durumu": durumlar[0] if durumlar is not None else None,
             "ml_konformal_hedef_kapsama": (1 - konformal["alfa"]) if konformal else None,
+            "ml_konformal_notu": konformal_notu,
             "aciklama": (
                 "Fizik (Ellrod TI1) ve ML tahminleri hesaplandı."
                 if ml_olasilik is not None

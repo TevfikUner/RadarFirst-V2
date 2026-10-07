@@ -17,6 +17,8 @@ import pandas as pd
 import pytest
 
 from turbulans_radar.ml.ml_egitimi import (
+    DengeliGradientBoosting,
+    bir_se_kurali_ile_sec,
     en_iyi_modeli_sec_ve_kaydet,
     modelleri_egit_ve_karsilastir,
     veriyi_hazirla,
@@ -119,3 +121,38 @@ def test_eski_csv_veri_hazirlama_kilitlidir():
 
     with pytest.raises(EskiVeriHattiHatasi, match="feet"):
         veriyi_hazirla()
+
+
+@pytest.mark.parametrize(
+    "rf_auc,se,beklenen",
+    [(0.70, 0.02, "Lojistik Regresyon"), (0.70, 0.005, "Random Forest"), (0.66, 0.02, "Lojistik Regresyon")],
+)
+def test_bir_se_kurali_fark_standart_hatadan_kucukse_lojistigi_secer(rf_auc, se, beklenen):
+    metrikler = {
+        "Lojistik Regresyon": {"roc_auc": 0.69, "roc_auc_se": 0.02},
+        "Random Forest": {"roc_auc": rf_auc, "roc_auc_se": se},
+        "Gradient Boosting": {"roc_auc": 0.60, "roc_auc_se": 0.02},
+    }
+    assert bir_se_kurali_ile_sec(metrikler) == beklenen
+
+
+def test_esit_performansli_sentetik_veride_lojistik_secilir():
+    rng = np.random.default_rng(3)
+    n = 600
+    y = pd.Series(rng.integers(0, 2, n))
+    X = pd.DataFrame({"a": rng.normal(0, 1, n) + 0.8 * y, "b": rng.normal(0, 1, n), "c": rng.normal(0, 1, n)})
+    gruplar = pd.Series(np.repeat(np.arange(60), 10))
+    sonuclar, _ = modelleri_egit_ve_karsilastir(X, y, gruplar, tekrar_sayisi=2)
+    metrikler = {ad: m for ad, (_, m, _) in sonuclar.items()}
+    assert all(m["roc_auc_se"] > 0 for m in metrikler.values())
+    assert bir_se_kurali_ile_sec(metrikler) == "Lojistik Regresyon"
+
+
+def test_gradient_boosting_sinif_dengeli_agirlikla_egitilir():
+    rng = np.random.default_rng(0)
+    n = 500
+    y = (rng.random(n) < 0.15).astype(int)
+    X = pd.DataFrame({"a": rng.normal(0, 1, n) + 0.5 * y, "b": rng.normal(0, 1, n)})
+    dengeli = DengeliGradientBoosting(n_estimators=50, max_depth=2, random_state=0).fit(X, y)
+    duz = DengeliGradientBoosting(n_estimators=50, max_depth=2, random_state=0).fit(X, y, sample_weight=np.ones(n))
+    assert dengeli.predict_proba(X)[:, 1].mean() > duz.predict_proba(X)[:, 1].mean() + 0.1

@@ -252,6 +252,15 @@ def risk_durumlarini_hesapla(olasiliklar, bilgi=None):
     return risk_durumlari(olasiliklar, konformal["esik"])
 
 
+def ml_karar_esigi(bilgi=None) -> float:
+    """ml_riski_var_mi eşiği: ML_KARAR_ESIGI verildiyse o, yoksa modelin eğitim
+    günlerinde Peirce'ı maksimize eden eşiği, o da yoksa 0.5."""
+    if config.ML_KARAR_ESIGI is not None:
+        return float(config.ML_KARAR_ESIGI)
+    esik = ((bilgi or {}).get("esikler") or {}).get("model")
+    return float(esik) if esik is not None else 0.5
+
+
 def model_bilgisini_yukle():
     """ml_egitimi.py'nin kaydettiği model metadata'sını (seçilen model adı,
     test metrikleri, özellik listesi, eğitim tarihi) döner. Model henüz
