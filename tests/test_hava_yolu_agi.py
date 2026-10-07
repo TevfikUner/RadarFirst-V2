@@ -126,7 +126,7 @@ def _sentetik_sigmet(enlem, boylam, yari=0.6):
     }
 
 
-def _rota(ag, sigmetler=(), irtifa_ft=35000, bas=TOC, bit=TOD, zaman="2019-01-15T10:00:00"):
+def _rota(ag, sigmetler=(), irtifa_ft=35000, bas=TOC, bit=TOD, zaman="2019-01-15T10:00:00", **meydanlar):
     return rota_simulasyonu_olustur(
         *bas,
         *bit,
@@ -137,6 +137,7 @@ def _rota(ag, sigmetler=(), irtifa_ft=35000, bas=TOC, bit=TOD, zaman="2019-01-15
         kisitli_sahalar=[],
         arama_uzayi="ats",
         ats_agi=ag,
+        **meydanlar,
     )
 
 
@@ -267,7 +268,8 @@ def _rollu_veri():
     return veri
 
 
-def test_toc_yalniz_kalkis_tod_yalniz_varis_rollerine_baglanir():
+def test_toc_yalniz_kalkis_tod_yalniz_varis_rollerine_baglanir(monkeypatch):
+    monkeypatch.setattr(config, "ATS_AGI_ARA_NOKTA_KM", 0.0)
     ag = hya.agi_kur(_rollu_veri(), ara_nokta_km=0)
     _, komsular, _ = hya.arama_grafi(ag, TOC, TOD, irtifa_ft=36000)
     assert [h for h, _ in komsular[hya.BASLANGIC]] == ["TESTD"]
@@ -278,7 +280,8 @@ def test_toc_yalniz_kalkis_tod_yalniz_varis_rollerine_baglanir():
     assert sonuc["ats"]["etiket"] == "FRA serbest rota (FL305+)"
 
 
-def test_fra_alani_icindeki_uc_d_a_disindaki_e_x_noktasina_baglanir():
+def test_fra_alani_icindeki_uc_d_a_disindaki_e_x_noktasina_baglanir(monkeypatch):
+    monkeypatch.setattr(config, "ATS_AGI_ARA_NOKTA_KM", 0.0)
     ag = hya.agi_kur(_rollu_veri(), ara_nokta_km=0, fra_siniri=shapely.box(-42.0, 44.0, -29.5, 46.0))
     _, komsular, _ = hya.arama_grafi(ag, TOC, TOD, irtifa_ft=36000)
     assert [h for h, _ in komsular[hya.BASLANGIC]] == ["TESTD"]
@@ -295,6 +298,43 @@ def test_alan_icinde_varis_noktasi_yoksa_e_x_kullanilir_ve_uyarilir():
     sonuc = _rota(ag, irtifa_ft=36000)
     assert [n["nokta"] for n in sonuc["ats"]["normal_rota"]][-2] == "TESTE"
     assert len(sonuc["ats"]["uyarilar"]) == 1 and "TESTE" in sonuc["ats"]["uyarilar"][0]
+
+
+def _meydanli_ag():
+    veri = _rollu_veri()
+    veri["noktalar"][1]["fra_meydanlari"] = {"D": ["LTAA"]}
+    veri["noktalar"][3]["fra_meydanlari"] = {"A": ["LTBB"]}
+    veri["noktalar"][4]["fra_rolleri"] = ["A", "E", "X"]
+    veri["noktalar"][4]["fra_meydanlari"] = {"A": ["LTCC"]}
+    return hya.agi_kur(veri, ara_nokta_km=0, fra_siniri=shapely.box(-42.0, 44.0, -28.0, 46.0))
+
+
+def test_meydan_verilince_aip_baglanti_noktasina_bolunmus_baglanti_kurulur(monkeypatch):
+    monkeypatch.setattr(config, "ATS_AGI_ARA_NOKTA_KM", 40.0)
+    ag = _meydanli_ag()
+    uzak = (45.0, -27.0)
+    konumlar, komsular, _ = hya.arama_grafi(ag, TOC, uzak, 36000, None, None, "LTAA", "LTBB")
+    assert [h for h, y in komsular[hya.BASLANGIC]] == [f"{hya.BASLANGIC}>TESTD#1"]
+    assert {y for h, y in komsular[hya.BASLANGIC]} == {"BAGLANTI"}
+    zincir = [a for a in konumlar if a.startswith("TESTA>")]
+    assert len(zincir) >= 5 and not any(k for a, k in komsular.items() if a == "TESTE" and (hya.BITIS, "BAGLANTI") in k)
+    sonuc = _rota(ag, irtifa_ft=36000, bit=uzak, kalkis_meydani="LTAA", varis_meydani="LTBB")
+    ozet = sonuc["ats"]["normal_rota"]
+    assert [n["nokta"] for n in ozet][1] == "TESTD" and [n["nokta"] for n in ozet][-2] == "TESTA"
+    assert ozet[1]["yol"] == "BAGLANTI" and ozet[-1]["yol"] == "BAGLANTI"
+    assert len(sonuc["ats"]["uyarilar"]) == 2 and all("ENR 1.3" in u for u in sonuc["ats"]["uyarilar"])
+
+
+def test_bilinmeyen_meydan_ve_meydansiz_istek_aciklamayla_dusulur():
+    ag = _meydanli_ag()
+    sonuc = _rota(ag, irtifa_ft=36000, bit=(45.2, -30.2), kalkis_meydani="LTZZ")
+    uyarilar = sonuc["ats"]["uyarilar"]
+    assert any("LTZZ" in u and "yok" in u for u in uyarilar)
+    assert any("varış meydanı verilmediği" in u for u in uyarilar)
+    with pytest.raises(hya.AtsAgiHatasi, match="fra_meydanlari"):
+        veri = _rollu_veri()
+        veri["noktalar"][1]["fra_meydanlari"] = {"Q": ["LTAA"]}
+        hya.agi_kur(veri)
 
 
 def test_hatali_fra_rolu_reddedilir():
@@ -378,15 +418,47 @@ def test_gercek_fraturk_agi_sinir_ve_rol_kurallarina_uyar():
     assert ag.sinir_disi_dct_sayisi == gecerli.count(False)
     bagli = {a for a, kenarlar in ag.komsular.items() if any(k.fra for k in kenarlar)}
     assert all(ad in bagli for ad, rol in ag.fra_rolleri.items() if rol & set("EX"))
+    assert all(ag.fra_meydanlari.get(ad, {}).keys() >= (rol & set("AD")) for ad, rol in ag.fra_rolleri.items())
     ist, van = (41.275, 28.752), (38.468, 43.332)
-    _, komsular, _ = hya.arama_grafi(ag, ist, van, irtifa_ft=35000, zaman=pd.Timestamp("2026-01-15T21:00Z"))
-    konum = {**ag.noktalar, hya.BASLANGIC: ist, hya.BITIS: van}
-    dugumler, _ = hya.a_yildiz(
-        komsular,
-        hya.BASLANGIC,
-        hya.BITIS,
-        lambda a, b: hya.mesafe_km(*konum[a], *konum[b]),
-        lambda d: hya.mesafe_km(*konum[d], *van),
-    )
+
+    def yol(*meydanlar):
+        konum, komsular, _ = hya.arama_grafi(ag, ist, van, 35000, pd.Timestamp("2026-01-15T21:00Z"), None, *meydanlar)
+        dugumler, _ = hya.a_yildiz(
+            komsular,
+            hya.BASLANGIC,
+            hya.BITIS,
+            lambda a, b: hya.mesafe_km(*konum[a], *konum[b]),
+            lambda d: hya.mesafe_km(*konum[d], *van),
+        )
+        return [d for d in dugumler if "#" not in d]
+
+    dugumler = yol("LTFM", "LTCI")
+    assert "LTFM" in ag.fra_meydanlari[dugumler[1]]["D"] and dugumler[-2] in {"DYB", "EZS", "ERZ"}
+    assert all("ENR 1.3" in u for u in ag.rol_uyarilari(dugumler, ist, van, "LTFM", "LTCI"))
+    dugumler = yol()
     assert "D" in ag.fra_rolleri[dugumler[1]] and ag.fra_rolleri[dugumler[-2]] & set("AX")
-    assert bool(ag.rol_uyarilari(dugumler, ist, van)) is ("A" not in ag.fra_rolleri[dugumler[-2]])
+    assert len(ag.rol_uyarilari(dugumler, ist, van)) == 2
+
+
+def test_api_semasi_meydani_dogrular_ve_ats_uyarilarini_korur():
+    from pydantic import ValidationError
+
+    from turbulans_radar.api.semalar import AtsRotaYaniti, RotaSimulasyonuIstegi
+
+    temel = dict(
+        baslangic_enlem=41.0,
+        baslangic_boylam=29.0,
+        bitis_enlem=38.5,
+        bitis_boylam=43.3,
+        irtifa_ft=35000,
+        zaman="2026-01-15T21:00:00",
+        ucak_modeli="A320",
+        arama_uzayi="ats",
+    )
+    assert RotaSimulasyonuIstegi(**temel, varis_meydani="LTCI").varis_meydani == "LTCI"
+    with pytest.raises(ValidationError):
+        RotaSimulasyonuIstegi(**temel, varis_meydani="ltci")
+    yanit = AtsRotaYaniti(
+        kaynak="K", etiket="FRA serbest rota", normal_rota=[], optimize_rota=[], buyuk_daire_km=1.0, uyarilar=["u"]
+    )
+    assert yanit.model_dump()["etiket"] == "FRA serbest rota" and yanit.model_dump()["uyarilar"] == ["u"]

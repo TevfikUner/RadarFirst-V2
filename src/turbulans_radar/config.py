@@ -335,6 +335,9 @@ ATS_AGI_DOSYASI = _ortam_str("ATS_AGI_DOSYASI", os.path.join("ats_verisi", "ats_
 ATS_AGI_BAGLANTI_KM = _ortam_sayi("ATS_AGI_BAGLANTI_KM", 150.0)
 ATS_AGI_BAGLANTI_SAYISI = _ortam_sayi("ATS_AGI_BAGLANTI_SAYISI", 3, int)
 ATS_AGI_ARA_NOKTA_KM = _ortam_sayi("ATS_AGI_ARA_NOKTA_KM", 60.0)
+# Meydan verilince ToC/ToD'nin o meydanın AIP FRA bağlantı noktalarına (A/D)
+# en uzak bağlantısı (km); AIP'te sınır yok, saçma uzun bağlantıyı önlemek için.
+ATS_AGI_MEYDAN_BAGLANTI_KM = _ortam_sayi("ATS_AGI_MEYDAN_BAGLANTI_KM", 500.0)
 
 # isci/gorev_iscisi.py -- uzun işlerin kuyruğu (analiz_gorevleri). API kendi
 # içinde gömülü bir işçi başlatır (GOREV_GOMULU_ISCI); ayrı işçi süreçleri

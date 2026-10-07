@@ -1179,6 +1179,8 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
                 istek.ucak_modeli,
                 canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
                 arama_uzayi=istek.arama_uzayi,
+                kalkis_meydani=istek.kalkis_meydani,
+                varis_meydani=istek.varis_meydani,
             )
         except (AtsAgiKullanilamazHatasi, AtsAgiHatasi, AntimeridyenHatasi) as hata:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(hata)) from None

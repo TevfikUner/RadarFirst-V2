@@ -654,8 +654,10 @@ Doç. Dr. Fulya Aybek Çetek'in önerileri ve proje ekibinin analizi:
     kullanılır. Her FRA kenarına girişin pencere içinde, kenar sonuna varışın
     (belirsizlik payıyla) 02:00'den önce olması gerekir (§5.5.2.1); olmuyorsa
     ATS modu nedenini söyleyen 400 döner.
-  - ToC yalnız D/E, ToD yalnız A/X rollü noktalara bağlanır (FIR içinde önce
-    D/A; menzilde yoksa E/X ve yanıtta `ats.uyarilar`). DCT kenarları FIR
+  - İsteğe bağlı `kalkis_meydani`/`varis_meydani` (ICAO): ToC/ToD o meydanın
+    AIP FRA bağlantı noktalarına (D/A) bağlanır, ör. LTCI → DYB/EZS/ERZ.
+    Verilmezse ToC yalnız D/E, ToD yalnız A/X rollü noktalara (FIR içinde önce
+    D/A) bağlanır; her iki durumda da `ats.uyarilar` neyin yaklaşık olduğunu söyler. DCT kenarları FIR
     içinde ve sınıra 5 NM'den uzak kalmalı (§5.2.1.6, §5.2.5); sınır VATSIM'in
     yaklaşık çizimidir.
 - **Ayırma göstergesi:** `turbulans-ayirma UCUS TARIH [--sorgu-izni]`.

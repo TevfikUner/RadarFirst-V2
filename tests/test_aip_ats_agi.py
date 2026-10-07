@@ -42,6 +42,8 @@ def test_kayitlar_cok_satirli_ve_fra_rolleriyle_ayristirilir():
     assert k["TESTB"]["fra_rolleri"] == ["E"] and k["TESTB"]["fir_siniri"] and "M/UM19" in k["TESTB"]["yollar"]
     assert k["TESTC"]["fra_rolleri"] == ["E", "X"]
     assert k["TESTD"]["fra_rolleri"] == ["A", "D", "I"]
+    assert k["TESTD"]["fra_meydanlari"] == {"A": ["LTBA", "LTFJ"], "D": ["LTBA", "LTFJ"]}
+    assert k["TESTA"]["fra_meydanlari"] == {}
     assert k["TESTE"]["fra_rolleri"] == []
     assert aip.dogrula(kayitlar) == []
 
@@ -54,6 +56,7 @@ def test_fra_agi_hava_yolu_agina_kurulur():
     assert veri["fra"]["firler"] == ["LTAA", "LTBB"] and veri["fra"]["sinir_tamponu_nm"] == 5.0
     ag = agi_kur(veri, ara_nokta_km=0, fra_siniri=shapely.box(20.0, 30.0, 50.0, 50.0))
     assert ag.fra_rolleri["TESTD"] == frozenset("ADI")
+    assert ag.fra_meydanlari["TESTD"] == {"A": frozenset({"LTBA", "LTFJ"}), "D": frozenset({"LTBA", "LTFJ"})}
     assert {k.yol for kenarlar in ag.komsular.values() for k in kenarlar} == {"DCT"}
     assert all(k.alt_fl == 305 for kenarlar in ag.komsular.values() for k in kenarlar)
 
@@ -96,6 +99,8 @@ def test_enr41_seyrusefer_yardimcilari_rolleriyle_ayristirilir():
     assert list(k) == ["TKA", "TKB", "TKC"]
     assert k["TKA"]["fra_rolleri"] == ["A", "I"] and k["TKA"]["tur"] == "VOR/DME"
     assert k["TKB"]["fra_rolleri"] == ["A", "D", "I"] and k["TKB"]["tur"] == "VOR/DME"
+    assert k["TKA"]["fra_meydanlari"] == {"A": ["LTXX"]}
+    assert k["TKB"]["fra_meydanlari"] == {"A": ["LTXX", "LTYY", "LTZZ"], "D": ["LTXX", "LTYY", "LTZZ"]}
     assert k["TKC"]["tur"] == "NDB" and k["TKC"]["enlem"] == pytest.approx(40 + 44 / 60 + 14.9 / 3600)
     assert aip.en_yeni_airac(METIN_41) == "06/26" and aip.dogrula(kayitlar) == []
     with pytest.raises(ValueError, match="TKD"):

@@ -189,8 +189,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Koridor modunda hava yolu yapısı modellenmez. FRA modunda ENR 1.3 §5
   kurallarının bir kısmı uygulanır: FRA penceresi (her FRA kenarına giriş
   pencere içinde, kenar sonu belirsizlik payıyla kapanıştan önce), ToC/ToD
-  rolleri (FIR içinde D/A, dışında E/X; menzilde D/A yoksa E/X ve uyarı;
-  AIP'te A/D rolleri meydana özgüdür, API meydan almadığı için genel sayılır),
+  rolleri (A/D rolleri AIP'te meydana özgüdür: `kalkis_meydani`/`varis_meydani`
+  verilirse ToC/ToD o meydanın bağlantı noktalarına bağlanır ve ENR 1.3
+  bağlantı rotası düz çizgiyle yaklaşıklanır; verilmezse FIR içinde D/A,
+  dışında E/X genel seçilir ve yanıt bunu `ats.uyarilar`'da söyler),
   DCT'nin FIR içinde ve sınıra 5 NM'den uzak kalması. FIR sınırı VATSIM'in
   yaklaşık çizimidir. FLOS (çift/tek FL değişimi), RAD kısıtları ve
   bağlantı rotaları modellenmez. ATC kısıtları modellenmez. Kısıtlı/yasak sahalar ve

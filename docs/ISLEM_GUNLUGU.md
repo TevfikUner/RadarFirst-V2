@@ -2,6 +2,13 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-07 (dal `claude/fra-meydan-baglantisi`, Madde 5 kapanış)
+
+- ✅ A/D rolleri meydana özgü: ENR 4.4/4.1'den 41 meydanın bağlantı noktaları okundu (`fra_meydanlari`).
+- ✅ API/arayüz: isteğe bağlı `kalkis_meydani`/`varis_meydani`; IST→VAN (LTFM→LTCI) ESB … EZS, AIP'e uygun.
+- ✅ Düzeltme: önceki MUS sonucu yanlıştı (MUS yalnız LTCE). Meydansız istekte bu artık uyarıda yazıyor.
+- ✅ Hata düzeltildi: API şeması `ats.etiket`/`ats.uyarilar`'ı atıyordu. Tam test: 854 geçti.
+
 ## 2026-10-07 (dal `claude/enr41-seyrusefer`, Madde 5 ek)
 
 - ✅ ENR 4.1 (62 VOR/NDB, FRA rolleriyle) ağa eklendi; tek PDF isteği. Ağ: 681 nokta, 24.838 DCT adayından 879'u elendi.

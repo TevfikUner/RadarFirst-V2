@@ -25,11 +25,13 @@ yoksa her zaman. Türkiye'de FRATURK yalnızca 20:00-02:00 UTC (AIP ENR 1.3
 kenar sonuna varışı (belirsizlik payıyla) pencere kapanmadan önceyse aramaya
 girer: FRA uçuşu FRATURK'tan kapanıştan önce çıkmalıdır (ENR 1.3 §5.5.2.1).
 
-fra_rolleri (ENR 4.4): E yatay giriş, X yatay çıkış, I ara, A varış, D kalkış
-bağlantısı. Rol verisi olan ağda ToC yalnız D/E, ToD yalnız A/X rollü FRA
-noktalarına bağlanır; FRA alanı (firler) biliniyorsa FIR içindeki ToC yalnız D,
-dışındaki yalnız E; ToD için A/X (ENR 1.3 §5.2.2-5.2.3). Rol verisi olmayan
-noktalar kısıtsız.
+fra_rolleri (ENR 4.4/4.1): E yatay giriş, X yatay çıkış, I ara, A varış, D kalkış
+bağlantısı. fra_meydanlari {"A": ["LTCI", ...], "D": [...]}: A/D rolleri AIP'te
+meydana özgüdür. Kalkış/varış meydanı (ICAO) verilirse ToC o meydanın D, ToD
+A noktalarına ATS_AGI_MEYDAN_BAGLANTI_KM'ye kadar bağlanır ("BAGLANTI": ENR 1.3
+bağlantı rotasının düz çizgi yaklaşığı). Verilmezse ToC yalnız D/E, ToD yalnız
+A/X rollü noktalara; FRA alanı (firler) biliniyorsa FIR içindeki uç önce D/A,
+dışındaki yalnız E/X (ENR 1.3 §5.2.2-5.2.3). Rol verisi olmayan noktalar kısıtsız.
 
 firler/sinir_tamponu_nm: DCT kenarları bu FIR'ların birleşiminin sinir_tamponu_nm
 içeri daraltılmış alanında tamamen kalmalı (ENR 1.3 §5.2.1.6, §5.2.5); kalmayanlar
@@ -83,6 +85,7 @@ class HavaYoluAgi:
     komsular: dict[str, list[Kenar]] = field(default_factory=dict)
     fra_saatleri: list[tuple[int, int]] = field(default_factory=list)
     fra_rolleri: dict[str, frozenset[str]] = field(default_factory=dict)
+    fra_meydanlari: dict[str, dict[str, frozenset[str]]] = field(default_factory=dict)
     sinir_disi_dct_sayisi: int = 0
     ats_yolu_sayisi: int = 0
     fra_var: bool = False
@@ -119,27 +122,64 @@ class HavaYoluAgi:
 
         return bool(shapely.contains_xy(self.fra_alani, boylam, enlem))
 
-    def uc_baglantisi(self, enlem, boylam, ic_rol, dis_rol) -> list[tuple[str, float]]:
-        """ToC (D/E) ya da ToD (A/X) bağlantıları. FRA alanı biliniyorsa dışarıdaki
-        uç yalnız dis_rol (E/X) noktalarına; içerideki önce ic_rol (D/A), menzilde
-        yoksa ic_rol/dis_rol (ENR 1.3 §5.2.2-5.2.3; bkz. rol_uyarilari). AIP'te
-        A/D rolleri meydana özgüdür; meydan bilinmediği için genel sayılır."""
+    def meydan_baglantilari(self, enlem, boylam, rol, meydan) -> list[tuple[str, float]]:
+        """(nokta, km) -- meydanın AIP'teki rol (A/D) bağlantı noktaları."""
+        adaylar = sorted(
+            (mesafe_km(enlem, boylam, *self.noktalar[ad]), ad)
+            for ad, meydanlar in self.fra_meydanlari.items()
+            if meydan in meydanlar.get(rol, ()) and ad in self.komsular
+        )
+        return [(ad, km) for km, ad in adaylar if km <= config.ATS_AGI_MEYDAN_BAGLANTI_KM]
+
+    def uc_baglantisi(self, enlem, boylam, ic_rol, dis_rol, meydan=None) -> tuple[list[tuple[str, float]], str]:
+        """ToC (D/E) ya da ToD (A/X) bağlantıları ve kenar adı. Meydan verilmiş ve
+        AIP'te bağlantı noktası varsa yalnız onlar ("BAGLANTI"). Yoksa FRA alanı
+        biliniyorsa dışarıdaki uç yalnız dis_rol (E/X) noktalarına; içerideki önce
+        ic_rol (D/A), menzilde yoksa ic_rol/dis_rol ("DCT"; bkz. rol_uyarilari)."""
+        if meydan:
+            baglar = self.meydan_baglantilari(enlem, boylam, ic_rol, meydan)
+            if baglar:
+                return baglar, "BAGLANTI"
         icinde = self.fra_alaninda_mi(enlem, boylam)
         if icinde is False:
-            return uc_baglantilari(self, enlem, boylam, roller=frozenset(dis_rol))
+            return uc_baglantilari(self, enlem, boylam, roller=frozenset(dis_rol)), "DCT"
         baglar = uc_baglantilari(self, enlem, boylam, roller=frozenset(ic_rol)) if icinde else []
-        return baglar or uc_baglantilari(self, enlem, boylam, roller=frozenset((ic_rol, dis_rol)))
+        return baglar or uc_baglantilari(self, enlem, boylam, roller=frozenset((ic_rol, dis_rol))), "DCT"
 
-    def rol_uyarilari(self, dugumler, bas, bit) -> list[str]:
-        """FRA alanı içindeki ToC/ToD, kalkış (D)/varış (A) bağlantı noktası
-        yerine yatay giriş/çıkış (E/X) noktasına bağlandıysa açık uyarı."""
+    def rol_uyarilari(self, dugumler, bas, bit, kalkis_meydani=None, varis_meydani=None) -> list[str]:
+        """İlk/son FRA noktasının AIP rolüne ve meydanına göre açık uyarılar."""
+        asil = [d for d in dugumler if "#" not in d]
         uyarilar = []
-        for uc, nokta, rol, ad in ((bas, dugumler[1], "D", "kalkış"), (bit, dugumler[-2], "A", "varış")):
-            if self.fra_alaninda_mi(*uc) and nokta in self.fra_rolleri and rol not in self.fra_rolleri[nokta]:
+        for uc, nokta, rol, ad, meydan, taraf in (
+            (bas, asil[1], "D", "kalkış", kalkis_meydani, "ToC"),
+            (bit, asil[-2], "A", "varış", varis_meydani, "ToD"),
+        ):
+            roller = self.fra_rolleri.get(nokta)
+            meydanlar = self.fra_meydanlari.get(nokta, {}).get(rol, frozenset())
+            if meydan:
+                if meydan in meydanlar:
+                    uyarilar.append(
+                        f"{nokta}, {meydan} için AIP FRA {ad} bağlantı noktası; {nokta}–{taraf} arası ENR 1.3 "
+                        "bağlantı rotası düz çizgiyle yaklaşıklandı."
+                    )
+                else:
+                    uyarilar.append(
+                        f"{meydan} için {config.ATS_AGI_MEYDAN_BAGLANTI_KM:.0f} km içinde FRA {ad} bağlantı "
+                        f"noktası ({rol}) ağda yok; {nokta} kullanıldı."
+                    )
+                continue
+            if not self.fra_alaninda_mi(*uc) or roller is None:
+                continue
+            if rol not in roller:
                 uyarilar.append(
                     f"{nokta} FRA {ad} bağlantı noktası ({rol}) değil, yatay giriş/çıkış noktası "
-                    f"({''.join(sorted(self.fra_rolleri[nokta]))}): {config.ATS_AGI_BAGLANTI_KM:.0f} km içinde "
+                    f"({''.join(sorted(roller))}): {config.ATS_AGI_BAGLANTI_KM:.0f} km içinde "
                     f"{rol} rollü nokta yok. ENR 1.3 §5.2.3'e tam uymaz."
+                )
+            elif meydanlar:
+                uyarilar.append(
+                    f"{nokta} yalnız {', '.join(sorted(meydanlar))} için FRA {ad} bağlantı noktası (AIP); "
+                    f"{ad} meydanı verilmediği için doğrulanmadı."
                 )
         return uyarilar
 
@@ -287,6 +327,7 @@ def agi_kur(veri: dict, ara_nokta_km: float | None = None, fra_siniri=None) -> H
         raise AtsAgiHatasi("'noktalar' boş olmayan bir liste olmalı")
     noktalar = {}
     roller = {}
+    meydanlar = {}
     for sira, nokta in enumerate(veri["noktalar"]):
         try:
             ad, enlem, boylam = str(nokta["ad"]).strip().upper(), float(nokta["enlem"]), float(nokta["boylam"])
@@ -302,7 +343,17 @@ def agi_kur(veri: dict, ara_nokta_km: float | None = None, fra_siniri=None) -> H
             if not rol <= _ROLLER:
                 raise AtsAgiHatasi(f"noktalar[{sira}]: 'fra_rolleri' yalnız {', '.join(sorted(_ROLLER))} içerebilir")
             roller[ad] = rol
-    ag = HavaYoluAgi(kaynak=str(veri.get("kaynak") or "belirtilmedi"), noktalar=dict(noktalar), fra_rolleri=roller)
+        if nokta.get("fra_meydanlari"):
+            ham = nokta["fra_meydanlari"]
+            if not isinstance(ham, dict) or not set(ham) <= {"A", "D"}:
+                raise AtsAgiHatasi(f"noktalar[{sira}]: 'fra_meydanlari' yalnız A ve D anahtarlı sözlük olmalı")
+            meydanlar[ad] = {r: frozenset(str(m).strip().upper() for m in liste) for r, liste in ham.items()}
+    ag = HavaYoluAgi(
+        kaynak=str(veri.get("kaynak") or "belirtilmedi"),
+        noktalar=dict(noktalar),
+        fra_rolleri=roller,
+        fra_meydanlari=meydanlar,
+    )
 
     def segment_ekle(a, b, yol, alt_fl, ust_fl, yonler, fra=False):
         (e1, b1), (e2, b2) = noktalar[a], noktalar[b]
@@ -425,12 +476,23 @@ def uc_baglantilari(ag: HavaYoluAgi, enlem, boylam, maks_km=None, sayi=None, rol
     return [(ad, km) for km, ad in adaylar if km <= maks_km][:sayi]
 
 
-def arama_grafi(ag: HavaYoluAgi, bas, bit, irtifa_ft, zaman=None, dugum_zamanlari=None) -> tuple[dict, dict, list]:
+def arama_grafi(
+    ag: HavaYoluAgi,
+    bas,
+    bit,
+    irtifa_ft,
+    zaman=None,
+    dugum_zamanlari=None,
+    kalkis_meydani=None,
+    varis_meydani=None,
+) -> tuple[dict, dict, list]:
     """A* için (konumlar, komsular, kenarlar): seviyeye uymayan segmentler ve
     FRA penceresi dışındaki FRA DCT kenarları çıkarılmış, ToC/ToD bağlantıları
-    (FRA rollerine göre) eklenmiş graf. dugum_zamanlari {düğüm: (nominal, en geç)}
-    verilirse her FRA kenarı a->b için giriş nominal(a), çıkış en_gec(b) pencereye
-    bakılır; verilmezse yalnız `zaman` (kalkış) anına."""
+    (FRA rollerine ve meydanlara göre, ATS_AGI_ARA_NOKTA_KM'lik parçalara
+    bölünmüş) eklenmiş graf. dugum_zamanlari {düğüm: (nominal, en geç)} verilirse
+    her FRA kenarı a->b için giriş nominal(a), çıkış en_gec(b) pencereye bakılır;
+    verilmezse yalnız `zaman` (kalkış) anına. Bağlantı ara noktaları
+    dugum_zamanlari'nda olmayabilir (FRA kenarı değiller)."""
     fl = irtifa_ft / 100.0
     fra_acik = ag.fra_acik_mi(zaman)
 
@@ -445,9 +507,27 @@ def arama_grafi(ag: HavaYoluAgi, bas, bit, irtifa_ft, zaman=None, dugum_zamanlar
         a: [(k.hedef, k.yol) for k in kenarlar if _seviyede_mi(k, fl) and (not k.fra or fra_uygun(a, k.hedef))]
         for a, kenarlar in ag.komsular.items()
     }
-    komsular[BASLANGIC] = [(ad, "DCT") for ad, _ in ag.uc_baglantisi(*bas, "D", "E")]
-    for ad, _ in ag.uc_baglantisi(*bit, "A", "X"):
-        komsular.setdefault(ad, []).append((BITIS, "DCT"))
+    komsular[BASLANGIC] = []
+
+    def baglanti_ekle(a, b, yol):
+        (e1, b1), (e2, b2) = konumlar[a], konumlar[b]
+        ara_km = config.ATS_AGI_ARA_NOKTA_KM
+        parca = max(1, math.ceil(mesafe_km(e1, b1, e2, b2) / ara_km)) if ara_km > 0 else 1
+        zincir = [a]
+        for i in range(1, parca):
+            ara = f"{a}>{b}#{i}"
+            konumlar[ara] = _ara_nokta(e1, b1, e2, b2, i / parca)
+            zincir.append(ara)
+        zincir.append(b)
+        for x, y in itertools.pairwise(zincir):
+            komsular.setdefault(x, []).append((y, yol))
+
+    baglar, yol = ag.uc_baglantisi(*bas, "D", "E", kalkis_meydani)
+    for ad, _ in baglar:
+        baglanti_ekle(BASLANGIC, ad, yol)
+    baglar, yol = ag.uc_baglantisi(*bit, "A", "X", varis_meydani)
+    for ad, _ in baglar:
+        baglanti_ekle(ad, BITIS, yol)
     kenarlar = [(a, b) for a, hedefler in komsular.items() for b, _ in hedefler]
     return konumlar, komsular, kenarlar
 
