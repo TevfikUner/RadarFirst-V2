@@ -2,6 +2,14 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-08 (dal `claude/esik-ve-rota-hizi`, Madde 8 açık kararları)
+
+- ✅ TI1 risk eşiği 8e-7 → 7e-7: eğitim günlerinde Peirce max'ın 1 SE'si içindeki en tutucu eşik (1-SE kuralı).
+- ✅ Altın günlerde 7e-7: POD 0,50, POFD 0,25 (8e-7: 0,45 / 0,20). Backtest yeniden: 15 Oca A* 0,02 (tam sıfır değil).
+- ✅ Rota yavaşlığının nedeni: Pareto için 4 A* + seviye adayları (tasarım). Rüzgâr tek okuma + TI1 paylaşımı: %30 hızlı.
+- ✅ Şarjda rota 0,03–0,45 sn (dün pilde 1,3 sn). Sonuç birebir aynı (eşdeğerlik testleri). Tam test 908 geçti, 4 dk.
+- ✅ Docker api/worker yeni kodla derlendi; demo ekranları yeniden çekildi; ön paket yeniden üretildi.
+
 ## 2026-10-07 (dal `claude/sonuc-paketi-dondurma`, Madde 8)
 
 - ✅ `turbulans-ml-degerlendirme --kesme --cikti`: commit hash'li JSON + SAYILAR.md + 3 PNG; ön paket `docs/sonuclar/2026-10-07/`.

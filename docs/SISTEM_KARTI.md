@@ -35,12 +35,14 @@ trafikle varsayımsal minima karşılaştırması yalnızca gösterge olarak var
   `SIGMET_YAYIN_UFKU_SAAT`), uçuşun bu ufkun ötesindeki kısmında "aktif SIGMET
   yok" sonucu güvence değildir. Yanıt bu durumda `sigmet_ufuk_disi` uyarısı verir.
 - Kalkıştan önceki son saatlerde yeniden hesaplanmalıdır.
-- Hesaplama süresi, veri hazırken rota başına 0,08–1,36 sn'dir (sıcak medyan; A*
-  araması 0,31–0,40 sn). Ölçüm `turbulans-performans rota` ile yapıldı ve
-  `docs/sonuclar/2026-10-07/rota_performansi.md` dosyasında. Dizüstü pildeyken ölçüldü;
-  aynı gün daha önceki bir ölçüm 0,02–0,86 sn verdi. 2 Ekim ölçümü 0,02–0,27 sn idi
-  (tarihçe, `docs/hoca_geri_bildirim_analizi.md` §3). Artışın nedeni (yarım daire
-  kuralıyla çok seviyeli arama, FRA kontrolleri ya da güç durumu) ayrıca incelenmedi.
+- Hesaplama süresi, veri hazırken ve dizüstü şarjdayken rota başına 0,03–0,45 sn'dir
+  (sıcak medyan; A* aramalarının toplamı 0,09–0,14 sn). Ölçüm `turbulans-performans rota`
+  ile yapıldı: `docs/sonuclar/2026-10-07/rota_performansi.md`. Pilde süreler 2–3 kat
+  uzuyor. 2 Ekim ölçümü 0,02–0,27 sn idi (tarihçe). Fark tasarımdan gelir: Pareto
+  seçenekleri için A* her rotada 1 yerine 4 kez (bir yanal, üç ceza düzeyi) çalışır ve
+  yarım daire kuralı seviye adayları ekler. 8 Ekim'de rüzgâr okuması vektörleştirildi ve
+  A* çalıştırmaları aynı ızgaranın TI1'ini paylaşır oldu; sonuç birebir aynı, süre
+  yaklaşık %30 kısaldı.
 - Uçuş sırasında yeniden hesaplama mekanizması gösterim amaçlıdır.
 
 Sistem **sertifikalı değildir**. Herhangi bir EFB onayı yoktur ve
@@ -65,7 +67,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 - **Türbülans göstergeleri:** Ellrod TI1 (dikey rüzgar kayması × yatay
   deformasyon) ve bulk Richardson sayısı. Bir nokta, TI1 değeri
-  `TI1_ESIK_ORTA_SIDDETLI` (8e-7 s⁻²) eşiğini aşarsa "riskli" sayılır.
+  `TI1_ESIK_ORTA_SIDDETLI` (7e-7 s⁻²) eşiğini aşarsa "riskli" sayılır. Eşik 8 Ekim'de
+  veriden seçildi: altın test günleri dışındaki 64 günde Peirce'i en yüksek eşiğin
+  (5,3e-7) bir standart hatası içindeki en tutucu eşik (1-SE kuralı, 7,06e-7). Önceki
+  değer 8e-7 literatürden kaba bir başlangıçtı ve bu bandın dışındaydı.
 - **Rota adayları:**
   - A* ile yanal sapma: büyük daire etrafında 41 ara nokta; her bacağın büyük
     daire yönüne göre açısı en fazla 30°, toplam sapma en fazla 400 km, ızgara
@@ -149,7 +154,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   içi sayılır ve kenar değerini alır.
 - Seyir irtifasındaki 7.815 PIREP'te (80 gün) TI1'in tek başına ayırt
   ediciliği orta düzeydedir: ROC-AUC 0,680 [0,662–0,697]. Altın test günlerinde
-  0,673 [0,639–0,704]; `TI1_ESIK_ORTA_SIDDETLI`'de (8e-7) POD 0,448, POFD 0,201.
+  0,673 [0,639–0,704]; `TI1_ESIK_ORTA_SIDDETLI`'de (7e-7) POD 0,502, POFD 0,252.
   Eğitim günlerinde Peirce'i en büyüten eşik 5,3e-7'dir; altın günlerde POD 0,605,
   POFD 0,349. Sayılar `docs/sonuclar/2026-10-07/SAYILAR.md` ön paketinden alındı.
   Fizik düzeltmesinden önce 0,64'tü (5 Ekim, tarihçe); eski 0,44 değeri 300-400 feet'teki
@@ -298,8 +303,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   güvenilirlik ve backtest şekilleri (`turbulans-ml-degerlendirme --cikti`). Şu an
   7 Ekim ön paketi geçerlidir; 18 Ekim veri dondurmasında nihai paket üretilecek.
 - **Backtest (ERA5):** Veritabanındaki iki uçuşta riskli nokta oranı
-  (gerçek / büyük daire / A*): THY322 1 Ocak 2019 0,00 / 0,05 / 0,00; THY322 15 Ocak
-  2019 0,19 / 0,32 / 0,00 (`SAYILAR.md`, `backtest_ucus_basina.png`). Bu ölçüm
+  (gerçek / büyük daire / A*): THY322 1 Ocak 2019 0,00 / 0,20 / 0,00; THY322 15 Ocak
+  2019 0,24 / 0,39 / 0,02 (`SAYILAR.md`, `backtest_ucus_basina.png`; 7e-7 eşiğiyle). Bu ölçüm
   döngüseldir (A* TI1'i düşürür, başarı TI1 ile ölçülür); bu uçuşlar için bağımsız
   kanıt kaynağı yoktur. Önceki "üç uçuşta ortalama 0,28" ölçümü (THY72C, THY606 dahil)
   tarihçedir; o uçuşlar bugünkü veritabanında yok.

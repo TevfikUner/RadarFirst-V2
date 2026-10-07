@@ -100,16 +100,18 @@ Bu bölümdeki her sayı `docs/sonuclar/2026-10-07/SAYILAR.md` ön paketinden al
 dondurmasından sonra nihai paketle değiştirilir. Aralıklar gün bazlı blok bootstrap %95 GA'dır.
 
 - **TI1'in bağımsız becerisi sınırlı:** Seyir irtifasındaki 7.815 PIREP'te (80 gün) ROC-AUC
-  0,680 [0,662–0,697]. Altın test günlerinde 0,673 [0,639–0,704]. Config eşiğinde (8e-7)
-  yakalama 0,448, yanlış alarm 0,201. Gerçek bir uçuşta (PUE502, 26 Eylül, tarihçe) aktif
+  0,680 [0,662–0,697]. Altın test günlerinde 0,673 [0,639–0,704]. Risk eşiğinde (7e-7)
+  yakalama 0,502, yanlış alarm 0,252. Gerçek bir uçuşta (PUE502, 26 Eylül, tarihçe) aktif
   TURB SIGMET'in işaret ettiği türbülansı TI1 yakalamadı. Bu yüzden güvenlik garantisi
   SIGMET sert kısıtından gelir; TI1 yumuşak göstergedir.
-- **Eşik veriden seçildi:** Eğitim günlerinde Peirce'i en büyüten TI1 eşiği 5,3e-7'dir.
-  Altın günlerde POD 0,605, POFD 0,349, CSI 0,439. Config eşiği henüz değiştirilmedi.
+- **Eşik veriden seçildi:** Eğitim günlerinde Peirce'i en büyüten TI1 eşiği 5,3e-7
+  (altın günlerde POD 0,605, POFD 0,349). Risk eşiği, bunun bir standart hatası içindeki
+  en tutucu eşik oldu: 7e-7 (1-SE kuralı; yanlış alarm daha az). Eski 8e-7 bu bandın
+  dışındaydı.
 - **Yalnız CAT:** CB/TS/TCU/MTN WAVE/LLWS geçen raporlar dışlanınca altın günlerde TI1
   0,669 [0,632–0,707]; sonuç değişmiyor.
 - **Backtest (ERA5, THY322):** Riskli nokta oranı (gerçek / büyük daire / A*): 1 Ocak 2019
-  0,00 / 0,05 / 0,00; 15 Ocak 2019 0,19 / 0,32 / 0,00. Ölçüm döngüseldir (A* TI1'i
+  0,00 / 0,20 / 0,00; 15 Ocak 2019 0,24 / 0,39 / 0,02. Ölçüm döngüseldir (A* TI1'i
   düşürür, başarı TI1 ile ölçülür); bunu açıkça söyleyin.
 - **ML (ön sonuç, olumsuz):** Protokol modeli (Lojistik Regresyon, 1-SE) altın test
   günlerinde (16 gün, 1.554 PIREP) ROC-AUC 0,681 [0,646–0,716]. TI1'e göre fark +0,008
