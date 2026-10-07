@@ -246,6 +246,21 @@ def buyuk_daire_mesafesi_km(enlem1, boylam1, enlem2, boylam2):
     return 2 * DUNYA_YARICAPI_M * math.asin(math.sqrt(a)) / 1000.0
 
 
+def yanal_sapma_yonu(enlemler, boylamlar, esik_km=1.0) -> str | None:
+    """İlk-son nokta büyük dairesine göre en büyük yanal sapmanın yönü, seyir
+    yönüne bakarak: "R" sağ, "L" sol; sapma esik_km'den küçükse None."""
+    e1, b1, e2, b2 = enlemler[0], boylamlar[0], enlemler[-1], boylamlar[-1]
+    rota_yonu = math.radians(_ilk_yon_derece(e1, b1, e2, b2))
+    en_buyuk = 0.0
+    for e, b in zip(enlemler[1:-1], boylamlar[1:-1], strict=True):
+        aci = buyuk_daire_mesafesi_km(e1, b1, e, b) / 6371.0
+        xtd = 6371.0 * math.asin(math.sin(aci) * math.sin(math.radians(_ilk_yon_derece(e1, b1, e, b)) - rota_yonu))
+        en_buyuk = xtd if abs(xtd) > abs(en_buyuk) else en_buyuk
+    if abs(en_buyuk) < esik_km:
+        return None
+    return "R" if en_buyuk > 0 else "L"
+
+
 def _ilk_yon_derece(enlem1, boylam1, enlem2, boylam2):
     """Nokta 1'den nokta 2'ye ilk pusula yönü (derece, 0=kuzey, 90=doğu)."""
     phi1, phi2 = _bd(enlem1), _bd(enlem2)
@@ -1384,6 +1399,7 @@ def rota_simulasyonu_olustur(
             optimize_ozeti := {
                 **_rota_ozeti(en_iyi, optimize_yakit_kg, optimize_saniye),
                 "maks_yanal_sapma_km": en_iyi["yanal_sapma_km"],
+                "maks_yanal_sapma_yonu": yanal_sapma_yonu(en_iyi["enlem"], en_iyi["boylam"]),
                 "ortalama_ruzgar_bileseni_kt": _ortalama_ruzgar_bileseni_kt(en_iyi, tas_ms),
             }
         ),

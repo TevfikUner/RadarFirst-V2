@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-07 (dal `claude/sapma-yonu`, Madde 6 kapanış)
+
+- ✅ Madde 6 kabul kriterleri koda karşı doğrulandı; tek eksik "NM L/R of track" yönüydü, eklendi (`maks_yanal_sapma_yonu`).
+- ✅ Tam test 855 geçti; tarayıcı (Playwright) 8/8 geçti.
+
 ## 2026-10-07 (dal `claude/fra-meydan-baglantisi`, Madde 5 kapanış)
 
 - ✅ A/D rolleri meydana özgü: ENR 4.4/4.1'den 41 meydanın bağlantı noktaları okundu (`fra_meydanlari`).

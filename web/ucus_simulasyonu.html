@@ -272,6 +272,9 @@ function saniyeyiDkSaatOlarakYaz(dk) {
 const NM_KM = 1.852;
 const nmMetni = (km) => `${(km / NM_KM).toFixed(0)} NM (${km.toFixed(0)} km)`;
 const flMetni = (rota) => `FL${String(rota.fl ?? Math.round(rota.irtifa_ft / 100)).padStart(3, "0")}`;
+const sapmaMetni = (nm, yon) => yon
+  ? `${nm.toFixed(0)} NM ${yon} of track, rotanın ${yon === "R" ? "sağı" : "solu"}`
+  : `rotadan en çok ${nm.toFixed(0)} NM`;
 const ruzgarMetni = (kt) => kt == null ? "–" : `${kt >= 0 ? "P" : "M"}${Math.abs(kt).toFixed(0).padStart(2, "0")} kt`;
 const utcSaat = (iso) => iso.slice(11, 16) + "Z";
 
@@ -368,7 +371,7 @@ function sonucPanelDoldur(sonuc) {
   const sapmaNm = (sonuc.optimize_rota.maks_yanal_sapma_km || 0) / NM_KM;
   document.getElementById("strateji-satiri").textContent =
     (stratejiEtiketleri[sonuc.kacinma_stratejisi] || "") +
-    (sonuc.kacinma_stratejisi === "yanal" ? ` (rotadan en çok ${sapmaNm.toFixed(0)} NM)` : "") +
+    (sonuc.kacinma_stratejisi === "yanal" ? ` (${sapmaMetni(sapmaNm, sonuc.optimize_rota.maks_yanal_sapma_yonu)})` : "") +
     (sonuc.ats ? ` · FRA: ${atsMetni(sonuc.ats.optimize_rota)} (${sonuc.ats.kaynak})` : "") +
     (sonuc.ats?.uyarilar?.length ? ` · ⚠ ${sonuc.ats.uyarilar.join(" ")}` : "");
 
