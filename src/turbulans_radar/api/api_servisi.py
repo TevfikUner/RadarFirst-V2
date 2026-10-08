@@ -329,11 +329,20 @@ async def _openaip_zamanlayicisi(aralik_saniye, kontrol_saniye=600.0):
         await asyncio.sleep(min(kontrol_saniye, aralik_saniye))
 
 
+_GFS_ISITMA_HATA_BEKLEME = timedelta(minutes=30)
+
+
 async def _gfs_isitma_adimi(aralik_saniye, simdi: datetime | None = None) -> str | None:
     """Son aralıkta canlı veri görevi yoksa CANLI_ISITMA_KUTUSU için GFS küpünü
-    kuyruğa alır: sağlayıcı kesintisi ilk kullanıcı isteğinden önce fark edilir."""
+    kuyruğa alır: sağlayıcı kesintisi ilk kullanıcı isteğinden önce fark edilir.
+    Başarısız deneme (ör. açılışta DNS hazır değilken) tüm aralığı değil, yalnızca
+    _GFS_ISITMA_HATA_BEKLEME'yi bekletir."""
     simdi = simdi or datetime.now(UTC)
-    if await gorev_durumlari("canli_veri", simdi - timedelta(seconds=aralik_saniye)):
+    pencere = timedelta(seconds=aralik_saniye)
+    durumlar = await gorev_durumlari("canli_veri", simdi - pencere)
+    if any(d not in ("hata", "yarida_kaldi") for d in durumlar):
+        return None
+    if durumlar and await gorev_durumlari("canli_veri", simdi - min(pencere, _GFS_ISITMA_HATA_BEKLEME)):
         return None
     if await aktif_gorev_var_mi("canli_veri"):
         return None
