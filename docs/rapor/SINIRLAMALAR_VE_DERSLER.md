@@ -13,8 +13,8 @@ değerlendirilir. NTSB (2021) türbülans yaralanmalarının önemli bir kısmı
 irtifada ve yaklaşmada olduğunu gösterir; bu olaylar sistemin göremediği yerdedir.
 
 **Yalnızca ABD verisi.** Eğitim etiketleri (IEM PIREP) ve nesnel doğrulama (MADIS EDR)
-ABD hava sahasındandır; 64 gün, 6.218 PIREP. Türkiye ya da Avrupa için geçerlilik
-gösterilmedi. Rota ve arayüz Türkiye'de çalışır ama oradaki beceri ölçülmedi.
+ABD hava sahasındandır; 80 gün, 7.815 PIREP (16 gün altın test). Türkiye ya da Avrupa
+için geçerlilik gösterilmedi. Rota ve arayüz Türkiye'de çalışır ama oradaki beceri ölçülmedi.
 Göstergelerin log-normal eşleme klimatolojisi de ABD PIREP pencerelerinden gelir.
 
 **Doğrulama reanalize dayalı.** Göstergeler ERA5 reanalizinden (0,25°, saatlik)
@@ -26,7 +26,7 @@ Eğitim ise 25 hPa'lık katmanla yapıldı.
 
 **Etiket kaynaklı sınırlar.** PIREP'ler türbülansa doğru güçlü biçimde yanlıdır:
 pozitif oranı %52, aynı yerlerdeki MADIS ölçümlerinde hafif ve üstü %3. Model
-olasılıkları bu yüzden mutlak sıklık değildir. MADIS ölçümleri yalnız 4 gündür, kalite
+olasılıkları bu yüzden mutlak sıklık değildir. MADIS ölçümleri yalnız 6 gündür, kalite
 kontrolsüzdür (QC "Z") ve PIREP pencerelerinin içinden gelir; sonuçlar ön sonuçtur.
 
 **İstatistiksel sınırlar.** Birleşik EDR'nin TI1'e üstünlüğü anlamlı ama küçüktür
@@ -39,6 +39,13 @@ başlangıç değeridir.
 **Çözünürlük.** ERA5'in 0,25° ızgarası ve 25 hPa'lık katmanı, uçağın algıladığı
 ölçeği (yaklaşık 100 m – 1 km) çözemez; ince kararsız katmanlar (Ri < 0,25)
 örneklerin yalnızca %1,4'ünde görülür.
+
+**Aktarım ve kapsam dışı bırakılanlar.** Eşikler, birleşik EDR katsayıları ve model
+ERA5 ile seçildi; canlı GFS'ye doğrulanmadan aktarılır. Eşikler mevsime göre ayrılmadı.
+Türbülans riski uçak tipinden, yakıt akışı irtifa ve kütleden bağımsızdır. Sanal PIREP
+seviye değişikliğini olay saymaz. ICAO uçuş planı (Item 15/EET) üretilmez; ATFCM/CTOT ve
+sektör kapasitesi kapsam dışıdır. Backtest FRA modunu ölçmez. Bunlar bilinçli kapsam
+kararlarıdır; ayrıntı `docs/SISTEM_KARTI.md` §5'te.
 
 **Operasyonel karşılaştırma yok.** GTG ve WAFS ürünleriyle aynı veride doğruluk
 karşılaştırması yapılmadı (M3). Sistemin operasyonel ürünlerden iyi ya da kötü olduğu

@@ -32,8 +32,8 @@ Etiket hattı ham arşivden doğru filtreyle (FL280–FL420) yeniden kuruldu. Do
 veride TI1'in ROC-AUC'si 0,44'ten 0,71'e çıktı (tarihçe: 1 Ekim, 10 gün × 100 PIREP,
 gerçek CDS). Güncel değer 7.815 PIREP'te 0,680 (`docs/sonuclar/2026-10-07/SAYILAR.md`).
 - Kanıt: `ml/ml_veri_hatti.py`, `dogrulama/bagimsiz_kanit.py` (`pirepleri_normalize_et`).
-- Sınır: PIREP öznel ve gecikmelidir; nesnel EDR etiketi için NOAA MADIS başvurusu
-  yapıldı (geliştirme planı M1).
+- Sınır: PIREP öznel ve gecikmelidir. Nesnel etiket olarak NOAA MADIS'in herkese açık
+  uçak EDR arşivi kullanılır (geliştirme planı M1, ADR 0012); yalnız 6 gün ve hafif sınıf.
 - En yakın çalışmadan farkı: Schwartz (1996) PIREP'in nicel kullanımındaki gürültüyü genel olarak tartışır; biz açık IEM arşivinde somut iki hatayı (FL alanının feet olması, /OV UNK konumu) bulup etiket hattını bunlara göre yeniden kurduk.
 
 **K3. Kendiliğinden büyüyen, kotalı ve tekrar indirmesiz eğitim verisi.**
