@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-08 (işletim, dal `claude/gfs-imaj-yenileme`)
+
+- ✅ Canlı GFS 6 Eki 15:06'dan beri inmiyordu: API konteyneri PR #29'dan önce başlatılmıştı (DNS hatasında 6 sa kilit). Yalnız API yeniden derlendi; 16:07 UTC'de indirme başarılı, derin sağlık "ayakta".
+- ✅ Güvenlik taraması: uygulama rolü, MCP şifresi, pilot anahtarı, WS bileti zaten düzgün; OneDrive yedeği parolayla açılıp yerel dump'la aynı çıktı. Windows PG17 kaldırıldı, eski proje kopyası silindi (kullanıcı).
+
 ## 2026-10-08 (dal `claude/uzman-raporu-eksikleri`)
 
 - ✅ Uzman raporu taraması: Madde 1–9 kabul kriterleri kodda karşılanıyor; kalan belge eksikleri kapatıldı.
