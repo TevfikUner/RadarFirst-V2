@@ -169,8 +169,9 @@ kullanılan seviye):
 Eski hesapta seviyeler arasında belirgin bir dengesizlik vardı. Seyrin yoğun olduğu
 250 hPa'da kayma 200–300 hPa arasından (~2,6 km) alındığı için seyreliyordu. Yeni
 hesapta oranlar seviyeler arasında birbirine yaklaştı. Sabit eşikler (4e-7, 8e-7)
-eski hesaba göre konmuştu ve yeni fizikte daha sık aşılıyor. Eşikleri yeniden
-kalibre etmek veri dondurma (18 Ekim) öncesinde yapılacak açık bir iştir.
+eski hesaba göre konmuştu ve yeni fizikte daha sık aşılıyor. Risk eşiği 8 Ekim'de
+eğitim günlerinden 1-SE kuralıyla 7e-7'ye çekildi (bkz. §0.2); hafif eşiği (4e-7)
+hâlâ kaba bir başlangıç değeridir.
 
 ### 1.2 Birleşik gösterge (log-normal EDR eşlemesi)
 

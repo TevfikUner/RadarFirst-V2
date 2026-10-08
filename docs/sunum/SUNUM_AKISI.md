@@ -135,8 +135,8 @@ dondurmasından sonra nihai paketle değiştirilir. Aralıklar gün bazlı blok 
 
 - Çıktılar sertifikalı EDR değildir; sistem karar destek aracıdır, operasyonel kararın
   tek dayanağı değildir.
-- Etiket PIREP'tir (öznel, gecikmeli); nesnel EDR etiketi için NOAA MADIS başvurusu
-  yapıldı (M1).
+- Etiket PIREP'tir (öznel, gecikmeli). Nesnel etiket olarak NOAA MADIS'in herkese açık
+  uçak EDR arşivi kullanılır (ADR 0012); 6 gün, yalnız hafif sınıf, ön sonuç.
 - OpenSky verisi ticari olmayan araştırma içindir; ürünleşmede havayolunun kendi
   ADS-B akışı gerekir (`POST /analiz/rota`, `POST /sanal-pirep/iz` bunun için).
 - Örnek kısıtlı sahalar ülke sınırından türetilmiştir, resmi AIP/NOTAM değildir.

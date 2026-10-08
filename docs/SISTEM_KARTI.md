@@ -97,6 +97,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   uçağın 50 km / ±2000 ft / ±60 dk içinde doğruladığı olay `/ws/uyarilar`'a
   gider. Rota kararına girmez; dispeçere bilgi verir. Sapma ham büyüklüktür,
   EDR ya da şiddet sınıfı değildir; eşikler kalibre edilmemiştir (ADR 0011).
+  Seviye değişikliği (tırmanma/alçalma) seyir sayılmadığından türbülansa en sık
+  verilen tepki, seviye talebi, olay olarak görülmez.
 
 ## 4. Hata durumlarında davranış (fail-safe)
 
@@ -173,11 +175,16 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   tahmininden daha iyi tahmin etmez (test MSE 0.076 vs 0.067). Bayrağın adı bu
   yüzden `TI1_GORSEL_OLCEK_PIREP_SINIFINA_UYDURULDU` oldu (eski adı
   `EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI`).
+- Eşikler mevsime ve bölgeye göre ayrılmaz; mevsim etkisi ölçülmedi (altın test
+  günleri 80 günden rastgele seçildi, mevsim dengesi aranmadı).
 
 **ML sınıflandırıcısı**
-- Aktif model (Random Forest, 5 Ekim 2026) doğru irtifalı PIREP'lerle eğitildi ve
-  holdout'ta TI1'i geçti (bkz. `docs/rapor/SONUCLAR.md`). Yeni aday her gece
-  eğitilir ve yalnızca holdout'ta TI1 referansını ve aktif modeli geçerse aktifleşir.
+- Aktif model (Random Forest, 5 Ekim 2026) doğru irtifalı PIREP'lerle, ama eski fizikle
+  hesaplanan özelliklerle ve altın test günlerinden önceki protokolle seçildi; o günkü
+  holdout'ta TI1'i geçmişti (tarihçe, `docs/rapor/SONUCLAR.md` §2). Eğitim gün listesi
+  olmadığı için aday karşılaştırmasında yok sayılır. Yeni aday her gece eğitilir ve
+  yalnızca altın test günlerinde TI1 referansını (ve varsa aktif modeli) geçerse
+  aktifleşir; ön pakette aday geçemedi.
 - Olasılık, "PIREP verilmiş bir noktada orta+ türbülans" oranına göredir
   (PIREP'lerde pozitif oran ~%52, MADIS ölçümlerinde hafif+ ~%3): raporlama
   yanlılığı nedeniyle mutlak sıklık olarak okunmamalıdır.
@@ -204,7 +211,14 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Seyir irtifası sabittir; kalkış ve iniş fazları modellenmez.
 - Bacak açısı büyük daire yönüne göre sınırlanır; ardışık iki bacak arasındaki
   dönüş en fazla bunun iki katıdır (60°). Dönüş yarıçapı modellenmez.
-- Uçak performans değerleri (TAS, yakıt akışı) tipik, halka açık değerlerdir.
+- Uçak performans değerleri (TAS, yakıt akışı) tipik, halka açık değerlerdir. Yakıt
+  akışı irtifadan, kütleden ve Mach'tan bağımsızdır; değer mutlak yakıt değil, aynı
+  tipteki rotalar arası farktır. İrtifa ve kütleye bağlı model (ör. OpenAP) yoktur.
+- Türbülans riski uçak tipinden bağımsızdır; PIREP'teki uçak tipi kullanılmaz.
+- ICAO uçuş planı çıktısı (Item 15/18, EET) üretilmez; FRA rotası nokta listesi
+  olarak verilir.
+- ATFCM/CTOT, sektör kapasitesi ve önerilerin trafik yığılmasına etkisi kapsam
+  dışıdır.
 - Koridor modunda hava yolu yapısı modellenmez. FRA modunda ENR 1.3 §5
   kurallarının bir kısmı uygulanır: FRA penceresi (her FRA kenarına giriş
   pencere içinde, kenar sonu belirsizlik payıyla kapanıştan önce), ToC/ToD
@@ -239,15 +253,22 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - UCAR THREDDS ücretsiz bir akademik servistir; hizmet düzeyi garantisi (SLA)
   yoktur.
 - Zaman adımı 3 saattir; yeni bir döngü birkaç saat gecikmeyle yayınlanır.
+- TI1 eşikleri, birleşik EDR katsayıları ve ML modeli ERA5 reanaliziyle seçildi ve
+  eğitildi; canlı GFS'ye doğrulanmadan aktarılır. Aynı eşiğin GFS'de aynı beceriyi
+  verdiği ölçülmedi (ERA5–GFS dağılım karşılaştırması yok) ve GFS'de kayma 50 hPa'lık
+  katmandandır. Bu yüzden GFS girdisinde konformal kapsama `null` döner; TI1 ve
+  ML olasılığı döner ama aynı güvenle okunmamalıdır.
 
 **Backtest**
 - Bağımsız kanıt (TURB SIGMET, PIREP) yalnızca kapsanan uçuşlarda vardır:
   sistemin SIGMET arşivi başladıktan sonraki uçuşlar ve ABD hava sahası.
   IEM SIGMET arşivinde irtifa bandı yoktur (tüm irtifalar sayılır).
-- Şu anki sonuçlar 3 gerçek uçuşun 100-260 km'lik seyir bölümlerine
-  dayanır. Bölümlerin kısa olmasının nedenleri OpenSky kapsama boşlukları ve
-  küp sınırıdır. Sonuçlar istatistiksel bir kanıt değil, doğrulama hattının
+- Güncel ön paket veritabanındaki iki uçuşa (THY322, 1 ve 15 Ocak 2019)
+  dayanır; seyir bölümleri OpenSky kapsama boşlukları ve küp sınırı nedeniyle
+  kısadır. Sonuçlar istatistiksel bir kanıt değil, doğrulama hattının
   çalıştığının gösterimidir.
+- Backtest yalnızca koridor modunu ölçer; FRA modunun ek mesafesi ve riski
+  backtest'te yoktur.
 
 **İşletim**
 - Hız sınırı sayaçları PostgreSQL'dedir (tüm API süreçleri paylaşır);
@@ -257,6 +278,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   Gece işi ve yedek tazeliği uyarı düzeyinde raporlanır.
 - İşçi durdurulunca çalışan görevi 240 sn bekler; ML gece işi süren CDS
   isteğini bitirip `yarida_kaldi` olarak durur.
+- Görev başına azami süre yoktur: takılan bir görevin kalp atışı sürdüğü için
+  başka işçiye geçmez; işçi yeniden başlatılana kadar o yuvayı tutar.
 - Görev kuyruğu PostgreSQL'dedir; işçiler 1 sn aralıkla yoklar (kuyruğa
   giriş ile başlama arasında ~1 sn gecikme).
 - API/kuyruk üzerinden tetiklenen analizler (`/analiz/ucus`, `/analiz/rota`,
