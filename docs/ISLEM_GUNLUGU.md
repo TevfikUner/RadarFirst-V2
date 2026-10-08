@@ -2,6 +2,13 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-08 (dal `claude/uzman-raporu-eksikleri`)
+
+- ✅ Uzman raporu taraması: Madde 1–9 kabul kriterleri kodda karşılanıyor; kalan belge eksikleri kapatıldı.
+- ✅ MADIS "başvuru yapıldı" → herkese açık arşiv (sunum, poster, KATKILAR); SINIRLAMALAR sayıları ön pakete hizalandı.
+- ✅ SISTEM_KARTI §5: ERA5→GFS aktarımı doğrulanmadı (MET-06), ATFCM/CTOT, uçak tipi, Item 15, yakıt modeli, backtest FRA, görev süresi.
+- ✅ Alembic gidiş-dönüş testi (YZL-05): her göç geri alınınca şema önceki haline dönüyor. 910 test geçti, ruff temiz.
+
 ## 2026-10-08 (dal `claude/gfs-isitma-yeniden-deneme`)
 
 - ✅ GFS ısıtması başarısız denemeden sonra 6 sa değil 30 dk sonra yeniden dener (açılışta DNS hazır değilken 2 kez kilitlenmişti). 909 test geçti.
