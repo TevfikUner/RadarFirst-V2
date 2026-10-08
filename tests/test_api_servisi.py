@@ -1891,6 +1891,32 @@ async def test_gfs_isitmasi_aralikta_tek_gorev_kuyruga_alir(monkeypatch):
     assert olusturulanlar[0][1]["kutu"] == [36.0, 42.0, 26.0, 45.0]
 
 
+async def test_gfs_isitmasi_hatadan_sonra_kisa_surede_yeniden_dener(monkeypatch):
+    simdi = datetime(2026, 10, 8, 15, 0, tzinfo=UTC)
+    gorevler = [(simdi - timedelta(minutes=20), "hata")]
+    olusturulanlar = []
+
+    async def durumlar(tur, sonra):
+        return [d for z, d in gorevler if z >= sonra]
+
+    async def aktif_mi(tur):
+        return False
+
+    async def olustur(tur, parametreler=None, **_):
+        olusturulanlar.append(tur)
+        return "g2"
+
+    monkeypatch.setattr(api_servisi, "gorev_durumlari", durumlar)
+    monkeypatch.setattr(api_servisi, "aktif_gorev_var_mi", aktif_mi)
+    monkeypatch.setattr(api_servisi, "gorev_olustur", olustur)
+
+    assert await api_servisi._gfs_isitma_adimi(6 * 3600, simdi) is None
+    assert await api_servisi._gfs_isitma_adimi(6 * 3600, simdi + timedelta(minutes=15)) == "g2"
+    gorevler.append((simdi - timedelta(hours=2), "tamamlandi"))
+    assert await api_servisi._gfs_isitma_adimi(6 * 3600, simdi + timedelta(minutes=15)) is None
+    assert olusturulanlar == ["canli_veri"]
+
+
 def test_gfs_isitma_zamanlayicisi_yalnizca_aciksa_eklenir(monkeypatch):
     monkeypatch.setattr(config, "SIGMET_OTOMATIK_GUNCELLEME_DAKIKA", 0)
     monkeypatch.setattr(config, "OPENAIP_OTOMATIK_GUNCELLEME_SAAT", 0)

@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-08 (dal `claude/gfs-isitma-yeniden-deneme`)
+
+- ✅ GFS ısıtması başarısız denemeden sonra 6 sa değil 30 dk sonra yeniden dener (açılışta DNS hazır değilken 2 kez kilitlenmişti). 909 test geçti.
+- ✅ Gece işi 8 Eki 14:43 UTC'de (açılışta) başladı; CDS indirmesi sürüyor.
+
 ## 2026-10-08 (dal `claude/hizli-tarama`, hızlı tarama)
 
 - ✅ ruff temiz, 908 test geçti (atlanan yok), yığın sağlıklı, belgelerde kırık bağlantı yok; kod değişikliği gerekmedi.
