@@ -406,6 +406,14 @@ function sonucPanelDoldur(sonuc) {
   } else {
     tasarrufEl.innerHTML = `<span class="tasarruf-yok">Türbülans verisi/rüzgar değerlendirilemedi.</span>`;
   }
+  const refKars = sonuc.referans_karsilastirmasi;
+  if (refKars && (refKars.ruzgar_kazanci || refKars.kacinma_bedeli)) {
+    const isaretli = (deger, basamak) => (deger > 0 ? "+" : "") + deger.toFixed(basamak);
+    const parcalar = [];
+    if (refKars.ruzgar_kazanci) parcalar.push(`yalnız rüzgâr kazancı (büyük daireye göre): ${isaretli(refKars.ruzgar_kazanci.sure_dk, 1)} dk, %${isaretli(refKars.ruzgar_kazanci.yakit_yuzde, 2)} yakıt`);
+    if (refKars.kacinma_bedeli) parcalar.push(`kaçınma bedeli (rüzgâr-optimum rotaya göre): ${isaretli(refKars.kacinma_bedeli.ek_sure_dk, 1)} dk, %${isaretli(refKars.kacinma_bedeli.ek_yakit_yuzde, 2)} yakıt`);
+    tasarrufEl.innerHTML += `<br><small>${parcalar.join(" · ")}</small>`;
+  }
 
   const secenekKutusu = document.getElementById("secenekler-kutusu");
   const secenekTablosu = document.getElementById("secenekler-tablosu");
