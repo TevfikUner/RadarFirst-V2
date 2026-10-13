@@ -56,6 +56,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from turbulans_radar import config
+from turbulans_radar.fizik.cografya import mesafe_km
 
 _YONLER = ("cift", "ileri", "geri")
 _ROLLER = frozenset("EXIAD")
@@ -191,13 +192,6 @@ class HavaYoluAgi:
             ayrinti += [self.fra_saatleri_metni()] if self.fra_saatleri else []
             parcalar.append("FRA serbest rota" + (f" ({', '.join(ayrinti)})" if ayrinti else ""))
         return " + ".join(parcalar)
-
-
-def mesafe_km(enlem1, boylam1, enlem2, boylam2) -> float:
-    p1, p2 = math.radians(enlem1), math.radians(enlem2)
-    dp, dl = p2 - p1, math.radians(boylam2 - boylam1)
-    a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
-    return 2 * 6371.0 * math.asin(math.sqrt(min(1.0, a)))
 
 
 def _ara_nokta(e1, b1, e2, b2, oran):

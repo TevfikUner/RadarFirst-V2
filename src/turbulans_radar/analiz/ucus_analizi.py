@@ -25,6 +25,7 @@ import time
 from pathlib import Path
 
 from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
+from turbulans_radar.ucus_kurallari import ucus_bilgisini_dogrula
 
 konsolu_utf8_yap()
 
@@ -150,6 +151,7 @@ def calistir(
     kayit_zorunlu: bool = False,
     harita_uret: bool = True,
 ):
+    ucus_numarasi, tarih_str = ucus_bilgisini_dogrula(ucus_numarasi, tarih_str)
     print(f"1. '{ucus_numarasi}' uçuşu {tarih_str} tarihi için OpenSky'da aranıyor...")
     rota_df = rota_onbellekten_oku(ucus_numarasi, tarih_str)
     if rota_df is not None:

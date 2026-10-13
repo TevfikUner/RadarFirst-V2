@@ -81,6 +81,7 @@ from turbulans_radar.fizik.birim_donusumleri import (
     en_yakin_basinc_seviyesi,
     irtifa_metre_to_basinc_hpa,
 )
+from turbulans_radar.fizik.cografya import mesafe_km as buyuk_daire_mesafesi_km
 from turbulans_radar.fizik.eslestirme import kapsam_disi_maskesi
 from turbulans_radar.fizik.iz_bulutu import duyarli_nokta_sayisi
 from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
@@ -235,15 +236,6 @@ def _tahmini_varis_zamanlari(enlemler, boylamlar, zaman_iso, tas_ms):
 
 def _bd(deger):
     return math.radians(deger)
-
-
-def buyuk_daire_mesafesi_km(enlem1, boylam1, enlem2, boylam2):
-    """Haversine formülüyle iki nokta arasındaki büyük daire mesafesi (km)."""
-    phi1, phi2 = _bd(enlem1), _bd(enlem2)
-    d_phi = _bd(enlem2 - enlem1)
-    d_lambda = _bd(boylam2 - boylam1)
-    a = math.sin(d_phi / 2) ** 2 + math.cos(phi1) * math.cos(phi2) * math.sin(d_lambda / 2) ** 2
-    return 2 * DUNYA_YARICAPI_M * math.asin(math.sqrt(a)) / 1000.0
 
 
 def yanal_sapma_yonu(enlemler, boylamlar, esik_km=1.0) -> str | None:

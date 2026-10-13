@@ -175,6 +175,7 @@ from turbulans_radar.rota.rota_optimizasyonu import (
     simulasyonu_czml_e_cevir,
     veri_kupune_eris,
 )
+from turbulans_radar.ucus_kurallari import UCUS_NUMARASI_DESENI
 from turbulans_radar.veri.fir_sinirlari import fir_verisi_var_mi
 from turbulans_radar.veri.kisitli_saha_saglayici import (
     ORNEK_KAYNAK,
@@ -1029,7 +1030,7 @@ v1 = APIRouter(prefix="/api/v1", dependencies=[Depends(api_anahtarini_dogrula)])
 # veri_yukleme.py'deki ljust(8) notu). Bu desen hem anlamsız girdiyi erkenden
 # 422 ile reddeder hem de SQL enjeksiyonuna karşı ikinci bir savunma katmanı
 # sağlar (birincil savunma: veri_yukleme.py artık parametreli sorgu kullanıyor).
-_UCUS_NUMARASI_DESENI = r"^[A-Za-z0-9]{1,8}$"
+_UCUS_NUMARASI_DESENI = UCUS_NUMARASI_DESENI
 
 
 def _tarihi_dogrula(deger: str) -> str:

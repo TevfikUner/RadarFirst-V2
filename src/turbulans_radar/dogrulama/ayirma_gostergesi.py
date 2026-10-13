@@ -37,18 +37,15 @@ import numpy as np
 import pandas as pd
 
 from turbulans_radar import config
+from turbulans_radar.fizik.cografya import mesafe_km_vektor
 
 METRE_FT = 3.28084
 _KM_NM = 1.852
-_DUNYA_YARICAPI_KM = 6371.0
 _SUTUNLAR = ["zaman_unix", "icao24", "enlem", "boylam", "baro_irtifa_m", "geo_irtifa_m"]
 
 
 def _mesafe_nm(e1, b1, e2, b2):
-    p1, p2 = np.radians(e1), np.radians(e2)
-    dp, dl = p2 - p1, np.radians(np.asarray(b2) - np.asarray(b1))
-    a = np.sin(dp / 2) ** 2 + np.cos(p1) * np.cos(p2) * np.sin(dl / 2) ** 2
-    return 2 * _DUNYA_YARICAPI_KM * np.arcsin(np.sqrt(np.clip(a, 0, 1))) / _KM_NM
+    return mesafe_km_vektor(e1, b1, e2, b2) / _KM_NM
 
 
 def yorunge(enlemler, boylamlar, zamanlar, irtifa_ft, adim_sn=None) -> pd.DataFrame:

@@ -18,7 +18,6 @@ bu sadece görsel bir ön yüz, hesaplama mantığı aynı.
 import contextlib
 import io
 import os
-import re
 
 import httpx
 import streamlit as st
@@ -30,6 +29,7 @@ from turbulans_radar.depo import veritabani as vt
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
 from turbulans_radar.ml.turbulans_ml_modeli import model_bilgisini_yukle, model_kullanilabilir_mi
+from turbulans_radar.ucus_kurallari import tarih_gecerli_mi, ucus_numarasi_gecerli_mi
 
 konsolu_utf8_yap()
 
@@ -115,12 +115,12 @@ if gonder:
     ucus_numarasi, tarih = ucus_numarasi.strip(), tarih.strip()
     if not ucus_numarasi or not tarih:
         st.warning("Lütfen hem uçuş numarası hem de tarih gir.")
-    elif not re.fullmatch(r"[A-Za-z0-9]{1,8}", ucus_numarasi):
+    elif not ucus_numarasi_gecerli_mi(ucus_numarasi):
         # Uçuş no ve tarih aşağıda harita dosya adına da giriyor (ciktilar/...):
         # API'deki desenle aynı doğrulama '../' gibi yol parçalarını da dışlar.
         st.warning("Uçuş numarası en fazla 8 harf/rakam olmalı (örn. THY1234).")
-    elif not re.fullmatch(r"\d{4}-\d{2}-\d{2}", tarih):
-        st.warning("Tarih YYYY-MM-DD biçiminde olmalı.")
+    elif not tarih_gecerli_mi(tarih):
+        st.warning("Tarih geçerli bir YYYY-MM-DD olmalı.")
     else:
         gunluk = io.StringIO()
         eslesmis_df = None

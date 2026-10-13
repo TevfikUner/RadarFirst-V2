@@ -2,6 +2,12 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-13 (fark denetimi, dallar `claude/model-butunlugu`, `claude/dry-cografya-dogrulama`)
+
+- ✅ Model dosyası sha256 doğrulaması (`turbulans-ml --muhurle`), Streamlit silme artık API + yönetici anahtarı.
+- ✅ Haversine 6→1 (`fizik/cografya.py`), uçuş no/tarih kuralı tek yerde (`ucus_kurallari.py`; CLI artık doğruluyor).
+- ⚠️ Açık: api_servisi bölme (L), üretim bilgisi/provenance, devre kesici, drift. Rapor: `test_raporu/2026-10-13/RAPOR.md`. 905 test geçti.
+
 ## 2026-10-13 (dal `claude/ruzgar-optimum-referans`)
 
 - ✅ Uzman raporu (2. tur) süzüldü: rüzgâr-optimum referans rota; yanıtta `referans_karsilastirmasi` (rüzgâr kazancı / kaçınma bedeli ayrı), 3B arayüzde satır.
