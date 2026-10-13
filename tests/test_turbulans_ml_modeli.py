@@ -107,6 +107,7 @@ def test_model_sonradan_egitilirse_yeniden_baslatmadan_yuklenir(tmp_path, monkey
 
     yol = tmp_path / "model.joblib"
     monkeypatch.setattr(tm, "MODEL_DOSYA_YOLU", str(yol))
+    monkeypatch.setattr(tm, "MODEL_BILGI_DOSYA_YOLU", str(tmp_path / "bilgi_yok.json"))
     monkeypatch.setitem(tm._ONBELLEK_MODEL, "model", None)
     monkeypatch.setitem(tm._ONBELLEK_MODEL, "imza", None)
 
@@ -128,6 +129,7 @@ def test_yeni_model_eszamanli_isteklerde_bir_kez_yuklenir(tmp_path, monkeypatch)
     yol = tmp_path / "model.joblib"
     joblib.dump({"surum": 1}, yol)
     monkeypatch.setattr(tm, "MODEL_DOSYA_YOLU", str(yol))
+    monkeypatch.setattr(tm, "MODEL_BILGI_DOSYA_YOLU", str(tmp_path / "bilgi_yok.json"))
     monkeypatch.setitem(tm._ONBELLEK_MODEL, "model", None)
     monkeypatch.setitem(tm._ONBELLEK_MODEL, "imza", None)
 

@@ -2,6 +2,12 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-13 (dallar `claude/devre-kesici`, `claude/uretim-bilgisi`, `claude/uretim-ortami-ayarlari`)
+
+- ✅ Canlı GFS devre kesici: 3 ardışık hatadan sonra 5 dk→1 sa üstel bekleme, sonuç "alınamadı" (risk yok değil).
+- ✅ Rota/tahmin yanıtında `uretim_bilgisi`: sürüm, hava küpü, eşikler, model sha256.
+- ✅ `MODEL_BUTUNLUK_ZORUNLU=true` yerel .env'de; `FORWARDED_ALLOW_IPS` compose + üretim örneğinde. 913 test geçti.
+
 ## 2026-10-13 (fark denetimi, dallar `claude/model-butunlugu`, `claude/dry-cografya-dogrulama`)
 
 - ✅ Model dosyası sha256 doğrulaması (`turbulans-ml --muhurle`), Streamlit silme artık API + yönetici anahtarı.
