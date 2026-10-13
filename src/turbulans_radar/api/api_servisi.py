@@ -136,7 +136,7 @@ from turbulans_radar.depo.gorev_deposu import (
     son_gorevler,
 )
 from turbulans_radar.depo.hiz_siniri import istegi_say
-from turbulans_radar.depo.kaynak_durumu import kaynak_durumlarini_getir
+from turbulans_radar.depo.kaynak_durumu import devre_kalan_saniye, kaynak_durumlarini_getir
 from turbulans_radar.depo.kup_katalogu import katalogu_listele, yerel_kupleri_katalogla
 from turbulans_radar.depo.sanal_pirep_deposu import olaylari_getir
 from turbulans_radar.depo.veritabani import (
@@ -1998,6 +1998,7 @@ def _canli_gfs_kontrolu():
         "son_deneme": kayit["son_deneme_zamani"],
         "ardisik_hata_sayisi": kayit["ardisik_hata_sayisi"],
         "son_hata": kayit["son_hata"],
+        "devre_kesici_kalan_saniye": round(devre_kalan_saniye(kayit)),
         "indirmeler": indirmeler,
     }
 

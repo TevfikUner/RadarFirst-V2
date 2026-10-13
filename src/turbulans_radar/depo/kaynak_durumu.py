@@ -13,6 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
+from turbulans_radar import config
 from turbulans_radar.depo.models import VeriKaynagiDurumu
 from turbulans_radar.depo.veritabani import motor_al
 
@@ -60,3 +61,17 @@ def kaynak_durumlarini_getir(kaynaklar=None, motor=None) -> list[dict]:
             }
             for d in oturum.execute(sorgu).scalars()
         ]
+
+
+def devre_kalan_saniye(kayit: dict | None, simdi: datetime | None = None) -> float:
+    """Devre kesici: kaynak art arda DEVRE_KESICI_ESIK kez hata verdiyse son denemeden
+    itibaren bekleme süresi dolana kadar kalan saniye (açık); 0 ise çağrı yapılabilir
+    (kapalı ya da yarı açık deneme zamanı). Bekleme her ek hatada ikiye katlanır."""
+    esik = config.DEVRE_KESICI_ESIK
+    if esik <= 0 or not kayit or kayit["ardisik_hata_sayisi"] < esik:
+        return 0.0
+    bekleme = min(
+        config.DEVRE_KESICI_TABAN_SANIYE * 2 ** (kayit["ardisik_hata_sayisi"] - esik), config.DEVRE_KESICI_AZAMI_SANIYE
+    )
+    gecen = ((simdi or datetime.now(UTC)) - kayit["son_deneme_zamani"]).total_seconds()
+    return max(0.0, bekleme - gecen)

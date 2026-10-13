@@ -281,3 +281,27 @@ def test_etkilesimli_rota_canli_veriyi_beklemeden_on_sonuc_doner(yavas_saglayici
     )
     assert sonuc["ruzgar_verisi_kaynagi"] == "canli_veri_hazirlaniyor"
     assert CANLI_VERI_HAZIRLANIYOR in sonuc["aciklama"]
+
+
+def test_devre_kesici_art_arda_hatadan_sonra_indirmeyi_denemez_ve_alinamadi_der(sahte_canli_ortam, monkeypatch):
+    from turbulans_radar.rota.rota_optimizasyonu import rota_simulasyonu_olustur
+
+    cagri = []
+
+    def kopuk(*args, **kwargs):
+        cagri.append(1)
+        raise ConnectionError("THREDDS yanıt vermedi")
+
+    monkeypatch.setattr(sahte_canli_ortam, "kup_indir", kopuk)
+    simdi = pd.Timestamp.now(tz="UTC")
+    for i in range(config.DEVRE_KESICI_ESIK):
+        with pytest.raises(ConnectionError):
+            vs.canli_kup_hazirla(vs.Kutu(10.0, 12.0, 10.0 + i, 12.0 + i), simdi, simdi + pd.Timedelta(hours=2))
+    with pytest.raises(vs.DevreAcikHatasi):
+        vs.canli_kup_hazirla(vs.Kutu(20.0, 22.0, 20.0, 22.0), simdi, simdi + pd.Timedelta(hours=2))
+    assert len(cagri) == config.DEVRE_KESICI_ESIK
+    sonuc = rota_simulasyonu_olustur(
+        38.4, 27.1, 38.5, 43.4, 34000, simdi.strftime("%Y-%m-%dT%H:%M:%S"), "A320", sigmetler=[], kisitli_sahalar=[]
+    )
+    assert sonuc["ruzgar_verisi_kaynagi"] == "canli_veri_alinamadi"
+    assert len(cagri) == config.DEVRE_KESICI_ESIK
