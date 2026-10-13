@@ -2,6 +2,13 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-13 (dal `claude/ruzgar-optimum-referans`)
+
+- ✅ Uzman raporu (2. tur) süzüldü: rüzgâr-optimum referans rota; yanıtta `referans_karsilastirmasi` (rüzgâr kazancı / kaçınma bedeli ayrı), 3B arayüzde satır.
+- ✅ Sanal PIREP bildirimine ERA5 TI1 uyum etiketi (`era5_uyumu`); olayı elemez, DB'ye yazılmaz.
+- ⚠️ Avrupa genellemesi: yerel MADIS'te Avrupa 21.167 gözlem ama 28 hafif+, Türkiye 0 → skor raporlanmaz, sınırlama yazıldı.
+- ✅ Belgeler: kinematik uçulabilirlik hesabı (25° yatış), CI/alçalma kredisi ve kanat yüklemesi kapsam dışı gerekçesi.
+
 ## 2026-10-08 (işletim, dal `claude/gfs-imaj-yenileme`)
 
 - ✅ Canlı GFS 6 Eki 15:06'dan beri inmiyordu: API konteyneri PR #29'dan önce başlatılmıştı (DNS hatasında 6 sa kilit). Yalnız API yeniden derlendi; 16:07 UTC'de indirme başarılı, derin sağlık "ayakta".

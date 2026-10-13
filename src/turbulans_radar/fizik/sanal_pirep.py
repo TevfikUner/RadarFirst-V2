@@ -155,6 +155,29 @@ def olaylari_tespit_et(iz_df: pd.DataFrame, icao24=None, ucus_numarasi=None) -> 
     return sonuc, {"nokta_sayisi": len(df), "seyir_suresi_sn": seyir_suresi, "olay_sayisi": len(sonuc)}
 
 
+def era5_uyumunu_ekle(olaylar: pd.DataFrame, iz_df: pd.DataFrame) -> pd.DataFrame:
+    """Olay penceresindeki en büyük TI1'e göre 'era5_ti1' ve 'era5_uyumu'
+    (uyumlu: TI1 >= TI1_ESIK_HAFIF, uyumsuz: altında, bilinmiyor: izde TI1
+    yok/kapsam dışı) ekler. Yalnızca etiket: olay elenmez, şiddet sınıfı değildir
+    (ATC/TCAS kaynaklı sapmalarla fiziksel olarak desteklenenleri ayırt etmeye
+    yardım eder; ERA5 çözünürlüğü yetmeyen gerçek olay 'uyumsuz' görünebilir)."""
+    olaylar = olaylar.copy()
+    olaylar["era5_ti1"] = np.nan
+    olaylar["era5_uyumu"] = "bilinmiyor"
+    if olaylar.empty or "ti1_indeksi" not in iz_df.columns:
+        return olaylar
+    zaman = pd.to_datetime(iz_df["zaman"], utc=True)
+    ti1 = pd.to_numeric(iz_df["ti1_indeksi"], errors="coerce")
+    tolerans = pd.Timedelta(seconds=config.SANAL_PIREP_MAKS_BOSLUK_SANIYE)
+    for i, olay in olaylar.iterrows():
+        pencere = ti1[(zaman >= olay["baslangic"] - tolerans) & (zaman <= olay["bitis"] + tolerans)].dropna()
+        if pencere.empty:
+            continue
+        olaylar.loc[i, "era5_ti1"] = float(pencere.max())
+        olaylar.loc[i, "era5_uyumu"] = "uyumlu" if pencere.max() >= config.TI1_ESIK_HAFIF else "uyumsuz"
+    return olaylar
+
+
 def coklu_izden_olaylar(izler_df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DataFrame]:
     """Birden çok uçağın izi (icao24 sütunu ile ayrılır). Dönüş: (olaylar,
     uçak başına özet)."""

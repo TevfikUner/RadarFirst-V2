@@ -13,6 +13,7 @@ from turbulans_radar.dogrulama import sanal_pirep_dogrulama as dogrulama
 from turbulans_radar.fizik.sanal_pirep import (
     METRE_FT,
     coklu_izden_olaylar,
+    era5_uyumunu_ekle,
     kume_ozeti,
     olaylari_kumele,
     olaylari_tespit_et,
@@ -63,6 +64,31 @@ def test_irtifa_sapmasi_olay_uretir():
     assert olay["maks_dikey_hiz_ftdk"] >= config.SANAL_PIREP_DIKEY_HIZ_TUTARLILIK_FTDK
     assert olay["icao24"] == "e1e101"
     assert olay["irtifa_kaynagi"] == "baro"
+
+
+def _ti1_ile(iz, deger):
+    iz = iz.copy()
+    iz["ti1_indeksi"] = deger
+    return iz
+
+
+def test_era5_uyumu_ti1_esigine_gore_etiketler_olayi_elemez():
+    iz = _sentetik_iz(sapma=(600, 20, 160.0))
+    olaylar, _ = olaylari_tespit_et(iz)
+    uyumlu = era5_uyumunu_ekle(olaylar, _ti1_ile(iz, config.TI1_ESIK_HAFIF * 2))
+    uyumsuz = era5_uyumunu_ekle(olaylar, _ti1_ile(iz, config.TI1_ESIK_HAFIF / 10))
+    assert len(uyumlu) == len(uyumsuz) == len(olaylar) == 1
+    assert uyumlu["era5_uyumu"].iloc[0] == "uyumlu" and uyumsuz["era5_uyumu"].iloc[0] == "uyumsuz"
+    assert uyumlu["era5_ti1"].iloc[0] == pytest.approx(config.TI1_ESIK_HAFIF * 2)
+
+
+def test_era5_uyumu_ti1_yoksa_ya_da_kapsam_disindaysa_bilinmiyor():
+    iz = _sentetik_iz(sapma=(600, 20, 160.0))
+    olaylar, _ = olaylari_tespit_et(iz)
+    assert era5_uyumunu_ekle(olaylar, iz)["era5_uyumu"].iloc[0] == "bilinmiyor"
+    kapsam_disi = era5_uyumunu_ekle(olaylar, _ti1_ile(iz, np.nan))
+    assert kapsam_disi["era5_uyumu"].iloc[0] == "bilinmiyor" and np.isnan(kapsam_disi["era5_ti1"].iloc[0])
+    assert era5_uyumunu_ekle(olaylar.iloc[0:0], iz).empty
 
 
 def test_esik_altindaki_sapma_olay_degildir():
@@ -327,6 +353,7 @@ def test_hat_yalnizca_dogrulanmis_olayi_bildirir(motor):
     )
     assert ikinci["bildirilen"] == 1
     assert mesajlar[0]["tip"] == "sanal_pirep" and mesajlar[0]["ucak_sayisi"] == 2
+    assert mesajlar[0]["era5_uyumu"] == "bilinmiyor" and mesajlar[0]["era5_ti1"] is None
     json.dumps(mesajlar[0])
     with motor.connect() as baglanti:
         bildirim = baglanti.execute(

@@ -377,6 +377,27 @@ class RotaSecenegiYaniti(BaseModel):
     noktalar: list[RotaNoktasiYaniti]
 
 
+class RuzgarKazanciYaniti(BaseModel):
+    sure_dk: float
+    yakit_yuzde: float
+
+
+class KacinmaBedeliYaniti(BaseModel):
+    ek_sure_dk: float
+    ek_yakit_yuzde: float
+
+
+class ReferansKarsilastirmasiYaniti(BaseModel):
+    """Tasarrufu ikiye ayırır: büyük daire -> rüzgâr-optimum (yalnız rüzgâr) ve
+    rüzgâr-optimum -> optimize rota (kaçınmanın bedeli). Rüzgâr-optimum rota risk
+    katmanlarını yok sayar; kendi riskli_nokta_sayisi'ni taşır."""
+
+    referans: Literal["ruzgar_optimum_koridor", "ats_planli", "buyuk_daire"]
+    ruzgar_optimum_rota: RotaSonucuYaniti | None = None
+    ruzgar_kazanci: RuzgarKazanciYaniti | None = None
+    kacinma_bedeli: KacinmaBedeliYaniti | None = None
+
+
 class RotaSimulasyonuYaniti(BaseModel):
     ruzgar_verisi_kaynagi: str
     aciklama: str
@@ -392,6 +413,7 @@ class RotaSimulasyonuYaniti(BaseModel):
     kisitli_saha_kontrolu: KisitliSahaKontroluYaniti | None = None
     normal_rota: RotaSonucuYaniti
     optimize_rota: RotaSonucuYaniti
+    referans_karsilastirmasi: ReferansKarsilastirmasiYaniti | None = None
     # Yalnızca önerilen rotada kalan risk varsa dolu (karar kaptanındır).
     kabin_onerisi: KabinOnerisiYaniti | None = None
     sure_tasarrufu_dk: float

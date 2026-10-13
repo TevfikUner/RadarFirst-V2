@@ -1390,6 +1390,17 @@ def rota_simulasyonu_olustur(
             # diye önerilmez -- normal rota gösterilir ve açıkça işaretlenir.
             en_iyi, guvenli_rota_bulundu_mu = normal, False
 
+    ruzgar_optimum = normal
+    if arama_uzayi == "koridor" and ruzgarli_mi:
+        yol = _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, zaman_iso, tas_ms, veri_kupu, [])
+        if yol is not None:
+            ruzgar_optimum = _aday("ruzgar_optimum", yol[0], yol[1], irtifa_m, yanal_sapma_km=yol[2])
+    referans_karsilastirmasi = (
+        _referans_karsilastirmasi(normal, ruzgar_optimum, en_iyi, _aday_toplam_yakit_kg, tas_ms, arama_uzayi)
+        if ruzgarli_mi
+        else None
+    )
+
     normal_yakit_kg = _aday_toplam_yakit_kg(normal)
     # Yakıt = seyir süresi x yakıt akışı + seviye geçişlerinin ek yakıtı (bkz. _irtifa_degisimi_maliyeti).
     optimize_yakit_kg = _aday_toplam_yakit_kg(en_iyi)
@@ -1447,6 +1458,7 @@ def rota_simulasyonu_olustur(
                 "ortalama_ruzgar_bileseni_kt": _ortalama_ruzgar_bileseni_kt(en_iyi, tas_ms),
             }
         ),
+        "referans_karsilastirmasi": referans_karsilastirmasi,
         "kabin_onerisi": kabin_onerisi(optimize_ozeti["riskli_bolumler"]),
         "sure_tasarrufu_dk": (normal["saniye"] - optimize_saniye) / 60.0,
         "yakit_tasarrufu_yuzde": (
@@ -1525,6 +1537,54 @@ def pareto_secenekleri(adaylar, onerilen, normal, yakit_fonksiyonu) -> list[dict
         }
         for a in sorted(cephe, key=lambda a: (a["riskli_sayisi"], olcutler[id(a)][0]))
     ]
+
+
+def _referans_karsilastirmasi(normal, ruzgar_optimum, en_iyi, yakit_fonksiyonu, tas_ms, arama_uzayi):
+    """Kazancı ikiye ayırır: büyük daire -> rüzgâr-optimum (yalnız rüzgâr; risk
+    yok sayılır) ve rüzgâr-optimum -> optimize rota (türbülanstan/kısıttan
+    kaçınmanın bedeli). Yakıt/süre tasarrufu büyük daireye göre tek başına
+    okunursa rüzgâr kazancını da içerir. ATS modunda 'normal' rota zaten rüzgâr
+    optimum ATS yoludur, ayrı rüzgâr kazancı yoktur. Kaçınma yapılmadıysa (optimize
+    = normal) bedel None: orada rota büyük dairede bırakılmıştır, rüzgâr-optimum
+    değildir."""
+
+    def _sure(a):
+        return a["saniye"] + a["ekstra_saniye"]
+
+    def _yuzde(a, b):
+        return 100.0 * (yakit_fonksiyonu(a) - yakit_fonksiyonu(b)) / yakit_fonksiyonu(b) if yakit_fonksiyonu(b) else 0.0
+
+    ayri = ruzgar_optimum is not normal
+    kacinildi = en_iyi is not normal
+    return {
+        "referans": "ruzgar_optimum_koridor" if ayri else ("ats_planli" if arama_uzayi == "ats" else "buyuk_daire"),
+        "ruzgar_optimum_rota": (
+            {
+                **_rota_ozeti(ruzgar_optimum, yakit_fonksiyonu(ruzgar_optimum), _sure(ruzgar_optimum)),
+                "maks_yanal_sapma_km": ruzgar_optimum["yanal_sapma_km"],
+                "maks_yanal_sapma_yonu": yanal_sapma_yonu(ruzgar_optimum["enlem"], ruzgar_optimum["boylam"]),
+                "ortalama_ruzgar_bileseni_kt": _ortalama_ruzgar_bileseni_kt(ruzgar_optimum, tas_ms),
+            }
+            if ayri
+            else None
+        ),
+        "ruzgar_kazanci": (
+            {
+                "sure_dk": (_sure(normal) - _sure(ruzgar_optimum)) / 60.0,
+                "yakit_yuzde": -_yuzde(ruzgar_optimum, normal),
+            }
+            if ayri
+            else None
+        ),
+        "kacinma_bedeli": (
+            {
+                "ek_sure_dk": (_sure(en_iyi) - _sure(ruzgar_optimum)) / 60.0,
+                "ek_yakit_yuzde": _yuzde(en_iyi, ruzgar_optimum),
+            }
+            if kacinildi
+            else None
+        ),
+    }
 
 
 def _ortalama_ruzgar_bileseni_kt(aday, tas_ms):

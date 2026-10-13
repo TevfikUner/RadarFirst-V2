@@ -15,6 +15,10 @@ irtifada ve yaklaşmada olduğunu gösterir; bu olaylar sistemin göremediği ye
 **Yalnızca ABD verisi.** Eğitim etiketleri (IEM PIREP) ve nesnel doğrulama (MADIS EDR)
 ABD hava sahasındandır; 80 gün, 7.815 PIREP (16 gün altın test). Türkiye ya da Avrupa
 için geçerlilik gösterilmedi. Rota ve arayüz Türkiye'de çalışır ama oradaki beceri ölçülmedi.
+Yerel MADIS EDR deposu bu açığı kapatmaz: 11 günde Avrupa'da (35–60°K, 10°B–30°D) FL280 üstü
+21.167 gözlem var ama yalnızca 28'i hafif ve üstü (EDR ≥ 0,1); Türkiye/Doğu Akdeniz'de (34–43°K,
+25–45°D) hiç yok. O günler için Avrupa ERA5 penceresi de indirilmemiştir. 28 pozitifle ROC-AUC
+güven aralığı anlamlı olmayacağından Avrupa skoru raporlanmaz.
 Göstergelerin log-normal eşleme klimatolojisi de ABD PIREP pencerelerinden gelir.
 
 **Doğrulama reanalize dayalı.** Göstergeler ERA5 reanalizinden (0,25°, saatlik)
@@ -32,7 +36,11 @@ kontrolsüzdür (QC "Z") ve PIREP pencerelerinin içinden gelir; sonuçlar ön s
 **İstatistiksel sınırlar.** Birleşik EDR'nin TI1'e üstünlüğü anlamlı ama küçüktür
 (altın test günlerinde +0,014 ROC-AUC); model TI1'i geçemedi (+0,008, GA 0'ı içeriyor;
 `docs/sonuclar/2026-10-07/SAYILAR.md`). Altın test 16 gündür; güven aralıkları geniştir.
-Sanal PIREP 16 PIREP'le ölçüldü ve eşikleri kalibre edilmedi. TI1 risk eşiği 8 Ekim'de
+Sanal PIREP 16 PIREP'le ölçüldü ve eşikleri kalibre edilmedi. ATC ayırma komutu ve TCAS uyarısı ayrıca
+elenmez (seviye değişimi seyir sayılmaz, düşey hız tepkisi aranır, bildirim için ≥ 2 uçak gerekir);
+bildirimdeki ERA5 TI1 uyum etiketi olayı elemez ve başarımı ölçülmedi.
+Kazanç raporlarken büyük daire referansı rüzgâr kazancını da içerir; kaçınma bedeli ayrıca
+`referans_karsilastirmasi.kacinma_bedeli` ile rüzgâr-optimum rotaya göre verilir. TI1 risk eşiği 8 Ekim'de
 eğitim günlerinden 1-SE kuralıyla 7e-7 seçildi; hafif eşiği (4e-7) hâlâ kaba bir
 başlangıç değeridir.
 
