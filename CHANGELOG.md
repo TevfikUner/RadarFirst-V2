@@ -4,6 +4,11 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Devre kesici, üretim bilgisi (13 Ekim 2026)
+
+- **Canlı GFS devre kesici:** `veri_kaynagi_durumlari`'ndaki ardışık hata sayısıyla süreçler arası çalışır;
+  eşikten sonra indirme bekleme süresince denenmez (`DevreAcikHatasi`), sonuç "alınamadı" olarak döner.
+
 ## Fark denetimi: model bütünlüğü ve Streamlit silme (13 Ekim 2026)
 
 - **Model dosyası bütünlüğü:** joblib (pickle) dosyaları yüklenmeden önce eğitim anında

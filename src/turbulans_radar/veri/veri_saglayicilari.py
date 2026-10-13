@@ -36,7 +36,7 @@ import pandas as pd
 import xarray as xr
 
 from turbulans_radar import config
-from turbulans_radar.depo.kaynak_durumu import kaynak_durumunu_kaydet
+from turbulans_radar.depo.kaynak_durumu import devre_kalan_saniye, kaynak_durumlarini_getir, kaynak_durumunu_kaydet
 from turbulans_radar.depo.kup_katalogu import eski_canli_kupleri_temizle, kapsayan_hazir_kup_yolu, kup_kaydet
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.veri.veri_yukleme import hava_durumu_onbellekli_yukle, hdf5_kilidi, kapsayan_veri_kupunu_bul
@@ -200,6 +200,21 @@ def _indirme_durumunu_kaydet(kaynak, basarili, hata=None, ozet=None):
         _logger.warning("Canlı veri kaynağı durumu kaydedilemedi: %s", db_hatasi)
 
 
+class DevreAcikHatasi(RuntimeError):
+    """Kaynak art arda hata verdiği için indirme bu sürede denenmedi (devre kesici)."""
+
+
+def canli_devre_kalan_saniye(kaynak: str) -> float:
+    """Veritabanı okunamazsa 0 (indirme denenir): kesici yalnız bekleme süresini kısaltır,
+    sonucun dürüstlüğü ona bağlı değildir."""
+    try:
+        kayitlar = kaynak_durumlarini_getir([canli_durum_anahtari(kaynak)])
+    except Exception as hata:
+        _logger.warning("Devre kesici durumu okunamadı, indirme denenecek: %s", hata)
+        return 0.0
+    return devre_kalan_saniye(kayitlar[0] if kayitlar else None)
+
+
 def _canli_istegi_hizala(kutu: Kutu, baslangic, bitis, saglayici):
     """Kutuyu sağlayıcının ızgarasına, pencereyi zaman adımına DIŞA doğru
     hizalar. GFS 3 saatlik adımlarla gelir; saate yuvarlanmış bir pencere
@@ -233,6 +248,11 @@ def canli_kup_hazirla(kutu: Kutu, baslangic, bitis, saglayici: VeriSaglayici | N
     if yol is not None:
         return hava_durumu_onbellekli_yukle(yol)
 
+    kalan = canli_devre_kalan_saniye(saglayici.kaynak)
+    if kalan > 0:
+        raise DevreAcikHatasi(
+            f"{saglayici.kaynak} art arda hata verdi; indirme {kalan:.0f} sn sonra yeniden denenecek (devre kesici)."
+        )
     anahtar = hashlib.sha1(repr((kutu, baslangic.isoformat(), bitis.isoformat())).encode()).hexdigest()[:10]
     hedef = os.path.join(
         config.CANLI_VERI_KLASORU, f"{saglayici.kaynak}_{datetime.now(UTC):%Y%m%dT%H%M%S}_{anahtar}.nc"

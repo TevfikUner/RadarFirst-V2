@@ -452,6 +452,12 @@ CANLI_KUP_TAZELIK_SAAT = _ortam_sayi("CANLI_KUP_TAZELIK_SAAT", 6, int)
 # Geçerliliği bu kadar saat önce bitmiş canlı küpler (dosya + katalog kaydı) silinir.
 CANLI_KUP_SAKLAMA_SAAT = _ortam_sayi("CANLI_KUP_SAKLAMA_SAAT", 48, int)
 CANLI_ISITMA_SAAT = _ortam_sayi("CANLI_ISITMA_SAAT", 0.0)
+# Devre kesici (depo/kaynak_durumu.py): canlı kaynak art arda DEVRE_KESICI_ESIK kez hata verince
+# indirme denenmez; bekleme her yeni hatada ikiye katlanır (taban -> azami). Bekleme dolunca tek deneme
+# yapılır (yarı açık). 0 = kapalı. Etkileşimli rota istekleri bu sürede zaman aşımı beklemez.
+DEVRE_KESICI_ESIK = _ortam_sayi("DEVRE_KESICI_ESIK", 3, int)
+DEVRE_KESICI_TABAN_SANIYE = _ortam_sayi("DEVRE_KESICI_TABAN_SANIYE", 300.0)
+DEVRE_KESICI_AZAMI_SANIYE = _ortam_sayi("DEVRE_KESICI_AZAMI_SANIYE", 3600.0)
 CANLI_ISITMA_KUTUSU = tuple(float(s) for s in _ortam_str("CANLI_ISITMA_KUTUSU", "36,42,26,45").split(",") if s.strip())
 CANLI_ISITMA_SAAT_SAYISI = _ortam_sayi("CANLI_ISITMA_SAAT_SAYISI", 12, int)
 # Etkileşimli uçlar (rota simülasyonu, tahmin) katalogda olmayan bir canlı küp
