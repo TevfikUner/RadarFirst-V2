@@ -214,6 +214,14 @@ def _model_versiyonlari_gecici_klasorde(monkeypatch, tmp_path):
 
 
 @pytest.fixture(autouse=True)
+def _model_butunlugu_varsayilan(monkeypatch):
+    """Yerel .env'deki MODEL_BUTUNLUK_ZORUNLU testlerin sonucunu değiştirmesin."""
+    from turbulans_radar import config
+
+    monkeypatch.setattr(config, "MODEL_BUTUNLUK_ZORUNLU", False)
+
+
+@pytest.fixture(autouse=True)
 def _altin_test_gunleri_gecici(monkeypatch, tmp_path):
     from turbulans_radar import config
 

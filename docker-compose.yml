@@ -89,6 +89,9 @@ services:
       # >1 iken DB havuzları VERITABANI_API_BAGLANTI_BUTCESI'ne göre küçülür ve rota
       # önbelleği PostgreSQL'de paylaşılır (docs/PERFORMANS_RAPORU.md §5).
       WEB_CONCURRENCY: ${WEB_CONCURRENCY:-1}
+      # Ters vekil arkasında X-Forwarded-For'a güvenilecek adresler (uvicorn okur); IP başına
+      # hız sınırı için vekilin iç adresi yazılmalı (bkz. .env.uretim.example).
+      FORWARDED_ALLOW_IPS: ${FORWARDED_ALLOW_IPS:-127.0.0.1}
       # Uzun işler (analiz, backtest, canlı veri) ayrı 'worker' servisinde çalışır.
       GOREV_GOMULU_ISCI: "false"
       # Ağa açılınca (/docs, /openapi.json) kendiliğinden kapanır; bkz. API_BELGELERI_ACIK.
