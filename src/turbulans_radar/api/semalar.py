@@ -377,6 +377,18 @@ class RotaSecenegiYaniti(BaseModel):
     noktalar: list[RotaNoktasiYaniti]
 
 
+class UretimBilgisiYaniti(BaseModel):
+    """Sonucun hangi yazılım sürümü, hava verisi, eşik ve (varsa) modelle
+    üretildiği; hesaplanmayan alanlar None'dır."""
+
+    yazilim_surumu: str
+    uretim_zamani: str
+    hava_verisi: dict | None = None
+    esikler: dict
+    model: dict | None = None
+    parametreler: dict = {}
+
+
 class RuzgarKazanciYaniti(BaseModel):
     sure_dk: float
     yakit_yuzde: float
@@ -418,6 +430,7 @@ class RotaSimulasyonuYaniti(BaseModel):
     kabin_onerisi: KabinOnerisiYaniti | None = None
     sure_tasarrufu_dk: float
     ti1_guvenilirlik_notu: str
+    uretim_bilgisi: UretimBilgisiYaniti | None = None
     yakit_tasarrufu_yuzde: float
     co2_farki_kg: float
     secenekler: list[RotaSecenegiYaniti] = []
@@ -465,6 +478,7 @@ class TurbulansTahminYaniti(BaseModel):
     ml_risk_durumu: Literal["dusuk_risk", "yuksek_risk", "belirsiz"] | None = None
     ml_konformal_hedef_kapsama: float | None = None
     ml_konformal_notu: str | None = None
+    uretim_bilgisi: UretimBilgisiYaniti | None = None
     aciklama: str
 
 

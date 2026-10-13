@@ -4805,6 +4805,16 @@
             "type": "string",
             "title": "Ti1 Guvenilirlik Notu"
           },
+          "uretim_bilgisi": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UretimBilgisiYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "yakit_tasarrufu_yuzde": {
             "type": "number",
             "title": "Yakit Tasarrufu Yuzde"
@@ -6105,6 +6115,16 @@
             ],
             "title": "Ml Konformal Notu"
           },
+          "uretim_bilgisi": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UretimBilgisiYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "aciklama": {
             "type": "string",
             "title": "Aciklama"
@@ -6284,6 +6304,61 @@
         ],
         "title": "UcuslarListesiYaniti",
         "description": "toplam_sayi, limit UYGULANMADAN ÖNCEKİ filtre eşleşme sayısıdır --\nistemcinin (bkz. web/harita3d.html) sayfalama/'kaç kayıt var' bilgisi\niçin ucuslar listesinin uzunluğuna güvenmesi gerekmez."
+      },
+      "UretimBilgisiYaniti": {
+        "properties": {
+          "yazilim_surumu": {
+            "type": "string",
+            "title": "Yazilim Surumu"
+          },
+          "uretim_zamani": {
+            "type": "string",
+            "title": "Uretim Zamani"
+          },
+          "hava_verisi": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hava Verisi"
+          },
+          "esikler": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Esikler"
+          },
+          "model": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Model"
+          },
+          "parametreler": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Parametreler",
+            "default": {}
+          }
+        },
+        "type": "object",
+        "required": [
+          "yazilim_surumu",
+          "uretim_zamani",
+          "esikler"
+        ],
+        "title": "UretimBilgisiYaniti",
+        "description": "Sonucun hangi yazılım sürümü, hava verisi, eşik ve (varsa) modelle\nüretildiği; hesaplanmayan alanlar None'dır."
       },
       "ValidationError": {
         "properties": {

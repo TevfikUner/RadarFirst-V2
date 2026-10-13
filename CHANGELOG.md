@@ -8,6 +8,10 @@ gruplanmıştır, en yeni en üstte.
 
 - **Canlı GFS devre kesici:** `veri_kaynagi_durumlari`'ndaki ardışık hata sayısıyla süreçler arası çalışır;
   eşikten sonra indirme bekleme süresince denenmez (`DevreAcikHatasi`), sonuç "alınamadı" olarak döner.
+- **Üretim bilgisi (provenance):** `POST /simulasyon/rota` ve `POST /turbulans/tahmin` yanıtlarında
+  `uretim_bilgisi`: yazılım sürümü, üretim zamanı, kullanılan hava küpü (kaynak, dosya, GFS çalışma
+  zamanı, geçerlilik aralığı), TI1 eşikleri, varsa ML modeli (ad, eğitim zamanı, sha256) ve rota
+  parametreleri. Sınır: sürüm `pyproject.toml`'dan gelir, commit kimliği kaydedilmez.
 
 ## Fark denetimi: model bütünlüğü ve Streamlit silme (13 Ekim 2026)
 

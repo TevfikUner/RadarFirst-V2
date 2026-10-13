@@ -179,6 +179,22 @@ def test_referans_karsilastirmasi_kazanci_ruzgar_ve_kacinmaya_ayirir(gercek_sena
     assert sonuc["sure_tasarrufu_dk"] == pytest.approx(ruzgar_dk - kacinma_dk)
 
 
+def test_uretim_bilgisi_kapsam_disinda_hava_verisi_yok():
+    sonuc = rota_simulasyonu_olustur(41.0, 28.9, 40.7, -74.0, 34000, "2019-01-15T10:00:00", "A320")
+    bilgi = sonuc["uretim_bilgisi"]
+    assert bilgi["hava_verisi"] is None and bilgi["yazilim_surumu"]
+    assert bilgi["esikler"]["ti1_orta_siddetli"] == config.TI1_ESIK_ORTA_SIDDETLI
+
+
+def test_uretim_bilgisi_kullanilan_kupu_ve_parametreleri_kaydeder(gercek_senaryo):
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskisiz"], "A320", sigmetler=[], kisitli_sahalar=[])
+    bilgi = sonuc["uretim_bilgisi"]
+    assert bilgi["hava_verisi"]["kaynak"] == "era5" and bilgi["hava_verisi"]["dosya"]
+    assert bilgi["hava_verisi"]["gecerlilik_baslangic"] <= bilgi["hava_verisi"]["gecerlilik_bitis"]
+    assert bilgi["parametreler"]["arama_uzayi"] == "koridor"
+    assert bilgi["model"] is None
+
+
 def test_irtifa_degisimi_gidis_donus_maliyetlenir_ve_yone_gore_simetriktir():
     from turbulans_radar.rota.rota_optimizasyonu import _irtifa_degisimi_maliyeti
 
@@ -669,6 +685,11 @@ def test_bacak_ruzgar_okuyucu_nokta_nokta_okumayla_birebir_ayni(monkeypatch):
         assert y_sn == e_sn and y_z == e_z
 
 
+def _zamansiz(sonuc):
+    """uretim_zamani her çağrıda değişir; içerik karşılaştırmasında dışlanır."""
+    return {**sonuc, "uretim_bilgisi": {**sonuc["uretim_bilgisi"], "uretim_zamani": None}}
+
+
 def test_ti1_onbellegi_rota_yanitini_degistirmez_hesabi_azaltir(gercek_senaryo, monkeypatch):
     import json
 
@@ -686,12 +707,12 @@ def test_ti1_onbellegi_rota_yanitini_degistirmez_hesabi_azaltir(gercek_senaryo, 
 
     monkeypatch.setattr(rk, "rota_ti1_degerleri", sayan)
     girdi = (*gercek_senaryo["kismi"], "A320")
-    onbellekli = json.dumps(rota_simulasyonu_olustur(*girdi, sigmetler=[], kisitli_sahalar=[]), default=str)
+    onbellekli = json.dumps(_zamansiz(rota_simulasyonu_olustur(*girdi, sigmetler=[], kisitli_sahalar=[])), default=str)
     onbellekli_sayi = sayac["n"]
 
     asil_init = rk.Ti1CezaKatmani.__init__
     monkeypatch.setattr(rk.Ti1CezaKatmani, "__init__", lambda self, *a, onbellek=None, **k: asil_init(self, *a, **k))
     sayac["n"] = 0
-    onbelleksiz = json.dumps(rota_simulasyonu_olustur(*girdi, sigmetler=[], kisitli_sahalar=[]), default=str)
+    onbelleksiz = json.dumps(_zamansiz(rota_simulasyonu_olustur(*girdi, sigmetler=[], kisitli_sahalar=[])), default=str)
     assert onbellekli == onbelleksiz
     assert onbellekli_sayi < sayac["n"]

@@ -176,6 +176,7 @@ from turbulans_radar.rota.rota_optimizasyonu import (
     veri_kupune_eris,
 )
 from turbulans_radar.ucus_kurallari import UCUS_NUMARASI_DESENI
+from turbulans_radar.uretim_bilgisi import uretim_bilgisi
 from turbulans_radar.veri.fir_sinirlari import fir_verisi_var_mi
 from turbulans_radar.veri.kisitli_saha_saglayici import (
     ORNEK_KAYNAK,
@@ -1269,6 +1270,7 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi, request: Request, rol:
             "ml_risk_durumu": durumlar[0] if durumlar is not None else None,
             "ml_konformal_hedef_kapsama": (1 - konformal["alfa"]) if konformal else None,
             "ml_konformal_notu": konformal_notu,
+            "uretim_bilgisi": uretim_bilgisi(veri_kupu, bilgi),
             "aciklama": (
                 "Fizik (Ellrod TI1) ve ML tahminleri hesaplandı."
                 if ml_olasilik is not None
