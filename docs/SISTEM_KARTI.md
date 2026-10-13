@@ -92,6 +92,17 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   3. En düşük yakıt/süre.
 - Kaçınılacak bir risk yoksa önerilen rota büyük daireyle birebir aynıdır;
   uydurma bir "iyileşme" gösterilmez.
+- **Referans rotalar (koridor modu):** Büyük daire ("normal rota") rüzgârı
+  görmeyen bir çizgidir; gerçek bir uçuş planı değildir. Yanıttaki
+  `referans_karsilastirmasi`, risk katmanı olmadan çalışan A* ile bulunan
+  **rüzgâr-optimum rotayı** da verir ve tasarrufu ikiye ayırır: `ruzgar_kazanci`
+  (büyük daire → rüzgâr-optimum, yalnız rüzgâr) ve `kacinma_bedeli`
+  (rüzgâr-optimum → önerilen rota, yalnız türbülans/kısıttan kaçınmanın bedeli).
+  Üst düzey `sure_tasarrufu_dk`/`yakit_tasarrufu_yuzde` büyük daireye göre kalır
+  ve rüzgâr kazancını da içerir; kaçınmanın gerçek maliyeti için `kacinma_bedeli`
+  okunmalıdır. Rüzgâr-optimum rota kendi riskli nokta sayısını taşır (türbülansı
+  görmez). FRA modunda "normal rota" zaten rüzgârlı en hızlı ATS yoludur, ayrı
+  rüzgâr kazancı yoktur. Kaçınma yapılmadıysa `kacinma_bedeli` boştur.
 - **Sanal PIREP (gözlem kanalı):** Seyirdeki uçağın atanmış seviyesinden
   ≥ 90 ft sapması (düşey hız tepkisiyle birlikte) olay sayılır; en az 2 farklı
   uçağın 50 km / ±2000 ft / ±60 dk içinde doğruladığı olay `/ws/uyarilar`'a
@@ -99,6 +110,13 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   EDR ya da şiddet sınıfı değildir; eşikler kalibre edilmemiştir (ADR 0011).
   Seviye değişikliği (tırmanma/alçalma) seyir sayılmadığından türbülansa en sık
   verilen tepki, seviye talebi, olay olarak görülmez.
+  ATC ayırma vektörü ya da TCAS çözüm uyarısı ayrı olarak elenmez; yalnız şunlar
+  dolaylı süzgeçtir: seviye değişimi seyir sayılmaz, düşey hız tepkisi aranır, bildirim
+  için ≥ 2 uçak gerekir. Bildirimdeki `era5_uyumu` ("uyumlu" / "uyumsuz" /
+  "bilinmiyor") olay penceresindeki ERA5 TI1'in `TI1_ESIK_HAFIF`'i aşıp aşmadığını
+  söyler; olayı **elemez**, kalıcı kayda yazılmaz, ERA5 çözünürlüğünün (~25–30 km)
+  göremediği gerçek bir olay "uyumsuz" görünebilir. Etiketin başarımı (sahte alarm
+  oranına etkisi) ölçülmedi.
 
 ## 4. Hata durumlarında davranış (fail-safe)
 
@@ -195,7 +213,11 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   gün gruplu CV ROC-AUC'siyle 1-SE kuralıyla seçilir (fark küçükse Lojistik
   Regresyon); özellikler TI1, Richardson, rüzgar hızı, basınç, düşey kayma,
   deformasyon, diverjans ve TI2'dir.
-- Yalnızca ABD verisiyle doğrulanmıştır. `ml_riski_var_mi` için olasılık eşiği
+- Yalnızca ABD verisiyle doğrulanmıştır. Yerel MADIS EDR deposunda (11 gün, 2018–2019,
+  FL280 üstü) Avrupa kutusunda (35–60°K, 10°B–30°D) 21.167 gözlem, ama yalnızca 28'i
+  hafif+ (EDR ≥ 0,1); Türkiye/Doğu Akdeniz kutusunda (34–43°K, 25–45°D) 0 gözlem
+  vardır. Bu, bölgesel bir doğrulama için yetersizdir (pozitif sayısı güven aralığını
+  anlamsız kılar; ayrıca o günlerin Avrupa ERA5 pencereleri yoktur). `ml_riski_var_mi` için olasılık eşiği
   `ML_KARAR_ESIGI` ile yapılandırılır; verilmezse modelin eğitim günlerinde
   Peirce'ı maksimize eden eşiği kullanılır. GFS girdisinde konformal kapsama
   doğrulanmadığı için `null` döner.
@@ -210,11 +232,26 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 **Rota modeli**
 - Seyir irtifası sabittir; kalkış ve iniş fazları modellenmez.
 - Bacak açısı büyük daire yönüne göre sınırlanır; ardışık iki bacak arasındaki
-  dönüş en fazla bunun iki katıdır (60°). Dönüş yarıçapı modellenmez.
+  dönüş en fazla bunun iki katıdır (60°). Dönüş yarıçapı ve yatış açısı kısıt olarak
+  modellenmez; uçulabilirlik elle hesaplanır (R = V²/(g·tan φ), 25° yatış, tipik
+  otomatik pilot sınırı olarak varsayılan yaklaşık değer): A320 (TAS 230 m/s) için
+  R ≈ 11,6 km, B777 (250 m/s) için ≈ 13,7 km. En kötü durumda 60°'lik dönüş
+  düğümden önce ≈ 6,7 / 7,9 km öncüllük ister; yani bacak ≥ ≈ 13,4 / 15,8 km ise
+  uçulabilir (20 km'lik bacaklar uygun). Yük faktörü 1/cos 25° ≈ 1,10 g (stall hızı
+  ≈ %5 artar). Daha kısa bacaklarda (kısa rota) bu kontrol yapılmaz. Mach/buffet
+  sınırı ve tip belgesindeki yatış sınırı modellenmez.
 - Uçak performans değerleri (TAS, yakıt akışı) tipik, halka açık değerlerdir. Yakıt
   akışı irtifadan, kütleden ve Mach'tan bağımsızdır; değer mutlak yakıt değil, aynı
   tipteki rotalar arası farktır. İrtifa ve kütleye bağlı model (ör. OpenAP) yoktur.
 - Türbülans riski uçak tipinden bağımsızdır; PIREP'teki uçak tipi kullanılmaz.
+  Kanat yüklemesine göre eşik esnetmek için dayanak (tip bazlı etiketli veri) yoktur;
+  uydurma katsayı eklenmedi.
+- A* maliyeti seyir süresidir (yakıt akışı sabit olduğundan yakıtla orantılı) artı
+  TI1 cezası. Maliyet İndeksi (CI), alçalma kredisi (rölanti alçalma) ve irtifaya
+  bağlı yakıt akışı yoktur; güvenilir performans kaynağı (OpenAP/BADA) olmadan
+  katsayı uydurulmaz. Seviye değişiminde tırmanma ve alçalma aynı yöne bakmaz,
+  ikisi de geçici bir gidiş-dönüş bedeli olarak hesaplanır; rotayı sistematik
+  olarak aşağı ya da yukarı itmez.
 - ICAO uçuş planı çıktısı (Item 15/18, EET) üretilmez; FRA rotası nokta listesi
   olarak verilir.
 - ATFCM/CTOT, sektör kapasitesi ve önerilerin trafik yığılmasına etkisi kapsam

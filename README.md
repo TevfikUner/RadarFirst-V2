@@ -1237,6 +1237,10 @@ Yöntem, eşiklerin dayanağı ve bedeli: [docs/adr/0011](docs/adr/0011-sanal-pi
   `bildirim_zamani - bitis` olarak her olayda saklanır.
 - **Sınır:** sapma ham büyüklüktür, EDR ya da şiddet sınıfı değildir; eşikler
   kalibre edilmemiştir. Sinyal ML eğitim etiketi olarak kullanılmaz.
+- **ERA5 uyum etiketi:** işçi izinde ERA5 TI1 varsa bildirim `era5_uyumu`
+  (`uyumlu` / `uyumsuz` / `bilinmiyor`) ve `era5_ti1` taşır. Etiket olayı elemez ve
+  kalıcı kayıtta yoktur; ATC/TCAS kaynaklı sapmaları ayırt etmeye yardım eder,
+  başarımı ölçülmedi.
 - **Doğrulama (POD/POFD):** `turbulans-sanal-pirep dogrula --pozitif 50 --negatif 50`
   ml_ornekleri PIREP'lerini çevrelerindeki ADS-B izleriyle karşılaştırır. Varsayılan
   yalnızca önbelleği okur; `--maks-yeni-sorgu N` (en fazla 20) PIREP başına tek OpenSky

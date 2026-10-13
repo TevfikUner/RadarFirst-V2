@@ -122,7 +122,9 @@ farkı belirtilmelidir.
   olasılık "raporlanan PIREP'ler içindeki oran"dır, sahadaki alarm oranı değildir.
   Nesnel EDR etiketi (MADIS in-situ, QAR) geliştirme planında M1'dir.
 - **Coğrafya:** yalnızca ABD verisi. Türkiye/Avrupa'ya genelleme iddia edilmez;
-  bölgesel doğrulama seti olmadan bu bölgeler için skor raporlanmaz.
+  bölgesel doğrulama seti olmadan bu bölgeler için skor raporlanmaz. Yerel MADIS
+  deposunda Avrupa'da FL280 üstü 21.167 EDR gözlemi var ama yalnızca 28'i hafif+;
+  Türkiye/Doğu Akdeniz'de 0 (11 gün, 13 Eki 2026 sayımı). Bu bir doğrulama seti sayılmaz.
 - **Reanaliz:** ERA5 ~5 gün gecikmelidir ve "geçmişi bilerek" üretilmiştir; tahmin
   verisiyle (GFS/IFS) skorlar düşük olacaktır (planda M3).
 - **Düşey çözünürlük:** 3 seviye (~1,3–1,6 km aralık) ince katman kaymasını
