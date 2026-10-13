@@ -20,6 +20,7 @@ import io
 import os
 import re
 
+import httpx
 import streamlit as st
 import streamlit.components.v1 as components
 
@@ -31,6 +32,24 @@ from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
 from turbulans_radar.ml.turbulans_ml_modeli import model_bilgisini_yukle, model_kullanilabilir_mi
 
 konsolu_utf8_yap()
+
+
+def ucusu_api_ile_sil(ucus_numarasi: str, tarih: str, anahtar: str) -> tuple[bool, str]:
+    """Veritabanına doğrudan yazmak yerine API'nin yönetici korumalı, hız sınırlı ve
+    denetim kaydı tutan DELETE uç noktasını kullanır."""
+    if not anahtar:
+        return False, "Yönetici API anahtarı gerekli."
+    try:
+        yanit = httpx.delete(
+            f"{config.API_TABAN_URL}/api/v1/ucuslar/{ucus_numarasi}/{tarih}", headers={"X-API-Key": anahtar}, timeout=10
+        )
+    except httpx.HTTPError as hata:
+        return False, f"API'ye ulaşılamadı: {dostane_hata_mesaji(hata)}"
+    mesajlar = {401: "Anahtar geçersiz.", 403: "Bu işlem yönetici anahtarı gerektirir.", 404: "Uçuş zaten yok."}
+    if yanit.status_code == 204:
+        return True, "Silindi."
+    return False, mesajlar.get(yanit.status_code, f"Silinemedi (HTTP {yanit.status_code}).")
+
 
 st.set_page_config(page_title="Türbülans Radar", page_icon="✈️", layout="wide")
 
@@ -56,9 +75,12 @@ with st.sidebar:
             satir1.caption(f"**{u['ucus_numarasi']}** / {u['tarih']}")
             with satir2.popover("🗑", help="Sil"):
                 st.caption(f"{u['ucus_numarasi']} / {u['tarih']} ölçümleriyle silinsin mi?")
+                anahtar = st.text_input("Yönetici API anahtarı", type="password", key=f"anahtar_{u['id']}")
                 if st.button("Evet, sil", key=f"sil_{u['id']}"):
-                    vt.ucus_sil(u["ucus_numarasi"], str(u["tarih"]))
-                    st.rerun()
+                    basarili, mesaj = ucusu_api_ile_sil(u["ucus_numarasi"], str(u["tarih"]), anahtar)
+                    if basarili:
+                        st.rerun()
+                    st.error(mesaj)
     elif arama:
         st.caption("Eşleşen kayıtlı uçuş yok.")
     else:
