@@ -33,11 +33,21 @@ def _ortam_sayi(isim, varsayilan, tip=float):
     return tip(deger) if deger is not None else varsayilan
 
 
+_DOGRU = ("1", "true", "evet", "yes", "on")
+_YANLIS = ("", "0", "false", "hayir", "hayır", "no", "off")
+
+
 def _ortam_bool(isim, varsayilan):
+    """Tanınmayan değer (örn. 'ture') sessizce False sayılmaz, hata verir."""
     deger = os.environ.get(isim)
     if deger is None:
         return varsayilan
-    return deger.strip().lower() in ("1", "true", "evet", "yes")
+    normal = deger.strip().lower()
+    if normal in _DOGRU:
+        return True
+    if normal in _YANLIS:
+        return False
+    raise ValueError(f"{isim}={deger!r} mantıksal değer değil (true/false, 1/0, evet/hayır).")
 
 
 # depo/veritabani.py -- bağlantı havuzu boyutu. SQLAlchemy'nin varsayılanı

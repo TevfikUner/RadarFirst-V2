@@ -4,6 +4,17 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## API bölünmesi ve ayar doğrulama (13 Ekim 2026)
+
+- **API yapısı:** `api_servisi.py` 2.231 → ~1.270 satır. Anahtar/rol/WS bileti `api/guvenlik.py`'de;
+  router'ların paylaştığı hız sınırı, ağır hesap yuvası, rota önbelleği ve görev kuyruğu yardımcıları
+  `api/ortak.py`'de; uç nokta grupları `api/yollar/` (ucuslar, analiz, hava_sahasi, ml). Davranış
+  değişmedi: OpenAPI şeması birebir aynı; testlerin yamaları yeni modüllere taşındı.
+- **Ayar doğrulama:** `ayar_dogrulama.py` (pydantic) API ve işçi başlarken eşiklerin sırası, oranlar,
+  havuz boyutları, ısıtma kutusu, gece işi saati gibi ayarları denetler; geçersizse süreç başlamaz.
+  `_ortam_bool` tanımadığı değeri (örn. 'ture') artık sessizce False saymaz. Tam pydantic-settings
+  geçişi yapılmadı: `config.X` arayüzüne 54 modül ve 101 test yaması bağlı, yeni bağımlılık gerekirdi.
+
 ## Özellik kayması izleme (13 Ekim 2026)
 
 - `ml/kayma_izleme.py`: özellik başına PSI (referansın onda birlik dilimleri) ve KS. Her otomatik

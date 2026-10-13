@@ -357,10 +357,12 @@ class GorevIscisi:
 
 
 def ana():
+    from turbulans_radar.ayar_dogrulama import ayarlari_dogrula
     from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
 
     konsolu_utf8_yap()
     loglama.ayarla()
+    ayarlari_dogrula()
     isci = GorevIscisi().baslat()
     dur = threading.Event()
     for sinyal in (signal.SIGINT, signal.SIGTERM):
