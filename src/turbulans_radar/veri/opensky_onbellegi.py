@@ -6,22 +6,20 @@ uçuşlar değişmediği için aynı uçuş Trino'ya ikinci kez sorulmaz.
 """
 
 import os
-import re
 import uuid
 
 import pandas as pd
 
 from turbulans_radar import config
 from turbulans_radar.loglama import logger_al
+from turbulans_radar.ucus_kurallari import ucus_numarasi_gecerli_mi
 
 _logger = logger_al(__name__)
-
-_GUVENLI_UCUS_NUMARASI = re.compile(r"[A-Z0-9]{2,8}")
 
 
 def rota_onbellek_yolu(ucus_numarasi: str, tarih_str: str, klasor: str | None = None) -> str | None:
     ucus = str(ucus_numarasi).strip().upper()
-    if not _GUVENLI_UCUS_NUMARASI.fullmatch(ucus):
+    if not ucus_numarasi_gecerli_mi(ucus):
         return None
     try:
         tarih = pd.Timestamp(tarih_str)

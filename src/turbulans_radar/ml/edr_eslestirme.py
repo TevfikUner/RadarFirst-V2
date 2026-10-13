@@ -15,20 +15,13 @@ Ayrıca PIREP-EDR karşılaştırması: her PIREP için çevresindeki (50 km, ±
 import numpy as np
 import pandas as pd
 
+from turbulans_radar.fizik.cografya import mesafe_km_vektor
 from turbulans_radar.ml.ozellik_deposu import ozellik_kupu, pencere_dosyasini_ac, pencereden_kup
 from turbulans_radar.veri.madis_edr import METRE_FT, edr_sinifi
 
-_DUNYA_YARICAPI_KM = 6371.0
 PIREP_TUP_KM = 50.0
 PIREP_TUP_FT = 2000.0
 PIREP_TUP_SURE = pd.Timedelta(minutes=30)
-
-
-def _mesafe_km(e1, b1, e2, b2):
-    p1, p2 = np.radians(e1), np.radians(e2)
-    dp, dl = p2 - p1, np.radians(np.asarray(b2) - np.asarray(b1))
-    a = np.sin(dp / 2) ** 2 + np.cos(p1) * np.cos(p2) * np.sin(dl / 2) ** 2
-    return 2 * _DUNYA_YARICAPI_KM * np.arcsin(np.sqrt(np.clip(a, 0, 1)))
 
 
 def pencere_icindekiler(kup, edr_df: pd.DataFrame) -> pd.DataFrame:
@@ -60,7 +53,9 @@ def gun_eslestir(ornekler: pd.DataFrame, edr_df: pd.DataFrame) -> pd.DataFrame:
             icinde = pencere_icindekiler(kup, edr_df)
             if icinde.empty:
                 continue
-            uzaklik = _mesafe_km(satir.enlem, satir.boylam, icinde["enlem"].to_numpy(), icinde["boylam"].to_numpy())
+            uzaklik = mesafe_km_vektor(
+                satir.enlem, satir.boylam, icinde["enlem"].to_numpy(), icinde["boylam"].to_numpy()
+            )
             adaylar.append(icinde.assign(ml_ornek_id=satir.id, _uzaklik=uzaklik, _kup=[kup] * len(icinde)))
     if not adaylar:
         return pd.DataFrame()
@@ -91,7 +86,7 @@ def pirep_edr_karsilastir(ornekler: pd.DataFrame, edr_df: pd.DataFrame, sinif_su
         ]
         if not aday.empty:
             aday = aday[
-                _mesafe_km(p.enlem, p.boylam, aday["enlem"].to_numpy(), aday["boylam"].to_numpy()) <= PIREP_TUP_KM
+                mesafe_km_vektor(p.enlem, p.boylam, aday["enlem"].to_numpy(), aday["boylam"].to_numpy()) <= PIREP_TUP_KM
             ]
         satirlar.append(
             {

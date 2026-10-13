@@ -26,11 +26,11 @@ import numpy as np
 import pandas as pd
 
 from turbulans_radar import config
+from turbulans_radar.fizik.cografya import mesafe_km_vektor
 from turbulans_radar.fizik.eslestirme import rota_irtifalari_ve_kaynagi
 
 METRE_FT = 3.28084
 MS_FTDK = 196.850394
-_DUNYA_YARICAPI_KM = 6371.0
 
 OLAY_SUTUNLARI = [
     "icao24",
@@ -46,13 +46,6 @@ OLAY_SUTUNLARI = [
     "maks_dikey_hiz_ftdk",
     "irtifa_kaynagi",
 ]
-
-
-def _mesafe_km(enlem1, boylam1, enlem2, boylam2):
-    p1, p2 = np.radians(enlem1), np.radians(enlem2)
-    dp, dl = p2 - p1, np.radians(np.asarray(boylam2) - np.asarray(boylam1))
-    a = np.sin(dp / 2) ** 2 + np.cos(p1) * np.cos(p2) * np.sin(dl / 2) ** 2
-    return 2 * _DUNYA_YARICAPI_KM * np.arcsin(np.sqrt(np.clip(a, 0.0, 1.0)))
 
 
 def _iz_hazirla(iz_df: pd.DataFrame) -> pd.DataFrame:
@@ -195,7 +188,7 @@ def yakin_mi(enlem1, boylam1, zaman1, irtifa1_ft, enlem2, boylam2, zaman2, irtif
     """Vektörel uzay-zaman yakınlığı (kümeleme ve PIREP eşleştirmesi ortak)."""
     zaman_farki = (pd.to_datetime(zaman1, utc=True) - pd.to_datetime(zaman2, utc=True)).abs()
     return (
-        (np.asarray(_mesafe_km(enlem1, boylam1, enlem2, boylam2)) <= yaricap_km)
+        (np.asarray(mesafe_km_vektor(enlem1, boylam1, enlem2, boylam2)) <= yaricap_km)
         & (np.abs(np.asarray(irtifa1_ft, dtype=float) - np.asarray(irtifa2_ft, dtype=float)) <= irtifa_ft)
         & np.asarray(zaman_farki <= sure)
     )

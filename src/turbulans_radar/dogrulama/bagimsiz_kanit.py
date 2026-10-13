@@ -28,6 +28,7 @@ import numpy as np
 import pandas as pd
 
 from turbulans_radar.dogrulama.sigmet_dogrulama import sigmetleri_getir as iem_sigmetlerini_getir
+from turbulans_radar.fizik.cografya import mesafe_km_vektor
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.rota.risk_katmanlari import SigmetKisitKatmani
 from turbulans_radar.veri.sigmet_saglayici import arsiv_baslangici, gecerli_sigmetleri_getir
@@ -45,7 +46,6 @@ TUP_ZAMAN_FARKI = pd.Timedelta(hours=1)
 _SIK_ORNEKLEME_KM = 20.0
 # "/OV UNK": konum bilinmiyor; IEM bunu UNK (Unalakleet, Alaska) istasyonuna yerleştiriyor.
 _KONUM_BILINMIYOR_DESENI = r"/OV\s*UNK"
-_DUNYA_YARICAPI_KM = 6371.0
 
 _yeniden_dene = gecici_hatada_yeniden_dene()
 
@@ -175,17 +175,11 @@ def kanitlari_topla(
     return kanit
 
 
-def _haversine_km(enlem1, boylam1, enlem2, boylam2):
-    f1, f2 = np.radians(enlem1), np.radians(enlem2)
-    a = np.sin((f2 - f1) / 2) ** 2 + np.cos(f1) * np.cos(f2) * np.sin(np.radians(boylam2 - boylam1) / 2) ** 2
-    return 2 * _DUNYA_YARICAPI_KM * np.arcsin(np.sqrt(np.clip(a, 0.0, 1.0)))
-
-
 def _sik_ornekle(enlemler, boylamlar, zamanlar, irtifa_ft):
     """Rota tüpünü PIREP'lerle karşılaştırmak için noktaları en fazla 20 km arayla sıklaştırır."""
     enlemler, boylamlar = np.asarray(enlemler, dtype=float), np.asarray(boylamlar, dtype=float)
     kumulatif = np.concatenate(
-        [[0.0], np.cumsum(_haversine_km(enlemler[:-1], boylamlar[:-1], enlemler[1:], boylamlar[1:]))]
+        [[0.0], np.cumsum(mesafe_km_vektor(enlemler[:-1], boylamlar[:-1], enlemler[1:], boylamlar[1:]))]
     )
     hedef = np.linspace(0.0, kumulatif[-1], max(len(enlemler), int(np.ceil(kumulatif[-1] / _SIK_ORNEKLEME_KM)) + 1))
     saniye = (pd.DatetimeIndex(pd.to_datetime(list(zamanlar), utc=True)) - pd.Timestamp(0, tz="UTC")).total_seconds()
@@ -204,7 +198,9 @@ def tupteki_pirepler(pirepler: pd.DataFrame, enlemler, boylamlar, zamanlar, irti
     p_saniye = (pirepler["zaman"] - pd.Timestamp(0, tz="UTC")).dt.total_seconds().to_numpy()[:, None]
     icinde = (
         (
-            _haversine_km(pirepler["enlem"].to_numpy()[:, None], pirepler["boylam"].to_numpy()[:, None], enlem, boylam)
+            mesafe_km_vektor(
+                pirepler["enlem"].to_numpy()[:, None], pirepler["boylam"].to_numpy()[:, None], enlem, boylam
+            )
             <= TUP_YARICAPI_KM
         )
         & (np.abs(p_saniye - saniye) <= TUP_ZAMAN_FARKI.total_seconds())
