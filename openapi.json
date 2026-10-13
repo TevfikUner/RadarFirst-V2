@@ -3554,6 +3554,24 @@
         ],
         "title": "KabinOnerisiYaniti"
       },
+      "KacinmaBedeliYaniti": {
+        "properties": {
+          "ek_sure_dk": {
+            "type": "number",
+            "title": "Ek Sure Dk"
+          },
+          "ek_yakit_yuzde": {
+            "type": "number",
+            "title": "Ek Yakit Yuzde"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ek_sure_dk",
+          "ek_yakit_yuzde"
+        ],
+        "title": "KacinmaBedeliYaniti"
+      },
       "KapsamYaniti": {
         "properties": {
           "safha": {
@@ -4197,6 +4215,55 @@
         "title": "PlanlamaUfkuYaniti",
         "description": "kullanim: gecmis_analiz | ucus_oncesi_planlama. tahmin_ufku_disi: kalkış\ncanlı GFS tahmin ufkundan ileride (rüzgar/TI1 yok)."
       },
+      "ReferansKarsilastirmasiYaniti": {
+        "properties": {
+          "referans": {
+            "type": "string",
+            "enum": [
+              "ruzgar_optimum_koridor",
+              "ats_planli",
+              "buyuk_daire"
+            ],
+            "title": "Referans"
+          },
+          "ruzgar_optimum_rota": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RotaSonucuYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "ruzgar_kazanci": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RuzgarKazanciYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kacinma_bedeli": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KacinmaBedeliYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "type": "object",
+        "required": [
+          "referans"
+        ],
+        "title": "ReferansKarsilastirmasiYaniti",
+        "description": "Tasarrufu ikiye ayırır: büyük daire -> rüzgâr-optimum (yalnız rüzgâr) ve\nrüzgâr-optimum -> optimize rota (kaçınmanın bedeli). Rüzgâr-optimum rota risk\nkatmanlarını yok sayar; kendi riskli_nokta_sayisi'ni taşır."
+      },
       "RiskliBolumYaniti": {
         "properties": {
           "baslangic_utc": {
@@ -4710,6 +4777,16 @@
           "optimize_rota": {
             "$ref": "#/components/schemas/RotaSonucuYaniti"
           },
+          "referans_karsilastirmasi": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ReferansKarsilastirmasiYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
           "kabin_onerisi": {
             "anyOf": [
               {
@@ -4986,6 +5063,24 @@
           "tahmini_co2_kg"
         ],
         "title": "RotaSonucuYaniti"
+      },
+      "RuzgarKazanciYaniti": {
+        "properties": {
+          "sure_dk": {
+            "type": "number",
+            "title": "Sure Dk"
+          },
+          "yakit_yuzde": {
+            "type": "number",
+            "title": "Yakit Yuzde"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sure_dk",
+          "yakit_yuzde"
+        ],
+        "title": "RuzgarKazanciYaniti"
       },
       "SaglikYaniti": {
         "properties": {

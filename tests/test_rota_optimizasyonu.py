@@ -155,6 +155,30 @@ def test_gercek_era5_turbulans_varsa_tamamen_atlatilir(gercek_senaryo):
         assert sonuc["optimize_rota"]["irtifa_ft"] != sonuc["normal_rota"]["irtifa_ft"]
 
 
+def test_referans_karsilastirmasi_kapsam_disinda_yok():
+    sonuc = rota_simulasyonu_olustur(41.0, 28.9, 40.7, -74.0, 34000, "2019-01-15T10:00:00", "A320")
+    assert sonuc["referans_karsilastirmasi"] is None
+
+
+def test_referans_karsilastirmasi_riskisizde_ruzgar_kazanci_var_kacinma_bedeli_yok(gercek_senaryo):
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskisiz"], "A320", sigmetler=[], kisitli_sahalar=[])
+    ref = sonuc["referans_karsilastirmasi"]
+    assert ref["referans"] == "ruzgar_optimum_koridor"
+    assert ref["kacinma_bedeli"] is None
+    assert ref["ruzgar_kazanci"]["sure_dk"] >= -1e-6
+    assert ref["ruzgar_optimum_rota"]["toplam_sure_dk"] <= sonuc["normal_rota"]["toplam_sure_dk"] + 1e-6
+
+
+def test_referans_karsilastirmasi_kazanci_ruzgar_ve_kacinmaya_ayirir(gercek_senaryo):
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320", sigmetler=[], kisitli_sahalar=[])
+    ref = sonuc["referans_karsilastirmasi"]
+    ruzgar_dk = sonuc["normal_rota"]["toplam_sure_dk"] - ref["ruzgar_optimum_rota"]["toplam_sure_dk"]
+    kacinma_dk = sonuc["optimize_rota"]["toplam_sure_dk"] - ref["ruzgar_optimum_rota"]["toplam_sure_dk"]
+    assert ref["ruzgar_kazanci"]["sure_dk"] == pytest.approx(ruzgar_dk)
+    assert ref["kacinma_bedeli"]["ek_sure_dk"] == pytest.approx(kacinma_dk)
+    assert sonuc["sure_tasarrufu_dk"] == pytest.approx(ruzgar_dk - kacinma_dk)
+
+
 def test_irtifa_degisimi_gidis_donus_maliyetlenir_ve_yone_gore_simetriktir():
     from turbulans_radar.rota.rota_optimizasyonu import _irtifa_degisimi_maliyeti
 
