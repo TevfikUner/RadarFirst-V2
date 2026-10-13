@@ -92,6 +92,9 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   3. En düşük yakıt/süre.
 - Kaçınılacak bir risk yoksa önerilen rota büyük daireyle birebir aynıdır;
   uydurma bir "iyileşme" gösterilmez.
+- **Üretim bilgisi:** Rota ve nokta tahmini yanıtları `uretim_bilgisi` taşır: yazılım sürümü,
+  kullanılan hava küpü ve geçerlilik aralığı, TI1 eşikleri, varsa ML modelinin sha256'sı ve rota
+  parametreleri. Eşik ya da model değişince eski sonuçlar buradan ayrılır. Commit kimliği yoktur.
 - **Referans rotalar (koridor modu):** Büyük daire ("normal rota") rüzgârı
   görmeyen bir çizgidir; gerçek bir uçuş planı değildir. Yanıttaki
   `referans_karsilastirmasi`, risk katmanı olmadan çalışan A* ile bulunan

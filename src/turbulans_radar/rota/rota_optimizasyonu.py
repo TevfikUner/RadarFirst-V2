@@ -88,12 +88,14 @@ from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.rota import hava_yolu_agi, ucus_seviyeleri
 from turbulans_radar.rota.risk_katmanlari import (
+    TURBULANS_CEZASI_SANIYE,
     KisitliSahaKatmani,
     SigmetKisitKatmani,
     Ti1CezaKatmani,
     degerlendirmeleri_birlestir,
     rota_eslesmesi,
 )
+from turbulans_radar.uretim_bilgisi import uretim_bilgisi
 from turbulans_radar.veri.kisitli_saha_saglayici import ORNEK_KAYNAK, gecerli_kisitli_sahalari_getir
 from turbulans_radar.veri.sigmet_saglayici import (
     gecerli_sigmetleri_getir,
@@ -1458,6 +1460,15 @@ def rota_simulasyonu_olustur(
         ),
         "co2_farki_kg": normal_yakit_kg * CO2_KG_PER_KG_YAKIT - optimize_yakit_kg * CO2_KG_PER_KG_YAKIT,
         "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
+        "uretim_bilgisi": uretim_bilgisi(
+            veri_kupu if ruzgarli_mi else None,
+            parametreler={
+                "arama_uzayi": arama_uzayi,
+                "maks_yanal_sapma_km": config.ROTA_MAKS_YANAL_SAPMA_KM,
+                "maks_sapma_acisi_derece": config.ROTA_MAKS_SAPMA_ACISI_DERECE,
+                "ti1_ceza_saniye": TURBULANS_CEZASI_SANIYE,
+            },
+        ),
         "secenekler": secenekler,
         "kapsam": kapsam(arama_uzayi, *((ag.kaynak, ag.etiket()) if ag is not None else ())),
         "planlama_ufku": planlama_ufku(zaman_iso),
