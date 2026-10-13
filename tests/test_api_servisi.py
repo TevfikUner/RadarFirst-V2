@@ -27,7 +27,10 @@ from sqlalchemy import text
 from starlette.testclient import TestClient
 
 from turbulans_radar import config
-from turbulans_radar.api import api_servisi
+from turbulans_radar.api import api_servisi, guvenlik, ortak
+from turbulans_radar.api.yollar import hava_sahasi as hava_sahasi_yollari
+from turbulans_radar.api.yollar import ml as ml_yollari
+from turbulans_radar.api.yollar import ucuslar as ucus_yollari
 from turbulans_radar.depo import gorev_deposu
 from turbulans_radar.depo import veritabani as vt
 from turbulans_radar.isci import gorev_iscisi
@@ -79,9 +82,9 @@ def _saglik_onbellegini_temizle():
 
 @pytest.fixture(autouse=True)
 def _rota_onbellegini_temizle():
-    api_servisi._rota_onbellegi.temizle()
+    ortak._rota_onbellegi.temizle()
     yield
-    api_servisi._rota_onbellegi.temizle()
+    ortak._rota_onbellegi.temizle()
 
 
 @pytest.fixture
@@ -122,12 +125,12 @@ async def test_v1_ascii_disi_anahtar_500_degil_401(istemci, api_anahtari):
 
 @pytest.mark.parametrize("bilet", ["²³.pilot.x.abc", "9999999999.pilot.x.é", "1.2", ""])
 def test_bozuk_ws_bileti_hata_atmadan_reddedilir(api_anahtari, bilet):
-    assert api_servisi.ws_bileti_gecerli_mi(bilet) is False
+    assert guvenlik.ws_bileti_gecerli_mi(bilet) is False
 
 
 def test_ws_bileti_gecerli_ve_suresi_dolunca_gecersiz(api_anahtari):
-    assert api_servisi.ws_bileti_gecerli_mi(api_servisi.ws_bileti_uret("pilot"))
-    assert not api_servisi.ws_bileti_gecerli_mi(api_servisi.ws_bileti_uret("pilot", simdi=0))
+    assert guvenlik.ws_bileti_gecerli_mi(api_servisi.ws_bileti_uret("pilot"))
+    assert not guvenlik.ws_bileti_gecerli_mi(api_servisi.ws_bileti_uret("pilot", simdi=0))
 
 
 def test_ws_bileti_tek_kullanimlik_ve_ayni_saniyede_benzersiz(api_anahtari):
@@ -269,7 +272,7 @@ async def test_analiz_tetikleme_ve_durum_sorgulama(istemci, api_anahtari, monkey
 
 async def test_hiz_siniri_asilinca_429(istemci, api_anahtari):
     son_yanit = None
-    for _ in range(api_servisi._ANALIZ_PENCERE_BASINA_MAKS_ISTEK + 1):
+    for _ in range(ortak._ANALIZ_PENCERE_BASINA_MAKS_ISTEK + 1):
         son_yanit = await istemci.post(
             "/api/v1/analiz/ucus",
             json={"ucus_numarasi": "TESTX", "tarih": "2019-01-01"},
@@ -283,7 +286,7 @@ async def test_silme_hiz_siniri_asilinca_429(istemci, api_anahtari):
     sınırlama penceresini paylaşır -- ikisi karışık çağrılsa bile toplam
     istek sayısı sınırı aşınca 429 dönmeli."""
     son_yanit = None
-    for i in range(api_servisi._ANALIZ_PENCERE_BASINA_MAKS_ISTEK + 1):
+    for i in range(ortak._ANALIZ_PENCERE_BASINA_MAKS_ISTEK + 1):
         son_yanit = await istemci.delete(
             f"/api/v1/ucuslar/YOKUCUS{i % 9}/1999-01-01", headers={"X-API-Key": api_anahtari}
         )
@@ -394,7 +397,7 @@ async def test_sigmet_dogrulama_gercek_http_istegi_yapmadan_calisir(istemci, api
             }
         ],
     }
-    monkeypatch.setattr(api_servisi, "ucus_sigmet_ile_karsilastir", lambda df: sahte_sonuc)
+    monkeypatch.setattr(ucus_yollari, "ucus_sigmet_ile_karsilastir", lambda df: sahte_sonuc)
 
     df = pd.DataFrame(
         {
@@ -492,7 +495,7 @@ async def test_ucuslar_ucus_numarasi_aramasi_filtreler(istemci, api_anahtari):
 
 
 async def test_model_bilgisi_egitilmemisse_durustce_false_doner(istemci, api_anahtari, monkeypatch):
-    monkeypatch.setattr(api_servisi, "model_bilgisini_yukle", lambda: None)
+    monkeypatch.setattr(ml_yollari, "model_bilgisini_yukle", lambda: None)
     yanit = await istemci.get("/api/v1/turbulans/model-bilgisi", headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 200
     assert yanit.json() == {
@@ -519,7 +522,7 @@ async def test_model_bilgisi_egitilmisse_metadata_doner(istemci, api_anahtari, m
         "test_orneklem_sayisi": 45,
         "egitim_zamani": "2024-01-01T00:00:00+00:00",
     }
-    monkeypatch.setattr(api_servisi, "model_bilgisini_yukle", lambda: sahte_bilgi)
+    monkeypatch.setattr(ml_yollari, "model_bilgisini_yukle", lambda: sahte_bilgi)
     yanit = await istemci.get("/api/v1/turbulans/model-bilgisi", headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 200
     govde = yanit.json()
@@ -527,7 +530,7 @@ async def test_model_bilgisi_egitilmisse_metadata_doner(istemci, api_anahtari, m
     assert govde["secilen_model"] == "Random Forest"
     assert govde["kullanimda"] is False and "hatalı irtifa" in govde["uyari"]
 
-    monkeypatch.setattr(api_servisi, "model_bilgisini_yukle", lambda: {**sahte_bilgi, "veri_kaynagi": "ml_ornekleri"})
+    monkeypatch.setattr(ml_yollari, "model_bilgisini_yukle", lambda: {**sahte_bilgi, "veri_kaynagi": "ml_ornekleri"})
     govde = (await istemci.get("/api/v1/turbulans/model-bilgisi", headers={"X-API-Key": api_anahtari})).json()
     assert govde["kullanimda"] is True and govde["uyari"] is None
 
@@ -547,7 +550,7 @@ async def test_model_versiyonlari_listesi_doner(istemci, api_anahtari, monkeypat
             "egitim_zamani": "2024-01-01T00:00:00+00:00",
         },
     ]
-    monkeypatch.setattr(api_servisi, "model_versiyonlarini_listele", lambda: sahte_versiyonlar)
+    monkeypatch.setattr(ml_yollari, "model_versiyonlarini_listele", lambda: sahte_versiyonlar)
     yanit = await istemci.get("/api/v1/turbulans/model-versiyonlari", headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 200
     assert yanit.json() == sahte_versiyonlar
@@ -562,7 +565,7 @@ async def test_model_versiyonu_aktiflestir_basarili(istemci, api_anahtari, monke
         "test_orneklem_sayisi": 45,
         "egitim_zamani": "2024-02-01T00:00:00+00:00",
     }
-    monkeypatch.setattr(api_servisi, "versiyona_geri_don", lambda versiyon_id: sahte_aktif_bilgi)
+    monkeypatch.setattr(ml_yollari, "versiyona_geri_don", lambda versiyon_id: sahte_aktif_bilgi)
     yanit = await istemci.post(
         "/api/v1/turbulans/model-versiyonlari/v2/aktiflestir", headers={"X-API-Key": api_anahtari}
     )
@@ -576,7 +579,7 @@ async def test_model_versiyonu_aktiflestir_bilinmeyen_id_404(istemci, api_anahta
     def _hata_firlat(versiyon_id):
         raise ValueError(f"Bilinmeyen versiyon_id: '{versiyon_id}'.")
 
-    monkeypatch.setattr(api_servisi, "versiyona_geri_don", _hata_firlat)
+    monkeypatch.setattr(ml_yollari, "versiyona_geri_don", _hata_firlat)
     yanit = await istemci.post(
         "/api/v1/turbulans/model-versiyonlari/olmayan/aktiflestir", headers={"X-API-Key": api_anahtari}
     )
@@ -707,7 +710,7 @@ async def test_turbulans_tahmini_kapsam_icinde_ti1_doner(istemci, api_anahtari):
 
 
 async def test_gorev_kuyruga_eklenir_ve_islenmeden_kuyrukta_kalir():
-    gorev_id = await api_servisi._gorev_olustur("ucus", ucus_numarasi="TESTX", tarih="2019-01-01")
+    gorev_id = await ortak._gorev_olustur("ucus", ucus_numarasi="TESTX", tarih="2019-01-01")
     gorev = await gorev_deposu.gorev_getir(gorev_id)
     assert gorev["durum"] == "kuyrukta"
     assert gorev["ucus_numarasi"] == "TESTX"
@@ -728,9 +731,9 @@ async def test_gecersiz_webhook_url_422(istemci, api_anahtari, url):
 
 def test_webhook_izin_listesi_disindaki_host_reddedilir(monkeypatch):
     monkeypatch.setenv("WEBHOOK_IZIN_VERILEN_HOSTLAR", "n8n.ornek.com, localhost")
-    assert api_servisi._webhook_url_dogrula("http://localhost:5678/webhook/x") == "http://localhost:5678/webhook/x"
+    assert ortak._webhook_url_dogrula("http://localhost:5678/webhook/x") == "http://localhost:5678/webhook/x"
     with pytest.raises(ValueError):
-        api_servisi._webhook_url_dogrula("https://baska.ornek.com/hook")
+        ortak._webhook_url_dogrula("https://baska.ornek.com/hook")
 
 
 def test_websocket_api_anahtari_tanimsizsa_reddedilir(monkeypatch):
@@ -813,7 +816,7 @@ async def test_sigmet_guncelle_ozet_doner(istemci, api_anahtari, monkeypatch):
         "kaynak_hatalari": {"isigmet": "boş akış"},
         "kaynaklar": {"airsigmet": {"ham": 5, "durum": "tamam"}},
     }
-    monkeypatch.setattr(api_servisi, "sigmetleri_guncelle", lambda: sahte_ozet)
+    monkeypatch.setattr(hava_sahasi_yollari, "sigmetleri_guncelle", lambda: sahte_ozet)
     yanit = await istemci.post("/api/v1/sigmet/guncelle", headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 200
     assert yanit.json() == sahte_ozet
@@ -1147,7 +1150,7 @@ async def test_hiz_siniri_sayaci_veritabaninda_paylasilir():
 
     assert [await istegi_say("paylasim_testi", 60) for _ in range(3)] == [1, 2, 3]
     with pytest.raises(api_servisi.HTTPException) as hata:
-        await api_servisi._hiz_sinirini_kontrol_et("paylasim_testi", maks=3)
+        await ortak._hiz_sinirini_kontrol_et("paylasim_testi", maks=3)
     assert hata.value.status_code == 429 and hata.value.headers["Retry-After"] == "60"
 
 
@@ -1172,12 +1175,12 @@ async def test_hiz_siniri_sayacina_ulasilamazsa_surec_ici_sayac_kullanilir(monke
     async def ulasilamaz(*_):
         raise OperationalError("SELECT", {}, Exception("baglanti yok"))
 
-    monkeypatch.setattr(api_servisi, "istegi_say", ulasilamaz)
-    monkeypatch.setattr(api_servisi, "_yerel_sayaclar", {})
+    monkeypatch.setattr(ortak, "istegi_say", ulasilamaz)
+    monkeypatch.setattr(ortak, "_yerel_sayaclar", {})
     for _ in range(2):
-        await api_servisi._hiz_sinirini_kontrol_et("herhangi", maks=2)
+        await ortak._hiz_sinirini_kontrol_et("herhangi", maks=2)
     with pytest.raises(api_servisi.HTTPException) as hata:
-        await api_servisi._hiz_sinirini_kontrol_et("herhangi", maks=2)
+        await ortak._hiz_sinirini_kontrol_et("herhangi", maks=2)
     assert hata.value.status_code == 429
 
 
@@ -1194,13 +1197,13 @@ def test_api_belgeleri_ag_acilinca_kapanir(monkeypatch, ayar, adres, beklenen):
 async def test_agir_hesap_tavani_doluysa_503(monkeypatch):
     monkeypatch.setattr(config, "AGIR_HESAP_MAKS_ESZAMANLI", 1)
     monkeypatch.setattr(config, "AGIR_HESAP_BEKLEME_SANIYE", 0.05)
-    monkeypatch.setattr(api_servisi, "_agir_hesap_semaforlari", api_servisi.weakref.WeakKeyDictionary())
-    async with api_servisi._agir_hesap_yuvasi():
+    monkeypatch.setattr(ortak, "_agir_hesap_semaforlari", api_servisi.weakref.WeakKeyDictionary())
+    async with ortak._agir_hesap_yuvasi():
         with pytest.raises(api_servisi.HTTPException) as hata:
-            async with api_servisi._agir_hesap_yuvasi():
+            async with ortak._agir_hesap_yuvasi():
                 pass
     assert hata.value.status_code == 503 and hata.value.headers["Retry-After"] == "5"
-    async with api_servisi._agir_hesap_yuvasi():
+    async with ortak._agir_hesap_yuvasi():
         pass
 
 
@@ -1264,7 +1267,7 @@ async def test_kisiye_ozel_anahtar_rolunu_alir_ve_denetime_kimligiyle_yazilir(is
 
 def test_bicimi_bozuk_anahtar_girdisi_atlanir(monkeypatch):
     monkeypatch.setenv("API_ANAHTARLARI", "eksik:yonetici,:pilot:x,a:superuser:y,gecerli:pilot:z:iki-nokta")
-    assert [a for a in api_servisi._tanimli_anahtarlar() if a[0] not in ("yonetici", "pilot")] == [
+    assert [a for a in guvenlik._tanimli_anahtarlar() if a[0] not in ("yonetici", "pilot")] == [
         ("gecerli", "pilot", "z:iki-nokta")
     ]
 
@@ -1493,7 +1496,7 @@ async def test_ml_gece_zamanlayicisi_gunde_bir_kez_ve_planli_saatten_sonra_kuyru
 
     monkeypatch.setattr(api_servisi, "gorev_durumlari", _durumlar)
     monkeypatch.setattr(api_servisi, "aktif_gorev_var_mi", _aktif)
-    monkeypatch.setattr(api_servisi, "_gorev_olustur", _olustur)
+    monkeypatch.setattr(ortak, "_gorev_olustur", _olustur)
     adim = api_servisi._ml_gece_zamanlayici_adimi
 
     assert await adim("23:07", datetime(2026, 10, 1, 22, 59, tzinfo=UTC)) is None
@@ -1523,7 +1526,7 @@ async def test_ml_gece_isi_yarida_kalirsa_ayni_gun_sinirli_sayida_yeniden_deneni
 
     monkeypatch.setattr(api_servisi, "gorev_durumlari", _durumlar)
     monkeypatch.setattr(api_servisi, "aktif_gorev_var_mi", _aktif)
-    monkeypatch.setattr(api_servisi, "_gorev_olustur", _olustur)
+    monkeypatch.setattr(ortak, "_gorev_olustur", _olustur)
     monkeypatch.setattr(config, "ML_GECE_GUNLUK_MAKS_DENEME", 3)
     an = datetime(2026, 10, 2, 12, 0, tzinfo=UTC)
     adim = api_servisi._ml_gece_zamanlayici_adimi
@@ -1697,7 +1700,7 @@ async def test_paylasimli_rota_onbellegi_ikinci_istegi_hesaplamadan_doner(istemc
     from turbulans_radar.api.rota_onbellegi import PaylasimliRotaOnbellegi, paylasimli_onbellegi_temizle_senkron
 
     paylasimli_onbellegi_temizle_senkron()
-    monkeypatch.setattr(api_servisi, "_paylasimli_rota_onbellegi", PaylasimliRotaOnbellegi(60, 10))
+    monkeypatch.setattr(ortak, "_paylasimli_rota_onbellegi", PaylasimliRotaOnbellegi(60, 10))
     asil, hesaplar = api_servisi.rota_simulasyonu_olustur, []
     monkeypatch.setattr(api_servisi, "rota_simulasyonu_olustur", lambda *a, **k: hesaplar.append(1) or asil(*a, **k))
     govde = {
@@ -1713,7 +1716,7 @@ async def test_paylasimli_rota_onbellegi_ikinci_istegi_hesaplamadan_doner(istemc
     ikinci = await istemci.post("/api/v1/simulasyon/rota", json=govde, headers={"X-API-Key": api_anahtari})
     assert ilk.status_code == ikinci.status_code == 200 and len(hesaplar) == 1
     assert ikinci.json() == ilk.json()
-    await api_servisi._rota_onbellegini_temizle()
+    await ortak._rota_onbellegini_temizle()
     await istemci.post("/api/v1/simulasyon/rota", json=govde, headers={"X-API-Key": api_anahtari})
     assert len(hesaplar) == 2
 
