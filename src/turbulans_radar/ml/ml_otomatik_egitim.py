@@ -38,6 +38,7 @@ from turbulans_radar.ml.degerlendirme import (
     ti1_referansi,
 )
 from turbulans_radar.ml.ml_egitimi import _tahmin_metrikleri, bir_se_kurali_ile_sec, modelleri_egit_ve_karsilastir
+from turbulans_radar.ml.model_butunlugu import dosya_ozeti, guvenle_yukle, muhurle
 from turbulans_radar.ml.turbulans_ml_modeli import (
     MODEL_BILGI_DOSYA_YOLU,
     MODEL_DOSYA_YOLU,
@@ -224,7 +225,7 @@ def _aktif_modeli_yukle():
         _logger.info("Aktif model altın test günlerini görmüş olabilir; karşılaştırmada aktif model yok sayılır.")
         return None
     try:
-        return joblib.load(MODEL_DOSYA_YOLU)
+        return guvenle_yukle(MODEL_DOSYA_YOLU, bilgi)
     except Exception as hata:
         _logger.warning("Aktif model yüklenemedi, aday karşılaştırmasız değerlendirilecek: %s", hata)
         return None
@@ -241,6 +242,7 @@ def _modeli_kaydet(model, bilgi: dict, aktiflestir: bool) -> str:
     os.makedirs(os.path.dirname(MODEL_DOSYA_YOLU) or ".", exist_ok=True)
     gecici = f"{MODEL_DOSYA_YOLU}.{os.getpid()}.aday"
     joblib.dump(model, gecici)
+    bilgi["model_sha256"] = dosya_ozeti(gecici)
     try:
         versiyon_id = versiyon_kaydet(gecici, bilgi)
         if aktiflestir:
@@ -363,6 +365,7 @@ def ana(argv=None):
     grup = ayristirici.add_mutually_exclusive_group()
     grup.add_argument("--listele", action="store_true", help="Kayıtlı model sürümlerini listeler")
     grup.add_argument("--geri-al", metavar="VERSIYON_ID", help="Verilen sürümü aktif model yapar")
+    grup.add_argument("--muhurle", action="store_true", help="sha256 kaydı olmayan model dosyalarına özet ekler")
     grup.add_argument(
         "--gece-gecmisi", action="store_true", help="Her gece işinin veri özeti ve eğitim kararı (CSV, stdout)"
     )
@@ -389,6 +392,10 @@ def ana(argv=None):
         yazici.writeheader()
         yazici.writerows(gece_isi_gecmisi())
         return
+    if argumanlar.muhurle:
+        sonuc = muhurle()
+        print(json.dumps(sonuc, ensure_ascii=False))
+        raise SystemExit(1 if sonuc["hatalar"] else 0)
     if argumanlar.listele:
         for surum in model_versiyonlarini_listele():
             durum = "aktif edildi" if surum.get("aktiflestirildi", True) else "saklandı"

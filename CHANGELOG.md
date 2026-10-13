@@ -4,6 +4,16 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Fark denetimi: model bütünlüğü ve Streamlit silme (13 Ekim 2026)
+
+- **Model dosyası bütünlüğü:** joblib (pickle) dosyaları yüklenmeden önce eğitim anında
+  kaydedilen sha256 özetiyle doğrulanır (`ml/model_butunlugu.py`); uyuşmayan dosya yüklenmez,
+  sistem "model yok" yoluna düşer. Geri alma da özeti doğrular. Özeti olmayan eski modeller
+  uyarıyla yüklenir (`MODEL_BUTUNLUK_ZORUNLU=true` reddeder); `turbulans-ml --muhurle`
+  mevcut modellere özet ekler. Sınır: özet model bilgisiyle aynı klasördedir, yazma izninin yerine geçmez.
+- **Streamlit silme:** kayıtlı uçuş silme artık veritabanına doğrudan yazmaz; yönetici anahtarıyla
+  API'nin DELETE uç noktasını (`API_TABAN_URL`) çağırır, böylece rol, hız sınırı ve denetim kaydı uygulanır.
+
 ## Uçtan uca denetim düzeltmeleri (6 Ekim 2026)
 
 Rapor: `test_raporu/2026-10-06/RAPOR.md` (bulgu numaraları oradaki gibi).

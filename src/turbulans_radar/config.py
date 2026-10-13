@@ -187,6 +187,11 @@ ML_BOOTSTRAP_TEKRAR = _ortam_sayi("ML_BOOTSTRAP_TEKRAR", 1000, int)
 # eşiği (risk iştahı; düşürmek daha çok uyarı, yükseltmek daha az uyarı demektir).
 # Verilmezse modelin eğitim günlerinde Peirce'ı maksimize eden eşiği, o da yoksa 0.5.
 ML_KONFORMAL_ALFA = _ortam_sayi("ML_KONFORMAL_ALFA", 0.10)
+# ml/model_butunlugu.py -- True: sha256 kaydı olmayan model dosyası yüklenmez (varsayılan kapalı:
+# eski modeller `turbulans-ml --muhurle` ile mühürlenene kadar uyarıyla yüklenir).
+MODEL_BUTUNLUK_ZORUNLU = _ortam_bool("MODEL_BUTUNLUK_ZORUNLU", False)
+# arayuz/web_arayuzu.py (Streamlit) kayıtlı uçuş silme isteğini bu API'ye yönetici anahtarıyla gönderir.
+API_TABAN_URL = _ortam_str("API_TABAN_URL", "http://localhost:8000")
 ML_KARAR_ESIGI = _ortam_sayi("ML_KARAR_ESIGI", None)
 ML_ESKI_MODELI_KULLAN = _ortam_bool("ML_ESKI_MODELI_KULLAN", False)
 # ml/ozellik_deposu.py -- gece işinin indirdiği ERA5 dilimi silinmeden önce her

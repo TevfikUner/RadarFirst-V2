@@ -1176,6 +1176,7 @@ turbulans-performans rota            # rota kararı ve A* süresi, sabit senaryo
 turbulans-edr-kalibrasyon           # TI1 görsel ölçeği katsayısı (EDR değildir), gün bazlı bootstrap GA
 turbulans-ml --listele               # kayıtlı model sürümleri (aktif edildi / saklandı + gerekçe)
 turbulans-ml --geri-al VERSIYON_ID   # tek komutla geri alma
+turbulans-ml --muhurle               # sha256 kaydı olmayan modellere özet ekler (bütünlük doğrulaması)
 turbulans-ml --altin-gunleri-dondur  # altın test günlerini bir kez seçer (dosya varsa yazmaz)
 turbulans-ml --dondurma-raporu KLASOR  # bir kez eğit + değerlendir, sonucu KLASOR'e yaz
 ```

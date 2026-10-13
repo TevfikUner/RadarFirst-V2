@@ -40,7 +40,7 @@ import threading
 import numpy as np
 import pandas as pd
 
-from turbulans_radar import config
+from turbulans_radar import config, loglama
 from turbulans_radar.fizik.birim_donusumleri import irtifa_metre_to_basinc_hpa
 from turbulans_radar.fizik.eslestirme import rotayi_hava_durumuyla_eslestir
 from turbulans_radar.rota.rota_optimizasyonu import ruzgar_bilesenlerini_toplu_al
@@ -59,6 +59,9 @@ ESKI_VERI_HATTI_MESAJI = (
     "FL sütununu uçuş seviyesi sanarak 300-400 feet'teki PIREP'leri seçmişti. Yeni hat: veri için "
     "POST /api/v1/ml/gece-isi, eğitim için turbulans-ml, EDR kalibrasyonu için turbulans-edr-kalibrasyon."
 )
+
+
+_logger = loglama.logger_al(__name__)
 
 
 class EskiVeriHattiHatasi(RuntimeError):
@@ -172,9 +175,15 @@ def _modeli_yukle():
         return _ONBELLEK_MODEL["model"]
     with _model_yukleme_kilidi:
         if imza != _ONBELLEK_MODEL["imza"]:
-            import joblib
+            from turbulans_radar.ml.model_butunlugu import ModelButunlukHatasi, guvenle_yukle
 
-            _ONBELLEK_MODEL.update(model=joblib.load(MODEL_DOSYA_YOLU), imza=imza)
+            try:
+                model = guvenle_yukle(MODEL_DOSYA_YOLU, model_bilgisini_yukle())
+            except ModelButunlukHatasi as hata:
+                # Doğrulanamayan dosya yüklenmez; dosya değişene kadar yeniden özetlenmesin diye imza tutulur.
+                _logger.error("Model yüklenmedi, tahmin 'model yok' yolunda: %s", hata)
+                model = None
+            _ONBELLEK_MODEL.update(model=model, imza=imza)
         return _ONBELLEK_MODEL["model"]
 
 
@@ -329,6 +338,12 @@ def versiyona_geri_don(versiyon_id):
     kaynak = _versiyon_dosyasi(versiyon)
     if not os.path.isfile(kaynak):
         raise ValueError(f"'{versiyon_id}' versiyonunun model dosyası bulunamadı: {os.path.basename(kaynak)}")
+    from turbulans_radar.ml.model_butunlugu import ModelButunlukHatasi, dogrula
+
+    try:
+        dogrula(kaynak, versiyon.get("model_sha256"))
+    except ModelButunlukHatasi as hata:
+        raise ValueError(f"'{versiyon_id}' geri alınmadı: {hata}") from hata
     _atomik_kopyala(kaynak, MODEL_DOSYA_YOLU)
     aktif_bilgi = {k: v for k, v in versiyon.items() if k not in ("versiyon_id", "dosya_yolu")}
     gecici = f"{MODEL_BILGI_DOSYA_YOLU}.{os.getpid()}.gecici"
