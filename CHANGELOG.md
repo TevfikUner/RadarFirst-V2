@@ -4,6 +4,13 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Özellik kayması izleme (13 Ekim 2026)
+
+- `ml/kayma_izleme.py`: özellik başına PSI (referansın onda birlik dilimleri) ve KS. Her otomatik
+  eğitim `kayma` alanına aktif modele göre ve eğitim–holdout kaymasını yazar; gece işi geçmişi CSV'si
+  `kayma_durumu`/`maks_psi` sütunlarını taşır; `turbulans-ml --kayma` anlık rapor verir. Yalnız bilgi:
+  terfi kararını değiştirmez.
+
 ## Devre kesici, üretim bilgisi (13 Ekim 2026)
 
 - **Canlı GFS devre kesici:** `veri_kaynagi_durumlari`'ndaki ardışık hata sayısıyla süreçler arası çalışır;

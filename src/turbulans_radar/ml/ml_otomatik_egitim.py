@@ -37,6 +37,7 @@ from turbulans_radar.ml.degerlendirme import (
     peirce_esigi,
     ti1_referansi,
 )
+from turbulans_radar.ml.kayma_izleme import gunlere_gore_kayma, kayma_raporu
 from turbulans_radar.ml.ml_egitimi import _tahmin_metrikleri, bir_se_kurali_ile_sec, modelleri_egit_ve_karsilastir
 from turbulans_radar.ml.model_butunlugu import dosya_ozeti, guvenle_yukle, muhurle
 from turbulans_radar.ml.turbulans_ml_modeli import (
@@ -231,6 +232,25 @@ def _aktif_modeli_yukle():
         return None
 
 
+def _aktif_model_egitim_gunleri() -> list[str] | None:
+    try:
+        with open(MODEL_BILGI_DOSYA_YOLU, encoding="utf-8") as dosya:
+            return json.load(dosya).get("egitim_gunleri")
+    except (FileNotFoundError, ValueError):
+        return None
+
+
+def kayma_ozeti(rapor: dict) -> dict:
+    return {k: rapor.get(k) for k in ("durum", "maks_psi", "maks_psi_ozelligi", "referans_ornek", "guncel_ornek")}
+
+
+def aktif_modele_gore_kayma(X=None, gunler=None, motor=None) -> dict:
+    """Aktif modelin eğitim günleri referans; sonradan eklenen (altın test dışı) günler güncel."""
+    if X is None:
+        X, _, gunler = veritabanindan_veri_hazirla(motor)
+    return gunlere_gore_kayma(X, gunler, _aktif_model_egitim_gunleri(), altin_test_gunleri() or ())
+
+
 def _atomik_yaz_json(yol, veri):
     gecici = f"{yol}.{os.getpid()}.gecici"
     with open(gecici, "w", encoding="utf-8") as dosya:
@@ -287,6 +307,11 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
         sampiyon_holdout = _holdout_metrikleri(sampiyon, Xh, yh)
         sampiyon_farki = eslestirilmis_auc_farki(yh, aday_olasilik, _olasilik(sampiyon, Xh), gh)
     terfi, gerekce = terfi_karari(yh, holdout_guven.get("model_eksi_ti1_roc_auc"), sampiyon_farki)
+    kayma = {
+        "aktif_modele_gore": aktif_modele_gore_kayma(X, gunler),
+        "egitim_ile_holdout": kayma_raporu(Xe, Xh, X.columns),
+        "not": "PSI eşikleri (0,10 / 0,25) genel kaba kuraldır, kalibre edilmedi; terfi kararına girmez.",
+    }
 
     bilgi = _json_guvenli(
         {
@@ -324,6 +349,7 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
                 "holdout_dogrulamasi": {**holdout_kapsama, "esik": konformal_esigi},
             },
             "uyari": "Olasılık, raporlanan PIREP'lerdeki orta+ türbülans oranına göredir; sertifikalı EDR değildir.",
+            "kayma": kayma,
             "aktiflestirildi": terfi,
             "karar_gerekcesi": gerekce,
         }
@@ -345,6 +371,7 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
         "kalibre_ti1_holdout": bilgi["holdout"]["kalibre_ti1"],
         "holdout_guven_araliklari": bilgi["holdout"]["guven_araliklari"],
         "konformal": bilgi["konformal"],
+        "kayma": {ad: kayma_ozeti(r) for ad, r in kayma.items() if isinstance(r, dict)},
     }
 
 
@@ -366,6 +393,9 @@ def ana(argv=None):
     grup.add_argument("--listele", action="store_true", help="Kayıtlı model sürümlerini listeler")
     grup.add_argument("--geri-al", metavar="VERSIYON_ID", help="Verilen sürümü aktif model yapar")
     grup.add_argument("--muhurle", action="store_true", help="sha256 kaydı olmayan model dosyalarına özet ekler")
+    grup.add_argument(
+        "--kayma", action="store_true", help="Aktif modelin eğitim verisine göre özellik kayması (PSI/KS, JSON)"
+    )
     grup.add_argument(
         "--gece-gecmisi", action="store_true", help="Her gece işinin veri özeti ve eğitim kararı (CSV, stdout)"
     )
@@ -391,6 +421,9 @@ def ana(argv=None):
         yazici = csv.DictWriter(sys.stdout, fieldnames=GECE_GECMISI_ALANLARI)
         yazici.writeheader()
         yazici.writerows(gece_isi_gecmisi())
+        return
+    if argumanlar.kayma:
+        print(json.dumps(_json_guvenli(aktif_modele_gore_kayma()), ensure_ascii=False, indent=2))
         return
     if argumanlar.muhurle:
         sonuc = muhurle()
