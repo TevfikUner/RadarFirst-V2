@@ -114,6 +114,7 @@ from turbulans_radar.api.semalar import (
 )
 from turbulans_radar.api.yollar import analiz, hava_sahasi, ml, ucuslar
 from turbulans_radar.api.yollar.ml import MlGeceIsiIstegi
+from turbulans_radar.ayar_dogrulama import ayarlari_dogrula
 from turbulans_radar.cli.statik_indir import yerel_kutuphane_durumu
 from turbulans_radar.depo.dagitik_kilit import LiderKilidi
 from turbulans_radar.depo.denetim import denetim_kaydet, denetim_kayitlarini_listele
@@ -175,6 +176,7 @@ _logger = loglama.logger_al(__name__)
 
 @asynccontextmanager
 async def _yasam_dongusu(uygulama):
+    ayarlari_dogrula()
     try:
         await asyncio.to_thread(yerel_kupleri_katalogla)
     except Exception as hata:

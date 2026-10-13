@@ -2,6 +2,12 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-13 (dallar `claude/kayma-izleme`, `claude/api-router-ayrimi`, `claude/ayar-dogrulama`)
+
+- ✅ ML özellik kayması (PSI/KS): gerçek veride 7.761 referans / 3.588 yeni örnek, maks PSI 0,025 (kararlı); `turbulans-ml --kayma`.
+- ✅ api_servisi 2.231→~1.270 satır: guvenlik, ortak, yollar/ (4 router); OpenAPI şeması birebir aynı.
+- ✅ Başlangıçta pydantic ayar doğrulaması; 'ture' gibi değerler artık hata. Tam pydantic-settings yapılmadı (gerekçe CHANGELOG). 933 test geçti.
+
 ## 2026-10-13 (dallar `claude/devre-kesici`, `claude/uretim-bilgisi`, `claude/uretim-ortami-ayarlari`)
 
 - ✅ Canlı GFS devre kesici: 3 ardışık hatadan sonra 5 dk→1 sa üstel bekleme, sonuç "alınamadı" (risk yok değil).
