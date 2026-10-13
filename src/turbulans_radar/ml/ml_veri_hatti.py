@@ -507,6 +507,8 @@ GECE_GECMISI_ALANLARI = (
     "egitim_ornek",
     "aday_roc_auc",
     "ti1_roc_auc",
+    "kayma_durumu",
+    "maks_psi",
 )
 
 
@@ -540,6 +542,8 @@ def gece_isi_gecmisi(motor=None) -> list[dict]:
                 "egitim_ornek": egitim.get("ornek_sayisi"),
                 "aday_roc_auc": (egitim.get("aday_holdout") or {}).get("roc_auc"),
                 "ti1_roc_auc": (egitim.get("ti1_referansi_holdout") or {}).get("roc_auc"),
+                "kayma_durumu": ((egitim.get("kayma") or {}).get("aktif_modele_gore") or {}).get("durum"),
+                "maks_psi": ((egitim.get("kayma") or {}).get("aktif_modele_gore") or {}).get("maks_psi"),
             }
         )
     return satirlar

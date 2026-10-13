@@ -1177,6 +1177,7 @@ turbulans-edr-kalibrasyon           # TI1 görsel ölçeği katsayısı (EDR de�
 turbulans-ml --listele               # kayıtlı model sürümleri (aktif edildi / saklandı + gerekçe)
 turbulans-ml --geri-al VERSIYON_ID   # tek komutla geri alma
 turbulans-ml --muhurle               # sha256 kaydı olmayan modellere özet ekler (bütünlük doğrulaması)
+turbulans-ml --kayma                 # aktif modelin eğitim verisine göre özellik kayması (PSI/KS)
 turbulans-ml --altin-gunleri-dondur  # altın test günlerini bir kez seçer (dosya varsa yazmaz)
 turbulans-ml --dondurma-raporu KLASOR  # bir kez eğit + değerlendir, sonucu KLASOR'e yaz
 ```

@@ -232,6 +232,11 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   holdout'ta ölçülüp sürüm kaydına yazılır. "Belirsiz", verinin bu güven
   düzeyinde iki sınıfı ayırmaya yetmediği anlamına gelir; güvenli demek değildir.
 - Ek bir işaret olarak raporlanır; rota kararına girmez.
+- Özellik kayması: her eğitim, aktif modelin eğitim günlerine göre sonradan eklenen günlerin
+  ve eğitim–holdout günlerinin dağılım farkını PSI ve KS ile kaydeder (`ml/kayma_izleme.py`,
+  `turbulans-ml --kayma`). Eşikler (0,10 / 0,25) genel kaba kuraldır, kalibre değildir; terfi
+  kararına girmez. 13 Ekim ölçümü: 7.761 referans, 3.588 yeni örnek, en büyük PSI 0,025 (kararlı).
+  ERA5 eğitim verisi ile canlı GFS girdisi arasındaki kayma ölçülmez.
 
 **Rota modeli**
 - Seyir irtifası sabittir; kalkış ve iniş fazları modellenmez.
