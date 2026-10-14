@@ -41,6 +41,12 @@ SENARYOLAR = {
 
 
 YEREL_ADRESLER = {"localhost", "127.0.0.1", "::1"}
+# Yazılımsal WebGL yükte yavaşlar; sabit bekleme yerine CZML saati 5 dk ilerleyene
+# (kamera rotaya oturup çizim başlayana) kadar beklenir.
+SAAT_ILERLEDI = (
+    "typeof viewer !== 'undefined' && viewer.dataSources.length > 0 && "
+    "Cesium.JulianDate.secondsDifference(viewer.clock.currentTime, viewer.clock.startTime) > 300"
+)
 
 
 def ag_engelleyici(engellenenler: list):
@@ -98,7 +104,8 @@ def simulasyon(sayfa, taban_url, anahtar, senaryo, yol):
     sayfa.fill("#zaman", senaryo["zaman"])
     sayfa.click("#simule-et-buton")
     sayfa.wait_for_function("document.getElementById('s-optimize-sure').innerText.trim().length > 0", timeout=120_000)
-    sayfa.wait_for_timeout(6000)
+    sayfa.wait_for_function(SAAT_ILERLEDI, timeout=60_000)
+    sayfa.wait_for_timeout(2000)
     sayfa.screenshot(path=yol, type="jpeg", quality=85)
     return sayfa.inner_text("#strateji-satiri") + " | " + sayfa.inner_text("#tasarruf-satiri")
 
