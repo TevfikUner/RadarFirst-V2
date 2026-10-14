@@ -7,8 +7,8 @@ ml_egitimi.py için birim testleri:
     test edilir -- burada doğrulanan şey gerçek verinin kendisi değil,
     metrik hesaplama/model seçimi/dosya yazma MANTIĞI.
   - veriyi_hazirla, gerçek IEM PIREP + ERA5 verisi (pirep_ust_seviye_
-    siniflandirilmis.csv, era5_egitim_verisi/*.nc -- ml_veri_indir.py ile
-    indirilir) bulunmazsa atlanır (diğer "gerçek veri" testleriyle AYNI
+    siniflandirilmis.csv, era5_egitim_verisi/*.nc -- eski ml_veri_indir.py ile
+    indirilmişti) bulunmazsa atlanır (diğer "gerçek veri" testleriyle AYNI
     desen).
 """
 

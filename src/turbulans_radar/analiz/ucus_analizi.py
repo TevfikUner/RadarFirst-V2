@@ -243,7 +243,7 @@ def _argumanlari_ayristir(argv=None):
         "ucus_numarasi",
         nargs="?",
         default="THY1234",
-        help="OpenSky callsign, örn. THY1234 (varsayılan: THY1234 -- örnek uçuş için ornek_ucus_bul.py kullan)",
+        help="OpenSky callsign, örn. THY1234 (varsayılan: THY1234 -- örnek uçuş için turbulans-ornek-ucus kullan)",
     )
     ayristirici.add_argument(
         "tarih",
@@ -265,7 +265,7 @@ def ana():
     if argumanlar.ucus_numarasi == "THY1234" and argumanlar.tarih == "2019-01-01":
         print(
             "[Bilgi] Argüman verilmedi, örnek değerler kullanılıyor: THY1234 / 2019-01-01 "
-            "(gerçek bir uçuş için: python ornek_ucus_bul.py)"
+            "(gerçek bir uçuş için: turbulans-ornek-ucus)"
         )
 
     try:

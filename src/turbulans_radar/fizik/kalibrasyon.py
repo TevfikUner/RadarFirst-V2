@@ -8,8 +8,9 @@ değeridir -- README'de de böyle belgelenmiştir. Bu script, gerçek PIREP
 katsayıyı EN KÜÇÜK KARELER ile kalibre etmek için bir araçtır.
 
 Bu script kendisi veri üretmez, sadece verilen gözlem CSV'sine göre en iyi
-katsayıyı bulan bir ARAÇTIR -- gözlem CSV'sini `pirep_kalibrasyon_verisi_
-uret.py` üretir (turbulans_ml_modeli.py'nin ML eğitimi için indirdiği AYNI
+katsayıyı bulan bir ARAÇTIR -- gözlem CSV'sini eski `pirep_kalibrasyon_verisi_
+uret.py` üretiyordu (kaldırıldı; güncel EDR kalibrasyonu `turbulans-edr-kalibrasyon`;
+turbulans_ml_modeli.py'nin ML eğitimi için indirdiği AYNI
 gerçek IEM PIREP + ERA5 verisini kullanarak). Bu depodaki örnek Türkiye/
 Ocak-2019 veri kümesi için gerçek PIREP/AMDAR yok (bkz. README) -- bu
 yüzden mevcut kalibrasyon ABD hava sahası verisine, bölgeden bağımsız bir

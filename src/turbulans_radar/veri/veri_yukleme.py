@@ -205,7 +205,7 @@ def onbellekten_cikar(dosya_yolu):
 
 def hava_durumu_dosyalari():
     """Ana küp (config.HAVA_DURUMU_DOSYASI) + config.EK_HAVA_DURUMU_KLASORU'ndaki
-    tüm .nc küpleri (örn. ml_veri_indir.py'nin indirdiği ABD küpleri) --
+    tüm .nc küpleri (örn. eski ml_veri_indir.py'nin indirdiği ABD küpleri) --
     sadece diskte gerçekten var olanlar."""
     dosyalar = [config.HAVA_DURUMU_DOSYASI]
     demo_klasoru = os.path.join(config.DEMO_VERI_KLASORU, "era5") if config.DEMO_VERI_KLASORU else ""

@@ -3,7 +3,7 @@ ml_egitimi.py
 ---------------
 turbulans_ml_modeli.py'nin özellik çıkarımını kullanarak, GERÇEK IEM PIREP
 etiketleri + GERÇEK ERA5 verisiyle (bkz. era5_egitim_verisi/*.nc,
-ml_veri_indir.py) bir türbülans risk sınıflandırıcısı eğitir; birden fazla
+eski ml_veri_indir.py) bir türbülans risk sınıflandırıcısı eğitir; birden fazla
 modeli KIYASLAR (model justification) ve komisyonun istediği sayısal başarı
 metriklerini (accuracy, precision, recall, F1 + confusion matrix + özellikle
 YANLIŞ NEGATİFLER -- kaçırılan gerçek türbülans, havacılıkta hayati önemde)

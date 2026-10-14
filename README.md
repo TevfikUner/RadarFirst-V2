@@ -119,7 +119,7 @@ flowchart TB
     VY --> ES["eslestirme.py<br/>(vektörel eşleştirme)"]
     ES --> TI["turbulans_indeksleri.py<br/>(Ellrod TI1 + Richardson)"]
 
-    PIREP["IEM PIREP arşivi<br/>(gerçek pilot raporları)"] --> MLV["ml_veri_indir.py"] --> MLE["ml_egitimi.py"] --> MODEL[("turbulans_ml_modeli.joblib")]
+    PIREP["IEM PIREP arşivi<br/>(gerçek pilot raporları)"] --> MLV["ml_veri_hatti.py<br/>(gece işi)"] --> MLE["ml_otomatik_egitim.py"] --> MODEL[("turbulans_ml_modeli.joblib")]
     TI -.->|"özellik çıkarımı"| MODEL
 
     TI --> DB[("PostgreSQL<br/>ucuslar / edr_olcumleri")]
@@ -158,7 +158,7 @@ turbulans_radar/
   dogrulama/  rota_backtest.py                 -> A* rotası vs gerçek uçuş izi (otomatik backtest)
               sigmet_dogrulama.py              -> TI1'in tarihsel AWC SIGMET'leriyle karşılaştırması (ABD)
   ml/         turbulans_ml_modeli.py           -> PIREP + ERA5 ile eğitilmiş risk sınıflandırıcısı, versiyonlama
-              ml_egitimi.py, ml_veri_indir.py, pirep_kalibrasyon_verisi_uret.py
+              ml_veri_hatti.py, ml_otomatik_egitim.py, ml_egitimi.py
   analiz/     ucus_analizi.py                  -> uçtan uca uçuş analizi (OpenSky ya da hazır iz -> küp -> DB -> harita)
               toplu_analiz.py                  -> CSV listesindeki uçuşları sırayla analiz
   api/        api_servisi.py, semalar.py       -> FastAPI REST + WebSocket, Pydantic şemaları
@@ -263,7 +263,7 @@ Bu yüzden işçinin durması 5 dakikaya kadar sürebilir (`stop_grace_period`).
 ### Tek bir uçuşu analiz etmek (CLI)
 
 ```bash
-python -m turbulans_radar.cli.ornek_ucus_bul   # gerçek, o gün kayıtlı bir callsign bul
+turbulans-ornek-ucus                           # gerçek, o gün kayıtlı bir callsign bul
 turbulans-analiz THY1234 2019-01-01            # analiz et -- PostgreSQL'e yazar + harita üretir
 ```
 
@@ -306,7 +306,7 @@ ile okunur. CLI'dan (`turbulans-toplu-analiz`) çalıştırıldığında harita
 ### Veri kalitesini kontrol etmek
 
 ```bash
-python -m turbulans_radar.cli.veri_kontrol N10VZ 2019-01-15   # önce turbulans-analiz ile analiz etmiş olman gerekir
+turbulans-veri-kontrol N10VZ 2019-01-15   # önce turbulans-analiz ile analiz etmiş olman gerekir
 ```
 
 Veri küpünün çözünürlüğünü (grid/zaman adımı) ve PostgreSQL'deki TI1
@@ -968,8 +968,7 @@ sahası, ne PIREP/AMDAR). Uydurma etiketle model eğitmek yerine (bu tam
 olarak projenin başında düzeltilen "uydurma katsayı" hatasının bir
 versiyonu olurdu), ABD hava sahasına özgü, halka açık **IEM PIREP arşivinden**
 (mesonet.agron.iastate.edu) 2018-2020 arası gerçek pilot türbülans raporları
-+ eşleşen gerçek **ERA5** verisi indirilip (`ml_veri_indir.py`,
-`ml_egitimi.py`) GERÇEK bir eğitim kümesi kuruldu:
++ eşleşen gerçek **ERA5** verisi indirilip (gece işi: `ml/ml_veri_hatti.py`) GERÇEK bir eğitim kümesi kuruldu:
 
 - Güncel model `ml_ornekleri` tablosundaki seyir irtifası PIREP'leriyle,
   dondurulmuş altın test günleri ayrı tutularak eğitilir ve değerlendirilir
@@ -981,8 +980,8 @@ versiyonu olurdu), ABD hava sahasına özgü, halka açık **IEM PIREP arşivind
   `ti1_indeksi`, `richardson_sayisi`, `ruzgar_hizi_ms`, `basinc_hpa`.
 - `POST /api/v1/turbulans/tahmin`, tek bir nokta için hem fizik (TI1) hem
   ML olasılığını karşılaştırmalı döner. Model dosyası (`*.joblib`) repoya
-  DAHİL DEĞİL (üretilmiş/büyük artefakt, `.gitignore`) -- `ml_veri_indir.py`
-  ardından `ml_egitimi.py` ile yeniden üretilebilir. Model henüz
+  DAHİL DEĞİL (üretilmiş/büyük artefakt, `.gitignore`) -- gece işi ya da
+  `turbulans-ml` ile yeniden üretilebilir. Model henüz
   üretilmediyse `turbulans_riski_tahmin_et` uydurma bir tahmin dönmez,
   dürüstçe `None` döner.
 - `ml_egitimi.py`, seçilen modeli (`*.joblib`) kaydederken YANINDA
@@ -999,10 +998,7 @@ versiyonu olurdu), ABD hava sahasına özgü, halka açık **IEM PIREP arşivind
   yeniden eğitim gerekmeden geçmiş bir versiyona döner -- örn. yeni bir
   eğitim çalıştırması beklenenden kötü çıkarsa.
 
-```bash
-python -m turbulans_radar.ml.ml_veri_indir   # IEM PIREP + eşleşen gerçek ERA5 verisini indirir (Copernicus CDS API anahtarı gerekir, ~/.cdsapirc)
-python -m turbulans_radar.ml.ml_egitimi      # 3 modeli gün bazında gruplu CV ile karşılaştırır, recall'a göre en iyisini (tüm veriyle eğitip) turbulans_ml_modeli.joblib olarak kaydeder
-```
+Veri indirme ve eğitim komutları: [ML veri hattı ve gece otomasyonu](#ml-veri-hattı-ve-gece-otomasyonu).
 
 ### Tarihçe (hatalı veri): 167 örneklik ilk model
 
