@@ -35,7 +35,7 @@ import os
 import re
 from pathlib import Path
 
-from turbulans_radar.cli.aip_ats_agi import _AIRAC, koordinat_cevir, pdf_metni
+from turbulans_radar.cli.aip_ats_agi import _AIRAC, airac_alanlari, koordinat_cevir, pdf_metni
 
 ENR51_URL = "https://www.dhmi.gov.tr/AIPDocuments/LT_ENR_5_1_en.pdf"
 VARSAYILAN_PDF = os.path.join("ats_verisi", "kaynak", "LT_ENR_5_1_en.pdf")
@@ -235,13 +235,22 @@ def ana(argv=None):
         from turbulans_radar.cli.aip_ats_agi import indir
 
         print("İndirildi:", indir(argumanlar.enr51, ENR51_URL))
-    ozellikler, atlananlar, airac = metni_ayristir(pdf_metni(argumanlar.enr51))
+    metin = pdf_metni(argumanlar.enr51)
+    ozellikler, atlananlar, airac = metni_ayristir(metin)
+    tarihler = airac_alanlari([metin])
     Path(argumanlar.cikti).parent.mkdir(parents=True, exist_ok=True)
     Path(argumanlar.cikti).write_text(
-        json.dumps({"type": "FeatureCollection", "airac": airac, "features": ozellikler}, ensure_ascii=False, indent=1),
+        json.dumps(
+            {"type": "FeatureCollection", "airac": airac, **tarihler, "features": ozellikler},
+            ensure_ascii=False,
+            indent=1,
+        ),
         encoding="utf-8",
     )
-    print(f"{len(ozellikler)} saha alındı, {len(atlananlar)} atlandı (AIRAC {airac}) -> {argumanlar.cikti}")
+    print(
+        f"{len(ozellikler)} saha alındı, {len(atlananlar)} atlandı (AIRAC {airac}, yürürlük "
+        f"{tarihler['airac_yururluk']}, bitiş {tarihler['airac_bitis']}) -> {argumanlar.cikti}"
+    )
     for a in atlananlar:
         print(f"  ATLANDI {a['kimlik']} {a['ad']}: {a['neden']} -- elle girin")
 

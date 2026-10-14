@@ -95,7 +95,7 @@ HAVA_DURUMU_DOSYASI = _ortam_str("HAVA_DURUMU_DOSYASI", "ocak_2019_turbulans.nc"
 
 # Ana küpe EK olarak taranan ERA5 küpleri klasörü (bkz.
 # veri_yukleme.kapsayan_veri_kupunu_bul): analiz/rota/tahmin, noktaları en
-# iyi kapsayan küpü otomatik seçer. Varsayılan, ml_veri_indir.py'nin gerçek
+# iyi kapsayan küpü otomatik seçer. Varsayılan, eski (kaldırılan) ml_veri_indir.py'nin gerçek
 # ABD (Kuzeydoğu, 2018-2020, seçili günler) küplerini indirdiği klasördür.
 # Boş bırakılırsa sadece HAVA_DURUMU_DOSYASI kullanılır.
 EK_HAVA_DURUMU_KLASORU = _ortam_str("EK_HAVA_DURUMU_KLASORU", "era5_egitim_verisi")

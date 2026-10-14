@@ -7,7 +7,7 @@ on:
 
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -21,7 +21,7 @@ jobs:
         run: ruff format --check .
 
   guvenlik:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     env:
       GITLEAKS_IMAJI: zricethezav/gitleaks:v8.30.1
     steps:
@@ -58,7 +58,7 @@ jobs:
           path: sbom.cdx.json
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     # 3.12 = üretim (Docker) ortamı, hash'li kilit dosyasıyla; 3.14 = yerel
     # geliştirme ortamı. İkisi arasındaki sapma (örn. derlenmiş eklenti ABI
     # uyumsuzluğu) böylece CI'da görünür.
@@ -133,7 +133,7 @@ jobs:
   # rota simülasyonu). Ana test işini yavaşlatmamak için ayrı iş; ekran
   # görüntüleri artifact olarak saklanır.
   tarayici:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     services:
       postgres:
         image: postgres:16
@@ -190,7 +190,7 @@ jobs:
           if-no-files-found: warn
 
   docker:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - name: Docker imajını derle
@@ -221,3 +221,31 @@ jobs:
         run: docker compose down -v
       - name: İmaj içinde API uygulamasını yükle (duman testi)
         run: docker run --rm turbulans-radar:ci python -c "from turbulans_radar.api.api_servisi import app; print(len(app.routes), 'rota')"
+
+  # README'deki "Beş dakikada çalıştır" akışı temiz makinede, olduğu gibi:
+  # .env.demo ile yığın kurulur, demo servisi THY322'yi analiz edip çıkmalı.
+  demo:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Demo profilini başlat (süre ölçülür)
+        run: |
+          cp .env.demo .env
+          baslangic=$(date +%s)
+          docker compose --profile demo up -d --build
+          kod=$(timeout 600 docker wait "$(docker compose --profile demo ps -aq demo)")
+          sure=$(( $(date +%s) - baslangic ))
+          echo "Temiz makinede derleme + demo analizi: ${sure} sn" | tee -a "$GITHUB_STEP_SUMMARY"
+          test "$kod" = "0"
+      - name: Demo çıktısında analiz özeti
+        run: |
+          docker compose --profile demo logs --no-color demo | tee demo.log
+          grep -q "ÖZET: THY322" demo.log
+          grep -q "Sonraki adımlar" demo.log
+          curl -fsS http://127.0.0.1:8000/saglik
+      - name: Hata olursa konteyner logları
+        if: failure()
+        run: docker compose --profile demo logs --no-color --tail=200
+      - name: Yığını kapat
+        if: always()
+        run: docker compose --profile demo down -v

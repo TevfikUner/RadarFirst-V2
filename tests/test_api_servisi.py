@@ -1018,6 +1018,7 @@ _KONTROLLER = {
     "kup_onbellegi",
     "statik_dosyalar",
     "fir_sinirlari",
+    "ats_agi",
     "ml_gece_isi",
     "yedek",
 }

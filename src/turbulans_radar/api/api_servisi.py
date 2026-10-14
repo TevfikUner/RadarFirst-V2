@@ -144,7 +144,7 @@ from turbulans_radar.ml.turbulans_ml_modeli import (
     ozellikleri_cikar,
     risk_durumlarini_hesapla,
 )
-from turbulans_radar.rota.hava_yolu_agi import AtsAgiHatasi
+from turbulans_radar.rota.hava_yolu_agi import AtsAgiHatasi, agi_yukle
 from turbulans_radar.rota.rota_optimizasyonu import (
     CANLI_VERI_HAZIRLANIYOR,
     UCAK_PROFILLERI,
@@ -1029,6 +1029,17 @@ def _yedek_kontrolu():
     return {"durum": durum, **sonuc}
 
 
+def _ats_agi_kontrolu():
+    """AIP'ten üretilen ATS ağının AIRAC döngüsü bittiyse 'eski' (ağ yeniden üretilmeli)."""
+    ag = agi_yukle()
+    if ag is None:
+        return {"durum": "kapali"}
+    return {
+        "durum": "eski" if ag.airac_uyarisi() else "tamam",
+        "airac_bitis": ag.airac_bitis.isoformat() if ag.airac_bitis else None,
+    }
+
+
 async def _gorev_kuyrugu_kontrolu():
     kuyruk = await kuyruk_durumu()
     birikiyor = kuyruk["kuyrukta"] > 0 and (kuyruk["en_eski_bekleme_saniye"] or 0) > _KUYRUK_BIRIKME_ESIGI_SANIYE
@@ -1060,6 +1071,7 @@ async def _saglik_raporu(ayrintili: bool) -> dict:
         "kup_onbellegi": {"durum": "tamam", **onbellek_durumu()},
         "statik_dosyalar": yerel_kutuphane_durumu(),
         "fir_sinirlari": {"durum": "tamam" if await asyncio.to_thread(fir_verisi_var_mi) else "veri_yok"},
+        "ats_agi": await _kontrol_et(_ats_agi_kontrolu),
     }
     if not ayrintili:
         kontroller = {ad: {"durum": k["durum"]} for ad, k in kontroller.items()}

@@ -1486,6 +1486,7 @@ def rota_simulasyonu_olustur(
                         for yol in (ats_yollari["yok"], ats_yollari.get(en_iyi["strateji"], ats_yollari["yok"]))
                         for u in ag.rol_uyarilari(yol[2], *uclar, kalkis_meydani, varis_meydani)
                     )
+                    | dict.fromkeys(filter(None, [ag.airac_uyarisi()]))
                 ),
                 "buyuk_daire_km": sum(
                     buyuk_daire_mesafesi_km(enlemler_gc[i], boylamlar_gc[i], enlemler_gc[i + 1], boylamlar_gc[i + 1])

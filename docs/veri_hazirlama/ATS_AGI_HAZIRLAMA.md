@@ -22,6 +22,12 @@ turbulans-aip-sahalar --indir                 # ENR 5.1 -> ats_verisi/aip_enr51.
 turbulans-kisitli-saha ice-aktar ats_verisi/aip_enr51.geojson --kaynak aip_enr51
 ```
 
+- **AIRAC güncelliği:** Her iki çıktı `airac_yururluk` (belgelerdeki en yeni
+  sayfa tarihi; yalnız ICAO 28 günlük takvime düşen tarihler sayılır) ve
+  `airac_bitis` (ayrıştırma anındaki döngünün sonu) alanlarını taşır.
+  `airac_bitis` geçince rota sonucunun `ats.uyarilar` listesine ve `/saglik`
+  raporuna (`ats_agi: eski`) uyarı düşer; o zaman yukarıdaki komutlar
+  yeniden çalıştırılır. Alan yoksa (elle hazırlanmış ağ) kontrol yapılmaz.
 - **ENR 4.4:** Tüm önemli noktalar koordinatları ve FRA rolleriyle alınır. FRA
   noktaları arasında 200 km'ye kadar doğrudan (DCT) kenarlar kurulur.
 - **ENR 4.1:** VOR/DME, NDB, VORTAC istasyonları (62, AIRAC 06/26) aynı

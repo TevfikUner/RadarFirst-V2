@@ -53,6 +53,7 @@ import itertools
 import json
 import math
 from dataclasses import dataclass, field
+from datetime import UTC, date, datetime
 from pathlib import Path
 
 from turbulans_radar import config
@@ -92,6 +93,16 @@ class HavaYoluAgi:
     fra_var: bool = False
     fra_alani: object = None
     fra_alt_fl: float | None = None
+    airac_bitis: date | None = None
+
+    def airac_uyarisi(self, bugun: date | None = None) -> str | None:
+        """Ağın üretildiği AIRAC döngüsü bittiyse uyarı; tarih yoksa (elle yazılmış ağ) None."""
+        if self.airac_bitis is None or (bugun or datetime.now(UTC).date()) < self.airac_bitis:
+            return None
+        return (
+            f"ATS ağının AIRAC döngüsü {self.airac_bitis:%Y-%m-%d} tarihinde bitti; AIP değişmiş olabilir, "
+            "ağı yeniden üretin (turbulans-aip-ats --indir)."
+        )
 
     def kenar_ekle(self, a: str, b: str, yol: str, alt_fl=None, ust_fl=None, fra=False):
         self.komsular.setdefault(a, []).append(Kenar(b, yol, alt_fl, ust_fl, fra))
@@ -313,6 +324,15 @@ def sinir_icindeki_dct_maskesi(sinir, tampon_nm, ciftler, noktalar) -> list[bool
     return sonuc
 
 
+def _tarih(deger, alan: str) -> date | None:
+    if deger in (None, ""):
+        return None
+    try:
+        return date.fromisoformat(str(deger))
+    except ValueError:
+        raise AtsAgiHatasi(f"'{alan}' YYYY-AA-GG olmalı: {deger!r}") from None
+
+
 def agi_kur(veri: dict, ara_nokta_km: float | None = None, fra_siniri=None) -> HavaYoluAgi:
     """JSON sözlüğünden ağ; hatalı veride nerede olduğunu söyleyen AtsAgiHatasi.
     fra_siniri (lon/lat poligon) verilirse fra.firler yerine o kullanılır."""
@@ -347,6 +367,7 @@ def agi_kur(veri: dict, ara_nokta_km: float | None = None, fra_siniri=None) -> H
         noktalar=dict(noktalar),
         fra_rolleri=roller,
         fra_meydanlari=meydanlar,
+        airac_bitis=_tarih(veri.get("airac_bitis"), "airac_bitis"),
     )
 
     def segment_ekle(a, b, yol, alt_fl, ust_fl, yonler, fra=False):
