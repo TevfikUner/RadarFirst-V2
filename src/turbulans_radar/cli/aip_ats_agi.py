@@ -26,7 +26,7 @@ import argparse
 import json
 import os
 import re
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
 
 ENR44_URL = "https://www.dhmi.gov.tr/AIPDocuments/LT_ENR_4_4_en.pdf"
@@ -44,6 +44,10 @@ _YOL = re.compile(r"\b(?:[A-Z]/)?U?[A-Z]{1,2}\d{1,4}\b")
 _ROLLER = {"E", "X", "I", "A", "D"}
 _MEYDAN_LISTESI = re.compile(r"FRA\s*\(([A-Z]+)\)\s*:\s*((?:LT[A-Z]{2}\b[\s,]*)+)")
 _MEYDAN = re.compile(r"LT[A-Z]{2}")
+_SAYFA_TARIHI = re.compile(r"\b(\d{2}) (JAN|FEB|MAR|APR|MAY|JUN|JUL|AUG|SEP|OCT|NOV|DEC) (\d{2})\b")
+_AYLAR = ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")
+AIRAC_REFERANS = date(2020, 1, 2)  # ICAO AIRAC 2001
+AIRAC_GUN = 28
 
 
 def koordinat_cevir(deger: str, yon: str, derece_basamak: int) -> float:
@@ -90,6 +94,35 @@ def metni_ayristir(metin: str) -> tuple[list[dict], str | None]:
             }
         )
     return kayitlar, en_yeni_airac(metin)
+
+
+def airac_dongusu(gun: date) -> tuple[date, date]:
+    """gun'ü içeren AIRAC döngüsünün başlangıcı ve bir sonrakinin başlangıcı (ICAO 28 günlük takvim)."""
+    baslangic = AIRAC_REFERANS + timedelta(days=(gun - AIRAC_REFERANS).days // AIRAC_GUN * AIRAC_GUN)
+    return baslangic, baslangic + timedelta(days=AIRAC_GUN)
+
+
+def sayfa_yururlugu(metin: str) -> date | None:
+    """AIP sayfa altlarındaki en yeni yürürlük tarihi ('03 SEP 26'); AIRAC takvimine düşmeyen tarihler sayılmaz."""
+    tarihler = []
+    for gun, ay, yil in _SAYFA_TARIHI.findall(metin):
+        try:
+            tarih = date(2000 + int(yil), _AYLAR.index(ay) + 1, int(gun))
+        except ValueError:
+            continue
+        if (tarih - AIRAC_REFERANS).days % AIRAC_GUN == 0:
+            tarihler.append(tarih)
+    return max(tarihler, default=None)
+
+
+def airac_alanlari(metinler, bugun: date | None = None) -> dict:
+    """airac_yururluk: belgelerdeki en yeni AIRAC tarihi; airac_bitis: ayrıştırma anındaki
+    döngünün sonu (bu tarihte AIP yeniden indirilip ağ yeniden üretilmeli)."""
+    yururluk = max(filter(None, map(sayfa_yururlugu, metinler)), default=None)
+    return {
+        "airac_yururluk": yururluk.isoformat() if yururluk else None,
+        "airac_bitis": airac_dongusu(bugun or datetime.now(UTC).date())[1].isoformat(),
+    }
 
 
 def en_yeni_airac(metin: str) -> str | None:
@@ -167,12 +200,14 @@ def fra_agi(
     firler=("LTAA", "LTBB"),
     sinir_tamponu_nm=5.0,
     belgeler="ENR 4.4",
+    airac_bilgisi=None,
 ) -> dict:
     fra_noktalari = [k["ad"] for k in kayitlar if k["fra_rolleri"]]
     return {
         "kaynak": (
             f"AIP Türkiye {belgeler}, AIRAC AMDT {airac or '?'} (DHMİ), {datetime.now(UTC):%Y-%m-%d} ayrıştırıldı"
         ),
+        **(airac_bilgisi or {}),
         "noktalar": [
             {"ad": k["ad"], "enlem": k["enlem"], "boylam": k["boylam"], "fra_rolleri": k["fra_rolleri"]}
             | ({"fra_meydanlari": k["fra_meydanlari"]} if k.get("fra_meydanlari") else {})
@@ -233,10 +268,12 @@ def ana(argv=None):
     argumanlar = ayristirici.parse_args(argv)
     if argumanlar.indir:
         print("İndirildi:", indir(argumanlar.enr44), indir(argumanlar.enr41, ENR41_URL))
-    kayitlar, airac = metni_ayristir(pdf_metni(argumanlar.enr44))
+    metinler = [pdf_metni(argumanlar.enr44)]
+    kayitlar, airac = metni_ayristir(metinler[0])
     belgeler = "ENR 4.4"
     if os.path.isfile(argumanlar.enr41):
         metin41 = pdf_metni(argumanlar.enr41)
+        metinler.append(metin41)
         kayitlar += enr41_ayristir(metin41)
         belgeler = f"ENR 4.4 (AIRAC AMDT {airac or '?'}) + ENR 4.1"
         airac = en_yeni_airac(metin41)
@@ -255,11 +292,13 @@ def ana(argv=None):
         [k.strip().upper() for k in argumanlar.firler.split(",") if k.strip()],
         argumanlar.sinir_tamponu_nm,
         belgeler,
+        airac_alanlari(metinler),
     )
     Path(argumanlar.cikti).parent.mkdir(parents=True, exist_ok=True)
     Path(argumanlar.cikti).write_text(json.dumps(ag, ensure_ascii=False, indent=1), encoding="utf-8")
     print(
-        f"{len(kayitlar)} nokta ({len(ag['fra']['noktalar'])} FRA), AIRAC {airac}, {len(sorunlar)} uyarı -> "
+        f"{len(kayitlar)} nokta ({len(ag['fra']['noktalar'])} FRA), AIRAC {airac} "
+        f"(yürürlük {ag['airac_yururluk']}, bitiş {ag['airac_bitis']}), {len(sorunlar)} uyarı -> "
         f"{argumanlar.cikti}"
     )
 

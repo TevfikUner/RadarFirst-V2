@@ -105,3 +105,32 @@ def test_enr41_seyrusefer_yardimcilari_rolleriyle_ayristirilir():
     assert aip.en_yeni_airac(METIN_41) == "06/26" and aip.dogrula(kayitlar) == []
     with pytest.raises(ValueError, match="TKD"):
         aip.enr41_ayristir("VOR/DME TKD 112.7 MHZ\nkoordinatsız")
+
+
+def test_airac_takvimi_ve_sayfa_yururlugu():
+    from datetime import date
+
+    assert aip.airac_dongusu(date(2026, 10, 7)) == (date(2026, 10, 1), date(2026, 10, 29))
+    assert aip.airac_dongusu(date(2026, 10, 29)) == (date(2026, 10, 29), date(2026, 11, 26))
+    assert aip.sayfa_yururlugu(METIN + "\n12 JUN 26\n15 SEP 2016") == date(2026, 6, 11)
+    assert aip.sayfa_yururlugu("tarihsiz") is None
+    alanlar = aip.airac_alanlari([METIN, "03 SEP 26"], bugun=date(2026, 10, 7))
+    assert alanlar == {"airac_yururluk": "2026-09-03", "airac_bitis": "2026-10-29"}
+
+
+def test_airac_bitisi_aga_yazilir_ve_gecince_uyarir():
+    from datetime import date
+
+    from turbulans_radar.rota.hava_yolu_agi import AtsAgiHatasi
+
+    kayitlar, airac = aip.metni_ayristir(METIN)
+    bilgi = aip.airac_alanlari([METIN], bugun=date(2026, 10, 7))
+    veri = aip.fra_agi(kayitlar, airac, dct_maks_km=2000, alt_fl=305, airac_bilgisi=bilgi)
+    assert veri["airac_bitis"] == "2026-10-29"
+    ag = agi_kur(veri, ara_nokta_km=0, fra_siniri=shapely.box(20.0, 30.0, 50.0, 50.0))
+    assert ag.airac_uyarisi(date(2026, 10, 28)) is None
+    assert "2026-10-29" in ag.airac_uyarisi(date(2026, 10, 29))
+    veri.pop("airac_bitis")
+    assert agi_kur(veri, ara_nokta_km=0, fra_siniri=shapely.box(20.0, 30.0, 50.0, 50.0)).airac_uyarisi() is None
+    with pytest.raises(AtsAgiHatasi, match="airac_bitis"):
+        agi_kur(veri | {"airac_bitis": "29 OCT 26"}, ara_nokta_km=0)
