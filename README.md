@@ -15,7 +15,7 @@ nihai). Becerisi sınırlı: Ellrod TI1, 80 günde 7.815 seyir PIREP'inde ROC-AU
 modeli geçemedi (+0,008 [−0,006; +0,022]), kapı onu devreye almıyor. Bu yüzden güvenlik
 SIGMET'e (sert kısıt) dayanır, TI1 A* rotasında yalnız yumuşak kısıttır.
 
-**Demo.** Ağsız, kimlik bilgisiz: [Beş dakikada çalıştır](#beş-dakikada-çalıştır).
+**Demo.** Kimlik bilgisiz, çalışırken ağsız: [Beş dakikada çalıştır](#beş-dakikada-çalıştır).
 Kapsam yalnız CAT ve seyir safhası, doğrulama ABD verisiyle; çıktılar sertifikalı EDR
 değildir, sistem karar destek aracıdır.
 
@@ -47,7 +47,9 @@ diyagramlar ve tasarım kararları: [docs/mimari.md](docs/mimari.md),
 
 ## Beş dakikada çalıştır
 
-Kimlik bilgisi (OpenSky, Copernicus) ve internet bağlantısı gerektirmeyen demo.
+Kimlik bilgisi (OpenSky, Copernicus) gerektirmez; ilk derleme internet ister
+(PyPI, npm, GitHub); çalışma anında dış veri kaynağı yok. Ağ yoksa Esri
+karoları gelmez; 3B harita yerel ülke sınırlarıyla çalışır.
 Depoyla gelen gerçek veri paketi ([demo/](demo/README.md)): THY322'nin
 15 Ocak 2019 rotası ve onu kapsayan ERA5 dilimi (toplam ~300 KB).
 
@@ -59,7 +61,9 @@ cp .env.demo .env
 docker compose --profile demo up -d --build
 ```
 
-İlk derleme birkaç dakika sürer (web kütüphaneleri imaja indirilir). Yığın
+Ölçülen süre (derleme + demo analizi): temiz CI makinesinde 80 sn (GitHub
+çalıştırıcısı, 14 Ekim 2026; her CI'da iş özetine yazılır); geliştirici
+dizüstünde önbelleksiz derleme ~6,5 dk. Yığın
 ayağa kalkınca `demo` servisi uçuşu analiz edip veritabanına yazar
 (`docker compose logs demo` özeti gösterir). Sonra tarayıcıda:
 

@@ -2,10 +2,15 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
-## 2026-10-14 (dal `claude/ci-fatura-notu`)
+## 2026-10-14 (dallar `claude/ci-fatura-notu`, `claude/demo-uretilebilirlik`)
 
 - ⚠️ CI 13 Eki 16:20'den beri kırmızı: işler başlamıyor (GitHub faturalandırma/harcama limiti, özel depo). Kod hatası yok.
 - ✅ Yerel doğrulama: ruff check + format temiz, pytest 964 geçti (tarayıcı/ağ hariç).
+- ✅ CI yeniden yeşil (depo public yapıldı); geçmiş sır taraması temiz.
+- ✅ Madde 10 (PR #42): .dockerignore + LF → geliştirici/temiz klon bağlamı bayt bayt aynı, imaj 1,78→1,46 GB.
+- ✅ AIRAC alanları (ATS ağı bitişi 29 Eki) → rota `ats.uyarilar` + `/saglik ats_agi: eski`.
+- ✅ 2 kullanım dışı modül silindi, 3 CLI komut oldu; CI demo işi (temiz makinede 80 sn), ubuntu-24.04.
+- ⏳ 18 Eki: SISTEM_KARTI/README mimari denetimi; 29 Eki: AIP yeniden indirme.
 
 ## 2026-10-13 (dallar `claude/kayma-izleme`, `claude/api-router-ayrimi`, `claude/ayar-dogrulama`)
 
