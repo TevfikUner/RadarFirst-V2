@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-14 (dal `claude/ci-fatura-notu`)
+
+- ⚠️ CI 13 Eki 16:20'den beri kırmızı: işler başlamıyor (GitHub faturalandırma/harcama limiti, özel depo). Kod hatası yok.
+- ✅ Yerel doğrulama: ruff check + format temiz, pytest 964 geçti (tarayıcı/ağ hariç).
+
 ## 2026-10-13 (dallar `claude/kayma-izleme`, `claude/api-router-ayrimi`, `claude/ayar-dogrulama`)
 
 - ✅ ML özellik kayması (PSI/KS): gerçek veride 7.761 referans / 3.588 yeni örnek, maks PSI 0,025 (kararlı); `turbulans-ml --kayma`.
