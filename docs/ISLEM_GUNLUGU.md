@@ -10,6 +10,9 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ✅ Madde 10 (PR #42): .dockerignore + LF → geliştirici/temiz klon bağlamı bayt bayt aynı, imaj 1,78→1,46 GB.
 - ✅ AIRAC alanları (ATS ağı bitişi 29 Eki) → rota `ats.uyarilar` + `/saglik ats_agi: eski`.
 - ✅ 2 kullanım dışı modül silindi, 3 CLI komut oldu; CI demo işi (temiz makinede 80 sn), ubuntu-24.04.
+- ✅ Ağsız demo provası (temiz klon, DNS kapalı) geçti; yalnız Esri karoları kesildi (652).
+- ⚠️ Senaryo 2 anlatımı geliştirme küpünden (FL370) alınmıştı; temiz klon yanal 105 NM/%9,7 veriyor → belge, poster, ekranlar düzeltildi.
+- ✅ demo_ekranlari: sabit 6 sn yerine Cesium saati ilerleyince çekim (ekran 03 boş çıkıyordu).
 - ⏳ 18 Eki: SISTEM_KARTI/README mimari denetimi; 29 Eki: AIP yeniden indirme.
 
 ## 2026-10-13 (dallar `claude/kayma-izleme`, `claude/api-router-ayrimi`, `claude/ayar-dogrulama`)
