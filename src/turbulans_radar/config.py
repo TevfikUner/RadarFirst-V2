@@ -356,6 +356,13 @@ ROTA_PARETO_CEZALARI_SANIYE = [
 # ~%30'u; yanal sapma yolu da uzatır).
 ROTA_ZAMAN_BELIRSIZLIK_ORANI = _ortam_sayi("ROTA_ZAMAN_BELIRSIZLIK_ORANI", 0.3)
 ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA = _ortam_sayi("ROTA_ZAMAN_BELIRSIZLIK_PAYI_DAKIKA", 5.0)
+# Seyir yakıtı ve NOx modeli: 'openap' (kütle/TAS/irtifa/düşey hıza bağlı,
+# rota/performans_modeli.py) ya da 'sabit' (UCAK_PROFILLERI tablosu). A* maliyeti
+# ikisinde de seyir süresidir; model yalnız yakıt ve emisyon değerlerini değiştirir.
+ROTA_YAKIT_MODELI = _ortam_str("ROTA_YAKIT_MODELI", "openap")
+# Seyir başı kütlesi = MTOW x bu oran. Parametrik varsayım, kalibre edilmedi
+# (yük ve yakıt planı bilinmiyor).
+ROTA_SEYIR_KUTLE_ORANI = _ortam_sayi("ROTA_SEYIR_KUTLE_ORANI", 0.85)
 # rota/ucus_seviyeleri.py: yarım daire kuralı manyetik ize göre uygulanır.
 # Manyetik sapma (doğu +) tüm rotalar için SABİT alınır: Türkiye için ~+5°E
 # VARSAYIMDIR (NOAA WMM ile teyit edilmedi; ABD/Avrupa dışı rotalarda yanlış olabilir).

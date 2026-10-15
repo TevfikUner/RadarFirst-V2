@@ -4613,6 +4613,17 @@
             },
             "type": "array",
             "title": "Noktalar"
+          },
+          "tahmini_nox_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tahmini Nox Kg"
           }
         },
         "type": "object",
@@ -4891,6 +4902,16 @@
             "type": "array",
             "title": "Brifing Karti",
             "default": []
+          },
+          "yakit_modeli": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/YakitModeliYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -5085,6 +5106,17 @@
             "type": "integer",
             "title": "Kisitli Saha Ihlali Sayisi",
             "default": 0
+          },
+          "tahmini_nox_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tahmini Nox Kg"
           }
         },
         "type": "object",
@@ -6440,6 +6472,55 @@
           "gecerlilik_saniye"
         ],
         "title": "WsBiletiYaniti"
+      },
+      "YakitModeliYaniti": {
+        "properties": {
+          "kaynak": {
+            "type": "string",
+            "enum": [
+              "openap",
+              "sabit"
+            ],
+            "title": "Kaynak"
+          },
+          "baslangic_kutle_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Baslangic Kutle Kg"
+          },
+          "kutle_orani_notu": {
+            "type": "string",
+            "title": "Kutle Orani Notu"
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          },
+          "openap_surumu": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Openap Surumu"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kaynak",
+          "kutle_orani_notu",
+          "aciklama"
+        ],
+        "title": "YakitModeliYaniti"
       }
     }
   }

@@ -137,6 +137,7 @@
     <tr><td title="Yer hızı − TAS">Ort. rüzgâr bileşeni</td><td id="s-normal-ruzgar"></td><td id="s-optimize-ruzgar"></td></tr>
     <tr><td>Seyir yakıtı (ToC–ToD; kalkış/iniş/rezerv hariç)</td><td id="s-normal-yakit"></td><td id="s-optimize-yakit"></td></tr>
     <tr><td>CO2 (tahmini)</td><td id="s-normal-co2"></td><td id="s-optimize-co2"></td></tr>
+    <tr id="nox-satiri" title="OpenAP; seyir başı kütlesi varsayımdır"><td>NOx (tahmini)</td><td id="s-normal-nox"></td><td id="s-optimize-nox"></td></tr>
     <tr><td>Riskli türbülans</td><td id="s-normal-turbulans"></td><td id="s-optimize-turbulans"></td></tr>
     <tr><td>Seviye</td><td id="s-normal-irtifa"></td><td id="s-optimize-irtifa"></td></tr>
     <tr><td title="T ≤ -40 °C ve buza göre bağıl nem ≥ %100 (ERA5). Duyarlılık göstergesidir, gözlenmiş iz bulutu değildir.">İz bulutu duyarlı</td><td id="s-normal-iz"></td><td id="s-optimize-iz"></td></tr>
@@ -349,6 +350,12 @@ function sonucPanelDoldur(sonuc) {
   document.getElementById("s-optimize-yakit").textContent = sonuc.optimize_rota.tahmini_yakit_kg.toFixed(0) + " kg";
   document.getElementById("s-normal-co2").textContent = sonuc.normal_rota.tahmini_co2_kg.toFixed(0) + " kg";
   document.getElementById("s-optimize-co2").textContent = sonuc.optimize_rota.tahmini_co2_kg.toFixed(0) + " kg";
+  const noxVar = sonuc.normal_rota.tahmini_nox_kg != null;
+  document.getElementById("nox-satiri").style.display = noxVar ? "" : "none";
+  if (noxVar) {
+    document.getElementById("s-normal-nox").textContent = sonuc.normal_rota.tahmini_nox_kg.toFixed(1) + " kg";
+    document.getElementById("s-optimize-nox").textContent = sonuc.optimize_rota.tahmini_nox_kg.toFixed(1) + " kg";
+  }
   document.getElementById("s-normal-turbulans").textContent = riskMetni(sonuc.normal_rota);
   document.getElementById("s-optimize-turbulans").textContent = riskMetni(sonuc.optimize_rota);
   document.getElementById("s-normal-irtifa").textContent = flMetni(sonuc.normal_rota);

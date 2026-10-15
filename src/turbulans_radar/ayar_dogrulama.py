@@ -12,7 +12,7 @@ olmak zorunda değil: yanlış değerinin sonucu sessiz ve önemli olanlar seçi
 """
 
 import re
-from typing import Annotated
+from typing import Annotated, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, field_validator, model_validator
 
@@ -60,6 +60,8 @@ class AyarSemasi(BaseModel):
     ROTA_YANAL_IZGARA_KM: Pozitif
     ROTA_ZAMAN_BELIRSIZLIK_ORANI: KapaliOran
     KABIN_PENCERE_PAYI_DK: NegatifOlmayan
+    ROTA_YAKIT_MODELI: Literal["openap", "sabit"]
+    ROTA_SEYIR_KUTLE_ORANI: Annotated[float, Field(gt=0, le=1)]
     SIGMET_MAKS_COZUMLENEMEYEN_ORAN: KapaliOran
     DEVRE_KESICI_ESIK: NegatifOlmayanTam
     DEVRE_KESICI_TABAN_SANIYE: Pozitif

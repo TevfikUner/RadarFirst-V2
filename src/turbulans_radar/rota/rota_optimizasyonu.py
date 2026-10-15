@@ -58,10 +58,10 @@ büyük daire olarak hesaplanır ve `aciklama` alanında bu açıkça belirtilir
 Bu, sigmet_dogrulama.py'deki "ABD dışı kapsam yok" dürüstlük deseninin
 aynısıdır.
 
-Uçak "modelleri": gerçek performans farkını göstermek için birkaç bilinen
-uçak tipinin YAKLAŞIK (halka açık, tipik) seyir hızı/yakıt akış hızı değerleri
-kullanılır -- üreticinin resmi performans verisi DEĞİLDİR, sadece büyüklük
-mertebesi doğru kaba bir tahmindir. 3D görselleştirmede hepsi AYNI jenerik
+Uçak "modelleri": seyir hızı tip başına YAKLAŞIK (halka açık, tipik) bir
+değerdir. Yakıt ve NOx OpenAP ile kütleye/irtifaya bağlı hesaplanır
+(rota/performans_modeli.py); UCAK_PROFILLERI'ndeki sabit yakıt akışı yalnız
+OpenAP kullanılamazsa yedektir -- üreticinin resmi performans verisi DEĞİLDİR. 3D görselleştirmede hepsi AYNI jenerik
 uçak modelini (web/models/ucak.glb, resmi CesiumJS örnek verisi) kullanır.
 """
 
@@ -86,7 +86,7 @@ from turbulans_radar.fizik.eslestirme import kapsam_disi_maskesi
 from turbulans_radar.fizik.iz_bulutu import duyarli_nokta_sayisi
 from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.loglama import logger_al
-from turbulans_radar.rota import hava_yolu_agi, ucus_seviyeleri
+from turbulans_radar.rota import hava_yolu_agi, performans_modeli, ucus_seviyeleri
 from turbulans_radar.rota.risk_katmanlari import (
     TURBULANS_CEZASI_SANIYE,
     KisitliSahaKatmani,
@@ -1240,6 +1240,16 @@ def rota_simulasyonu_olustur(
 
     profil = UCAK_PROFILLERI[ucak_modeli_kodu]
     tas_ms = profil["tas_ms"]
+    yakit_modeli = "openap" if performans_modeli.kullanilabilir_mi(ucak_modeli_kodu) else "sabit"
+
+    def _seviye_ekstrasi(eski_irtifa_m, yeni_irtifa_m):
+        ek = performans_modeli.seviye_degisimi_ek_yakiti(
+            ucak_modeli_kodu, eski_irtifa_m, yeni_irtifa_m, tas_ms, DIKEY_HIZ_FT_DK
+        )
+        if ek is None:
+            return _irtifa_degisimi_maliyeti(eski_irtifa_m, yeni_irtifa_m, profil["yakit_akisi_kg_saat"])
+        return 0.0, ek
+
     seviye = ucus_seviyeleri.seviye_plani(
         irtifa_ft,
         ucus_seviyeleri.manyetik_iz(_ilk_yon_derece(baslangic_enlem, baslangic_boylam, bitis_enlem, bitis_boylam)),
@@ -1298,6 +1308,7 @@ def rota_simulasyonu_olustur(
             "saniye": saniye,
             "ekstra_saniye": ekstra[0],
             "ekstra_yakit_kg": ekstra[1],
+            "yakit_modeli": yakit_modeli,
             "maks_ti1": maks_ti1,
             "riskli_sayisi": riskli_sayisi,
             "ti1": ti1,
@@ -1312,8 +1323,22 @@ def rota_simulasyonu_olustur(
             "yanal_sapma_km": yanal_sapma_km,
         }
 
+    yakit_ozetleri = {}
+
+    def _aday_yakit_ozeti(aday):
+        anahtar = id(aday)
+        if anahtar not in yakit_ozetleri:
+            seyir = performans_modeli.seyir_yakiti(ucak_modeli_kodu, aday["saniye"], tas_ms, aday["irtifa_m"])
+            if seyir is None:
+                seyir = {"yakit_kg": profil["yakit_akisi_kg_saat"] * (aday["saniye"] / 3600.0), "nox_kg": None}
+            yakit_ozetleri[anahtar] = (aday, seyir["yakit_kg"] + aday["ekstra_yakit_kg"], seyir["nox_kg"])
+        return yakit_ozetleri[anahtar]
+
     def _aday_toplam_yakit_kg(aday):
-        return profil["yakit_akisi_kg_saat"] * (aday["saniye"] / 3600.0) + aday["ekstra_yakit_kg"]
+        return _aday_yakit_ozeti(aday)[1]
+
+    def _aday_nox_kg(aday):
+        return _aday_yakit_ozeti(aday)[2]
 
     ats_yollari = {}
     if arama_uzayi == "ats":
@@ -1409,7 +1434,7 @@ def rota_simulasyonu_olustur(
                 if yanal is not None:
                     adaylar.append(_aday(strateji_adi, yanal[0], yanal[1], irtifa_m, yanal_sapma_km=yanal[2]))
             for strateji_adi, yeni_irtifa_m in irtifa_secenekleri.items():
-                ekstra = _irtifa_degisimi_maliyeti(irtifa_m, yeni_irtifa_m, profil["yakit_akisi_kg_saat"])
+                ekstra = _seviye_ekstrasi(irtifa_m, yeni_irtifa_m)
                 adaylar.append(_aday(strateji_adi, enlemler_gc, boylamlar_gc, yeni_irtifa_m, ekstra=ekstra))
         else:
             for strateji_adi, aday_irtifa_m in {"ats_alternatif": irtifa_m, **irtifa_secenekleri}.items():
@@ -1417,7 +1442,7 @@ def rota_simulasyonu_olustur(
                 if yol is None:
                     continue
                 ats_yollari[strateji_adi] = yol
-                ekstra = _irtifa_degisimi_maliyeti(irtifa_m, aday_irtifa_m, profil["yakit_akisi_kg_saat"])
+                ekstra = _seviye_ekstrasi(irtifa_m, aday_irtifa_m)
                 adaylar.append(_aday(strateji_adi, yol[0], yol[1], aday_irtifa_m, ekstra=ekstra))
             for ceza in pareto_cezalari:
                 strateji_adi = f"ats_ceza_{ceza:g}"
@@ -1442,6 +1467,8 @@ def rota_simulasyonu_olustur(
         yol = _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, zaman_iso, tas_ms, veri_kupu, [])
         if yol is not None:
             ruzgar_optimum = _aday("ruzgar_optimum", yol[0], yol[1], irtifa_m, yanal_sapma_km=yol[2])
+    for a in (normal, ruzgar_optimum, en_iyi, *(adaylar if en_iyi is not normal else [])):
+        a["tahmini_nox_kg"] = _aday_nox_kg(a)
     referans_karsilastirmasi = (
         _referans_karsilastirmasi(normal, ruzgar_optimum, en_iyi, _aday_toplam_yakit_kg, tas_ms, arama_uzayi)
         if ruzgarli_mi
@@ -1449,7 +1476,7 @@ def rota_simulasyonu_olustur(
     )
 
     normal_yakit_kg = _aday_toplam_yakit_kg(normal)
-    # Yakıt = seyir süresi x yakıt akışı + seviye geçişlerinin ek yakıtı (bkz. _irtifa_degisimi_maliyeti).
+    # Yakıt = seyir yakıtı (OpenAP ya da sabit tablo) + seviye geçişlerinin ek yakıtı (bkz. _seviye_ekstrasi).
     optimize_yakit_kg = _aday_toplam_yakit_kg(en_iyi)
     optimize_saniye = en_iyi["saniye"] + en_iyi["ekstra_saniye"]
     secenekler = pareto_secenekleri(
@@ -1513,6 +1540,18 @@ def rota_simulasyonu_olustur(
         ),
         "co2_farki_kg": normal_yakit_kg * CO2_KG_PER_KG_YAKIT - optimize_yakit_kg * CO2_KG_PER_KG_YAKIT,
         "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
+        "yakit_modeli": {
+            "kaynak": yakit_modeli,
+            "baslangic_kutle_kg": performans_modeli.baslangic_kutlesi_kg(ucak_modeli_kodu),
+            "kutle_orani_notu": "Seyir başı kütlesi MTOW x ROTA_SEYIR_KUTLE_ORANI; parametrik varsayım, kalibre edilmedi.",
+            "aciklama": (
+                performans_modeli.KAYNAK_NOTU
+                if yakit_modeli == "openap"
+                else "Sabit tipik yakıt akışı; irtifa ve kütleye bağlı değil."
+            )
+            + " Mutlak yakıt değil, aynı tipteki rotalar arası karşılaştırmadır.",
+            "openap_surumu": performans_modeli.openap_surumu() if yakit_modeli == "openap" else None,
+        },
         "uretim_bilgisi": uretim_bilgisi(
             veri_kupu if ruzgarli_mi else None,
             parametreler={
@@ -1584,6 +1623,7 @@ def pareto_secenekleri(adaylar, onerilen, normal, yakit_fonksiyonu) -> list[dict
             "toplam_sure_dk": (a["saniye"] + a["ekstra_saniye"]) / 60.0,
             "ek_sure_dk": (a["saniye"] + a["ekstra_saniye"] - normal_saniye) / 60.0,
             "tahmini_yakit_kg": yakit_fonksiyonu(a),
+            "tahmini_nox_kg": a.get("tahmini_nox_kg"),
             "ek_yakit_yuzde": 100.0 * (yakit_fonksiyonu(a) - normal_yakit) / normal_yakit if normal_yakit else 0.0,
             "riskli_nokta_sayisi": _riskli_nokta_sayisi(a),
             "iz_bulutu_nokta_sayisi": a.get("iz_bulutu_sayisi"),
@@ -1685,6 +1725,7 @@ def _rota_ozeti(aday, yakit_kg, toplam_saniye):
         ),
         "tahmini_yakit_kg": yakit_kg,
         "tahmini_co2_kg": yakit_kg * CO2_KG_PER_KG_YAKIT,
+        "tahmini_nox_kg": aday.get("tahmini_nox_kg"),
         "irtifa_ft": _ucus_seviyesi(aday["irtifa_m"]) * 100,
         "maks_ti1": aday["maks_ti1"],
         "riskli_nokta_sayisi": _riskli_nokta_sayisi(aday),
@@ -1698,6 +1739,15 @@ _SEVIYE_MALIYET_NOTU = (
     " Yakıt farkı yalnızca geçici seviyeye gidip planlanan seviyeye dönmenin yaklaşık bedelidir; seviyeye bağlı "
     "seyir yakıt akışı modellenmez."
 )
+_SEVIYE_MALIYET_NOTU_OPENAP = (
+    " Yakıt OpenAP ile seviyeye ve kütleye bağlı hesaplanır (geçiş ±1500 ft/dk; seyir başı kütlesi varsayımdır)."
+)
+
+
+def _seviye_maliyet_notu(aday):
+    if not aday["strateji"].startswith("irtifa"):
+        return ""
+    return _SEVIYE_MALIYET_NOTU_OPENAP if aday.get("yakit_modeli") == "openap" else _SEVIYE_MALIYET_NOTU
 
 
 def _bulgu(kod, seviye, metin, **parametreler):
@@ -1915,7 +1965,7 @@ def _bulgulari_olustur(
                     "bilgi",
                     "ÇOK FAKTÖRLÜ karşılaştırmada (yanal A* araması vs aynı yönün bir üst/alt yasal FL'sine geçiş, her "
                     "biri yaklaşık yakıt/süre maliyetiyle) en ucuz TAM güvenli seçenek olarak "
-                    f"{strateji_aciklamasi} bulundu." + (_SEVIYE_MALIYET_NOTU if strateji.startswith("irtifa") else ""),
+                    f"{strateji_aciklamasi} bulundu." + _seviye_maliyet_notu(en_iyi),
                     **kacinma,
                 )
             )
@@ -1927,7 +1977,7 @@ def _bulgulari_olustur(
                     "Denenen adaylar TI1 riskini TAMAMEN ortadan kaldıramadı (türbülans alanı geniş olabilir) -- "
                     f"sert kısıtlara uyan seçenekler arasından {strateji_aciklamasi} seçildi "
                     f"({en_iyi['riskli_sayisi']} riskli nokta, normal rotadaki {normal['riskli_sayisi']}'e karşı)."
-                    + (_SEVIYE_MALIYET_NOTU if strateji.startswith("irtifa") else ""),
+                    + _seviye_maliyet_notu(en_iyi),
                     riskli_nokta_sayisi=en_iyi["riskli_sayisi"],
                     normal_riskli_nokta_sayisi=normal["riskli_sayisi"],
                     **kacinma,

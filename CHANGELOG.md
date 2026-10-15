@@ -4,6 +4,16 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## OpenAP yakıt ve NOx modeli (15 Ekim 2026)
+
+- `rota/performans_modeli.py`: OpenAP 2.6.2 (LGPL-3.0) ile seyir yakıtı kütleye, TAS'a, irtifaya ve
+  düşey hıza bağlı; kütle 60 sn adımlarla azalır. Seviye geçişinde tırmanış ek yakıt, alçalış kredi.
+  Seyir başı kütlesi MTOW x `ROTA_SEYIR_KUTLE_ORANI` (0,85; kalibre edilmedi).
+- Rota ve seçeneklerde `tahmini_nox_kg`; yanıtta `yakit_modeli` (kaynak, kütle, sürüm). A* maliyeti
+  değişmedi (süre + TI1 cezası); yakıt aday seçiminde ve seçeneklerde kullanılır.
+- `ROTA_YAKIT_MODELI=sabit` eski tabloya döner. Demo senaryo 4: yanal sapma %9,7 → %9,5 yakıt; FL370
+  seçeneği %0,8 fazla yerine %2,0 az yakıt (1 riskli nokta). Senaryo 5: %6,2 → %6,1.
+
 ## Kabin penceresi ve brifing kartı (15 Ekim 2026)
 
 - **Kabin önerisi:** tek saat ("~20:35Z'den itibaren") yerine ilk riskli bölüm başlangıcının
