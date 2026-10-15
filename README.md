@@ -888,13 +888,14 @@ irtifa, tarih-saat ve uçak modelini girip "Simüle Et"e basınca:
   Rüzgâr ve TI1 o FL'ye en yakın / çevreleyen basınç seviyesinden okunur;
   yer hızı rüzgâr üçgeniyle (GS = √(TAS² − Xw²) + Hw) hesaplanır. Seyir
   başı ve sonu planlanan seviyede olduğu için geçici seviyeye gidiş ve
-  planlanan seviyeye dönüş birlikte maliyetlenir (bir tırmanma + bir alçalma;
-  tırmanmada yakıt akışı seyrin ~%50 üstü, alçalmaya kredi yok, 1500 ft/dk -- bkz.
-  `_irtifa_degisimi_maliyeti`, halka açık tipik jet mertebeleri, resmi
-  performans verisi DEĞİL). Bu yüzden tırmanma ile alçalma simetriktir ve
-  hiçbiri yakıt "tasarrufu" göstermez; eskiden yalnızca gidiş sayıldığı için
-  alçalma sistematik olarak ucuz görünüyordu. Seviyeye bağlı seyir yakıt
-  akışı ve TAS modellenmez; yanıt bunu açıklamada söyler.
+  planlanan seviyeye dönüş birlikte maliyetlenir (bir tırmanma + bir alçalma,
+  1500 ft/dk). Yakıt varsayılan olarak OpenAP ile hesaplanır
+  (`rota/performans_modeli.py`): yakıt akışı kütleye, TAS'a, irtifaya ve düşey
+  hıza bağlıdır, kütle seyir boyunca azalır, alçalış kredi verir; NOx da
+  hesaplanır. Seyir başı kütlesi MTOW x `ROTA_SEYIR_KUTLE_ORANI` (0,85,
+  kalibre edilmedi). Daha yüksek seviye bu yüzden daha az yakıt gösterebilir.
+  `ROTA_YAKIT_MODELI=sabit` eski tabloya döner (tırmanmada +%50, alçalmaya kredi
+  yok; seviyeye bağlı seyir yakıt akışı yok). TAS iki modelde de sabittir.
   `rota_simulasyonu_olustur`, yanal A* yolu ile irtifa değişimi adayları
   arasından TOPLAM maliyeti (seyir yakıtı + seviye geçiş bedeli) en düşük,
   güvenliği sağlayan seçeneği seçer. Seçilen

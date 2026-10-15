@@ -22,6 +22,7 @@ yeniden kontrol edilmelidir. Bu belge hukuki görüş değildir.
 | Esri World Street Map karoları | Harita altlığı (çevrimiçi) | Esri kullanım şartları | "Tiles © Esri" (haritada gösteriliyor) | Ürünleşme öncesi kontrol edilmeli | **Doğrulanmadı** |
 | CesiumJS | 3B simülasyon | Apache-2.0 | Lisans dosyası | Evet | npm paketi (`turbulans-statik`) |
 | MapLibre GL JS | 2B harita | BSD-3-Clause | Lisans dosyası | Evet | npm paketi (`turbulans-statik`) |
+| OpenAP (TU Delft) | Seyir yakıt akışı ve NOx (`rota/performans_modeli.py`); motor verisi ICAO emisyon bankası, yakıt modeli Acropole | LGPL-3.0 (kütüphane olarak içe aktarılır, değiştirilmez) | Sun, Hoekstra ve Ellerbroek (2020), *Aerospace* 7(8):104, DOI 10.3390/aerospace7080104 | Evet (LGPL şartlarıyla) | PyPI `openap` 2.6.2 |
 
 ¹ OpenSky'ın şartlar sayfası kontrol sırasında otomatik erişime kapalıydı (HTTP 403); ifade
 resmi API belgesinden (openskynetwork.github.io/opensky-api) alındı: API "research and

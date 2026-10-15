@@ -210,6 +210,8 @@ class RotaSonucuYaniti(BaseModel):
     mesafe_km: float
     tahmini_yakit_kg: float
     tahmini_co2_kg: float
+    # None: sabit yakıt tablosu (NOx yalnız OpenAP modelinde hesaplanır).
+    tahmini_nox_kg: float | None = None
     maks_yanal_sapma_km: float | None = None
     # Büyük daireye göre en büyük sapmanın yönü (seyir yönüne bakarak): L sol, R sağ.
     maks_yanal_sapma_yonu: Literal["L", "R"] | None = None
@@ -371,6 +373,7 @@ class RotaSecenegiYaniti(BaseModel):
     toplam_sure_dk: float
     ek_sure_dk: float
     tahmini_yakit_kg: float
+    tahmini_nox_kg: float | None = None
     ek_yakit_yuzde: float
     riskli_nokta_sayisi: int | None
     iz_bulutu_nokta_sayisi: int | None = None
@@ -413,6 +416,14 @@ class ReferansKarsilastirmasiYaniti(BaseModel):
     kacinma_bedeli: KacinmaBedeliYaniti | None = None
 
 
+class YakitModeliYaniti(BaseModel):
+    kaynak: Literal["openap", "sabit"]
+    baslangic_kutle_kg: float | None = None
+    kutle_orani_notu: str
+    aciklama: str
+    openap_surumu: str | None = None
+
+
 class RotaSimulasyonuYaniti(BaseModel):
     ruzgar_verisi_kaynagi: str
     aciklama: str
@@ -435,6 +446,7 @@ class RotaSimulasyonuYaniti(BaseModel):
     brifing_karti: list[str] = []
     sure_tasarrufu_dk: float
     ti1_guvenilirlik_notu: str
+    yakit_modeli: YakitModeliYaniti | None = None
     uretim_bilgisi: UretimBilgisiYaniti | None = None
     yakit_tasarrufu_yuzde: float
     co2_farki_kg: float

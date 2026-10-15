@@ -958,6 +958,7 @@ numpy==2.5.3 \
     #   cftime
     #   folium
     #   netcdf4
+    #   openap
     #   pandas
     #   pydeck
     #   scikit-learn
@@ -965,6 +966,10 @@ numpy==2.5.3 \
     #   shapely
     #   streamlit
     #   xarray
+openap==2.6.2 \
+    --hash=sha256:9c1b370d12f02aeacf2a8112591ac0cb2a733ad7044f4b7bcf251b9bb1121d9d \
+    --hash=sha256:c4a793251231fb9a10ecd3b37266e1f564667949b0eff2d42346fb8bf508a295
+    # via -r requirements.txt
 opentelemetry-api==1.45.0 \
     --hash=sha256:711ede81773c8025c2c03dac0450bc89f3d30aea6eabcc815c570d4e35a963f7 \
     --hash=sha256:80e068aba7cd56c8b58512d6a36f8d25cb1dfaa0c0a4cc1c938ccf9f362d9cb3
@@ -1104,6 +1109,7 @@ pandas==3.0.6 \
     --hash=sha256:ff51a4459ed036e93d1eb1bb5e6e7b28685d3cb6b7c12b91c05b31024e234729
     # via
     #   -r requirements.txt
+    #   openap
     #   streamlit
     #   xarray
 pillow==12.3.0 \
@@ -1322,7 +1328,9 @@ pyarrow==25.0.1 \
     --hash=sha256:eb6203482ff3746a5632303a7279ae0b5a304c46985b49ed1378cb350ea6728d \
     --hash=sha256:f3831aaa25c67a99f99dc8b05873cb9d64560390372e2aa197ce9dd4a3f06a44 \
     --hash=sha256:f729cfdbd36fd99d543b67a914d2de044c84ebe45be8b34902b299b608c15c8f
-    # via streamlit
+    # via
+    #   -r requirements.txt
+    #   streamlit
 pycparser==3.0 \
     --hash=sha256:600f49d217304a5902ac3c37e1281c9fe94e4d0489de643a9504c5cdfdfc6b29 \
     --hash=sha256:b727414169a36b7d524c1c3e31839a521725078d7b2ff038656844266160a992
@@ -1558,7 +1566,9 @@ pyyaml==6.0.3 \
     --hash=sha256:f7057c9a337546edc7973c0d3ba84ddcdf0daa14533c2065749c9075001090e6 \
     --hash=sha256:fa160448684b4e94d80416c0fa4aac48967a969efe22931448d853ada8baf926 \
     --hash=sha256:fc09d0aa354569bc501d4e787133afc08552722d3ab34836a80547331bb5d4a0
-    # via uvicorn
+    # via
+    #   openap
+    #   uvicorn
 referencing==0.37.0 \
     --hash=sha256:381329a9f99628c9069361716891d34ad94af76e461dcb0335825aecc7692231 \
     --hash=sha256:44aefc3142c5b842538163acb373e24cce6632bd54bdb01b21ad5863489f50d8
@@ -1799,7 +1809,9 @@ scipy==1.18.1 \
     --hash=sha256:f29633129f9fa7e88a3f0fca835de2d030bfc9643f7799e1a0c46cee24d38fc7 \
     --hash=sha256:f55fa87b6c612ecd6b058f167c53231b1d14e412efe361d3d6e38b3631c73218 \
     --hash=sha256:fdaf5ea890a6183d0565f51a61799d67081bd5b1cf03c5f4b3fd3732108625c9
-    # via scikit-learn
+    # via
+    #   openap
+    #   scikit-learn
 shapely==2.1.2 \
     --hash=sha256:0036ac886e0923417932c2e6369b6c52e38e0ff5d9120b90eef5cd9a5fc5cae9 \
     --hash=sha256:01d0d304b25634d60bd7cf291828119ab55a3bab87dc4af1e44b07fb225f188b \

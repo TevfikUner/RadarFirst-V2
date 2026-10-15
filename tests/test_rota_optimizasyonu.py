@@ -214,8 +214,10 @@ def test_irtifa_degisimi_gidis_donus_maliyetlenir_ve_yone_gore_simetriktir():
     assert _irtifa_degisimi_maliyeti(9000.0, 9000.0, 2400.0) == (0.0, 0.0)
 
 
-def test_seviye_degisimi_secenekleri_yakit_tasarrufu_gostermez(gercek_senaryo):
+def test_seviye_degisimi_secenekleri_yakit_tasarrufu_gostermez(gercek_senaryo, monkeypatch):
+    monkeypatch.setattr(config, "ROTA_YAKIT_MODELI", "sabit")
     sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320", sigmetler=[], kisitli_sahalar=[])
+    assert sonuc["yakit_modeli"]["kaynak"] == "sabit" and sonuc["normal_rota"]["tahmini_nox_kg"] is None
     for secenek in sonuc["secenekler"]:
         seyir_yakiti = 2400.0 * secenek["toplam_sure_dk"] / 60.0
         if secenek["strateji"].startswith("irtifa"):
@@ -224,6 +226,25 @@ def test_seviye_degisimi_secenekleri_yakit_tasarrufu_gostermez(gercek_senaryo):
             assert secenek["tahmini_yakit_kg"] == pytest.approx(seyir_yakiti)
     if sonuc["kacinma_stratejisi"].startswith("irtifa"):
         assert "seviyeye bağlı seyir yakıt akışı modellenmez" in sonuc["aciklama"]
+
+
+def test_openap_yakit_modeli_seceneklerde_kutleye_bagli_yakit_ve_nox_verir(gercek_senaryo):
+    from turbulans_radar.rota import performans_modeli
+
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320", sigmetler=[], kisitli_sahalar=[])
+    assert sonuc["yakit_modeli"]["kaynak"] == "openap" and sonuc["yakit_modeli"]["baslangic_kutle_kg"] > 0
+    assert "kalibre edilmedi" in sonuc["yakit_modeli"]["kutle_orani_notu"]
+    for secenek in sonuc["secenekler"]:
+        seyir = performans_modeli.seyir_yakiti(
+            "A320", secenek["toplam_sure_dk"] * 60.0, 230.0, secenek["irtifa_ft"] * 0.3048
+        )
+        if secenek["strateji"].startswith("irtifa"):
+            assert secenek["tahmini_yakit_kg"] != pytest.approx(seyir["yakit_kg"])
+        else:
+            assert secenek["tahmini_yakit_kg"] == pytest.approx(seyir["yakit_kg"])
+        assert secenek["tahmini_nox_kg"] > 0
+    if sonuc["kacinma_stratejisi"].startswith("irtifa"):
+        assert "OpenAP" in sonuc["aciklama"]
 
 
 def test_gercek_era5_kismi_atlatma_durustce_raporlanir(gercek_senaryo):

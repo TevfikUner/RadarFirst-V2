@@ -78,8 +78,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
     uçlarda kendiliğinden kademeli sınırlanır.
   - Aynı yönün bir üst ya da bir alt yasal FL'sine geçiş (yarım daire kuralı,
     RVSM, tip tavanı; manyetik sapma sabit +5°E varsayımı): geçici seviyeye
-    gidiş ve planlanan seviyeye dönüşün yaklaşık yakıt bedeli hesaba katılır
-    (alçalmaya kredi yok; seviyeye bağlı seyir yakıt akışı modellenmez).
+    gidiş ve planlanan seviyeye dönüşün yakıt bedeli hesaba katılır (OpenAP:
+    tırmanış ek yakıt, alçalış kredi; seyir yakıtı seviyeye ve kütleye bağlı).
     Kurala aykırı girilen seviye en yakın yasal FL'ye yuvarlanır, uyarı verilir.
 - **Öncelik sırası:**
   1. Aktif SIGMET'e ve kısıtlı/yasak hava sahasına **girmemek** (sert
@@ -250,16 +250,18 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   uçulabilir (20 km'lik bacaklar uygun). Yük faktörü 1/cos 25° ≈ 1,10 g (stall hızı
   ≈ %5 artar). Daha kısa bacaklarda (kısa rota) bu kontrol yapılmaz. Mach/buffet
   sınırı ve tip belgesindeki yatış sınırı modellenmez.
-- Uçak performans değerleri (TAS, yakıt akışı) tipik, halka açık değerlerdir. Yakıt
-  akışı irtifadan, kütleden ve Mach'tan bağımsızdır; değer mutlak yakıt değil, aynı
-  tipteki rotalar arası farktır. İrtifa ve kütleye bağlı model (ör. OpenAP) yoktur.
+- Yakıt ve NOx OpenAP (LGPL-3.0) ile kütleye, TAS'a, irtifaya ve düşey hıza bağlı
+  hesaplanır. Seyir başı kütlesi MTOW x 0,85 varsayımıdır (yük ve yakıt planı
+  bilinmiyor, kalibre edilmedi); TAS tip başına sabittir, Mach ve sıcaklık
+  sapması kullanılmaz. Değer mutlak yakıt değil, aynı tipteki rotalar arası farktır.
+  OpenAP yoksa ya da `ROTA_YAKIT_MODELI=sabit` ise sabit tipik yakıt akışına
+  dönülür; yanıttaki `yakit_modeli.kaynak` hangisinin kullanıldığını söyler.
 - Türbülans riski uçak tipinden bağımsızdır; PIREP'teki uçak tipi kullanılmaz.
   Kanat yüklemesine göre eşik esnetmek için dayanak (tip bazlı etiketli veri) yoktur;
   uydurma katsayı eklenmedi.
-- A* maliyeti seyir süresidir (yakıt akışı sabit olduğundan yakıtla orantılı) artı
-  TI1 cezası. Maliyet İndeksi (CI), alçalma kredisi (rölanti alçalma) ve irtifaya
-  bağlı yakıt akışı yoktur; güvenilir performans kaynağı (OpenAP/BADA) olmadan
-  katsayı uydurulmaz. Seviye değişiminde tırmanma ve alçalma aynı yöne bakmaz,
+- A* maliyeti seyir süresidir artı TI1 cezası; yakıt (OpenAP) adaylar arasından
+  seçimde ve seçeneklerde kullanılır, A* aramasının içinde değil. Maliyet İndeksi
+  (CI) yoktur. Seviye değişiminde tırmanma ve alçalma aynı yöne bakmaz,
   ikisi de geçici bir gidiş-dönüş bedeli olarak hesaplanır; rotayı sistematik
   olarak aşağı ya da yukarı itmez.
 - ICAO uçuş planı çıktısı (Item 15/18, EET) üretilmez; FRA rotası nokta listesi
