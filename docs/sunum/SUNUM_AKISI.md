@@ -150,11 +150,13 @@ dondurmasından sonra nihai paketle değiştirilir. Aralıklar gün bazlı blok 
   POD/POFD. Bugünkü sonuç paketi (`docs/sonuclar/`) ABD doğrulama karnesinin ilk
   örneğidir; sayılar 18 Ekim nihai paketinden okunur.
 - **F2 GEFS olasılığı:** topluluk (ensemble) üyelerinden rota koridorunda risk olasılığı;
-  fizibilite: [ GEFS notu ].
+  31 üye, 0,5°; bir tahmin adımı ~43 MB indirme, Türkiye kesiti ~0,6 MB (15 Ekim ölçümü,
+  `docs/fizibilite/GEFS_FIZIBILITE.md`).
 - **F3 Kabin penceresi:** öneri bugün ±15 dk parametrik pencere verir (kalibre edilmedi);
   pay ölçülen olay zamanlarıyla kalibre edilecek.
 - **F4 Türkiye etiket havuzu:** MADIS'te bölge için yeterli ölçüm yok; Avrupa/Türkiye
-  için nesnel etiket kaynağı gerekir.
+  için nesnel etiket kaynağı gerekir. Uçak EDR'si WMO-IATA kısıtlı; aday yollar MGM ve
+  IATA Turbulence Aware (`docs/fizibilite/TURKIYE_ETIKET_KAYNAKLARI.md`).
 - Geliştirme planından kalanlar: M3 tahmin modu ve WAFS kıyası, M4 uçak tipine duyarlı
   risk, M7 OGC API – EDR.
 
