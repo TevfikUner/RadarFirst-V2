@@ -12,6 +12,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ⚠️ F5 backtest yakıtı: THY322 bölümleri TAS 154–166 m/s (tırmanış) → karşılaştırılamaz işaretli.
 - ✅ F7 notu: MADIS'te rüzgâr var (Türkiye kutusunda saatte ~23 FL280+); 2019 için GFS arşivi yok.
 - ✅ F9 (altın gün dışı CV): ayar +0,001; bağlam özellikleri +0,008; en iyi geniş lojistik 0,711 (TI1 0,674).
+- ✅ İleri tarihli tüm işler tek dosyada: `docs/YAPILACAKLAR.md`.
 
 ## 2026-10-15 (dal `claude/kabin-penceresi`)
 
