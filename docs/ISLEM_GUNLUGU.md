@@ -10,6 +10,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ✅ GEFS ölçümü: 1 üye/adım 1,38 MB indirme, Türkiye kesiti 18 KB → 31 üye ~43 MB/adım.
 - ✅ Türkiye etiket notu: uçak EDR'si WMO-IATA kısıtlı; adaylar MGM ve IATA Turbulence Aware.
 - ⏳ 18 Eki sonrası: 7 seviyeli Türkiye ERA5 + OpenSky büyütmesi (kota kararı).
+- ✅ Belgelerdeki eski test/CI sayıları: 974 test, 6 iş, kapsam %85 (sunum, poster, sistem kartı, katkılar).
 
 ## 2026-10-15 (dal `claude/kok-temizligi`)
 
