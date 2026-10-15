@@ -118,6 +118,7 @@ def test_kalan_risk_yoksa_kabin_bildirimi_cikmaz(canli_sunucu, tarayici_sayfasi)
     )
     assert not sayfa.is_visible("#kabin-bildirimi")
     assert not sayfa.is_visible("#riskli-bolumler-kutusu")
+    assert "Kabin: ek öneri yok." in sayfa.inner_text("#brifing-karti")
 
 
 def test_kalan_riskte_bolumler_ve_kabin_onerisi_dispecer_dilinde(canli_sunucu, tarayici_sayfasi):
@@ -127,6 +128,7 @@ def test_kalan_riskte_bolumler_ve_kabin_onerisi_dispecer_dilinde(canli_sunucu, t
         return
     oneri = sayfa.inner_text("#kabin-bildirimi")
     assert "Öneri (karar kaptanındır)" in oneri and "FL310" in oneri
+    assert "Kabin: olası türbülans" in sayfa.inner_text("#brifing-karti")
     assert sayfa.locator("#riskli-bolumler-tablosu tr").count() > 1
     assert "FL310" in sayfa.inner_text("#s-optimize-irtifa")
     assert ":" in sayfa.inner_text("#s-optimize-sure")

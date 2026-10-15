@@ -125,6 +125,11 @@
   <div id="kaynak-etiketi"></div>
   <div id="kapsam-satiri" style="margin-top:4px; color:#9fb3c8; font-size:11px;"></div>
   <div id="aciklama" style="margin-top:6px; color:#ccc; font-size:11px;"></div>
+  <div id="brifing-karti" style="display:none; margin-top:6px; padding:5px 7px; border:1px solid #f0b429; border-radius:4px; font-size:11px;">
+    <b>Brifing</b>
+    <div id="brifing-satirlari"></div>
+    <div style="color:#9fb3c8; margin-top:2px;">Karar destek amaçlıdır; sertifikalı EDR değildir.</div>
+  </div>
   <table>
     <tr><td></td><td><b>Normal</b></td><td><b>Optimize</b></td></tr>
     <tr><td>Süre (h:mm)</td><td id="s-normal-sure"></td><td id="s-optimize-sure"></td></tr>
@@ -439,6 +444,19 @@ function sonucPanelDoldur(sonuc) {
     : "";
 
   kabinBildirimiGoster(sonuc);
+  brifingKartiniGoster(sonuc);
+}
+
+// Brifing kartı: sunucunun ürettiği 3 satırlık özet (rota_optimizasyonu.brifing_karti).
+function brifingKartiniGoster(sonuc) {
+  const kutu = document.getElementById("brifing-karti");
+  const satirlar = document.getElementById("brifing-satirlari");
+  satirlar.replaceChildren(...(sonuc.brifing_karti || []).map((metin) => {
+    const el = document.createElement("div");
+    el.textContent = metin;
+    return el;
+  }));
+  kutu.style.display = satirlar.childElementCount ? "block" : "none";
 }
 
 // Kabin önerisi yalnızca ÖNERİLEN rotada kalan risk varsa çıkar (metin sunucudan,

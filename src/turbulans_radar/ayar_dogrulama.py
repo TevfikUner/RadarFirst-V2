@@ -59,6 +59,7 @@ class AyarSemasi(BaseModel):
     ROTA_MAKS_YANAL_SAPMA_KM: NegatifOlmayan
     ROTA_YANAL_IZGARA_KM: Pozitif
     ROTA_ZAMAN_BELIRSIZLIK_ORANI: KapaliOran
+    KABIN_PENCERE_PAYI_DK: NegatifOlmayan
     SIGMET_MAKS_COZUMLENEMEYEN_ORAN: KapaliOran
     DEVRE_KESICI_ESIK: NegatifOlmayanTam
     DEVRE_KESICI_TABAN_SANIYE: Pozitif

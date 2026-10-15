@@ -3527,10 +3527,6 @@
             "type": "string",
             "title": "Metin"
           },
-          "servis_durdur": {
-            "type": "boolean",
-            "title": "Servis Durdur"
-          },
           "ilk_bolum_baslangic_utc": {
             "type": "string",
             "title": "Ilk Bolum Baslangic Utc"
@@ -3542,13 +3538,32 @@
           "toplam_sure_dk": {
             "type": "number",
             "title": "Toplam Sure Dk"
+          },
+          "pencere_baslangic_utc": {
+            "type": "string",
+            "title": "Pencere Baslangic Utc"
+          },
+          "pencere_bitis_utc": {
+            "type": "string",
+            "title": "Pencere Bitis Utc"
+          },
+          "pencere_payi_dk": {
+            "type": "number",
+            "title": "Pencere Payi Dk"
+          },
+          "pencere_payi_notu": {
+            "type": "string",
+            "title": "Pencere Payi Notu"
           }
         },
         "type": "object",
         "required": [
           "metin",
-          "servis_durdur",
           "ilk_bolum_baslangic_utc",
+          "pencere_baslangic_utc",
+          "pencere_bitis_utc",
+          "pencere_payi_dk",
+          "pencere_payi_notu",
           "bolum_sayisi",
           "toplam_sure_dk"
         ],
@@ -4868,6 +4883,14 @@
             },
             "type": "array",
             "title": "Czml"
+          },
+          "brifing_karti": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Brifing Karti",
+            "default": []
           }
         },
         "type": "object",

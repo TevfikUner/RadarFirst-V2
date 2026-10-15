@@ -44,5 +44,7 @@ Public ACARS arşivi incelendi: saatlik dosyalarda `maxEDR`/`medEDR` var
 ## Değerlendirilen alternatifler
 
 - Kısıtlı MADIS erişimi: reddedildi; danışman üzerinden yeniden başvuru açık seçenek.
-- NCAR in-situ EDR programı, WMO AMDAR: araştırma anlaşması gerektirdiği düşünülüyor (doğrulanmadı).
+- NCAR in-situ EDR programı: araştırma anlaşması gerektirdiği düşünülüyor (doğrulanmadı).
+- WMO AMDAR: uçak gözlemleri WICAP kısıtıyla "Core" veri değil, türbülans verisi daha sıkı
+  kısıtlı; Avrupa/Türkiye adayları `docs/fizibilite/TURKIYE_ETIKET_KAYNAKLARI.md`'de (15 Eki).
 - EDR için ayrı ERA5 indirmesi: CDS kotasını PIREP hattıyla paylaşır; pencere deposu yeterli.

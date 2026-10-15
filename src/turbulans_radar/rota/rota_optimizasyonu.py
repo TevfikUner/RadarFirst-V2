@@ -876,26 +876,79 @@ def riskli_bolumler(aday) -> list[dict] | None:
 
 def kabin_onerisi(bolumler) -> dict | None:
     """Yalnızca önerilen rotada kalan risk varsa: ilk bölüm için dispeçer/kabin
-    dilinde öneri. Karar kaptanındır; sertifikalı EDR değildir."""
+    dilinde öneri. Başlangıç tek bir saat değil, ±KABIN_PENCERE_PAYI_DK'lik
+    pencere olarak verilir (pay kalibre edilmedi). Karar kaptanındır;
+    sertifikalı EDR değildir."""
     if not bolumler:
         return None
     ilk = bolumler[0]
     toplam_dk = sum(b["sure_dk"] for b in bolumler)
-    baslangic = pd.Timestamp(ilk["baslangic_utc"])
+    pay = pd.Timedelta(minutes=config.KABIN_PENCERE_PAYI_DK)
+    pencere_baslangic = pd.Timestamp(ilk["baslangic_utc"]) - pay
+    pencere_bitis = pd.Timestamp(ilk["baslangic_utc"]) + pay
     metin = (
-        f"Öneri (karar kaptanındır): ~{baslangic:%H:%M}Z'den itibaren ~{ilk['sure_dk']:.0f} dk, "
-        f"FL{ilk['fl']:03d}'te olası türbülans. Kabin servisini bu saatten önce durdurun, emniyet kemeri "
-        "işaretini açın."
+        f"Öneri (karar kaptanındır): FL{ilk['fl']:03d}'te olası türbülansın ~{pencere_baslangic:%H:%M}–"
+        f"{pencere_bitis:%H:%M}Z arasında başlaması ve ~{ilk['sure_dk']:.0f} dk sürmesi bekleniyor. Kabin "
+        "servisinin bu pencereden önce tamamlanması ve emniyet kemeri işaretinin açılması değerlendirilebilir."
     )
     if len(bolumler) > 1:
         metin += f" Rotada toplam {len(bolumler)} bölüm, ~{toplam_dk:.0f} dk."
     return {
         "metin": metin,
-        "servis_durdur": True,
         "ilk_bolum_baslangic_utc": ilk["baslangic_utc"],
+        "pencere_baslangic_utc": pencere_baslangic.isoformat(),
+        "pencere_bitis_utc": pencere_bitis.isoformat(),
+        "pencere_payi_dk": float(config.KABIN_PENCERE_PAYI_DK),
+        "pencere_payi_notu": "Parametrik varsayım, kalibre edilmedi.",
         "bolum_sayisi": len(bolumler),
         "toplam_sure_dk": toplam_dk,
     }
+
+
+_BRIFING_STRATEJI = {
+    "yok": "planlanan rota korunur",
+    "yanal": "yanal sapma",
+    "irtifa_yukari": "tırmanma",
+    "irtifa_asagi": "alçalma",
+    "ats_alternatif": "ATS alternatifi",
+}
+_SIDDET_SIRASI = ("hafif altı", "hafif", "orta", "şiddetli")
+
+
+def brifing_karti(sonuc) -> list[str]:
+    """Var olan sonucun 3 satırlık özeti (rota, kalan risk, kabin); yeni hesap
+    yapmaz. Karar destek amaçlıdır; sertifikalı EDR değildir."""
+    normal, optimize = sonuc["normal_rota"], sonuc["optimize_rota"]
+    strateji = sonuc["kacinma_stratejisi"]
+    etiket = next((v for k, v in _BRIFING_STRATEJI.items() if strateji.startswith(k)), strateji)
+    if normal["riskli_nokta_sayisi"] is None:
+        rota = f"Rota: FL{optimize['fl']:03d}; türbülans riski hesaplanamadı ({sonuc['ruzgar_verisi_kaynagi']})."
+    else:
+        rota = (
+            f"Rota: {etiket}, FL{optimize['fl']:03d}; riskli nokta {normal['riskli_nokta_sayisi']}→"
+            f"{optimize['riskli_nokta_sayisi']}, süre {-sonuc['sure_tasarrufu_dk']:+.0f} dk, "
+            f"yakıt %{-sonuc['yakit_tasarrufu_yuzde']:+.1f}."
+        )
+    bolumler = optimize["riskli_bolumler"]
+    if bolumler is None:
+        risk = "Kalan risk: hesaplanamadı."
+    elif not bolumler:
+        risk = "Kalan risk: önerilen rotada riskli bölüm yok."
+    else:
+        siddetler = [b["beklenen_siddet"] for b in bolumler if b["beklenen_siddet"] in _SIDDET_SIRASI]
+        risk = f"Kalan risk: {len(bolumler)} bölüm, ~{optimize['riskli_sure_dk']:.0f} dk" + (
+            f"; en yüksek beklenen şiddet {max(siddetler, key=_SIDDET_SIRASI.index)}." if siddetler else "."
+        )
+    oneri = sonuc.get("kabin_onerisi")
+    if oneri is None:
+        kabin = "Kabin: ek öneri yok."
+    else:
+        baslangic, bitis = pd.Timestamp(oneri["pencere_baslangic_utc"]), pd.Timestamp(oneri["pencere_bitis_utc"])
+        kabin = (
+            f"Kabin: olası türbülans başlangıcı ~{baslangic:%H:%M}–{bitis:%H:%M}Z, FL{bolumler[0]['fl']:03d}; "
+            "servisin öncesinde tamamlanması değerlendirilebilir (karar kaptanındır)."
+        )
+    return [rota, risk, kabin]
 
 
 def _irtifa_degisimi_maliyeti(eski_irtifa_m, yeni_irtifa_m, yakit_akisi_kg_saat):
@@ -1416,7 +1469,7 @@ def rota_simulasyonu_olustur(
         seviye,
     )
 
-    return {
+    sonuc = {
         "ruzgar_verisi_kaynagi": (
             ("gfs_tahmin" if veri_kupu_kaynagi(veri_kupu) == "gfs" else "era5_gercek")
             if ruzgarli_mi
@@ -1495,6 +1548,8 @@ def rota_simulasyonu_olustur(
             }
         ),
     }
+    sonuc["brifing_karti"] = brifing_karti(sonuc)
+    return sonuc
 
 
 def pareto_secenekleri(adaylar, onerilen, normal, yakit_fonksiyonu) -> list[dict]:

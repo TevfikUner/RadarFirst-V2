@@ -2,6 +2,15 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-15 (dal `claude/kabin-penceresi`)
+
+- ✅ Kabin önerisi: tek saat yerine ±15 dk pencere (KABIN_PENCERE_PAYI_DK, kalibre edilmedi), emir kipi kalktı.
+- ✅ Brifing kartı: `brifing_karti` 3 satır (rota, kalan risk, kabin) API + simülasyon ekranında; 964 test geçti.
+- ✅ Gelecek çalışma slaytı/poster: bitmiş M1/M6/IWXXM çıktı; ürün yönü F1–F4 eklendi.
+- ✅ GEFS ölçümü: 1 üye/adım 1,38 MB indirme, Türkiye kesiti 18 KB → 31 üye ~43 MB/adım.
+- ✅ Türkiye etiket notu: uçak EDR'si WMO-IATA kısıtlı; adaylar MGM ve IATA Turbulence Aware.
+- ⏳ 18 Eki sonrası: 7 seviyeli Türkiye ERA5 + OpenSky büyütmesi (kota kararı).
+
 ## 2026-10-15 (dal `claude/kok-temizligi`)
 
 - ✅ Gece işi 16:39 UTC'de kendiliğinden başladı; 14 Eki adayı aktif modeli geçemedi (+0,001).
