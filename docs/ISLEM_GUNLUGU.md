@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-15 (dal `claude/kok-temizligi`)
+
+- ✅ Gece işi 16:39 UTC'de kendiliğinden başladı; 14 Eki adayı aktif modeli geçemedi (+0,001).
+- ✅ Kök temizliği: trino.jar, eski proje zip'i, kök harita HTML'leri silindi; eski CSV/PNG/log `arsiv/` içine tar.gz (git dışı).
+
 ## 2026-10-14 (dallar `claude/ci-fatura-notu`, `claude/demo-uretilebilirlik`)
 
 - ⚠️ CI 13 Eki 16:20'den beri kırmızı: işler başlamıyor (GitHub faturalandırma/harcama limiti, özel depo). Kod hatası yok.
