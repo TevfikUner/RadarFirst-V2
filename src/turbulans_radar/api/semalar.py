@@ -195,8 +195,11 @@ class RiskliBolumYaniti(BaseModel):
 
 class KabinOnerisiYaniti(BaseModel):
     metin: str
-    servis_durdur: bool
     ilk_bolum_baslangic_utc: str
+    pencere_baslangic_utc: str
+    pencere_bitis_utc: str
+    pencere_payi_dk: float
+    pencere_payi_notu: str
     bolum_sayisi: int
     toplam_sure_dk: float
 
@@ -428,6 +431,8 @@ class RotaSimulasyonuYaniti(BaseModel):
     referans_karsilastirmasi: ReferansKarsilastirmasiYaniti | None = None
     # Yalnızca önerilen rotada kalan risk varsa dolu (karar kaptanındır).
     kabin_onerisi: KabinOnerisiYaniti | None = None
+    # Var olan sonucun 3 satırlık özeti (rota, kalan risk, kabin); yeni hesap yok.
+    brifing_karti: list[str] = []
     sure_tasarrufu_dk: float
     ti1_guvenilirlik_notu: str
     uretim_bilgisi: UretimBilgisiYaniti | None = None

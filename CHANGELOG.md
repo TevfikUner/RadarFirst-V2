@@ -4,6 +4,15 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Kabin penceresi ve brifing kartı (15 Ekim 2026)
+
+- **Kabin önerisi:** tek saat ("~20:35Z'den itibaren") yerine ilk riskli bölüm başlangıcının
+  ±`KABIN_PENCERE_PAYI_DK` (varsayılan 15) penceresi; pay parametrik, kalibre edilmedi ve yanıtta
+  `pencere_payi_notu` ile işaretli. Emir kipi ("durdurun", "açın") yerine öneri dili. Hep `true`
+  olan `servis_durdur` alanı kaldırıldı; `pencere_baslangic_utc`/`pencere_bitis_utc`/`pencere_payi_dk` eklendi.
+- **Brifing kartı:** `brifing_karti` (3 satır: rota, kalan risk, kabin) var olan sonucun özetidir,
+  yeni hesap yapmaz; simülasyon ekranında "Brifing" kutusu.
+
 ## API bölünmesi ve ayar doğrulama (13 Ekim 2026)
 
 - **API yapısı:** `api_servisi.py` 2.231 → ~1.270 satır. Anahtar/rol/WS bileti `api/guvenlik.py`'de;

@@ -283,6 +283,10 @@ TI1_ESIK_ORTA_SIDDETLI = _ortam_sayi("TI1_ESIK_ORTA_SIDDETLI", 7e-7)
 # Dispeç ekranında bundan kısa riskli bölümler listelenmez. 0 = her riskli nokta
 # (mevcut davranış); eşik kalibre edilmedi.
 RISKLI_BOLUM_MIN_NM = _ortam_sayi("RISKLI_BOLUM_MIN_NM", 0.0)
+# Kabin önerisinde riskli bölüm başlangıcına verilen ± pay (dk). Saatlik ERA5/GFS
+# zaman çözünürlüğü ve uçuş zamanlaması belirsizliği için parametrik varsayım;
+# kalibre edilmedi.
+KABIN_PENCERE_PAYI_DK = _ortam_sayi("KABIN_PENCERE_PAYI_DK", 15.0)
 
 # turbulans_indeksleri.ti1_den_edr_proxy_olcegine_cevir()'in kullandığı
 # ölçeklendirme katsayısı. 2026-10-05 sürümü (Madde 2 fiziği: çevreleyen

@@ -75,6 +75,11 @@ def test_kapsam_disi_bolge_durustce_ruzgarsiz_sonuc_doner():
     assert sonuc["normal_rota"]["mesafe_km"] > 8000  # İstanbul-New York büyük daire mesafesi ~8065 km
     assert sonuc["normal_rota"]["riskli_nokta_sayisi"] is None
     assert sonuc["normal_rota"]["riskli_bolumler"] is None and sonuc["kabin_onerisi"] is None
+    assert sonuc["brifing_karti"] == [
+        "Rota: FL340; türbülans riski hesaplanamadı (era5_kapsam_disi).",
+        "Kalan risk: hesaplanamadı.",
+        "Kabin: ek öneri yok.",
+    ]
     assert all(n["riskli"] is None for n in sonuc["normal_rota"]["noktalar"])
 
 
@@ -133,6 +138,8 @@ def test_gercek_era5_turbulans_yoksa_optimize_normalle_birebir_ayni(gercek_senar
     assert sonuc["optimize_rota"]["noktalar"] == sonuc["normal_rota"]["noktalar"]
     assert sonuc["yakit_tasarrufu_yuzde"] == 0.0
     assert sonuc["optimize_rota"]["riskli_bolumler"] == [] and sonuc["kabin_onerisi"] is None
+    assert sonuc["brifing_karti"][0].startswith("Rota: planlanan rota korunur")
+    assert sonuc["brifing_karti"][1:] == ["Kalan risk: önerilen rotada riskli bölüm yok.", "Kabin: ek öneri yok."]
 
 
 def test_gercek_era5_turbulans_varsa_tamamen_atlatilir(gercek_senaryo):
@@ -235,8 +242,9 @@ def test_gercek_era5_kismi_atlatma_durustce_raporlanir(gercek_senaryo):
     assert pd.Timestamp(bolumler[0]["baslangic_utc"]) < pd.Timestamp(bolumler[0]["bitis_utc"])
     assert sonuc["optimize_rota"]["riskli_mesafe_nm"] == pytest.approx(sum(b["uzunluk_nm"] for b in bolumler))
     oneri = sonuc["kabin_onerisi"]
-    assert oneri["servis_durdur"] is True
     assert oneri["metin"].startswith("Öneri (karar kaptanındır)") and "FL310" in oneri["metin"]
+    assert pd.Timestamp(oneri["pencere_baslangic_utc"]) < pd.Timestamp(bolumler[0]["baslangic_utc"])
+    assert len(sonuc["brifing_karti"]) == 3 and sonuc["brifing_karti"][2].startswith("Kabin: olası türbülans")
 
 
 def test_gercek_era5_ile_czml_yapisi_gecerli(gercek_senaryo):
@@ -648,7 +656,12 @@ def test_riskli_bolumler_ardisik_noktalari_birlestirir_ve_min_nm_ile_suzer(monke
     assert bolumler[0]["fl"] == 370 and bolumler[0]["sure_dk"] == pytest.approx(10.0)
     assert bolumler[0]["uzunluk_nm"] > bolumler[1]["uzunluk_nm"] > 0
     assert bolumler[0]["baslangic_utc"].startswith("2026-01-01T10:02:30")
-    assert "~10:02Z" in kabin_onerisi(bolumler)["metin"] and "FL370" in kabin_onerisi(bolumler)["metin"]
+    oneri = kabin_onerisi(bolumler)
+    assert "~09:47–10:17Z arasında" in oneri["metin"] and "FL370" in oneri["metin"]
+    assert "durdurun" not in oneri["metin"] and "değerlendirilebilir" in oneri["metin"]
+    assert oneri["pencere_payi_dk"] == config.KABIN_PENCERE_PAYI_DK and "kalibre edilmedi" in oneri["pencere_payi_notu"]
+    monkeypatch.setattr(config, "KABIN_PENCERE_PAYI_DK", 30.0)
+    assert "~09:32–10:32Z" in kabin_onerisi(bolumler)["metin"]
 
     monkeypatch.setattr(config, "RISKLI_BOLUM_MIN_NM", bolumler[1]["uzunluk_nm"] + 1)
     assert len(riskli_bolumler(aday)) == 1
