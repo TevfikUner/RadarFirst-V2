@@ -293,6 +293,35 @@ günlerine bakılarak görüldü. Seçim kuralını buna göre değiştirmek tes
 model seçmek olur. Bu yüzden 18 Ekim dondurmasında protokol değişmeden uygulanır; bulgu
 yalnız tartışma bölümünde yer alır.
 
+### 2.4 RF ayarı ve bağlam özellikleri (F9 deneyi, 15 Ekim)
+
+Komut `turbulans-ml-rf-deneyi --cikti docs/rapor/veri`, ham sayılar
+[`veri/rf_deneyi.json`](veri/rf_deneyi.json). Altın test günleri okuma anında dışlandı:
+12.855 örnek, 132 gün, pozitif oranı %54. Dış 5 kat gün gruplu CV; ayarlı RF iç 3 katta
+RandomizedSearch (12 deneme) ile seçildi. Fark aralıkları kat dışı tahminlerde gün bazlı
+eşleştirilmiş bootstrap. Aynı günlerde TI1 ROC-AUC 0,674. Protokol modeli, aktif model ve
+sonuç paketi değişmedi.
+
+| Özellikler | Lojistik | Sığ RF (derinlik 5) | Ayarlı RF | Ayarlı − sığ RF |
+|---|---|---|---|---|
+| Temel 8 | 0,690 | 0,699 | 0,700 | +0,001 [−0,000; +0,002] |
+| Temel 8 + 5 bağlam | 0,711 | 0,706 | 0,709 | +0,003 [+0,001; +0,005] |
+
+- Ayar neredeyse hiçbir şey kazandırmadı. İç CV en sık `min_samples_leaf` 20–100,
+  `max_features` sqrt seçti.
+- Bağlam özellikleri ayarlı RF'te +0,008 [+0,005; +0,012] ekledi. Geniş setle lojistik
+  TI1'i +0,038 [+0,032; +0,044] geçiyor (temel setle +0,017).
+- Permütasyon önemi (ROC-AUC düşüşü): yatay deformasyon 0,028, kolon en düşük Ri 0,022,
+  düşey kayma 0,017, diverjans 0,012, Ri 0,010. Komşu TI1 maks/ort ≤ 0,002; TI1'in kendisi
+  ~0, çünkü bilgisi kayma ve deformasyonda zaten var. Bağlam katkısının çoğu kolon Ri'sinden.
+- OOB ROC-AUC gün gruplu CV ile neredeyse aynı (0,701 / 0,700; 0,711 / 0,709). Bu
+  ayarlarda aynı günün örnekleri OOB'yi şişirmedi; beklenen iyimserlik gözlenmedi.
+
+Bunlar eğitim günlerinde CV sonuçlarıdır, altın gün sonucu değildir. Geniş set ya da
+yeni model, 18 Ekim'den sonra önceden yazılmış bir protokolle ve dondurmadan sonra
+toplanan yeni günlerde değerlendirilecek. Aynı 16 altın günde değerlendirmek, bu
+deneye bakıldıktan sonra seçim yapmak olurdu.
+
 ## 3. Nesnel değerlendirme: MADIS ölçülen EDR (M1) — tarihçe, 5 Ekim (güncel: §0.4)
 
 Etiket: MADIS maxEDR ≥ 0,1 (hafif ve üstü). 12.232 ölçüm, 372 pozitif (%3,0), 4 gün.

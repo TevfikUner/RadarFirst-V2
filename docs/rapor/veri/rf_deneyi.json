@@ -1,0 +1,307 @@
+{
+  "veri": {
+    "okunan_ornek": 12858,
+    "kullanilan_ornek": 12855,
+    "atilan_eksik_ozellik": 3,
+    "gun": 132,
+    "pozitif_orani": 0.5354336833916764,
+    "altin_gunler": "okuma anında dışlandı"
+  },
+  "arama_uzayi": {
+    "max_depth": [
+      null,
+      10,
+      20
+    ],
+    "min_samples_leaf": [
+      20,
+      50,
+      100,
+      200
+    ],
+    "max_features": [
+      "sqrt",
+      0.5
+    ],
+    "n_estimators": [
+      300,
+      500
+    ]
+  },
+  "temel_ozellikler": {
+    "ti1_roc_auc": 0.6735969611297586,
+    "modeller": {
+      "lojistik": {
+        "roc_auc": 0.6904599059254583,
+        "eksi_ti1": {
+          "fark": 0.016862944795699608,
+          "alt": 0.012965182991327852,
+          "ust": 0.020970948118031005,
+          "p_degeri": 0.0,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      },
+      "rf_sig": {
+        "roc_auc": 0.6993439966198014,
+        "eksi_ti1": {
+          "fark": 0.025747035490042758,
+          "alt": 0.02022066692446821,
+          "ust": 0.031054196178799804,
+          "p_degeri": 0.0,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      },
+      "rf_ayarli": {
+        "roc_auc": 0.7003101499671236,
+        "eksi_ti1": {
+          "fark": 0.026713188837364954,
+          "alt": 0.020966962420656477,
+          "ust": 0.032100527693384465,
+          "p_degeri": 0.0,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        },
+        "eksi_rf_sig": {
+          "fark": 0.0009661533473221962,
+          "alt": -0.00013835344061067218,
+          "ust": 0.002026008966837667,
+          "p_degeri": 0.108,
+          "anlamli": false,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      }
+    },
+    "secilen_parametreler": [
+      {
+        "n_estimators": 300,
+        "min_samples_leaf": 100,
+        "max_features": "sqrt",
+        "max_depth": null
+      },
+      {
+        "n_estimators": 300,
+        "min_samples_leaf": 50,
+        "max_features": "sqrt",
+        "max_depth": 20
+      },
+      {
+        "n_estimators": 500,
+        "min_samples_leaf": 100,
+        "max_features": "sqrt",
+        "max_depth": 20
+      },
+      {
+        "n_estimators": 500,
+        "min_samples_leaf": 100,
+        "max_features": "sqrt",
+        "max_depth": 20
+      },
+      {
+        "n_estimators": 300,
+        "min_samples_leaf": 100,
+        "max_features": "sqrt",
+        "max_depth": null
+      }
+    ],
+    "oob": {
+      "parametreler": {
+        "max_depth": null,
+        "max_features": "sqrt",
+        "min_samples_leaf": 100,
+        "n_estimators": 300
+      },
+      "oob_roc_auc": 0.7009493866432135,
+      "gun_gruplu_cv_roc_auc": 0.7003101499671236,
+      "fark": 0.0006392366760898938
+    }
+  },
+  "genis_ozellikler": {
+    "ti1_roc_auc": 0.6735969611297586,
+    "modeller": {
+      "lojistik": {
+        "roc_auc": 0.7113661759624239,
+        "eksi_ti1": {
+          "fark": 0.037769214832665265,
+          "alt": 0.031961002400137495,
+          "ust": 0.04389639715110165,
+          "p_degeri": 0.0,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      },
+      "rf_sig": {
+        "roc_auc": 0.706015780066773,
+        "eksi_ti1": {
+          "fark": 0.03241881893701437,
+          "alt": 0.024939237366000178,
+          "ust": 0.039795743490833306,
+          "p_degeri": 0.0,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      },
+      "rf_ayarli": {
+        "roc_auc": 0.708793489186157,
+        "eksi_ti1": {
+          "fark": 0.03519652805639839,
+          "alt": 0.027793014964506348,
+          "ust": 0.042862968426401415,
+          "p_degeri": 0.0,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        },
+        "eksi_rf_sig": {
+          "fark": 0.0027777091193840198,
+          "alt": 0.0007779599948778776,
+          "ust": 0.004817840200146339,
+          "p_degeri": 0.006,
+          "anlamli": true,
+          "guven": 0.95,
+          "gecerli_tekrar": 1000
+        }
+      }
+    },
+    "secilen_parametreler": [
+      {
+        "n_estimators": 300,
+        "min_samples_leaf": 20,
+        "max_features": "sqrt",
+        "max_depth": 20
+      },
+      {
+        "n_estimators": 300,
+        "min_samples_leaf": 50,
+        "max_features": "sqrt",
+        "max_depth": 20
+      },
+      {
+        "n_estimators": 300,
+        "min_samples_leaf": 50,
+        "max_features": "sqrt",
+        "max_depth": 20
+      },
+      {
+        "n_estimators": 300,
+        "min_samples_leaf": 20,
+        "max_features": "sqrt",
+        "max_depth": 20
+      },
+      {
+        "n_estimators": 300,
+        "min_samples_leaf": 20,
+        "max_features": "sqrt",
+        "max_depth": 20
+      }
+    ],
+    "oob": {
+      "parametreler": {
+        "max_depth": 20,
+        "max_features": "sqrt",
+        "min_samples_leaf": 20,
+        "n_estimators": 300
+      },
+      "oob_roc_auc": 0.7108802286110425,
+      "gun_gruplu_cv_roc_auc": 0.708793489186157,
+      "fark": 0.0020867394248854643
+    },
+    "onem": [
+      {
+        "ozellik": "yatay_deformasyon",
+        "permutasyon_roc_auc_dususu": 0.02748817670953737,
+        "permutasyon_std_katlar": 0.003862436891433521,
+        "safsizlik": 0.16579484583119086
+      },
+      {
+        "ozellik": "ri_kolon_min",
+        "permutasyon_roc_auc_dususu": 0.021876864354051145,
+        "permutasyon_std_katlar": 0.007168049691018262,
+        "safsizlik": 0.17181154683628594
+      },
+      {
+        "ozellik": "dusey_ruzgar_kaymasi",
+        "permutasyon_roc_auc_dususu": 0.017078672497554855,
+        "permutasyon_std_katlar": 0.002254426956503205,
+        "safsizlik": 0.18088293280381204
+      },
+      {
+        "ozellik": "yatay_diverjans",
+        "permutasyon_roc_auc_dususu": 0.011981745183071256,
+        "permutasyon_std_katlar": 0.001630338589907341,
+        "safsizlik": 0.10401126211252862
+      },
+      {
+        "ozellik": "richardson_sayisi",
+        "permutasyon_roc_auc_dususu": 0.01025072104839628,
+        "permutasyon_std_katlar": 0.002806468065479101,
+        "safsizlik": 0.15814727126959652
+      },
+      {
+        "ozellik": "basinc_hpa",
+        "permutasyon_roc_auc_dususu": 0.0032100299097976,
+        "permutasyon_std_katlar": 0.0008790180338186602,
+        "safsizlik": 0.026187728494407557
+      },
+      {
+        "ozellik": "ti1_komsu_maks",
+        "permutasyon_roc_auc_dususu": 0.001772325447970342,
+        "permutasyon_std_katlar": 0.001055993034450587,
+        "safsizlik": 0.016743455231321355
+      },
+      {
+        "ozellik": "jet_orani",
+        "permutasyon_roc_auc_dususu": 0.0015640832482316422,
+        "permutasyon_std_katlar": 0.0003509249794245309,
+        "safsizlik": 0.052844746737569205
+      },
+      {
+        "ozellik": "ruzgar_hizi_ms",
+        "permutasyon_roc_auc_dususu": 0.001315209787501428,
+        "permutasyon_std_katlar": 0.0006777938914081296,
+        "safsizlik": 0.056663036939895814
+      },
+      {
+        "ozellik": "sicaklik_azalma_k_km",
+        "permutasyon_roc_auc_dususu": 9.836494090119884e-05,
+        "permutasyon_std_katlar": 0.00023143947761646374,
+        "safsizlik": 0.0578786876063457
+      },
+      {
+        "ozellik": "ti2_indeksi",
+        "permutasyon_roc_auc_dususu": 2.6418638453247217e-05,
+        "permutasyon_std_katlar": 0.00018469410832652673,
+        "safsizlik": 0.005363281611010602
+      },
+      {
+        "ozellik": "ti1_komsu_ort",
+        "permutasyon_roc_auc_dususu": 2.2721647977550497e-05,
+        "permutasyon_std_katlar": 1.8834551109155476e-05,
+        "safsizlik": 0.0005792465435475065
+      },
+      {
+        "ozellik": "ti1_indeksi",
+        "permutasyon_roc_auc_dususu": -1.1446385026259164e-06,
+        "permutasyon_std_katlar": 6.306919118562582e-05,
+        "safsizlik": 0.0030919579824883773
+      }
+    ]
+  },
+  "genis_eksi_temel_rf_ayarli": {
+    "fark": 0.008483339219033437,
+    "alt": 0.0046416650815771085,
+    "ust": 0.01224697027546857,
+    "p_degeri": 0.0,
+    "anlamli": true,
+    "guven": 0.95,
+    "gecerli_tekrar": 1000
+  },
+  "uyari": "Deney raporudur: yalnız altın test günleri dışındaki günlerde gün gruplu CV. Protokol modelini, aktif modeli ve sonuç paketini değiştirmez; altın günlerde ayrı, önceden kayıtlı protokolle değerlendirilir."
+}
