@@ -2,6 +2,17 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-15 akşam (dallar `claude/openap-yakit`, `claude/demo-ekranlari-openap`, `claude/deneyler-f9-f3-f6`)
+
+- ✅ F1 OpenAP yakıt + NOx (PR #47): kütle/irtifa/düşey hıza bağlı; demo %9,7→%9,5, FL370 seçeneği −%2,0 yakıt.
+- ✅ Demo ekranları temiz klondan (5532/8100 portları) yenilendi; brifing kutusu ve NOx satırı görünür (PR #48).
+- ✅ API + worker yeni imajla; ilk worker derlemesi kilit yazılırken düştü, yeniden derleme temiz.
+- ✅ F3 tip analizi: ağır − hafif kanat yükü farkı −0,014 [−0,041; +0,012] → anlamlı değil.
+- ✅ F6 dedektör: 90 ft'te %50, ≥120 ft'te ~%100 tespit; 5–15 ft gürültüde yanlış alarm 0.
+- ⚠️ F5 backtest yakıtı: THY322 bölümleri TAS 154–166 m/s (tırmanış) → karşılaştırılamaz işaretli.
+- ✅ F7 notu: MADIS'te rüzgâr var (Türkiye kutusunda saatte ~23 FL280+); 2019 için GFS arşivi yok.
+- ✅ F9 (altın gün dışı CV): ayar +0,001; bağlam özellikleri +0,008; en iyi geniş lojistik 0,711 (TI1 0,674).
+
 ## 2026-10-15 (dal `claude/kabin-penceresi`)
 
 - ✅ Kabin önerisi: tek saat yerine ±15 dk pencere (KABIN_PENCERE_PAYI_DK, kalibre edilmedi), emir kipi kalktı.

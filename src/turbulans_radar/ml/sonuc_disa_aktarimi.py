@@ -40,6 +40,7 @@ from turbulans_radar.ml.degerlendirme import (
     guvenilirlik_tablosu,
     ikili_metrikler,
     olasilik_metrikleri,
+    onsel_kayma_duzelt,
     peirce_esigi,
 )
 from turbulans_radar.ml.ml_otomatik_egitim import (
@@ -279,7 +280,7 @@ def cat_alt_kumesi(bilgi: pd.DataFrame, metinler: pd.DataFrame, skorlar: dict, h
     }
 
 
-def madis_bolumu(madis: pd.DataFrame, model, tekrar=None) -> dict:
+def madis_bolumu(madis: pd.DataFrame, model, tekrar=None, egitim_taban_orani=None) -> dict:
     from turbulans_radar.veri.madis_edr import edr_sinifi
 
     madis = madis.dropna(subset=MODEL_OZELLIK_SUTUNLARI + ["max_edr"]).reset_index(drop=True)
@@ -299,6 +300,18 @@ def madis_bolumu(madis: pd.DataFrame, model, tekrar=None) -> dict:
         **ozet,
         "model_olasilik": olasilik_metrikleri(y, olasilik),
         "guvenilirlik": guvenilirlik_tablosu(y, olasilik),
+        **(
+            {
+                "model_olasilik_onsel_duzeltilmis": {
+                    "egitim_taban_orani": float(egitim_taban_orani),
+                    "not": "Yalnız gösterim: olasılık PIREP taban oranından MADIS taban oranına taşındı. Yeni taban "
+                    "oranı aynı MADIS verisinden alındığı için iyimserdir; ROC-AUC değişmez, karar eşiğine girmez.",
+                    **olasilik_metrikleri(y, onsel_kayma_duzelt(olasilik, egitim_taban_orani, float(y.mean()))),
+                }
+            }
+            if egitim_taban_orani is not None and 0 < egitim_taban_orani < 1 and 0 < y.mean() < 1
+            else {}
+        ),
     }
 
 
@@ -552,6 +565,12 @@ def sayilar_tablosu(paket: dict) -> str:
             _s(md["model_olasilik"]["brier_becerisi"]),
             "madis.model_olasilik.brier_becerisi",
         )
+        if "model_olasilik_onsel_duzeltilmis" in md:
+            ekle(
+                "MADIS model Brier becerisi, önsel kayma düzeltmeli (gösterim, iyimser)",
+                _s(md["model_olasilik_onsel_duzeltilmis"]["brier_becerisi"]),
+                "madis.model_olasilik_onsel_duzeltilmis.brier_becerisi",
+            )
     for i, b in enumerate(paket["backtest"]):
         ekle(
             f"Backtest {b['ucus']} {b['tarih']} riskli oran (gerçek / büyük daire / A*)",
@@ -584,7 +603,11 @@ def disa_aktar(cikti: str, kesme=None, motor=None, tekrar=None, arsiv_klasoru=No
     seviye = X["basinc_hpa"].round().to_numpy()
     tablo = pd.DataFrame({"y": y, "ti1": skorlar["TI1"], "seviye": seviye, "gun": gunler.to_numpy()})
     madis = madis_ornekleri(motor, kesme)
-    madis_sonuc = madis_bolumu(madis, model, tekrar) if not madis.empty else {"durum": "veri_yok"}
+    madis_sonuc = (
+        madis_bolumu(madis, model, tekrar, float(bilgi["y"][egitim].mean()))
+        if not madis.empty
+        else {"durum": "veri_yok"}
+    )
     git = git_bilgisi()
     paket = {
         "meta": {

@@ -1,0 +1,172 @@
+{
+  "varsayimlar": {
+    "tip": "a320 (OpenAP FlightGenerator, random=False)",
+    "adim_sn": 5,
+    "kuantum_ft": 25.0,
+    "olay_sigma_sn": 6.0,
+    "dikey_hiz_gurultusu_ftdk": 50.0,
+    "eslesme_sn": 60,
+    "not": "Gürültü düzeyleri ve olay biçimi varsayımdır; gerçek ADS-B hata dağılımı ölçülmedi."
+  },
+  "tespit": [
+    {
+      "genlik_ft": 30,
+      "gurultu_ft": 5.0,
+      "tekrar": 40,
+      "tespit_orani": 0.0
+    },
+    {
+      "genlik_ft": 60,
+      "gurultu_ft": 5.0,
+      "tekrar": 40,
+      "tespit_orani": 0.0
+    },
+    {
+      "genlik_ft": 90,
+      "gurultu_ft": 5.0,
+      "tekrar": 40,
+      "tespit_orani": 0.525
+    },
+    {
+      "genlik_ft": 120,
+      "gurultu_ft": 5.0,
+      "tekrar": 40,
+      "tespit_orani": 1.0
+    },
+    {
+      "genlik_ft": 150,
+      "gurultu_ft": 5.0,
+      "tekrar": 40,
+      "tespit_orani": 1.0
+    },
+    {
+      "genlik_ft": 200,
+      "gurultu_ft": 5.0,
+      "tekrar": 40,
+      "tespit_orani": 1.0
+    },
+    {
+      "genlik_ft": 300,
+      "gurultu_ft": 5.0,
+      "tekrar": 40,
+      "tespit_orani": 1.0
+    },
+    {
+      "genlik_ft": 30,
+      "gurultu_ft": 15.0,
+      "tekrar": 40,
+      "tespit_orani": 0.0
+    },
+    {
+      "genlik_ft": 60,
+      "gurultu_ft": 15.0,
+      "tekrar": 40,
+      "tespit_orani": 0.0
+    },
+    {
+      "genlik_ft": 90,
+      "gurultu_ft": 15.0,
+      "tekrar": 40,
+      "tespit_orani": 0.5
+    },
+    {
+      "genlik_ft": 120,
+      "gurultu_ft": 15.0,
+      "tekrar": 40,
+      "tespit_orani": 1.0
+    },
+    {
+      "genlik_ft": 150,
+      "gurultu_ft": 15.0,
+      "tekrar": 40,
+      "tespit_orani": 1.0
+    },
+    {
+      "genlik_ft": 200,
+      "gurultu_ft": 15.0,
+      "tekrar": 40,
+      "tespit_orani": 1.0
+    },
+    {
+      "genlik_ft": 300,
+      "gurultu_ft": 15.0,
+      "tekrar": 40,
+      "tespit_orani": 1.0
+    },
+    {
+      "genlik_ft": 30,
+      "gurultu_ft": 30.0,
+      "tekrar": 40,
+      "tespit_orani": 0.05
+    },
+    {
+      "genlik_ft": 60,
+      "gurultu_ft": 30.0,
+      "tekrar": 40,
+      "tespit_orani": 0.325
+    },
+    {
+      "genlik_ft": 90,
+      "gurultu_ft": 30.0,
+      "tekrar": 40,
+      "tespit_orani": 0.75
+    },
+    {
+      "genlik_ft": 120,
+      "gurultu_ft": 30.0,
+      "tekrar": 40,
+      "tespit_orani": 0.975
+    },
+    {
+      "genlik_ft": 150,
+      "gurultu_ft": 30.0,
+      "tekrar": 40,
+      "tespit_orani": 1.0
+    },
+    {
+      "genlik_ft": 200,
+      "gurultu_ft": 30.0,
+      "tekrar": 40,
+      "tespit_orani": 1.0
+    },
+    {
+      "genlik_ft": 300,
+      "gurultu_ft": 30.0,
+      "tekrar": 40,
+      "tespit_orani": 1.0
+    }
+  ],
+  "yanlis_alarm": [
+    {
+      "gurultu_ft": 5.0,
+      "tekrar": 40,
+      "seyir_saati": 36.27777777777778,
+      "olay": 0,
+      "seyir_saati_basina_yanlis_alarm": 0.0,
+      "seyir_disi_olay": 0
+    },
+    {
+      "gurultu_ft": 15.0,
+      "tekrar": 40,
+      "seyir_saati": 36.27916666666667,
+      "olay": 0,
+      "seyir_saati_basina_yanlis_alarm": 0.0,
+      "seyir_disi_olay": 0
+    },
+    {
+      "gurultu_ft": 30.0,
+      "tekrar": 40,
+      "seyir_saati": 36.27361111111111,
+      "olay": 14,
+      "seyir_saati_basina_yanlis_alarm": 0.38595550790672745,
+      "seyir_disi_olay": 0
+    }
+  ],
+  "faz_uyumu": {
+    "dedektor_seyir_noktasi": 654,
+    "openap_seyir_noktasi": 758,
+    "dedektor_seyirinin_openap_cr_orani": 1.0,
+    "openap_cr_nin_dedektor_seyir_orani": 0.862796833773087
+  },
+  "uyari": "Dedektörün sentetik duyarlılığıdır; türbülans becerisi değildir, eşikler bununla ayarlanmadı."
+}

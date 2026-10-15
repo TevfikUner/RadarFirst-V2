@@ -111,6 +111,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   uçağın 50 km / ±2000 ft / ±60 dk içinde doğruladığı olay `/ws/uyarilar`'a
   gider. Rota kararına girmez; dispeçere bilgi verir. Sapma ham büyüklüktür,
   EDR ya da şiddet sınıfı değildir; eşikler kalibre edilmemiştir (ADR 0011).
+  Sentetik duyarlılık (15 Ekim, `turbulans-sanal-pirep-duyarlilik`, OpenAP izi, 25 ft
+  kuantizasyon): 90 ft sapmada tespit ~%50, ≥ 120 ft'te ~%100; 5–15 ft gürültüde olaysız
+  36 seyir saatinde yanlış alarm 0, 30 ft gürültüde saatte ~0,4; tırmanış/alçalışta olay
+  yok. Gürültü modeli varsayımdır; bu dedektörün duyarlılığıdır, türbülans becerisi değil.
   Seviye değişikliği (tırmanma/alçalma) seyir sayılmadığından türbülansa en sık
   verilen tepki, seviye talebi, olay olarak görülmez.
   ATC ayırma vektörü ya da TCAS çözüm uyarısı ayrı olarak elenmez; yalnız şunlar
@@ -257,8 +261,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   OpenAP yoksa ya da `ROTA_YAKIT_MODELI=sabit` ise sabit tipik yakıt akışına
   dönülür; yanıttaki `yakit_modeli.kaynak` hangisinin kullanıldığını söyler.
 - Türbülans riski uçak tipinden bağımsızdır; PIREP'teki uçak tipi kullanılmaz.
-  Kanat yüklemesine göre eşik esnetmek için dayanak (tip bazlı etiketli veri) yoktur;
-  uydurma katsayı eklenmedi.
+  Tip etkisi 15 Ekim'de ölçüldü (`turbulans-ml-tip-analizi`, altın günler dışı, 7.365 örnek):
+  kanat yükü vekiline (OpenAP MTOW / kanat alanı) göre ağır ile hafif grup arasında, aynı
+  TI1 dilimlerinde pozitif oran farkı −0,014 [−0,041; +0,012]; anlamlı fark yok. TI1 ROC-AUC
+  üç grupta 0,66–0,67. Eşik tipe göre esnetilmedi.
 - A* maliyeti seyir süresidir artı TI1 cezası; yakıt (OpenAP) adaylar arasından
   seçimde ve seçeneklerde kullanılır, A* aramasının içinde değil. Maliyet İndeksi
   (CI) yoktur. Seviye değişiminde tırmanma ve alçalma aynı yöne bakmaz,

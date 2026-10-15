@@ -66,6 +66,15 @@ def olasilik_metrikleri(y, olasilik, esik=0.5) -> dict:
     }
 
 
+def onsel_kayma_duzelt(olasilik, eski_taban, yeni_taban) -> np.ndarray:
+    """Olasılığı eğitim taban oranından yeni taban oranına taşır:
+    odds x [yeni/(1-yeni)] / [eski/(1-eski)]. Ayırt etmeyi (ROC-AUC) değiştirmez."""
+    p = np.clip(np.asarray(olasilik, dtype=float), 1e-9, 1 - 1e-9)
+    oran = (yeni_taban / (1 - yeni_taban)) / (eski_taban / (1 - eski_taban))
+    odds = p / (1 - p) * oran
+    return odds / (1 + odds)
+
+
 def guvenilirlik_tablosu(y, olasilik, kutu_sayisi=10) -> list[dict]:
     y = np.asarray(y, dtype=int)
     olasilik = np.clip(np.asarray(olasilik, dtype=float), 0.0, 1.0)

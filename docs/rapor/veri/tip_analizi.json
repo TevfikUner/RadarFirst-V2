@@ -1,0 +1,157 @@
+{
+  "kapsam": {
+    "okunan_ornek": 12857,
+    "tipi_bilinen": 9635,
+    "openap_kanat_yuku_olan": 7365,
+    "openap_disi_tipler": [
+      "A19",
+      "A2",
+      "A21",
+      "A30",
+      "A306",
+      "A307",
+      "A31",
+      "A310",
+      "A32",
+      "A322",
+      "A323",
+      "A328",
+      "A329",
+      "A330",
+      "A339",
+      "A34",
+      "A340",
+      "A346",
+      "A350",
+      "A35K",
+      "A380",
+      "A390",
+      "ALL",
+      "ASTR",
+      "B139",
+      "B2",
+      "B25B",
+      "B319",
+      "B350",
+      "B37",
+      "B373",
+      "B378",
+      "B52",
+      "B7",
+      "B712",
+      "B717",
+      "B72",
+      "B722",
+      "B727",
+      "B728"
+    ],
+    "altin_gunler": "okuma anında dışlandı"
+  },
+  "yontem": "Kanat yükü = OpenAP MTOW / kanat alanı (gerçek kütle bilinmez). Gruplar tip bazında, örneklerin yaklaşık üçte birleri; fark TI1 beşte birlik dilimleri içinde, gün bazlı blok bootstrap %95 GA.",
+  "gruplar": {
+    "hafif": {
+      "ornek": 2907,
+      "gun": 116,
+      "kanat_yuku_aralik_kg_m2": [
+        215.17436380772858,
+        561.7977528089888
+      ],
+      "pozitif_orani": 0.5558995528035776,
+      "en_sik_tipler": {
+        "B737": 1884,
+        "E75L": 310,
+        "CRJ9": 221,
+        "E170": 159,
+        "B763": 131
+      },
+      "ti1_roc_auc": {
+        "metrik": "roc_auc",
+        "deger": 0.6572213573022677,
+        "alt": 0.6356817531662609,
+        "ust": 0.6806560387427104,
+        "guven": 0.95,
+        "gecerli_tekrar": 1000,
+        "gun_sayisi": 116
+      },
+      "ti1_dilimi_pozitif_orani": {
+        "0": 0.3964,
+        "1": 0.4258,
+        "2": 0.5475,
+        "3": 0.6444,
+        "4": 0.759
+      }
+    },
+    "orta": {
+      "ornek": 2301,
+      "gun": 117,
+      "kanat_yuku_aralik_kg_m2": [
+        604.7745358090185,
+        634.0288924558588
+      ],
+      "pozitif_orani": 0.5028248587570622,
+      "en_sik_tipler": {
+        "B738": 934,
+        "A320": 881,
+        "A319": 398,
+        "B788": 47,
+        "A359": 41
+      },
+      "ti1_roc_auc": {
+        "metrik": "roc_auc",
+        "deger": 0.6559808493149029,
+        "alt": 0.633735594590866,
+        "ust": 0.6801777252881744,
+        "guven": 0.95,
+        "gecerli_tekrar": 1000,
+        "gun_sayisi": 117
+      },
+      "ti1_dilimi_pozitif_orani": {
+        "0": 0.3194,
+        "1": 0.4167,
+        "2": 0.5,
+        "3": 0.587,
+        "4": 0.7029
+      }
+    },
+    "agir": {
+      "ornek": 2157,
+      "gun": 117,
+      "kanat_yuku_aralik_kg_m2": [
+        634.1195831047723,
+        808.1227436823104
+      ],
+      "pozitif_orani": 0.5414928140936486,
+      "en_sik_tipler": {
+        "A321": 750,
+        "B739": 514,
+        "B752": 299,
+        "B77W": 127,
+        "B772": 95
+      },
+      "ti1_roc_auc": {
+        "metrik": "roc_auc",
+        "deger": 0.6670775794008061,
+        "alt": 0.6434008558434049,
+        "ust": 0.6890100925460939,
+        "guven": 0.95,
+        "gecerli_tekrar": 1000,
+        "gun_sayisi": 117
+      },
+      "ti1_dilimi_pozitif_orani": {
+        "0": 0.3364,
+        "1": 0.4617,
+        "2": 0.552,
+        "3": 0.5818,
+        "4": 0.7718
+      }
+    }
+  },
+  "agir_eksi_hafif_katmanli_pozitif_orani": {
+    "fark": -0.013883380505117894,
+    "alt": -0.04080698001515147,
+    "ust": 0.012463822412355762,
+    "gecerli_tekrar": 1000,
+    "anlamli": false
+  },
+  "uyari": "Analizdir; özellik eklemez, protokolü değiştirmez. PIREP öznel ve yanlıdır; ağır uçak pilotlarının bildirme eşiği de farklı olabilir (etki tip ile bildirme davranışını ayırmaz)."
+}

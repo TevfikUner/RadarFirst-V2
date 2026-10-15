@@ -80,6 +80,10 @@ def test_uctan_uca_backtest_kaydedilir_ve_listelenir(kayitli_ucus):
     # 2019 Türkiye: ne sistemin SIGMET arşivi ne IEM kapsıyor -- kanıt yok, "sıfır" değil.
     assert sonuc["kanit_kaynaklari"] == []
     assert sonuc["gercek_turb_sigmet"] is None and sonuc["optimize_mog_pirep"] is None
+    yakit = sonuc["yakit"]
+    assert yakit["gercek_yakit_kg"] > 0 and yakit["gercek_nox_kg"] > 0
+    assert 50 < yakit["gercek_ortalama_tas_ms"] < 400
+    assert isinstance(yakit["karsilastirilabilir"], bool) and "karşılaştırılamaz" in yakit["aciklama"]
 
     ikinci = rb.ucus_backtest_et(*kayitli_ucus)
     kayitlar = [s for s in rb.backtestleri_listele()["sonuclar"] if s["ucus_numarasi"] == "BTEST1"]
