@@ -17,7 +17,7 @@ yazılmamalıdır.
 | 7 | Sonuçlar: performans | 0:45 | `docs/PERFORMANS_RAPORU.md` |
 | 8 | Sonuçlar: doğruluk ve ML | 1:00 | `docs/SISTEM_KARTI.md` §6, ML eğitim kaydı |
 | 9 | Sınırlamalar | 0:45 | `docs/SISTEM_KARTI.md` §5 |
-| 10 | Gelecek çalışma | 0:30 | Geliştirme planı |
+| 10 | Gelecek çalışma | 0:30 | Geliştirme planı, ürün ekibi raporu |
 | 11 | Kapanış ve sorular | 0:10 | — |
 
 ## 1. Başlık
@@ -143,9 +143,23 @@ dondurmasından sonra nihai paketle değiştirilir. Aralıklar gün bazlı blok 
 
 ## 10. Gelecek çalışma
 
-Geliştirme planındaki sırayla: M1 nesnel EDR etiketi (MADIS) → M3 tahmin modu ve
-WAFS kıyası → M6 sanal PIREP POD/POFD ölçümü → M4 uçak tipine duyarlı risk → M7
-OGC API – EDR ve IWXXM.
+Ürün yönü: önce ölçmek, sonra tahmin etmek. Doğrulama karnesi olmayan bir tahmin
+ürünü eklenmez.
+
+- **F1 Doğrulama karnesi:** kaynak başına (PIREP, MADIS EDR) dönemsel ROC-AUC, PR-AUC,
+  POD/POFD. Bugünkü sonuç paketi (`docs/sonuclar/`) ABD doğrulama karnesinin ilk
+  örneğidir; sayılar 18 Ekim nihai paketinden okunur.
+- **F2 GEFS olasılığı:** topluluk (ensemble) üyelerinden rota koridorunda risk olasılığı;
+  fizibilite: [ GEFS notu ].
+- **F3 Kabin penceresi:** öneri bugün ±15 dk parametrik pencere verir (kalibre edilmedi);
+  pay ölçülen olay zamanlarıyla kalibre edilecek.
+- **F4 Türkiye etiket havuzu:** MADIS'te bölge için yeterli ölçüm yok; Avrupa/Türkiye
+  için nesnel etiket kaynağı gerekir.
+- Geliştirme planından kalanlar: M3 tahmin modu ve WAFS kıyası, M4 uçak tipine duyarlı
+  risk, M7 OGC API – EDR.
+
+Konuşmacı notu: F1–F4 ürün yönü maddeleridir, slayt 8'deki F1 skoruyla karıştırmayın.
+M1 (MADIS), M6 (sanal PIREP) ve IWXXM dışa aktarımı bitti; slayt 8 ve yedek slaytlarda.
 
 ## 11. Kapanış
 
