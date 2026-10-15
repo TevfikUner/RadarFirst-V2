@@ -180,7 +180,7 @@ eklenmez):
 
 Diğer:
 
-- Test ve CI: 825 test (birim, PostgreSQL, gerçek veri, Playwright); CI'da 5 iş
-  (lint, güvenlik, test, tarayıcı, docker); sır taraması ve SBOM.
+- Test ve CI: 974 test (birim, PostgreSQL, gerçek veri, Playwright); CI'da 6 iş
+  (lint, güvenlik, test [Python 3.12 ve 3.14], tarayıcı, docker, demo); sır taraması ve SBOM.
 - Veri lisansları ve sağlayıcı sınırları (`docs/VERI_KAYNAKLARI_VE_LISANSLAR.md`).
 - Konformal yöntemin özeti (ADR 0010) ve PIREP irtifa hatasının hikâyesi.

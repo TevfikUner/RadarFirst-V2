@@ -336,8 +336,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 825 test (6 Ekim 2026; 2'si gerçek dış servise
-  istek attığı için varsayılan çalıştırmada hariç), kod kapsamı ~%86. Kapsamı: birim testleri, gerçek PostgreSQL
+- **Otomatik testler:** 974 test (15 Ekim 2026; 2'si gerçek dış servise
+  istek attığı için varsayılan çalıştırmada hariç), kod kapsamı %85 (CI). Kapsamı: birim testleri, gerçek PostgreSQL
   üzerinde API, depo ve görev kuyruğu testleri (eşzamanlı işçiler, ölen işçi
   kurtarma, LISTEN/NOTIFY), gerçek ERA5 küpüyle eşleştirme ve rota testleri,
   Playwright ile iki web önyüzünün tarayıcı testleri. Ağa çıkan bileşenler
