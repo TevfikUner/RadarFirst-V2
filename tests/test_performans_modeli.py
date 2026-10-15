@@ -30,3 +30,13 @@ def test_sabit_model_ya_da_desteklenmeyen_tip_none_doner(monkeypatch):
     assert performans_modeli.kullanilabilir_mi("A320") is False
     assert performans_modeli.seyir_yakiti("A320", 3600.0, 230.0, 11277.6) is None
     assert performans_modeli.seviye_degisimi_ek_yakiti("A320", 10668.0, 11277.6, 230.0, 1500.0) is None
+
+
+def test_iz_yakiti_sabit_izde_seyir_yakitina_esittir():
+    zaman = [0.0, 1800.0, 3600.0]
+    iz = performans_modeli.iz_yakiti("A320", zaman, [230.0] * 3, [11277.6] * 3)
+    seyir = performans_modeli.seyir_yakiti("A320", 3600.0, 230.0, 11277.6, adim_s=1800.0)
+    assert iz["yakit_kg"] == pytest.approx(seyir["yakit_kg"])
+    tirmanis = performans_modeli.iz_yakiti("A320", [0.0, 60.0], [230.0] * 2, [10668.0, 11277.6])
+    duz = performans_modeli.iz_yakiti("A320", [0.0, 60.0], [230.0] * 2, [10972.8] * 2)
+    assert tirmanis["yakit_kg"] > duz["yakit_kg"]

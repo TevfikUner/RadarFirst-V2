@@ -100,3 +100,32 @@ def seviye_degisimi_ek_yakiti(
     tirmanis = _yakit_akisi_kg_s(tip, kutle, tas_kt, irtifa_ft, dikey_hiz_ftdk)
     alcalis = _yakit_akisi_kg_s(tip, kutle, tas_kt, irtifa_ft, -dikey_hiz_ftdk)
     return (tirmanis - seyir + alcalis - seyir) * sure_s
+
+
+def iz_yakiti(tip: str, zaman_sn, tas_ms, irtifa_m, dikey_hiz_hesapla=True) -> dict | None:
+    """Değişken TAS ve irtifalı iz (ör. gerçek uçuş) boyunca yakıt ve NOx (kg).
+    Bacak başına ortalama TAS/irtifa; dikey_hiz_hesapla ise irtifa farkından düşey
+    hız (gürültülü irtifada False: düşey hız 0). Kütle bacak bacak azalır.
+    Kullanılamıyorsa ya da sonuç sonlu değilse None."""
+    if not kullanilabilir_mi(tip):
+        return None
+    import numpy as np
+
+    _, emisyon, _ = _modeller(tip)
+    zaman_sn, tas_ms, irtifa_m = (np.asarray(d, dtype=float) for d in (zaman_sn, tas_ms, irtifa_m))
+    kutle = baslangic_kutlesi_kg(tip)
+    yakit = nox = 0.0
+    for i in range(len(zaman_sn) - 1):
+        dt = zaman_sn[i + 1] - zaman_sn[i]
+        if dt <= 0:
+            continue
+        tas_kt = (tas_ms[i] + tas_ms[i + 1]) / 2 * MS_KT
+        irtifa_ft = (irtifa_m[i] + irtifa_m[i + 1]) / 2 * METRE_FT
+        dikey = (irtifa_m[i + 1] - irtifa_m[i]) * METRE_FT / (dt / 60.0) if dikey_hiz_hesapla else 0.0
+        akis = _yakit_akisi_kg_s(tip, kutle, tas_kt, irtifa_ft, dikey)
+        nox += float(emisyon.nox(akis, tas=tas_kt, alt=irtifa_ft)) * dt / 1000.0
+        yakit += akis * dt
+        kutle -= akis * dt
+    if not (np.isfinite(yakit) and np.isfinite(nox)):
+        return None
+    return {"yakit_kg": float(yakit), "nox_kg": float(nox)}

@@ -4,6 +4,24 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Deneyler ve analizler: F9, F3, F6, F5, F7 (15 Ekim 2026)
+
+Hepsi altın test günleri dışında çalışır; protokol modelini, aktif modeli ve sonuç paketini değiştirmez.
+
+- **F9 `turbulans-ml-rf-deneyi`** (`ml/rf_deneyi.py`): iç içe gün gruplu CV ile sığ RF (derinlik 5) ve
+  RandomizedSearch ile ayarlı RF; bağlam özellikleri (±1 hücre/seviye/saat TI1 maks/ort, kolon en düşük
+  Ri, jet oranı, sıcaklık azalma oranı) ERA5 pencere deposundan, CDS'e gitmeden; OOB ile gruplu CV farkı;
+  permütasyon önemi. Sonuç `docs/rapor/veri/rf_deneyi.json`.
+- **F3 `turbulans-ml-tip-analizi`** (`ml/tip_analizi.py`): PIREP /TP tipinden OpenAP kanat yükü; aynı
+  TI1 dilimlerinde ağır − hafif pozitif oran farkı −0,014 [−0,041; +0,012], anlamlı değil.
+- **F6 `turbulans-sanal-pirep-duyarlilik`** (`analiz/dedektor_duyarliligi.py`): OpenAP sentetik izinde
+  tespit oranı (90 ft ~%50, ≥ 120 ft ~%100), yanlış alarm, FlightPhase ile seyir maskesi uyumu.
+- **F5:** backtest yanıtında `yakit` (OpenAP, gerçek izin TAS'ı yer hızı − ERA5 rüzgârı); tip TAS'ından
+  %15'ten fazla saparsa `karsilastirilabilir: false`. Veritabanına yazılmaz (migration yok).
+- **Önsel kayma düzeltmesi:** sonuç paketinin MADIS bölümüne `model_olasilik_onsel_duzeltilmis`
+  (yalnız gösterim, iyimser; ROC-AUC değişmez).
+- **F7:** `docs/fizibilite/RUZGAR_ASIMILASYONU.md` (MADIS rüzgâr alanları var; 2019 için GFS arşivi yok).
+
 ## OpenAP yakıt ve NOx modeli (15 Ekim 2026)
 
 - `rota/performans_modeli.py`: OpenAP 2.6.2 (LGPL-3.0) ile seyir yakıtı kütleye, TAS'a, irtifaya ve

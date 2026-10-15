@@ -558,6 +558,17 @@ class CanliVeriIstegi(BaseModel):
     bildirim_webhook_url: str | None = None
 
 
+class BacktestYakitiYaniti(BaseModel):
+    ucak_modeli_varsayimi: str
+    karsilastirilabilir: bool
+    gercek_yakit_kg: float
+    gercek_nox_kg: float
+    gercek_ortalama_tas_ms: float
+    buyuk_daire_yakit_kg: float
+    optimize_yakit_kg: float
+    aciklama: str
+
+
 class BacktestSonucuYaniti(BaseModel):
     """rota_backtest.py -- gerçek iz vs büyük daire vs A* rotası (aynı ölçütle).
     *_riskli_oran: TI1 >= eşik nokta oranı (hava verisi yoksa None).
@@ -596,6 +607,8 @@ class BacktestSonucuYaniti(BaseModel):
     optimize_pirep_raporu: int | None = None
     optimize_mog_pirep: int | None = None
     olusturulma_zamani: datetime | None = None
+    # Yalnız yeni çalıştırmanın yanıtında (OpenAP); veritabanına yazılmaz.
+    yakit: BacktestYakitiYaniti | None = None
 
 
 class BacktestListesiYaniti(BaseModel):

@@ -3029,6 +3029,16 @@
               }
             ],
             "title": "Olusturulma Zamani"
+          },
+          "yakit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/BacktestYakitiYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -6521,6 +6531,54 @@
           "aciklama"
         ],
         "title": "YakitModeliYaniti"
+      },
+      "BacktestYakitiYaniti": {
+        "properties": {
+          "ucak_modeli_varsayimi": {
+            "type": "string",
+            "title": "Ucak Modeli Varsayimi"
+          },
+          "karsilastirilabilir": {
+            "type": "boolean",
+            "title": "Karsilastirilabilir"
+          },
+          "gercek_yakit_kg": {
+            "type": "number",
+            "title": "Gercek Yakit Kg"
+          },
+          "gercek_nox_kg": {
+            "type": "number",
+            "title": "Gercek Nox Kg"
+          },
+          "gercek_ortalama_tas_ms": {
+            "type": "number",
+            "title": "Gercek Ortalama Tas Ms"
+          },
+          "buyuk_daire_yakit_kg": {
+            "type": "number",
+            "title": "Buyuk Daire Yakit Kg"
+          },
+          "optimize_yakit_kg": {
+            "type": "number",
+            "title": "Optimize Yakit Kg"
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ucak_modeli_varsayimi",
+          "karsilastirilabilir",
+          "gercek_yakit_kg",
+          "gercek_nox_kg",
+          "gercek_ortalama_tas_ms",
+          "buyuk_daire_yakit_kg",
+          "optimize_yakit_kg",
+          "aciklama"
+        ],
+        "title": "BacktestYakitiYaniti"
       }
     }
   }

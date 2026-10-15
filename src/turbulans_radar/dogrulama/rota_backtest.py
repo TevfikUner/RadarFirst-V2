@@ -45,8 +45,14 @@ from turbulans_radar.dogrulama.bagimsiz_kanit import TURBULANS_TEHLIKELERI, kani
 from turbulans_radar.fizik.birim_donusumleri import irtifa_metre_to_basinc_hpa
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.loglama import logger_al
+from turbulans_radar.rota import performans_modeli
 from turbulans_radar.rota.risk_katmanlari import SigmetKisitKatmani, rota_ti1_degerleri
-from turbulans_radar.rota.rota_optimizasyonu import buyuk_daire_mesafesi_km, rota_simulasyonu_olustur
+from turbulans_radar.rota.rota_optimizasyonu import (
+    UCAK_PROFILLERI,
+    buyuk_daire_mesafesi_km,
+    rota_simulasyonu_olustur,
+    ruzgar_bilesenlerini_toplu_al,
+)
 from turbulans_radar.veri.sigmet_saglayici import gecerli_sigmetleri_getir, kacinilacak_tehlikeler
 from turbulans_radar.veri.veri_saglayicilari import veri_kupu_kaynagi, veri_kupunu_sec
 
@@ -134,6 +140,72 @@ def _simulasyon_rotasi(ozet):
         [pd.Timestamp(n["zaman"]) for n in noktalar],
         [n["irtifa_m"] / 0.3048 for n in noktalar],
     )
+
+
+# Gerçek izin ortalama TAS'ı tipin seyir TAS'ından bu orandan fazla saparsa (tırmanış,
+# alçalış ya da farklı tip) yakıt karşılaştırması "karşılaştırılamaz" işaretlenir.
+# Parametrik eşik, kalibre edilmedi.
+_TAS_UYUM_ORANI = 0.15
+
+
+def _zamanca_seyrelt(seyir, adim_sn=60.0) -> pd.DataFrame:
+    """Ham izden en az adim_sn arayla noktalar (yer hızı kısa adımlardaki konum
+    gürültüsünden etkilenmesin diye)."""
+    zaman = pd.to_datetime(seyir["zaman"], utc=True).reset_index(drop=True)
+    secilen = [0]
+    for i in range(1, len(zaman)):
+        if (zaman[i] - zaman[secilen[-1]]).total_seconds() >= adim_sn:
+            secilen.append(i)
+    return seyir.iloc[secilen].reset_index(drop=True)
+
+
+def gercek_iz_tas_ms(iz, veri_kupu) -> np.ndarray:
+    """Yer hızı vektörü (ardışık noktalardan) eksi ERA5 rüzgârı = TAS, bacak başına."""
+    enlem, boylam = iz["enlem"].to_numpy(dtype=float), iz["boylam"].to_numpy(dtype=float)
+    zaman = pd.to_datetime(iz["zaman"], utc=True)
+    dt = np.diff((zaman - pd.Timestamp(0, tz="UTC")).dt.total_seconds().to_numpy())
+    orta_enlem = np.radians((enlem[1:] + enlem[:-1]) / 2)
+    dogu_m = np.radians(np.diff(boylam)) * np.cos(orta_enlem) * 6_371_000.0
+    kuzey_m = np.radians(np.diff(enlem)) * 6_371_000.0
+    u, v = ruzgar_bilesenlerini_toplu_al(
+        veri_kupu,
+        (enlem[1:] + enlem[:-1]) / 2,
+        (boylam[1:] + boylam[:-1]) / 2,
+        irtifa_metre_to_basinc_hpa(iz["irtifa_m"].to_numpy(dtype=float)[:-1]),
+        list(zaman[:-1]),
+    )
+    return np.hypot(dogu_m / dt - np.asarray(u, dtype=float), kuzey_m / dt - np.asarray(v, dtype=float))
+
+
+def yakit_karsilastirmasi(seyir, veri_kupu, simulasyon, ucak_modeli) -> dict | None:
+    """Gerçek iz (ölçülen yer hızından çıkarılan TAS, gerçek irtifa ve süre) ile büyük
+    daire/optimize rotanın yakıtı aynı OpenAP modeliyle. Tip ve kütle varsayımdır
+    (OpenSky tip vermez); seyir bölümünde düşey hız 0 alınır. Veritabanına yazılmaz."""
+    iz = _zamanca_seyrelt(seyir)
+    if len(iz) < 3:
+        return None
+    tas = gercek_iz_tas_ms(iz, veri_kupu)
+    if not np.isfinite(tas).all():
+        return None
+    zaman = (pd.to_datetime(iz["zaman"], utc=True) - pd.Timestamp(0, tz="UTC")).dt.total_seconds().to_numpy()
+    gercek_yakit = performans_modeli.iz_yakiti(
+        ucak_modeli, zaman, np.append(tas, tas[-1]), iz["irtifa_m"].to_numpy(dtype=float), dikey_hiz_hesapla=False
+    )
+    if gercek_yakit is None:
+        return None
+    tip_tas = UCAK_PROFILLERI[ucak_modeli]["tas_ms"]
+    return {
+        "ucak_modeli_varsayimi": ucak_modeli,
+        "karsilastirilabilir": bool(abs(float(np.mean(tas)) - tip_tas) / tip_tas <= _TAS_UYUM_ORANI),
+        "gercek_yakit_kg": gercek_yakit["yakit_kg"],
+        "gercek_nox_kg": gercek_yakit["nox_kg"],
+        "gercek_ortalama_tas_ms": float(np.mean(tas)),
+        "buyuk_daire_yakit_kg": simulasyon["normal_rota"]["tahmini_yakit_kg"],
+        "optimize_yakit_kg": simulasyon["optimize_rota"]["tahmini_yakit_kg"],
+        "aciklama": "OpenAP; tip ve seyir başı kütlesi varsayımdır. Simüle rotalar tip TAS'ıyla, gerçek iz ölçülen "
+        "yer hızından çıkarılan TAS'la uçar; fark hız seçimini de içerir. Gerçek TAS tipinkinden %15'ten fazla "
+        "saparsa (tırmanış/alçalış ya da başka tip) karşılaştırılamaz. Veritabanına yazılmaz.",
+    }
 
 
 def backtest_girdileri(ucus_numarasi, tarih_str, ucak_modeli, motor) -> dict:
@@ -256,7 +328,12 @@ def ucus_backtest_et(ucus_numarasi, tarih_str, ucak_modeli=None, motor=None, kan
             )
         )
         oturum.commit()
-    return {"ucus_numarasi": ucus_numarasi, "tarih": str(tarih_str), **satir}
+    return {
+        "ucus_numarasi": ucus_numarasi,
+        "tarih": str(tarih_str),
+        **satir,
+        "yakit": yakit_karsilastirmasi(seyir, veri_kupu, simulasyon, ucak_modeli),
+    }
 
 
 def backtest_edilmemis_ucuslar(limit=20, motor=None) -> list[tuple[str, str]]:

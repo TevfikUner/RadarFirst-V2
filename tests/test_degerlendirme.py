@@ -110,3 +110,15 @@ def test_bir_se_esigi_esdeger_beceride_en_tutucu_esigi_secer():
     assert sonuc["esik"] > sonuc["peirce_max_esigi"] and sonuc["se"] > 0
     assert ikili_metrikler(y, skor, sonuc["esik"])["peirce"] >= sonuc["peirce_max"] - sonuc["se"] - 1e-12
     assert ikili_metrikler(y, skor, sonuc["esik"])["pofd"] < ikili_metrikler(y, skor, sonuc["peirce_max_esigi"])["pofd"]
+
+
+def test_onsel_kayma_duzeltmesi_siralamayi_korur_ve_ortalamayi_yeni_tabana_ceker():
+    from turbulans_radar.ml.degerlendirme import _auc, onsel_kayma_duzelt
+
+    rng = np.random.default_rng(0)
+    y = (rng.random(2000) < 0.03).astype(int)
+    olasilik = np.clip(0.5 + 0.2 * y + rng.normal(0, 0.15, 2000), 0.01, 0.99)
+    duzeltilmis = onsel_kayma_duzelt(olasilik, 0.52, 0.03)
+    assert _auc(y, duzeltilmis) == pytest.approx(_auc(y, olasilik))
+    assert duzeltilmis.mean() < 0.1 < olasilik.mean()
+    assert onsel_kayma_duzelt(olasilik, 0.3, 0.3) == pytest.approx(olasilik)
