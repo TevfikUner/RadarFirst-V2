@@ -2,6 +2,10 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dal `claude/fizibilite-18-20-23`)
+
+- ✅ Fizibilite: 18 yapılabilir (THREDDS ~8 gün); 20 mevcut günlerle 0 örtüşme (G-AIRMET 2021+); 23 Trino tablosu var, deneme gerekli.
+
 ## 2026-10-16 gece (dal `claude/dikey-kesit`)
 
 - ✅ Fikir 17: önerilen rota boyunca FL280–400 TI1 dikey kesiti (API + web ısı şeridi), ek ~10 ms.

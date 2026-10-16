@@ -862,6 +862,7 @@ sıra benim değerlendirmem.
   olur ve bu arayüzde yazılmalı.
 
 ### Fikir 18. Kaçınma manevrasının başlangıç zamanı analizi
+- **Durum:** Fizibilite yapıldı: son ~8 gün için yapılabilir (`docs/fizibilite/KAYNAK_INCELEMESI_FIZIBILITE.md`).
 - **Kaynak:** Makale10 (LTAR 1/2/3: +16 dk, 10 dk tasarruf, +2 dk).
 - **Katkısı:** Akademik değer. Uçuş sırasında yeniden hesaplamanın değerini sayıyla gösterir
   (bizde şu an gösterim amaçlı).
@@ -882,6 +883,8 @@ sıra benim değerlendirmem.
   aşırı uyum riski büyür; önceden kayıt şart.
 
 ### Fikir 20. G-AIRMET ile ABD karşılaştırması
+- **Durum:** Fizibilite: mevcut ML/MADIS günleriyle (2018–2020) örtüşme 0 gün (IEM arşivi Mart 2021'den);
+  dondurma sonrası 2021+ günlerde yapılabilir.
 - **Kaynak:** R21 (AWC G-AIRMET), Makale23 (1/3 alan örtüşmesi ölçütü).
 - **Katkısı:** Değerlendirme. ABD günlerinde operasyonel bir ürünle kıyas yapılır (WAFS
   kıyası zaten "sonraki" listesinde).
@@ -913,6 +916,8 @@ sıra benim değerlendirmem.
   okunmalı. λ seçimi A*'taki 6 saatlik ceza ile eşdeğer kurulmalı.
 
 ### Fikir 23. Mode S'ten türetilmiş rüzgârla model rüzgârı doğrulama
+- **Durum:** Fizibilite: Trino `rollcall_replies_data4` mevcut; Türkiye kapsaması ve hacim için tek uçuşluk
+  deneme gerekiyor (OpenSky girişi kullanıcıda).
 - **Kaynak:** Makale16 (0,09 m/s, %51+ kapsama). F7 fizibilite notu.
 - **Katkısı:** Doğruluk. Yakıt ve süre sonuçlarının dayandığı rüzgârın hatası ölçülür.
 - **Uygulama yolu:** OpenSky Trino'daki Mode S yanıtlarından (BDS 5,0/6,0) TAS ve yön çıkarılır;
