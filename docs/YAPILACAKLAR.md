@@ -15,6 +15,12 @@
   tablosu; ARAC_KULLANIMI_BEYANI commit/satır sayımları güncel git'e göre.
 - [ ] `esik_taramasi.bir_se.esik` 7e-7'den belirgin farklıysa `TI1_ESIK_ORTA_SIDDETLI`'yi
   güncelle; eşiğe bağlı testler, demo senaryosu ve ekranlar yeniden kontrol edilir.
+- [ ] GFS eşiği: nihai ERA5 eşiğiyle `turbulans-esik-esleme --baslangic 2026-10-09T00:00Z
+  --bitis 2026-10-11T18:00Z --esik <yeni> --cikti docs/sonuclar/2026-10-18` (veri önbellekte,
+  indirme yok). 16 Ekim ölçümü: 7e-7 ↔ GFS 8,30e-7 [7,96; 8,67]e-7. Sonucu
+  `TI1_ESIK_ORTA_SIDDETLI_GFS`'e (`.env`) yaz, API/worker'ı yeniden başlat; demo ekranları GFS
+  kullanıyorsa yeniden kontrol et. Örneklemi büyütmek için `--bitis 2026-10-13T18:00Z`
+  (12–13 Ekim için ~2 MB GFS + ~5 MB ERA5 ek indirme; THREDDS koşuları ~8 gün durur).
 - [ ] MADIS önsel kayma gösterimi (`model_olasilik_onsel_duzeltilmis`) pakette çıkınca
   SONUCLAR §0.4'e tek satır not.
 - [ ] SUNUM_AKISI §10 (F1 doğrulama karnesi) ve poster "Sonraki" satırını nihai pakete bağla.
