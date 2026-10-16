@@ -24,6 +24,8 @@
 - [ ] MADIS önsel kayma gösterimi (`model_olasilik_onsel_duzeltilmis`) pakette çıkınca
   SONUCLAR §0.4'e tek satır not.
 - [ ] SUNUM_AKISI §10 (F1 doğrulama karnesi) ve poster "Sonraki" satırını nihai pakete bağla.
+- [ ] Demo ekranlarını temiz klondan yenile: brifing kartına FPL Madde 15, dikey kesit, kalkış
+  penceresi ve kütle bandı eklendi (16 Ekim, PR #62–#71); `DEMO_SENARYOSU` metnini kontrol et.
 
 ## 18 Ekim sonrası (paket çıktıktan sonra)
 
