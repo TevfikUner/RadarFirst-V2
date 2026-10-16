@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 (dal `claude/ilerleme-raporu`)
+
+- ✅ Gece işi 11:02 UTC'de başladı (çalışıyor).
+- ✅ Hocaya haftalık ilerleme raporu: `docs/rapor/ILERLEME_RAPORU.md` (Cuma–Perşembe haftaları, sade dil, her hafta alta eklenir).
+
 ## 2026-10-15 akşam (dallar `claude/openap-yakit`, `claude/demo-ekranlari-openap`, `claude/deneyler-f9-f3-f6`)
 
 - ✅ F1 OpenAP yakıt + NOx (PR #47): kütle/irtifa/düşey hıza bağlı; demo %9,7→%9,5, FL370 seçeneği −%2,0 yakıt.
