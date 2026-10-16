@@ -966,6 +966,14 @@ sıra benim değerlendirmem.
 - **Risk ve bağımlılıklar:** Formül birincil kaynaktan (Schumann 1996) alınmalı; burada
   yazılmadı. Proje odağı türbülans.
 
+### Karar (16 Ekim, kullanıcı)
+
+- Dondurma sonrası (`YAPILACAKLAR.md`'ye yazıldı): 4, 8, 9, 10, 11, 15, 19, 24, 29.
+- Yapılmayacak: 21 (Türkiye verisi yetersiz), 22 (bağımlılık/lisans), 28 (tek "uzlaşma"
+  etiketi ödünleşimi gizler).
+- Sırayla uygulanacak: 2, 3, 5, 6, 7, 12 (e-posta taslağı), 13, 14, 16, 17, 18/20/23
+  (önce fizibilite), 25, 26, 27, 30.
+
 ### 3.1 Zaten projede olanlar ya da bilinçli olarak önerilmeyenler
 
 | Fikir | Kaynak | Durum |
