@@ -240,11 +240,18 @@ def ana(argv=None):
     ayrac.add_argument("--veri-klasoru", default=os.path.join("ciktilar", "esik_esleme"))
     ayrac.add_argument("--cikti", required=True, help="Rapor klasörü (örn. docs/sonuclar/2026-10-16)")
     ayrac.add_argument("--tekrar", type=int, default=1000)
+    ayrac.add_argument("--esik", type=float, default=None, help="ERA5 eşiği (varsayılan TI1_ESIK_ORTA_SIDDETLI)")
     arg = ayrac.parse_args(argv)
     kutu = tuple(float(x) for x in arg.kutu.split(","))
     fl_listesi = tuple(int(x) for x in arg.fl.split(","))
     rapor = eslemeyi_calistir(
-        _zamanlar(arg.baslangic, arg.bitis), kutu, arg.adim, fl_listesi, arg.veri_klasoru, tekrar=arg.tekrar
+        _zamanlar(arg.baslangic, arg.bitis),
+        kutu,
+        arg.adim,
+        fl_listesi,
+        arg.veri_klasoru,
+        esik=arg.esik,
+        tekrar=arg.tekrar,
     )
     os.makedirs(arg.cikti, exist_ok=True)
     with open(os.path.join(arg.cikti, "esik_esleme.json"), "w", encoding="utf-8") as dosya:
