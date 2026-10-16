@@ -808,6 +808,8 @@ sıra benim değerlendirmem.
   yazılan örnek benim bilgime dayanıyor ve kaynaktan teyit edilmedi (tahmin).
 
 ### Fikir 14. Kullanıcı geri bildirim kaydı (E7 ile)
+- **Durum:** Uygulandı (16 Ekim; migration `a7c3e9f1b2d4`, `-test` DB'de upgrade/downgrade denendi;
+  E7 paketine iki soru).
 - **Kaynak:** Makale20 (doğruluk ve yarar için pilot geri bildirim sitesi), Makale7 (anket,
   sonradan görüşme, omuz üstü gözlem).
 - **Katkısı:** Kullanıcı deneyimi ve akademik değer. E7 kullanılabilirlik oturumlarına ölçülebilir
