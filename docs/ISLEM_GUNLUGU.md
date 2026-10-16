@@ -2,6 +2,10 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dal `claude/yapilacaklar-opensky`)
+
+- ✅ OpenSky e-postası kullanıcı tarafından gönderildi; yanıt bekleniyor (YAPILACAKLAR).
+
 ## 2026-10-16 gece (dal `claude/demo-ekranlari-16-ekim`)
 
 - ✅ Demo ekranları temiz klondan (5532/8100) yenilendi; sayılar aynı. Postman koleksiyonu yeni uçlarla güncellendi.
