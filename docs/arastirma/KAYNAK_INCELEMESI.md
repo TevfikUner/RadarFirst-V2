@@ -937,6 +937,7 @@ sıra benim değerlendirmem.
 - **Risk ve bağımlılıklar:** Ağırlık seçimi test günlerine sızmamalı.
 
 ### Fikir 25. Türkiye/Avrupa CAT eğilim bağlamını rapora ekleme
+- **Durum:** Uygulandı (16 Ekim; `ILGILI_CALISMALAR.md` §1, üç künye; Foudad ve Zhang Crossref ☑).
 - **Kaynak:** Makale8 (Orta Doğu ve KB Afrika'da 2 katından fazla artış), Makale15 (Avrupa'da
   net artış yok, güneyde daha yüksek), Makale6 (Çin klimatolojisi).
 - **Katkısı:** Akademik bağlam. "Neden Türkiye?" sorusuna literatürden bir yanıt.
