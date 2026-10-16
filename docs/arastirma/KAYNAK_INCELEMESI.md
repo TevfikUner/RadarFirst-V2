@@ -619,6 +619,7 @@ sıra benim değerlendirmem.
 | 30 | M9 için Schmidt–Appleman ölçütü ve ±1 FL önerisi | Düşük | Orta | Hayır |
 
 ### Fikir 1. Literatür kıyasına bölme yöntemi sütunu
+- **Durum:** Uygulandı (16 Ekim 2026, `ILGILI_CALISMALAR.md` §5 ve §9).
 - **Kaynak:** Makale1 (rastgele 70/30, AUC 0,904), Makale21 (rastgele 80/20 + SMOTE,
   AUC 0,86), Makale1'in literatür tablosu (Muñoz-Esparza 2020, AUC 0,770–0,906), R5
   (zamansal holdout, olumlu örnek).

@@ -2,6 +2,10 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dal `claude/literatur-bolme-yontemi`)
+
+- ✅ Fikir 1: ILGILI_CALISMALAR §5 paragraf + §9 "değerlendirme bölmesi" sütunu; Gökdeniz 2026, Gu ve Wang 2024 eklendi (künyeler arXiv/Crossref ☑).
+
 ## 2026-10-16 akşam (dal `claude/kaynak-incelemesi`)
 
 - ✅ Kaynak incelemesi: 23 yıldızlı depo + 28 makale (5'i Silinecekler) → `docs/arastirma/KAYNAK_INCELEMESI.md`.

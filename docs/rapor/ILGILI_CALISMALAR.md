@@ -1,7 +1,7 @@
 # İlgili Çalışmalar (rapor bölümü, E3)
 
 Bu bölüm bitirme raporuna doğrudan aktarılabilir. Künyeler Crossref (DOI) ya da
-yayıncı kaydıyla 2 ve 5 Ekim 2026'da doğrulandı (☑). Resmî belgeler (ICAO, NOAA)
+yayıncı kaydıyla 2, 5 ve 16 Ekim 2026'da doğrulandı (☑). Resmî belgeler (ICAO, NOAA)
 DOI taşımaz; adlarıyla verildi. Bir çalışmadan sayı aktarılırken yalnızca özetinde
 ya da doğrulanmış metninde yazan değer kullanıldı; tam metnine erişilemeyen
 çalışmalarda sayı verilmedi.
@@ -98,8 +98,21 @@ gözlemleri birbirine bağımlıdır ve rastgele bölme becerisini şişirir. Ro
 (2017), zamansal ve uzamsal yapılı verilerde blok/gruplu çapraz doğrulamayı
 gerekçelendirir.
 
+Yakın tarihli iki çalışma bizimkine benzer açık verilerle yüksek AUC raporlar.
+Gökdeniz ve Ülkü (2026), ABD'de 200–350 hPa için ERA5 teşhisleri, IEM PIREP ve BADA
+aerodinamik özellikleriyle XGBoost'ta AUC 0,904 elde etti. Gu ve Wang (2024),
+Colorado'da sekiz teşhisli ağırlıklı KNN ile AUC 0,86 elde etti. İki çalışmada da veri
+rastgele bölündü (70/30 ve 80/20). Gu ve Wang ayrıca hafif raporları dışarıda bırakıp
+yalnız türbülanssız ve orta-üstü olayları kullandı. Rastgele bölmede aynı günün, hatta
+aynı hava sisteminin örnekleri hem eğitim hem test kümesinde yer alır. Bu yüzden bu
+değerler gün gruplu doğrulamayla elde edilen değerlerle doğrudan kıyaslanamaz. Fark
+modelin başarımından değil, değerlendirme tasarımından ve etiket tanımından gelir.
+Gökdeniz ve Ülkü'de en önemli özellik coğrafi koordinatlardır (%17,5). Yazarlar bunu
+topografyaya bağlıyor, ama konuma bağlı bir ezberle de açıklanabilir.
+
 **Projeyle bağ.** Modelimiz açık veriyle (ERA5 + IEM PIREP) eğitilir, gün gruplu çapraz
-doğrulama ve zamansal holdout kullanır, TI1'i geçmeyen aday aktifleşmez (K4).
+doğrulama ve zamansal holdout kullanır, TI1'i geçmeyen aday aktifleşmez (K4). Hafif
+raporlar negatif sınıftadır. Bölme ve etiket farkları §9 tablosunda yan yana verilir.
 
 ## 6. Belirsizlik: konformal tahmin
 
@@ -143,20 +156,27 @@ demeyin.
 
 ## 9. Karşılaştırma tablosu
 
-| Çalışma | Yöntem | Veri / etiket | Metrik | Bu çalışmadaki karşılığı |
-|---|---|---|---|---|
-| Ellrod ve Knapp (1992) | TI1 = VWS × DEF | NWP, PIREP | Operasyonel doğrulama | TI1: PIREP ROC-AUC 0,680, altın günler 0,673, MADIS 0,706 (6 gün) |
-| Sharman vd. (2006), GTG | Çok teşhisli ağırlıklı birleşim | NWP (RUC), PIREP | PODy–PODn / AUC | Birleşik EDR: PIREP 0,692, altın günler 0,687 |
-| Sharman ve Pearson (2017) | Teşhislerin log-normal EDR eşlemesi | NWP, yerinde EDR | EDR hatası, AUC | Aynı eşleme, ERA5 klimatolojisiyle (`edr_esleme.py`) |
-| Kim vd. (2011) | GTG teşhisleri, mevsimsel analiz | NWP, 6 yıl PIREP (Doğu Asya) | AUC | Yalnız ABD, 80 gün (64 eğitim, 16 altın test); mevsim analizi yok |
-| Gill (2014) | WAFC SIGWX + ızgara CAT | Yerinde ölçüm (GADS) | ROC | WAFS karşılaştırması yok (M3) |
-| Muñoz-Esparza vd. (2020) | Rastgele orman, gradyan artırımı | HRRR + GTG, yerinde EDR | EDR hatası, kategori ayrımı | Protokolle seçilen lojistik regresyon, ERA5 + PIREP; altın günler ROC-AUC 0,681, TI1'den +0,008 [−0,006; +0,022], anlamsız (kapı geçilmedi) |
-| Kopeć vd. (2016) | ADS-B/Mode-S'ten EDR | Araştırma uçağı ivmeölçeri | Karşılaştırma | ADS-B'den yalnız olay (EDR yok), POD 1/8, POFD 0/8 |
-| Cheung (2018) | A* ile CAT'ten kaçınan rota | NWP CAT alanı | Örnek olay | A* + SIGMET sert / TI1 yumuşak kısıt, yakıt bedeliyle |
+| Çalışma | Yöntem | Veri / etiket | Metrik | Değerlendirme bölmesi | Bu çalışmadaki karşılığı |
+|---|---|---|---|---|---|
+| Ellrod ve Knapp (1992) | TI1 = VWS × DEF | NWP, PIREP | POD, FAR, alan tehdit skoru | Bölme yok: operasyonel tahminlerin ±3 sa PIREP'le doğrulaması; eşik modele göre ayrı | TI1: PIREP ROC-AUC 0,680, altın günler 0,673, MADIS 0,706 (6 gün) |
+| Sharman vd. (2006), GTG | Çok teşhisli ağırlıklı birleşim | NWP (RUC), PIREP | PODy–PODn / AUC | — | Birleşik EDR: PIREP 0,692, altın günler 0,687 |
+| Sharman ve Pearson (2017) | Teşhislerin log-normal EDR eşlemesi | NWP, yerinde EDR | EDR hatası, AUC | — | Aynı eşleme, ERA5 klimatolojisiyle (`edr_esleme.py`) |
+| Kim vd. (2011) | GTG teşhisleri, mevsimsel analiz | NWP, 6 yıl PIREP (Doğu Asya) | AUC | — | Yalnız ABD, 80 gün (64 eğitim, 16 altın test); mevsim analizi yok |
+| Gill (2014) | WAFC SIGWX + ızgara CAT | Yerinde ölçüm (GADS) | ROC | — | WAFS karşılaştırması yok (M3) |
+| Muñoz-Esparza vd. (2020) | Rastgele orman, gradyan artırımı | HRRR + GTG, yerinde EDR | EDR hatası, kategori ayrımı | — | Protokolle seçilen lojistik regresyon, ERA5 + PIREP; altın günler ROC-AUC 0,681, TI1'den +0,008 [−0,006; +0,022], anlamsız (kapı geçilmedi) |
+| Gökdeniz ve Ülkü (2026) | XGBoost, LightGBM, RF, AdaBoost, LR; BADA aerodinamik özellikleri | ERA5 200–350 hPa, IEM PIREP (ABD); 1 = CAT var | POD, FAR, CSI, TSS, AUC | Rastgele 70/30 + k-katlı CV | AUC 0,904 (XGBoost). Bizim gün gruplu değerlerimizle doğrudan kıyaslanamaz |
+| Gu ve Wang (2024) | Ağırlıklı KNN (K = 27), 8 teşhis, AUC² ağırlık | ERA5 125–500 hPa, 7 yıl Colorado PIREP; yalnız türbülanssız ve orta-üstü (hafif dışarıda) | ROC, maxTSS, güvenilirlik | Rastgele 80/20 + 10 katlı CV, SMOTE | AUC 0,86, maxTSS 0,552. Bölme ve etiket tanımı farklı; bizde hafif raporlar negatif |
+| Kopeć vd. (2016) | ADS-B/Mode-S'ten EDR | Araştırma uçağı ivmeölçeri | Karşılaştırma | — | ADS-B'den yalnız olay (EDR yok), POD 1/8, POFD 0/8 |
+| Cheung (2018) | A* ile CAT'ten kaçınan rota | NWP CAT alanı | Örnek olay | — | A* + SIGMET sert / TI1 yumuşak kısıt, yakıt bedeliyle |
+| **Bu çalışma** | TI1 referansı, birleşik EDR, kapılı ML | ERA5 + IEM PIREP (ABD), MADIS EDR; 1 = orta ve üstü | ROC-AUC, Peirce, eşleştirilmiş fark | Gün gruplu CV (64 gün) + 16 altın gün zamansal holdout | — |
 
-Bu tabloda başka çalışmaların AUC değerleri bilerek verilmedi: tam metinlerine
-erişilemedi ve özetleri sayı içermiyor. Sayıları rapora aktarmadan önce makalelerden
-okuyun; okuyamadığınız sayıyı yazmayın.
+"Değerlendirme bölmesi" sütununda "—", o çalışmanın bölme yönteminin tam metinden
+okunmadığını gösterir. Gökdeniz ve Ülkü (2026), Gu ve Wang (2024) ve Ellrod ve Knapp
+(1992) dışındaki çalışmaların AUC değerleri bilerek verilmedi: tam metinlerine
+erişilemedi ve özetleri sayı içermiyor. Bu üç çalışmanın sayıları 16 Ekim'de tam
+metinden okundu. Sayıları rapora aktarmadan önce makalelerden okuyun; okuyamadığınız
+sayıyı yazmayın. Rastgele bölmeyle elde edilen AUC değerleri, gün gruplu değerlerle aynı
+eksende "daha iyi / daha kötü" diye yorumlanmamalıdır.
 
 ## Kapanış paragrafı
 
@@ -175,6 +195,8 @@ bağımsız etiketlere (PIREP, MADIS EDR) karşı kendi referansı olan TI1'le �
 - ☑ Ellrod, G. P. ve Knapp, D. I. (1992). An objective clear-air turbulence forecasting technique: verification and operational use. *Weather and Forecasting*, 7(1), 150–165. https://doi.org/10.1175/1520-0434(1992)007<0150:AOCATF>2.0.CO;2
 - ☑ Ellrod, G. P. ve Knox, J. A. (2010). Improvements to an operational clear-air turbulence diagnostic index by addition of a divergence trend term. *Weather and Forecasting*, 25(2), 789–798. https://doi.org/10.1175/2009WAF2222290.1
 - ☑ Gill, P. G. (2014). Objective verification of World Area Forecast Centre clear air turbulence forecasts. *Meteorological Applications*, 21(1), 3–11. https://doi.org/10.1002/met.1288
+- ☑ Gökdeniz, K. ve Ülkü, İ. (2026). Predictive modeling of high-altitude clear air turbulence in the United States: A machine learning approach. arXiv:2607.11899 [physics.ao-ph].
+- ☑ Gu, A. ve Wang, Y. (2024). Optimizing clear air turbulence forecasts using the K-nearest neighbor algorithm. *Journal of Meteorological Research*, 38(6), 1064–1077. https://doi.org/10.1007/s13351-024-4060-7
 - ☑ Hart, P. E., Nilsson, N. J. ve Raphael, B. (1968). A formal basis for the heuristic determination of minimum cost paths. *IEEE Transactions on Systems Science and Cybernetics*, 4(2), 100–107. https://doi.org/10.1109/TSSC.1968.300136
 - ☑ Hersbach, H. vd. (2020). The ERA5 global reanalysis. *Quarterly Journal of the Royal Meteorological Society*, 146(730), 1999–2049. https://doi.org/10.1002/qj.3803
 - ☐ ICAO. *Annex 3 to the Convention on International Civil Aviation: Meteorological Service for International Air Navigation* (EDR raporlaması ve WAFS).
