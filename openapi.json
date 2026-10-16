@@ -4985,6 +4985,16 @@
                 "type": "null"
               }
             ]
+          },
+          "fpl_madde15": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FplMadde15Yaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -6797,6 +6807,29 @@
           "aciklama"
         ],
         "title": "YakitBandiYaniti"
+      },
+      "FplMadde15Yaniti": {
+        "properties": {
+          "madde15": {
+            "type": "string",
+            "title": "Madde15"
+          },
+          "nokta_sayisi": {
+            "type": "integer",
+            "title": "Nokta Sayisi"
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "madde15",
+          "nokta_sayisi",
+          "aciklama"
+        ],
+        "title": "FplMadde15Yaniti"
       }
     }
   }

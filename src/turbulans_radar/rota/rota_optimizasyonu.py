@@ -87,7 +87,7 @@ from turbulans_radar.fizik.iz_bulutu import duyarli_nokta_sayisi
 from turbulans_radar.fizik.ti1_esigi import ayri_esik_baglaminda, etkin_ti1_esigi, kaynaga_gore_ayarla
 from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.loglama import logger_al
-from turbulans_radar.rota import hava_yolu_agi, performans_modeli, ucus_seviyeleri
+from turbulans_radar.rota import fpl, hava_yolu_agi, performans_modeli, ucus_seviyeleri
 from turbulans_radar.rota.risk_katmanlari import (
     TURBULANS_CEZASI_SANIYE,
     KisitliSahaKatmani,
@@ -1595,6 +1595,9 @@ def rota_simulasyonu_olustur(
         ),
         "referans_karsilastirmasi": referans_karsilastirmasi,
         "kabin_onerisi": kabin_onerisi(optimize_ozeti["riskli_bolumler"]),
+        "fpl_madde15": (
+            fpl.madde15(optimize_ozeti["noktalar"], tas_ms, optimize_ozeti["fl"]) if guvenli_rota_bulundu_mu else None
+        ),
         "sure_tasarrufu_dk": (normal["saniye"] - optimize_saniye) / 60.0,
         "yakit_tasarrufu_yuzde": (
             100.0 * (normal_yakit_kg - optimize_yakit_kg) / normal_yakit_kg if normal_yakit_kg > 0 else 0.0
