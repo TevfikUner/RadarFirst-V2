@@ -89,6 +89,8 @@ from sqlalchemy import text
 from sqlalchemy.exc import SQLAlchemyError
 
 from turbulans_radar import config, loglama
+from turbulans_radar.analiz.gfs_toplulugu import DENEYSEL_NOT as TOPLULUK_DENEYSEL_NOT
+from turbulans_radar.analiz.gfs_toplulugu import rota_sonucuna_topluluk_ekle
 from turbulans_radar.api import metrikler, ortak
 from turbulans_radar.api.guvenlik import (
     _BILET_SURESI_SANIYE,
@@ -820,6 +822,15 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
             )
         except (AtsAgiKullanilamazHatasi, AtsAgiHatasi, AntimeridyenHatasi) as hata:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(hata)) from None
+        if istek.topluluk:
+            try:
+                sonuc = await asyncio.to_thread(rota_sonucuna_topluluk_ekle, sonuc)
+            except Exception as hata:
+                sonuc["topluluk"] = {
+                    "hesaplandi_mi": False,
+                    "neden": f"{type(hata).__name__}: {hata}",
+                    "aciklama": TOPLULUK_DENEYSEL_NOT,
+                }
         metrikler.ROTA_HESABI_SURESI.observe(time.monotonic() - hesap_baslangici)
     sonuc["czml"] = simulasyonu_czml_e_cevir(sonuc)
     await ortak._rota_onbellege_koy(onbellek_anahtari, sonuc, damga)

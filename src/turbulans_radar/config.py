@@ -473,6 +473,8 @@ CANLI_TAHMIN_UFKU_SAAT = _ortam_sayi("CANLI_TAHMIN_UFKU_SAAT", 120, int)
 CANLI_KUP_TAZELIK_SAAT = _ortam_sayi("CANLI_KUP_TAZELIK_SAAT", 6, int)
 # Geçerliliği bu kadar saat önce bitmiş canlı küpler (dosya + katalog kaydı) silinir.
 CANLI_KUP_SAKLAMA_SAAT = _ortam_sayi("CANLI_KUP_SAKLAMA_SAAT", 48, int)
+GFS_TOPLULUK_UYE_SAYISI = _ortam_sayi("GFS_TOPLULUK_UYE_SAYISI", 4, int)
+GFS_KOSU_GECIKMESI_SAAT = _ortam_sayi("GFS_KOSU_GECIKMESI_SAAT", 5, int)
 CANLI_ISITMA_SAAT = _ortam_sayi("CANLI_ISITMA_SAAT", 0.0)
 # Devre kesici (depo/kaynak_durumu.py): canlı kaynak art arda DEVRE_KESICI_ESIK kez hata verince
 # indirme denenmez; bekleme her yeni hatada ikiye katlanır (taban -> azami). Bekleme dolunca tek deneme
