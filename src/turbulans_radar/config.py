@@ -364,6 +364,7 @@ ROTA_YAKIT_MODELI = _ortam_str("ROTA_YAKIT_MODELI", "openap")
 # Seyir başı kütlesi = MTOW x bu oran. Parametrik varsayım, kalibre edilmedi
 # (yük ve yakıt planı bilinmiyor).
 ROTA_SEYIR_KUTLE_ORANI = _ortam_sayi("ROTA_SEYIR_KUTLE_ORANI", 0.85)
+ROTA_KUTLE_BANDI = tuple(float(s) for s in _ortam_str("ROTA_KUTLE_BANDI", "0.70,0.90").split(",") if s.strip())
 # rota/ucus_seviyeleri.py: yarım daire kuralı manyetik ize göre uygulanır.
 # Manyetik sapma (doğu +) tüm rotalar için SABİT alınır: Türkiye için ~+5°E
 # VARSAYIMDIR (NOAA WMM ile teyit edilmedi; ABD/Avrupa dışı rotalarda yanlış olabilir).

@@ -2,6 +2,10 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dal `claude/kutle-bandi`)
+
+- ✅ Fikir 6: yakıt tasarrufu %70/85/90 MTOW bandıyla; seviye değişiminde %1,1–2,9 (S3), yanalda duyarsız.
+
 ## 2026-10-16 gece (dal `claude/ayriklastirma`)
 
 - ✅ Fikir 5: 41 nokta/20 km varsayılanı ince ayara göre ≤%0,45 fark, strateji aynı; 21 nokta yetersiz → `docs/sonuclar/2026-10-16/`.

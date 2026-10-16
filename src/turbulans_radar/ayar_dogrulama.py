@@ -65,6 +65,7 @@ class AyarSemasi(BaseModel):
     KABIN_PENCERE_PAYI_DK: NegatifOlmayan
     ROTA_YAKIT_MODELI: Literal["openap", "sabit"]
     ROTA_SEYIR_KUTLE_ORANI: Annotated[float, Field(gt=0, le=1)]
+    ROTA_KUTLE_BANDI: tuple[Annotated[float, Field(gt=0, le=1)], ...]
     SIGMET_MAKS_COZUMLENEMEYEN_ORAN: KapaliOran
     DEVRE_KESICI_ESIK: NegatifOlmayanTam
     DEVRE_KESICI_TABAN_SANIYE: Pozitif

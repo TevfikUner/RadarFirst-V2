@@ -708,6 +708,8 @@ sıra benim değerlendirmem.
   (bkz. performans notu).
 
 ### Fikir 6. Yakıt sonucu için kütle belirsizlik bandı
+- **Durum:** Uygulandı (16 Ekim; `yakit_tasarrufu_yuzde_araligi`, brifing kartı). Seviye değişimi
+  tasarrufu kütleye duyarlı (S3: %1,1–2,9).
 - **Kaynak:** Makale22 (%70–90 MTOW; 20 t fark ≈ emisyonun %6,5'i).
 - **Katkısı:** Bilimsel dürüstlük. Tek bir "yakıt tasarrufu %X" yerine bir aralık verilir.
   Şu an kütle oranı sabit (`ROTA_SEYIR_KUTLE_ORANI = 0,85`).
