@@ -794,6 +794,8 @@ sıra benim değerlendirmem.
 - **Risk ve bağımlılıklar:** OpenSky'a yazmak bir dış iletişimdir; önce kullanıcı onayı gerekir.
 
 ### Fikir 13. Önerilen rota için ICAO FPL Madde 15 dizgisi
+- **Durum:** Uygulandı (16 Ekim; `rota/fpl.py`, web brifing kartı). Düzeltme: iki koordinat
+  noktası arasında DCT yazılmaz (aşağıdaki örnek yanlıştı; AIP ENR 1.10'dan doğrulandı).
 - **Kaynak:** SIL_Makale5 (4B yörüngeyi uygulanabilir talimata çevirme), Makale20 (ACARS
   metin mesajı), R7 (bacak bazlı döküm).
 - **Katkısı:** Kullanıcı deneyimi ve demo. Dispeçer, önerilen rotayı kopyalayıp planlama

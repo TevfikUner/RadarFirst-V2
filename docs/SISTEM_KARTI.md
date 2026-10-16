@@ -119,6 +119,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   okunmalıdır. Rüzgâr-optimum rota kendi riskli nokta sayısını taşır (türbülansı
   görmez). FRA modunda "normal rota" zaten rüzgârlı en hızlı ATS yoludur, ayrı
   rüzgâr kazancı yoktur. Kaçınma yapılmadıysa `kacinma_bedeli` boştur.
+- **FPL Madde 15 dizgisi:** Önerilen rota `fpl_madde15` alanında ICAO Doc 4444 Ek 2 Madde 15
+  biçiminde verilir (`N0447F350 4012N02854E …`; iki koordinat noktası arasında DCT yazılmaz,
+  noktalar arası en fazla 200 NM; biçim bir resmî AIP ENR 1.10'dan doğrulandı). Yalnız seyir
+  bölümüdür, meydan ve SID/STAR içermez; NON-OPERATIONAL işaretlidir, uçuş planı yerine geçmez.
 - **Zaman gecikmeli GFS topluluğu (deneysel):** Rota isteğinde `topluluk: true` verilirse
   son 4 GFS koşusunun (00/06/12/18 UTC, yayından ~5 sa sonra) aynı saate düşen tahminleri
   ayrı ayrı indirilir. Her rota noktası için TI1'in eşiği aşan üye oranı

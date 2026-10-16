@@ -2,6 +2,10 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dal `claude/fpl-madde15`)
+
+- ✅ Fikir 13: önerilen rota için ICAO Madde 15 dizgisi (NON-OPERATIONAL), web brifing kartında; biçim AIP'den doğrulandı.
+
 ## 2026-10-16 gece (dal `claude/opensky-bulut-sorusu`)
 
 - ✅ Fikir 12: OpenSky'a bulut IP/Trino sorusu taslağı → `docs/fizibilite/OPENSKY_BULUT_ERISIMI.md` (gönderim sizde).
