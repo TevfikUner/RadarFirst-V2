@@ -2,6 +2,10 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dal `claude/kalkis-penceresi`)
+
+- ✅ Fikir 16: isteğe bağlı kalkış ±2 sa penceresi (yalnız bilgi), web brifing kartında tablo.
+
 ## 2026-10-16 gece (dal `claude/geri-bildirim`)
 
 - ✅ Fikir 14: `POST /api/v1/geri-bildirim` + yönetici özeti; migration önce -test DB'de upgrade/downgrade, yedek 16 Eki var.

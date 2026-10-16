@@ -4878,6 +4878,11 @@
             "type": "boolean",
             "title": "Topluluk",
             "default": false
+          },
+          "kalkis_penceresi": {
+            "type": "boolean",
+            "title": "Kalkis Penceresi",
+            "default": false
           }
         },
         "type": "object",
@@ -5102,6 +5107,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/FplMadde15Yaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "kalkis_penceresi": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/KalkisPenceresiYaniti"
               },
               {
                 "type": "null"
@@ -7063,6 +7078,113 @@
           "id"
         ],
         "title": "GeriBildirimYaniti"
+      },
+      "KalkisPenceresiSatiriYaniti": {
+        "properties": {
+          "fark_saat": {
+            "type": "integer",
+            "title": "Fark Saat"
+          },
+          "kalkis_utc": {
+            "type": "string",
+            "title": "Kalkis Utc"
+          },
+          "veri": {
+            "type": "string",
+            "title": "Veri"
+          },
+          "normal_riskli_sure_dk": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normal Riskli Sure Dk"
+          },
+          "optimize_riskli_sure_dk": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimize Riskli Sure Dk"
+          },
+          "optimize_sure_dk": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimize Sure Dk"
+          },
+          "optimize_yakit_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimize Yakit Kg"
+          },
+          "strateji": {
+            "type": "string",
+            "title": "Strateji"
+          },
+          "guvenli_rota_bulundu_mu": {
+            "type": "boolean",
+            "title": "Guvenli Rota Bulundu Mu"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fark_saat",
+          "kalkis_utc",
+          "veri",
+          "strateji",
+          "guvenli_rota_bulundu_mu"
+        ],
+        "title": "KalkisPenceresiSatiriYaniti"
+      },
+      "KalkisPenceresiYaniti": {
+        "properties": {
+          "bilgi_notu": {
+            "type": "string",
+            "title": "Bilgi Notu"
+          },
+          "satirlar": {
+            "items": {
+              "$ref": "#/components/schemas/KalkisPenceresiSatiriYaniti"
+            },
+            "type": "array",
+            "title": "Satirlar"
+          },
+          "hatalar": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Hatalar",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "bilgi_notu",
+          "satirlar"
+        ],
+        "title": "KalkisPenceresiYaniti"
       }
     }
   }

@@ -108,6 +108,9 @@
       <div><label>Kalkış meydanı (ICAO, FRA)</label><input id="kalkis-meydani" maxlength="4" placeholder="LTFM"></div>
       <div><label>Varış meydanı (ICAO, FRA)</label><input id="varis-meydani" maxlength="4" placeholder="LTCI"></div>
     </div>
+    <label style="display:flex; gap:6px; align-items:center;">
+      <input id="kalkis-penceresi" type="checkbox" style="width:auto;"> Kalkış saati penceresi (±2 sa, yalnız bilgi)
+    </label>
 
     <button id="simule-et-buton">Simüle Et</button>
     <button id="yeniden-hesapla-buton" style="display:none; background:#e67e22; margin-top:6px;">
@@ -131,6 +134,10 @@
     <div id="fpl-satiri" style="display:none; margin-top:3px;">
       <span style="color:#9fb3c8;">FPL Madde 15 (NON-OPERATIONAL):</span>
       <code id="fpl-dizgisi" style="user-select:all; word-break:break-all;"></code>
+    </div>
+    <div id="kalkis-penceresi-kutusu" style="display:none; margin-top:3px;">
+      <span style="color:#9fb3c8;">Kalkış saati penceresi (yalnız bilgi, öneri değil):</span>
+      <table id="kalkis-penceresi-tablosu" style="width:100%;"></table>
     </div>
     <div style="color:#9fb3c8; margin-top:2px;">Karar destek amaçlıdır; sertifikalı EDR değildir.</div>
   </div>
@@ -471,6 +478,23 @@ function brifingKartiniGoster(sonuc) {
   document.getElementById("fpl-dizgisi").textContent = fpl ? fpl.madde15 : "";
   document.getElementById("fpl-satiri").style.display = fpl ? "block" : "none";
   document.getElementById("fpl-satiri").title = fpl ? fpl.aciklama : "";
+  const pencere = sonuc.kalkis_penceresi;
+  const tablo = document.getElementById("kalkis-penceresi-tablosu");
+  tablo.replaceChildren();
+  if (pencere) {
+    const baslik = tablo.insertRow();
+    for (const metin of ["Kalkış", "Riskli (normal)", "Riskli (önerilen)", "Süre"]) baslik.insertCell().textContent = metin;
+    const dk = (deger) => (deger == null ? "hesaplanmadı" : `${deger.toFixed(0)} dk`);
+    for (const s of pencere.satirlar) {
+      const satir = tablo.insertRow();
+      const isaret = s.fark_saat === 0 ? "istenen" : `${s.fark_saat > 0 ? "+" : ""}${s.fark_saat} sa`;
+      for (const metin of [`${s.kalkis_utc.slice(11, 16)}Z (${isaret})`, dk(s.normal_riskli_sure_dk), dk(s.optimize_riskli_sure_dk), dk(s.optimize_sure_dk)]) {
+        satir.insertCell().textContent = metin;
+      }
+    }
+  }
+  document.getElementById("kalkis-penceresi-kutusu").style.display = pencere ? "block" : "none";
+  document.getElementById("kalkis-penceresi-kutusu").title = pencere ? pencere.bilgi_notu : "";
   kutu.style.display = satirlar.childElementCount ? "block" : "none";
 }
 
@@ -572,6 +596,7 @@ async function simulasyonuCalistir() {
     zaman: document.getElementById("zaman").value + ":00",
     ucak_modeli: document.getElementById("ucak-modeli").value,
     arama_uzayi: document.getElementById("arama-uzayi").value,
+    kalkis_penceresi: document.getElementById("kalkis-penceresi").checked,
   };
   meydanlariEkle(govde, true);
   const anahtar = anahtarAl();
