@@ -1,7 +1,45 @@
-# 16 Ekim 2026: ERA5 → canlı GFS TI1 eşik eşlemesi
+# 16 Ekim 2026: ek analizler
 
-ML sonuç paketi değildir; tek bir ek analizdir (kaynak incelemesi Fikir 2). Sayılar
-[`esik_esleme.md`](esik_esleme.md) ve [`esik_esleme.json`](esik_esleme.json) dosyalarında.
+ML sonuç paketi değildir. İki ek analiz içerir:
+
+1. ERA5 → canlı GFS TI1 eşik eşlemesi (kaynak incelemesi Fikir 2):
+   [`esik_esleme.md`](esik_esleme.md), [`esik_esleme.json`](esik_esleme.json).
+2. Rota ayrıklaştırma yakınsama çalışması (Fikir 5):
+   [`ayriklastirma.md`](ayriklastirma.md), [`ayriklastirma.json`](ayriklastirma.json).
+
+# 2. Rota ayrıklaştırma yakınsaması
+
+**Soru:** Varsayılan 41 ara nokta ve ≤ 20 km yanal ızgara sonucu ne kadar etkiliyor?
+(Yöntem örneği: NTNU-IMT/weather-routing-discretisation.)
+
+**Yöntem:** `turbulans-performans rota`'nın 5 kapsam içi senaryosu (S1–S4, S6), yerel ERA5
+(Ocak 2019), canlı veri kapalı. Ara nokta {21, 41, 81} × ızgara {10, 20, 40 km}. Referans en
+ince ayar (81 nokta, 10 km). Komut: `turbulans-ayriklastirma --cikti docs/sonuclar/2026-10-16`
+(22 sn).
+
+**Sonuç:**
+
+| Senaryo | Strateji | Varsayılan − referans süre | Varsayılan − referans yakıt |
+|---|---|---|---|
+| S1 İstanbul→Antalya | yanal | +0,10 dk (%0,25) | +4,7 kg (%0,24) |
+| S2 İzmir→Van | yok | −0,00 dk | −0,1 kg |
+| S3 İstanbul→Doğu Anadolu | irtifa yukarı | −0,01 dk | −0,4 kg |
+| S4 Malatya→Musul + kısıtlı saha | yanal | 0,00 dk | 0,0 kg |
+| S6 İzmir→Van + sentetik SIGMET | yanal | −0,42 dk (%0,45) | −18,0 kg (%0,44) |
+
+- Varsayılan ayar beş senaryonun hepsinde referansla aynı stratejiyi seçti; süre ve yakıt
+  farkı en fazla %0,45.
+- 21 nokta yetersiz: S4'te 10 km ızgarayla kısıtlı sahadan kaçınma kararı kayboldu (strateji
+  "yok"), S6'da fark −2,3 dk'ya çıktı. Nedeni ayrıca incelenmedi (tahmin: seyrek noktalar
+  sahanın kenarını farklı örnekliyor).
+- En duyarlı durum SIGMET'ten kaçınma (S6): ızgara inceldikçe rota poligonun etrafından
+  biraz daha geniş dolaşıyor, sonuç %0,5 içinde.
+- 81 nokta hesap süresini yaklaşık 1,5–1,8 kat artırıyor (tek ölçüm).
+
+**Karar:** Varsayılan (41 nokta, 20 km) korunur. Sonuçlar ayrıklaştırmaya %0,5 düzeyinde
+duyarlı; bu fark, raporlanan yakıt tasarruflarının yanında küçük ama sıfır değil.
+
+# 1. ERA5 → canlı GFS TI1 eşik eşlemesi
 
 ## Soru
 
