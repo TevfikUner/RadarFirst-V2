@@ -783,6 +783,7 @@ sıra benim değerlendirmem.
   denenmedi (tahmin). Uyuşmazlık çıkarsa ve etiket değişirse bu bir dondurma sonrası işidir.
 
 ### Fikir 12. B planında OpenSky "hyperscaler" engelini önceden kontrol
+- **Durum:** E-posta taslağı hazır (`docs/fizibilite/OPENSKY_BULUT_ERISIMI.md`); gönderim kullanıcıda.
 - **Kaynak:** R16 README: "We may block AWS and other hyperscalers".
 - **Katkısı:** Risk azaltma. B planında önerilen Azure for Students bir hyperscaler; taşıma
   yapıldıktan sonra OpenSky erişimi kesilirse gece işi durur.
