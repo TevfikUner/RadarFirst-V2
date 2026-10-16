@@ -88,8 +88,9 @@ jüri sorularına doğrudan yanıt verenler önde.
 
 ## Kullanıcı kararı bekleyenler
 
-- [ ] OpenSky'a bulut IP / Trino sorusu (B planından önce; taslak `docs/fizibilite/OPENSKY_BULUT_ERISIMI.md`,
-  gönderim kullanıcıda).
+- [x] (16 Ekim, kullanıcı gönderdi) OpenSky'a bulut IP / Trino sorusu (`docs/fizibilite/OPENSKY_BULUT_ERISIMI.md`).
+- [ ] OpenSky yanıtı gelince: özeti `OPENSKY_BULUT_ERISIMI.md`'ye yaz, B planı notunu güncelle; engel varsa
+  B planında OpenSky sorguları dizüstünde kalır.
 - [ ] Avrupa/Türkiye nesnel etiket kaynağı için MGM'ye ve IATA Turbulence Aware'a başvuru
   (dış iletişim; bkz. `docs/fizibilite/TURKIYE_ETIKET_KAYNAKLARI.md`).
 - [ ] Eski commit mesajlarındaki yapay zekâ imzalarının temizliği (force-push gerektirir;
