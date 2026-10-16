@@ -2,6 +2,10 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dal `claude/dikey-kesit`)
+
+- ✅ Fikir 17: önerilen rota boyunca FL280–400 TI1 dikey kesiti (API + web ısı şeridi), ek ~10 ms.
+
 ## 2026-10-16 gece (dal `claude/kalkis-penceresi`)
 
 - ✅ Fikir 16: isteğe bağlı kalkış ±2 sa penceresi (yalnız bilgi), web brifing kartında tablo.

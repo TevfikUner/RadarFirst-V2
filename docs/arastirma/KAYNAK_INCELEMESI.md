@@ -850,6 +850,7 @@ sıra benim değerlendirmem.
   pencerede ayrı verilmeli. Kalkış saati operasyonel olarak serbest değildir (slot).
 
 ### Fikir 17. Rota boyunca dikey kesit görünümü
+- **Durum:** Uygulandı (16 Ekim; `rota/dikey_kesit.py`, web brifing kartında ısı şeridi; ek ~10 ms).
 - **Kaynak:** Makale2 (AWRT Şekil 3), Makale20 (ASCII dikey kesit), Makale10 ("alan dikeyde
   derin, bu yüzden yanal kaçınma seçildi").
 - **Katkısı:** Kullanıcı deneyimi ve sunum. Seviye değişimi mi, yanal sapma mı seçildiğini

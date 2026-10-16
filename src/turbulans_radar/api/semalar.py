@@ -430,6 +430,15 @@ class YakitModeliYaniti(BaseModel):
     openap_surumu: str | None = None
 
 
+class DikeyKesitYaniti(BaseModel):
+    fl: list[int]
+    mesafe_nm: list[float]
+    ti1: list[list[float | None] | None]
+    esik: float
+    basinc_seviyeleri_hpa: list[float]
+    aciklama: str
+
+
 class KalkisPenceresiSatiriYaniti(BaseModel):
     fark_saat: int
     kalkis_utc: str
@@ -497,6 +506,7 @@ class RotaSimulasyonuYaniti(BaseModel):
     referans_karsilastirmasi: ReferansKarsilastirmasiYaniti | None = None
     # Yalnızca önerilen rotada kalan risk varsa dolu (karar kaptanındır).
     kabin_onerisi: KabinOnerisiYaniti | None = None
+    dikey_kesit: DikeyKesitYaniti | None = None
     fpl_madde15: FplMadde15Yaniti | None = None
     # Var olan sonucun 3 satırlık özeti (rota, kalan risk, kabin); yeni hesap yok.
     brifing_karti: list[str] = []

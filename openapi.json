@@ -5122,6 +5122,16 @@
                 "type": "null"
               }
             ]
+          },
+          "dikey_kesit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DikeyKesitYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -7185,6 +7195,73 @@
           "satirlar"
         ],
         "title": "KalkisPenceresiYaniti"
+      },
+      "DikeyKesitYaniti": {
+        "properties": {
+          "fl": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Fl"
+          },
+          "mesafe_nm": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Mesafe Nm"
+          },
+          "ti1": {
+            "items": {
+              "anyOf": [
+                {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Ti1"
+          },
+          "esik": {
+            "type": "number",
+            "title": "Esik"
+          },
+          "basinc_seviyeleri_hpa": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Basinc Seviyeleri Hpa"
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fl",
+          "mesafe_nm",
+          "ti1",
+          "esik",
+          "basinc_seviyeleri_hpa",
+          "aciklama"
+        ],
+        "title": "DikeyKesitYaniti"
       }
     }
   }

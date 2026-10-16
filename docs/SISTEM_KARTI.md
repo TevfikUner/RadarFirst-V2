@@ -119,6 +119,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   okunmalıdır. Rüzgâr-optimum rota kendi riskli nokta sayısını taşır (türbülansı
   görmez). FRA modunda "normal rota" zaten rüzgârlı en hızlı ATS yoludur, ayrı
   rüzgâr kazancı yoktur. Kaçınma yapılmadıysa `kacinma_bedeli` boştur.
+- **Dikey kesit:** Yanıttaki `dikey_kesit`, önerilen rotanın yatay izi boyunca FL280–400'de
+  TI1'i verir; web brifing kartında ısı şeridi olarak çizilir (Knapp vd. AWRT, NTDA). Küpün
+  yalnız birkaç basınç seviyesi olduğu için kesit kabadır; rota kodunun kapsam toleransı
+  dışındaki seviye boş kalır. Ek hesap ~10 ms.
 - **Kalkış saati penceresi (bilgi):** Rota isteğinde `kalkis_penceresi: true` verilirse aynı
   istek kalkış −2/−1/+1/+2 saat kaydırılarak yeniden hesaplanır; her satırda normal ve önerilen
   rotanın riskli süresi verilir. Öneri değildir (slot, ATC, operasyonel kısıtlar); ileri
