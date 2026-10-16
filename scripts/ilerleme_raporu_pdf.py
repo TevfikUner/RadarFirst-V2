@@ -21,18 +21,18 @@ TARAYICI_ADAYLARI = [
 ]
 
 STIL = """
-@page { size: A4; margin: 15mm 17mm 15mm 17mm;
+@page { size: A4; margin: 12mm 16mm 12mm 16mm;
   @bottom-center { content: counter(page) " / " counter(pages); font: 9pt 'Segoe UI', sans-serif; color: #7a8696; } }
 * { box-sizing: border-box; }
-body { font-family: 'Segoe UI', 'Calibri', sans-serif; font-size: 10pt; line-height: 1.42; color: #1f2933; margin: 0; }
+body { font-family: 'Segoe UI', 'Calibri', sans-serif; font-size: 9.8pt; line-height: 1.36; color: #1f2933; margin: 0; }
 .kapak { border-bottom: 3px solid #1d4e89; padding-bottom: 10px; margin-bottom: 14px; }
 .ust-baslik { font-size: 9pt; letter-spacing: .12em; text-transform: uppercase; color: #1d4e89; font-weight: 600; }
 h1 { font-size: 21pt; margin: 2px 0 8px; color: #10243e; }
 .kunye { display: grid; grid-template-columns: auto 1fr; gap: 2px 12px; font-size: 10pt; }
 .kunye b { color: #52606d; font-weight: 600; }
-.ozet { background: #f1f5fa; border-left: 4px solid #1d4e89; padding: 10px 14px; margin: 12px 0; border-radius: 0 4px 4px 0; }
+.ozet { background: #f1f5fa; border-left: 4px solid #1d4e89; padding: 8px 12px; margin: 10px 0; border-radius: 0 4px 4px 0; }
 .not { font-size: 9pt; color: #616e7c; font-style: italic; margin: 6px 0 4px; }
-.hafta { margin-top: 18px; }
+.hafta { margin-top: 14px; }
 .hafta + .hafta { break-before: auto; }
 h2 { display: flex; align-items: baseline; gap: 10px; background: #1d4e89; color: #fff; font-size: 12.5pt;
   padding: 7px 12px; border-radius: 4px; margin: 0 0 8px; break-after: avoid; }
