@@ -26,6 +26,18 @@ CAT klimatolojisini TI1, TI2, VWS, deformasyon, diverjans ve Ri gibi aynı
 teşhislerle çıkardı. Bu çalışma, ERA5 üzerinde bu teşhislerin anlamlı bir CAT
 potansiyeli verdiğini gösteren en yakın referanstır.
 
+Bölgesel eğilimler Türkiye için de anlamlıdır. Foudad vd. (2024), birden çok reanaliz ve
+11 CMIP6 modeliyle 1980–2021 döneminde orta ve üstü CAT sıklığının Kuzeybatı Afrika, Orta
+Doğu ve Doğu Asya'da iki katından fazla arttığını buldu; Orta Doğu ve Doğu Asya'daki artışı
+iç değişkenlik aralığının dışında, dış zorlamaya bağlanabilir olarak değerlendirdi. Kuzey
+Atlantik'te eğilim anlamlı değildi. Aynı çalışma, CAT eşiğinin veri setinin yatay
+çözünürlüğüne çok bağlı olduğunu vurgular. Avrupa için ERA5 ile yapılmış bir lisans tezi
+(Soliva Fabrega, 2025) 1994–2024'te genel bir artış bulmadı, ancak güney Avrupa'da indeks
+değerlerinin ve oynaklığın daha yüksek olduğunu gösterdi. Zhang vd. (2025) Çin'de 12.539
+uçak raporuyla CAT'in kışın en sık olduğunu (raporların %33,4'ü) ve 30 m/s üzeri jetlerle
+ilişkili olduğunu raporladı. Türkiye bu çalışmalarda ayrı bir bölge olarak incelenmedi;
+yalnız komşu bölgelerdeki bulgular aktarılabilir.
+
 **Projeyle bağ.** Fizik katmanı TI1, TI2, VWS, DEF ve Ri'yi ERA5'ten, uçağın basıncını
 çevreleyen 25 hPa'lık katmandan hesaplar (`fizik/turbulans_indeksleri.py`,
 `fizik/eslestirme.py`). Deformasyon küresel metrik terimleriyle, katman kalınlığı
@@ -194,6 +206,7 @@ bağımsız etiketlere (PIREP, MADIS EDR) karşı kendi referansı olan TI1'le �
 - ☑ Cheung, J. C. H. (2018). Flight planning: node-based trajectory prediction and turbulence avoidance. *Meteorological Applications*, 25(1), 78–85. https://doi.org/10.1002/met.1671
 - ☑ Ellrod, G. P. ve Knapp, D. I. (1992). An objective clear-air turbulence forecasting technique: verification and operational use. *Weather and Forecasting*, 7(1), 150–165. https://doi.org/10.1175/1520-0434(1992)007<0150:AOCATF>2.0.CO;2
 - ☑ Ellrod, G. P. ve Knox, J. A. (2010). Improvements to an operational clear-air turbulence diagnostic index by addition of a divergence trend term. *Weather and Forecasting*, 25(2), 789–798. https://doi.org/10.1175/2009WAF2222290.1
+- ☑ Foudad, M., Sanchez-Gomez, E., Jaravel, T., Rochoux, M. C. ve Terray, L. (2024). Past and future trends in clear-air turbulence over the Northern Hemisphere. *Journal of Geophysical Research: Atmospheres*, 129(13), e2023JD040261. https://doi.org/10.1029/2023JD040261
 - ☑ Gill, P. G. (2014). Objective verification of World Area Forecast Centre clear air turbulence forecasts. *Meteorological Applications*, 21(1), 3–11. https://doi.org/10.1002/met.1288
 - ☑ Gökdeniz, K. ve Ülkü, İ. (2026). Predictive modeling of high-altitude clear air turbulence in the United States: A machine learning approach. arXiv:2607.11899 [physics.ao-ph].
 - ☑ Gu, A. ve Wang, Y. (2024). Optimizing clear air turbulence forecasts using the K-nearest neighbor algorithm. *Journal of Meteorological Research*, 38(6), 1064–1077. https://doi.org/10.1007/s13351-024-4060-7
@@ -210,8 +223,10 @@ bağımsız etiketlere (PIREP, MADIS EDR) karşı kendi referansı olan TI1'le �
 - ☑ Roberts, D. R. vd. (2017). Cross-validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure. *Ecography*, 40(8), 913–929. https://doi.org/10.1111/ecog.02881
 - ☑ Schäfer, M., Strohmeier, M., Lenders, V., Martinovic, I. ve Wilhelm, M. (2014). Bringing up OpenSky: A large-scale ADS-B sensor network for research. *IPSN-14 Proceedings*, 83–94. https://doi.org/10.1109/IPSN.2014.6846743
 - ☑ Schwartz, B. (1996). The quantitative use of PIREPs in developing aviation weather guidance products. *Weather and Forecasting*, 11(3), 372–384. https://doi.org/10.1175/1520-0434(1996)011<0372:TQUOPI>2.0.CO;2
+- ☐ Soliva Fabrega, J. (2025). *Analysis of the Trend of CAT (Clear Air Turbulence) over Europe*. Lisans tezi, Aerospace Systems Engineering (danışmanlar J. Mazón Bueso, D. Pino González). Kurum ve erişim adresi tezden ayrıca alınmalı.
 - ☑ Sharman, R. D., Cornman, L. B., Meymaris, G., Pearson, J. ve Farrar, T. (2014). Description and derived climatologies of automated in situ eddy-dissipation-rate reports of atmospheric turbulence. *Journal of Applied Meteorology and Climatology*, 53(6), 1416–1432. https://doi.org/10.1175/JAMC-D-13-0329.1
 - ☑ Sharman, R. D. ve Pearson, J. M. (2017). Prediction of energy dissipation rates for aviation turbulence. Part I: Forecasting nonconvective turbulence. *Journal of Applied Meteorology and Climatology*, 56(2), 317–337. https://doi.org/10.1175/JAMC-D-16-0205.1
 - ☑ Sharman, R., Tebaldi, C., Wiener, G. ve Wolff, J. (2006). An integrated approach to mid- and upper-level turbulence forecasting. *Weather and Forecasting*, 21(3), 268–287. https://doi.org/10.1175/WAF924.1
 - ☑ Vovk, V., Gammerman, A. ve Shafer, G. (2022). *Algorithmic Learning in a Random World* (2. baskı). Springer. https://doi.org/10.1007/978-3-031-06649-8
+- ☑ Zhang, W., Zhang, X., Yuan, W., Zhang, C., Hu, M. ve Yang, T. (2025). Clear-air turbulence over China: climatology and multiscale mechanisms from first long-term aircraft reports. *Atmosphere*, 16(10), 1218. https://doi.org/10.3390/atmos16101218
 - ☐ Holton, J. R. *An Introduction to Dynamic Meteorology* (Richardson sayısı bölümü; baskı ve sayfa kitaptan alınmalı).
