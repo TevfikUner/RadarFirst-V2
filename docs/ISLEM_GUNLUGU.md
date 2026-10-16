@@ -2,6 +2,10 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dal `claude/ongoru-uyarisi`)
+
+- ✅ Fikir 7: GFS rotasında kalkışa >48 sa ise `ongoru_belirsiz` uyarısı (Lee 2025; kalibre değil).
+
 ## 2026-10-16 gece (dal `claude/kutle-bandi`)
 
 - ✅ Fikir 6: yakıt tasarrufu %70/85/90 MTOW bandıyla; seviye değişiminde %1,1–2,9 (S3), yanalda duyarsız.

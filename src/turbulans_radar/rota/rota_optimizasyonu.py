@@ -1096,6 +1096,8 @@ def planlama_ufku(zaman_iso, simdi=None) -> dict:
         "tahmin_ufku_saat": config.CANLI_TAHMIN_UFKU_SAAT,
         "sigmet_yayin_ufku_saat": config.SIGMET_YAYIN_UFKU_SAAT,
         "tahmin_ufku_disi": kalan_saat > config.CANLI_TAHMIN_UFKU_SAAT,
+        "guvenilir_ongoru_saat": config.GUVENILIR_ONGORU_SAAT,
+        "ongoru_belirsiz": kalan_saat > config.GUVENILIR_ONGORU_SAAT,
     }
 
 
@@ -1540,6 +1542,20 @@ def rota_simulasyonu_olustur(
         veri_durumu.get("canli_hata") or (CANLI_VERI_HAZIRLANIYOR if veri_durumu.get("canli_hazirlaniyor") else None),
         seviye,
     )
+    ufuk = planlama_ufku(zaman_iso)
+    if ruzgarli_mi and veri_kupu_kaynagi(veri_kupu) == "gfs" and ufuk["ongoru_belirsiz"]:
+        bulgular.append(
+            _bulgu(
+                "ongoru_belirsiz",
+                "uyari",
+                f"Kalkışa ~{ufuk['kalkisa_kalan_saat']:.0f} saat var. CAT'in yeri topluluk tahminleriyle ancak "
+                f"~24–48 saat önceden tutarlı öngörülebildi (Lee, 2025); bu ufkun ötesinde riskli alanların yeri "
+                f"belirsizdir. Kalkıştan önceki {config.GUVENILIR_ONGORU_SAAT} saat içinde yeniden hesaplayın. "
+                "Sınır literatürden alındı, kalibre edilmedi.",
+                kalkisa_kalan_saat=ufuk["kalkisa_kalan_saat"],
+                guvenilir_ongoru_saat=config.GUVENILIR_ONGORU_SAAT,
+            )
+        )
 
     sonuc = {
         "ruzgar_verisi_kaynagi": (
@@ -1609,7 +1625,7 @@ def rota_simulasyonu_olustur(
         ),
         "secenekler": secenekler,
         "kapsam": kapsam(arama_uzayi, *((ag.kaynak, ag.etiket()) if ag is not None else ())),
-        "planlama_ufku": planlama_ufku(zaman_iso),
+        "planlama_ufku": ufuk,
         "ats": (
             None
             if ag is None

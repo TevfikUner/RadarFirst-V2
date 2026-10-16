@@ -34,7 +34,10 @@ trafikle varsayımsal minima karşılaştırması yalnızca gösterge olarak var
 - SIGMET'ler kısa geçerlilikle yayımlandığı için (varsayılan ufuk 4 saat,
   `SIGMET_YAYIN_UFKU_SAAT`), uçuşun bu ufkun ötesindeki kısmında "aktif SIGMET
   yok" sonucu güvence değildir. Yanıt bu durumda `sigmet_ufuk_disi` uyarısı verir.
-- Kalkıştan önceki son saatlerde yeniden hesaplanmalıdır.
+- Kalkıştan önceki son saatlerde yeniden hesaplanmalıdır. GFS ile hesaplanan ve kalkışına
+  48 saatten fazla olan rotalarda yanıt `ongoru_belirsiz` uyarısı verir: CAT'in yeri topluluk
+  tahminleriyle ancak ~24–48 saat önceden tutarlı öngörülebildi (Lee, 2025, 4 vaka). Sınır
+  `GUVENILIR_ONGORU_SAAT` ile değişir; kalibre edilmedi.
 - Hesaplama süresi, veri hazırken ve dizüstü şarjdayken rota başına 0,03–0,45 sn'dir
   (sıcak medyan; A* aramalarının toplamı 0,09–0,14 sn). Ölçüm `turbulans-performans rota`
   ile yapıldı: `docs/sonuclar/2026-10-07/rota_performansi.md`. Pilde süreler 2–3 kat

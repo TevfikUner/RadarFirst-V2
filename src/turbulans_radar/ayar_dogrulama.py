@@ -72,6 +72,7 @@ class AyarSemasi(BaseModel):
     DEVRE_KESICI_AZAMI_SANIYE: Pozitif
     CANLI_GECMIS_SAAT: NegatifOlmayanTam
     CANLI_TAHMIN_UFKU_SAAT: NegatifOlmayanTam
+    GUVENILIR_ONGORU_SAAT: PozitifTam
     CANLI_BASINC_SEVIYELERI_HPA: tuple[Annotated[float, Field(gt=0, le=1100)], ...]
     CANLI_ISITMA_KUTUSU: tuple[float, ...]
     CANLI_ADSB_ARALIK_SANIYE: Pozitif

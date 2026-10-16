@@ -4238,6 +4238,22 @@
           "tahmin_ufku_disi": {
             "type": "boolean",
             "title": "Tahmin Ufku Disi"
+          },
+          "guvenilir_ongoru_saat": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Guvenilir Ongoru Saat"
+          },
+          "ongoru_belirsiz": {
+            "type": "boolean",
+            "title": "Ongoru Belirsiz",
+            "default": false
           }
         },
         "type": "object",
