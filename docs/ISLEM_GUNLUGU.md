@@ -2,6 +2,12 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 akşam (dal `claude/kaynak-incelemesi`)
+
+- ✅ Kaynak incelemesi: 23 yıldızlı depo + 28 makale (5'i Silinecekler) → `docs/arastirma/KAYNAK_INCELEMESI.md`.
+- ✅ 30 fikir etki/efor sırasıyla; ilk 3: literatür kıyasına bölme sütunu, ayrıklaştırma yakınsaması, kütle bandı.
+- ⚠️ Kod değişmedi; ML'e dokunan öneriler 18 Eki dondurması sonrasına işaretli.
+
 ## 2026-10-16 (dal `claude/ilerleme-raporu`)
 
 - ✅ Gece işi 11:02 UTC'de başladı (çalışıyor).
