@@ -39,6 +39,11 @@
 - [ ] İsteğe bağlı: F5 backtest yakıtı için kalıcı veritabanı sütunu (migration; önce
   `-test` DB'de upgrade/downgrade, geliştirme DB'si için ONAY). Şu an yalnız yanıtta.
 
+- [ ] **GFS topluluk oranının doğrulanması (Fikir 3 devamı):** THREDDS koşuları ~8 gün
+  durduğu için geçmiş günlerde değerlendirme ancak veri biriktirilerek yapılabilir. Gece
+  işine günlük GFS koşu dilimi eklemek veri bütçesine girer (ONAY). Ölçüt: MADIS EDR / PIREP
+  günlerinde güvenilirlik diyagramı ve Brier skoru; rota kararına alınması ayrı karar.
+
 ### Kaynak incelemesinden (16 Ekim, `docs/arastirma/KAYNAK_INCELEMESI.md` §3)
 
 Kural: her biri ÖNCE `docs/deney_protokolu.md`'ye (hipotez, metrik, karar ölçütü) yazılır,

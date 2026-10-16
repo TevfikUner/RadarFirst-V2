@@ -110,6 +110,13 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   okunmalıdır. Rüzgâr-optimum rota kendi riskli nokta sayısını taşır (türbülansı
   görmez). FRA modunda "normal rota" zaten rüzgârlı en hızlı ATS yoludur, ayrı
   rüzgâr kazancı yoktur. Kaçınma yapılmadıysa `kacinma_bedeli` boştur.
+- **Zaman gecikmeli GFS topluluğu (deneysel):** Rota isteğinde `topluluk: true` verilirse
+  son 4 GFS koşusunun (00/06/12/18 UTC, yayından ~5 sa sonra) aynı saate düşen tahminleri
+  ayrı ayrı indirilir. Her rota noktası için TI1'in eşiği aşan üye oranı
+  `ti1_asim_olasiligi` olarak döner, özeti `topluluk` alanındadır. Bu oran kalibre
+  edilmedi ve doğrulanmadı, olasılık olarak okunmamalıdır. Rota kararına girmez; varsayılan
+  kapalıdır. Yalnız canlı GFS rotalarında üretilir. Üye dosyaları `canli_veri/topluluk/`
+  altında 48 saat önbellekte tutulur (Kim vd., 2015).
 - **Sanal PIREP (gözlem kanalı):** Seyirdeki uçağın atanmış seviyesinden
   ≥ 90 ft sapması (düşey hız tepkisiyle birlikte) olay sayılır; en az 2 farklı
   uçağın 50 km / ±2000 ft / ±60 dk içinde doğruladığı olay `/ws/uyarilar`'a

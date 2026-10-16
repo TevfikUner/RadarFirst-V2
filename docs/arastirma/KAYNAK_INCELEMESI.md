@@ -658,6 +658,8 @@ sıra benim değerlendirmem.
   doğrulama karnesinindir. Eşik değişirse testler, demo ve ekranlar yeniden kontrol edilir.
 
 ### Fikir 3. Zaman gecikmeli GFS topluluğu ile TI1 olasılığı
+- **Durum:** Uygulandı, deneysel (16 Ekim; `analiz/gfs_toplulugu.py`, rota isteğinde
+  `topluluk: true`). Doğrulama veri biriktirmeyi gerektiriyor (`YAPILACAKLAR.md`).
 - **Kaynak:** Makale10 (3 gecikmeli üye × 10 teşhis, rota için ≥%10 SOG), Makale19
   (topluluk 24–48 sa önce olasılık veriyor), R6 (Monte Carlo hava belirsizliği fikri).
   Ayrıca `docs/fizibilite/GEFS_FIZIBILITE.md`'ye bir alternatif.
