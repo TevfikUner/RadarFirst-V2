@@ -929,6 +929,28 @@ def _kutle_bandi_metni(sonuc) -> str:
     )
 
 
+def iz_bulutu_seviye_bilgisi(aday, veri_kupu, fark_fl=(-20, 20)) -> dict | None:
+    sayi = aday.get("iz_bulutu_sayisi")
+    if not sayi:
+        return None
+    fl = _ucus_seviyesi(aday["irtifa_m"])
+    secenekler = []
+    for fark in fark_fl:
+        irtifa_m = (fl + fark) * 100 * 0.3048
+        eslesme = rota_eslesmesi(aday["enlem"], aday["boylam"], irtifa_m, aday["zamanlar"], veri_kupu)
+        secenekler.append({"fl": fl + fark, "duyarli_nokta_sayisi": duyarli_nokta_sayisi(eslesme["iz_bulutu_duyarli"])})
+    return {
+        "fl": fl,
+        "duyarli_nokta_sayisi": int(sayi),
+        "secenekler": secenekler,
+        "aciklama": (
+            "Bilgi: önerilen rotanın yatay izi ±2000 ft'te kalıcı iz bulutu duyarlılığı (Schmidt-Appleman + buza "
+            "göre doygunluk, ERA5 nemi). Yakıt, yarım daire kuralı ve ATC değerlendirilmedi; rota kararına girmez. "
+            "Duyarlılık göstergesidir, gözlenmiş iz bulutu değildir."
+        ),
+    }
+
+
 def brifing_karti(sonuc) -> list[str]:
     """Var olan sonucun 3 satırlık özeti (rota, kalan risk, kabin); yeni hesap
     yapmaz. Karar destek amaçlıdır; sertifikalı EDR değildir."""
@@ -1596,6 +1618,7 @@ def rota_simulasyonu_olustur(
         ),
         "referans_karsilastirmasi": referans_karsilastirmasi,
         "kabin_onerisi": kabin_onerisi(optimize_ozeti["riskli_bolumler"]),
+        "iz_bulutu_seviye_bilgisi": iz_bulutu_seviye_bilgisi(en_iyi, veri_kupu) if ruzgarli_mi else None,
         "dikey_kesit": (
             dikey_kesit(en_iyi["enlem"], en_iyi["boylam"], en_iyi["zamanlar"], veri_kupu, etkin_ti1_esigi())
             if ruzgarli_mi
