@@ -33,6 +33,32 @@
 - [ ] İsteğe bağlı: F5 backtest yakıtı için kalıcı veritabanı sütunu (migration; önce
   `-test` DB'de upgrade/downgrade, geliştirme DB'si için ONAY). Şu an yalnız yanıtta.
 
+### Kaynak incelemesinden (16 Ekim, `docs/arastirma/KAYNAK_INCELEMESI.md` §3)
+
+Kural: her biri ÖNCE `docs/deney_protokolu.md`'ye (hipotez, metrik, karar ölçütü) yazılır,
+SONRA dondurmadan sonra toplanan yeni günlerde çalıştırılır; aynı 16 altın gün yeniden
+kullanılmaz. Böylece sonuç görüldükten sonra seçim (p-hacking) olmaz. Öncelik sırası
+jüri sorularına doğrudan yanıt verenler önde.
+
+- [ ] **Fikir 4 — Tabakalı doğrulama:** mevsim, 250 hPa rüzgâr sınıfı (<30 / ≥30 m/s),
+  backtest için uçuş yönü; tabaka başına n, ROC-AUC, bootstrap GA. `ml/degerlendirme.py`.
+- [ ] **Fikir 8 — "Hafif = negatif" duyarlılığı:** hafif raporlar negatiften çıkarılır,
+  AUC/Peirce yeniden; birincil sonuç değişmez, yalnız duyarlılık tablosu.
+- [ ] **Fikir 9 — Uyarı alanı oranı:** seçili eşikte riskli ızgara/nokta oranı ve
+  "POD – uyarı alanı" eğrisi; TTS yalnız MADIS günlerinde. `ml/gosterge_degerlendirme.py`.
+- [ ] **Fikir 10 — Komşuluk maksimumu eşleştirmesi:** ±1 hücre / ±1 sa pencerede TI1
+  maksimumu, iki sınıfa birlikte; `fizik/eslestirme.py`'de isteğe bağlı mod.
+- [ ] **Fikir 11 — PIREP ayrıştırıcı çapraz testi:** 500 ham IEM PIREP, `pirep_siddet_sinifi`
+  ile avwx-engine karşılaştırması; uyuşmazlık çıkarsa etiket değişikliği ayrıca karar.
+- [ ] **Fikir 15 — TI3 (Ellrod–Knox DVT):** TI3 = TI1 + 0,01·|div(t) − div(t−6 sa)|; ERA5
+  pencere deposunda t−6 sa var mı önce kontrol; TI1'e karşı yeni günlerde.
+- [ ] **Fikir 19 — Ek teşhisler:** frontogenez, ∇T, NCSU1, negatif PV; F9 geniş özellik
+  setine aday olarak protokole yazılır (3 seviyeyle PV kaba).
+- [ ] **Fikir 24 — AUC² ağırlıklı birleşik EDR:** ağırlıklar yalnız eğitim günlerinden;
+  `fizik/edr_esleme.py`'ye seçenek.
+- [ ] **Fikir 29 — Uçak tipine duyarlı risk:** OpenAP `prop` ile kanat yükü (BADA lisanslı,
+  kullanılmaz); F9 adayı. Beklenen kazanç küçük (Gökdeniz ve Ülkü 2026: katkı %3,2).
+
 ## Tarihli hatırlatmalar
 
 - [ ] **25 Ekim:** sunum için Docker imajı yedeği (`docker save`).
