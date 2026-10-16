@@ -693,6 +693,8 @@ sıra benim değerlendirmem.
   güven aralığıyla yorumlanır.
 
 ### Fikir 5. Rota ayrıklaştırma yakınsama çalışması
+- **Durum:** Yapıldı (16 Ekim; `turbulans-ayriklastirma`). Varsayılan ince ayara %0,45 içinde;
+  21 nokta yetersiz. Varsayılan korunur.
 - **Kaynak:** R11 (NTNU, `convergence_study.py`; makalenin tüm sorusu bu).
 - **Katkısı:** Akademik titizlik. "41 ara nokta / ≤ 20 km ızgara / 30° sınırı" seçiminin
   sonucu değiştirmediğini (ya da ne kadar değiştirdiğini) sayıyla gösterir.

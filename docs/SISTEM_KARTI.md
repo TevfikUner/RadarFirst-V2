@@ -79,7 +79,9 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   - A* ile yanal sapma: büyük daire etrafında 41 ara nokta; her bacağın büyük
     daire yönüne göre açısı en fazla 30°, toplam sapma en fazla 400 km, ızgara
     aralığı en fazla 20 km (kısa rotada açı sınırına göre daralır). Sapma
-    uçlarda kendiliğinden kademeli sınırlanır.
+    uçlarda kendiliğinden kademeli sınırlanır. 81 nokta / 10 km'lik ince ayara göre süre ve
+    yakıt farkı 5 senaryoda en fazla %0,45, strateji aynı; 21 nokta kısıtlı saha kararını
+    değiştirebiliyor (`docs/sonuclar/2026-10-16/`, yakınsama çalışması).
   - Aynı yönün bir üst ya da bir alt yasal FL'sine geçiş (yarım daire kuralı,
     RVSM, tip tavanı; manyetik sapma sabit +5°E varsayımı): geçici seviyeye
     gidiş ve planlanan seviyeye dönüşün yakıt bedeli hesaba katılır (OpenAP:

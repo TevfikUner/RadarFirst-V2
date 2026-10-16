@@ -2,6 +2,10 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dal `claude/ayriklastirma`)
+
+- ✅ Fikir 5: 41 nokta/20 km varsayılanı ince ayara göre ≤%0,45 fark, strateji aynı; 21 nokta yetersiz → `docs/sonuclar/2026-10-16/`.
+
 ## 2026-10-16 gece (dallar `claude/gfs-ti1-esigi`, `claude/gfs-toplulugu`)
 
 - ✅ Fikir 2: `TI1_ESIK_ORTA_SIDDETLI_GFS` (boş = davranış aynı) + `turbulans-esik-esleme`; 13 MB indirme.
