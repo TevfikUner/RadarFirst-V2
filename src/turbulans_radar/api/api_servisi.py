@@ -148,6 +148,7 @@ from turbulans_radar.ml.turbulans_ml_modeli import (
     risk_durumlarini_hesapla,
 )
 from turbulans_radar.rota.hava_yolu_agi import AtsAgiHatasi, agi_yukle
+from turbulans_radar.rota.kalkis_penceresi import kalkis_penceresi
 from turbulans_radar.rota.rota_optimizasyonu import (
     CANLI_VERI_HAZIRLANIYOR,
     UCAK_PROFILLERI,
@@ -822,6 +823,19 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
             )
         except (AtsAgiKullanilamazHatasi, AtsAgiHatasi, AntimeridyenHatasi) as hata:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(hata)) from None
+        if istek.kalkis_penceresi:
+            sonuc["kalkis_penceresi"] = await asyncio.to_thread(
+                kalkis_penceresi,
+                sonuc,
+                rota_simulasyonu_olustur,
+                (istek.baslangic_enlem, istek.baslangic_boylam, istek.bitis_enlem, istek.bitis_boylam, istek.irtifa_ft),
+                istek.zaman,
+                ucak_modeli_kodu=istek.ucak_modeli,
+                canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
+                arama_uzayi=istek.arama_uzayi,
+                kalkis_meydani=istek.kalkis_meydani,
+                varis_meydani=istek.varis_meydani,
+            )
         if istek.topluluk:
             try:
                 sonuc = await asyncio.to_thread(rota_sonucuna_topluluk_ekle, sonuc)

@@ -148,6 +148,7 @@ class RotaSimulasyonuIstegi(BaseModel):
     kalkis_meydani: str | None = Field(default=None, pattern=r"^[A-Z]{4}$")
     varis_meydani: str | None = Field(default=None, pattern=r"^[A-Z]{4}$")
     topluluk: bool = False
+    kalkis_penceresi: bool = False
 
     @field_validator("zaman")
     @classmethod
@@ -429,6 +430,24 @@ class YakitModeliYaniti(BaseModel):
     openap_surumu: str | None = None
 
 
+class KalkisPenceresiSatiriYaniti(BaseModel):
+    fark_saat: int
+    kalkis_utc: str
+    veri: str
+    normal_riskli_sure_dk: float | None = None
+    optimize_riskli_sure_dk: float | None = None
+    optimize_sure_dk: float | None = None
+    optimize_yakit_kg: float | None = None
+    strateji: str
+    guvenli_rota_bulundu_mu: bool
+
+
+class KalkisPenceresiYaniti(BaseModel):
+    bilgi_notu: str
+    satirlar: list[KalkisPenceresiSatiriYaniti]
+    hatalar: list[dict] = []
+
+
 class FplMadde15Yaniti(BaseModel):
     madde15: str
     nokta_sayisi: int
@@ -493,6 +512,7 @@ class RotaSimulasyonuYaniti(BaseModel):
     planlama_ufku: PlanlamaUfkuYaniti | None = None
     ats: AtsRotaYaniti | None = None
     topluluk: ToplulukYaniti | None = None
+    kalkis_penceresi: KalkisPenceresiYaniti | None = None
     czml: list[dict]
 
 

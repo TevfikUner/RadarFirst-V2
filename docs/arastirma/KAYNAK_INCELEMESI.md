@@ -837,6 +837,8 @@ sıra benim değerlendirmem.
   karardır.
 
 ### Fikir 16. Kalkış saati penceresi karşılaştırması
+- **Durum:** Uygulandı, yalnız bilgi (16 Ekim; `kalkis_penceresi: true`, web brifing kartı). S1 örneği:
+  12Z'de normal rota 6,3 dk riskli, 13Z/14Z'de 0.
 - **Kaynak:** R3 (`/api/compare`, kalkış pencereleri), Makale11 (günlük kalkış değişimi).
 - **Katkısı:** Kullanıcı deneyimi. Dispeçere "2 saat sonra kalkılırsa riskli süre 18'den 4
   dakikaya iner" gibi bir seçenek sunar.

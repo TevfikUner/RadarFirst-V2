@@ -119,6 +119,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   okunmalıdır. Rüzgâr-optimum rota kendi riskli nokta sayısını taşır (türbülansı
   görmez). FRA modunda "normal rota" zaten rüzgârlı en hızlı ATS yoludur, ayrı
   rüzgâr kazancı yoktur. Kaçınma yapılmadıysa `kacinma_bedeli` boştur.
+- **Kalkış saati penceresi (bilgi):** Rota isteğinde `kalkis_penceresi: true` verilirse aynı
+  istek kalkış −2/−1/+1/+2 saat kaydırılarak yeniden hesaplanır; her satırda normal ve önerilen
+  rotanın riskli süresi verilir. Öneri değildir (slot, ATC, operasyonel kısıtlar); ileri
+  saatlerde SIGMET henüz yayımlanmamış olabilir. Hesap süresini ~5 kat artırır.
 - **Kullanıcı geri bildirimi:** `POST /api/v1/geri-bildirim` önerinin yararlı/doğru
   bulunup bulunmadığını kaydeder (`kullanici_geri_bildirimleri`; IP, ad ya da e-posta
   saklanmaz, yalnız API rolü). Özet yönetici anahtarıyla alınır. Kullanıcı algısıdır,
