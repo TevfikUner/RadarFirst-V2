@@ -724,6 +724,7 @@ sıra benim değerlendirmem.
   sayıları da etkilenir.
 
 ### Fikir 7. Öngörü süresine bağlı güven uyarısı
+- **Durum:** Uygulandı (16 Ekim; `planlama_ufku.ongoru_belirsiz`, `ongoru_belirsiz` bulgusu).
 - **Kaynak:** Makale19 (CAT ~24–48 sa önceden öngörülebiliyor; öncesinde konum belirsizliği
   büyük), `ILGILI_CALISMALAR`'daki Kim vd. (2011) (beceri öngörü süresiyle düşüyor).
 - **Katkısı:** Kullanıcı deneyimi ve dürüstlük. Canlı GFS +120 sa'e kadar kullanılıyor; 4 gün

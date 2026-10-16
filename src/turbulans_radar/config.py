@@ -469,6 +469,7 @@ CANLI_BASINC_SEVIYELERI_HPA = tuple(
 )
 CANLI_GECMIS_SAAT = _ortam_sayi("CANLI_GECMIS_SAAT", 48, int)
 CANLI_TAHMIN_UFKU_SAAT = _ortam_sayi("CANLI_TAHMIN_UFKU_SAAT", 120, int)
+GUVENILIR_ONGORU_SAAT = _ortam_sayi("GUVENILIR_ONGORU_SAAT", 48, int)
 # Aynı bölge/zaman için indirilmiş bir GFS küpü, model çalıştırması bundan
 # eskiyse yeniden kullanılmaz (GFS 6 saatte bir yeni döngü yayınlar).
 CANLI_KUP_TAZELIK_SAAT = _ortam_sayi("CANLI_KUP_TAZELIK_SAAT", 6, int)

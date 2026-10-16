@@ -590,6 +590,8 @@ def test_planlama_ufku_gecmis_ve_gelecek_uculari_ayirir():
     assert ileri["kullanim"] == "ucus_oncesi_planlama" and ileri["kalkisa_kalan_saat"] == 6.0
     assert not ileri["tahmin_ufku_disi"]
     assert planlama_ufku("2026-10-10T00:00:00", simdi)["tahmin_ufku_disi"]
+    assert not ileri["ongoru_belirsiz"] and ileri["guvenilir_ongoru_saat"] == config.GUVENILIR_ONGORU_SAAT
+    assert planlama_ufku("2026-10-05T00:00:00", simdi)["ongoru_belirsiz"]
 
 
 def test_ileri_tarihli_ucusta_sigmet_ufku_uyarisi_ve_kapsam(monkeypatch):
@@ -766,3 +768,39 @@ def test_sabit_yakit_modelinde_kutle_bandi_yok(gercek_senaryo, monkeypatch):
     monkeypatch.setattr(config, "ROTA_YAKIT_MODELI", "sabit")
     sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320", sigmetler=[], kisitli_sahalar=[])
     assert sonuc["yakit_tasarrufu_yuzde_araligi"] is None
+
+
+def _sentetik_gfs_kupu(baslangic, saat=24):
+    import numpy as np
+
+    lat = np.arange(46.0, 33.75, -0.25)
+    lon = np.arange(22.0, 38.25, 0.25)
+    zaman = pd.date_range(baslangic.floor("3h") - pd.Timedelta(hours=3), periods=saat // 3 + 3, freq="3h").tz_convert(
+        None
+    )
+    seviyeler = [300.0, 250.0, 200.0]
+    sekil = (len(zaman), len(seviyeler), len(lat), len(lon))
+    u = np.broadcast_to(np.array([20.0, 25.0, 22.0])[None, :, None, None], sekil).copy()
+    t = np.broadcast_to(np.array([229.0, 221.0, 217.0])[None, :, None, None], sekil).copy()
+    boyutlar = ["valid_time", "pressure_level", "latitude", "longitude"]
+    return xr.Dataset(
+        {"u": (boyutlar, u), "v": (boyutlar, np.zeros(sekil)), "t": (boyutlar, t)},
+        coords={"valid_time": zaman, "pressure_level": seviyeler, "latitude": lat, "longitude": lon},
+        attrs={"kaynak": "gfs", "model_calisma_zamani": "2026-10-16T06:00:00"},
+    )
+
+
+@pytest.mark.parametrize(("saat_sonra", "uyari_var_mi"), [(60, True), (10, False)])
+def test_gfs_rotasinda_uzun_ongoru_uyarisi(monkeypatch, saat_sonra, uyari_var_mi):
+    from turbulans_radar.rota import rota_optimizasyonu as ro
+
+    kalkis = (pd.Timestamp.now(tz="UTC") + pd.Timedelta(hours=saat_sonra)).floor("h")
+    kup = _sentetik_gfs_kupu(kalkis)
+    monkeypatch.setattr(ro, "veri_kupune_eris", lambda *a, **k: kup)
+    sonuc = rota_simulasyonu_olustur(
+        41.0, 28.9, 39.9, 32.8, 36000, kalkis.strftime("%Y-%m-%dT%H:%M:%S"), "A320", sigmetler=[], kisitli_sahalar=[]
+    )
+    assert sonuc["ruzgar_verisi_kaynagi"] == "gfs_tahmin"
+    kodlar = {b["kod"]: b for b in sonuc["bulgular"]}
+    assert ("ongoru_belirsiz" in kodlar) is uyari_var_mi
+    assert sonuc["planlama_ufku"]["ongoru_belirsiz"] is uyari_var_mi

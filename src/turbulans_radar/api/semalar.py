@@ -365,6 +365,8 @@ class PlanlamaUfkuYaniti(BaseModel):
     tahmin_ufku_saat: int
     sigmet_yayin_ufku_saat: float
     tahmin_ufku_disi: bool
+    guvenilir_ongoru_saat: int | None = None
+    ongoru_belirsiz: bool = False
 
 
 class RotaSecenegiYaniti(BaseModel):
