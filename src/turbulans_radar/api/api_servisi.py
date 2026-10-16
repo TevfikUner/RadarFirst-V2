@@ -133,6 +133,7 @@ from turbulans_radar.depo.veritabani import (
     async_motor_al,
     asyncpg_baglanti_parametreleri,
 )
+from turbulans_radar.fizik.ti1_esigi import kaynak_ti1_esigi
 from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.isci.gorev_iscisi import BILDIRIM_KANALI, GorevIscisi
@@ -766,6 +767,7 @@ async def esikleri_getir():
     return {
         "ti1_esik_hafif": config.TI1_ESIK_HAFIF,
         "ti1_esik_orta_siddetli": config.TI1_ESIK_ORTA_SIDDETLI,
+        "ti1_esik_orta_siddetli_gfs": config.TI1_ESIK_ORTA_SIDDETLI_GFS,
         "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
     }
 
@@ -884,7 +886,7 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi, request: Request, rol:
             "kapsam_icinde_mi": True,
             "veri_kaynagi": kaynak,
             "ti1_indeksi": float(ti1),
-            "ti1_riskli_mi": bool(ti1 >= config.TI1_ESIK_ORTA_SIDDETLI),
+            "ti1_riskli_mi": bool(ti1 >= kaynak_ti1_esigi(kaynak)),
             "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
             "ml_riski_var_mi": (ml_olasilik >= ml_karar_esigi(bilgi)) if ml_olasilik is not None else None,
             "ml_olasilik": ml_olasilik,

@@ -635,6 +635,9 @@ sıra benim değerlendirmem.
   olmadığını teyit ettim (bölüm "randomly split into 70% training and 30% testing").
 
 ### Fikir 2. Kaynağa özgü (ERA5/GFS) yüzdelik tabanlı TI1 eşiği
+- **Durum:** Altyapı ve ilk ölçüm yapıldı (16 Ekim; `turbulans-esik-esleme`,
+  `docs/sonuclar/2026-10-16/`). GFS eşdeğeri 8,30e-7 [7,96; 8,67]e-7; tahminin tersine GFS
+  daha çok "riskli" diyor. Değer 18 Ekim nihai ERA5 eşiğiyle birlikte ayarlanacak.
 - **Kaynak:** Makale23 Tablo 1 (eşik modele göre 2–3 kat değişiyor), Makale8 (eşik
   çözünürlüğe çok bağlı), Makale11 (her seviye için ayrı 98. yüzdelik), SIL_Makale3 (kaynaklar
   arası çapraz karşılaştırma).

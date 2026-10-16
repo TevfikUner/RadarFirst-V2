@@ -2,6 +2,12 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dallar `claude/gfs-ti1-esigi`, `claude/gfs-toplulugu`)
+
+- ✅ Fikir 2: `TI1_ESIK_ORTA_SIDDETLI_GFS` (boş = davranış aynı) + `turbulans-esik-esleme`; 13 MB indirme.
+- ⚠️ Ölçüm: aynı eşikte GFS %11,1, ERA5 %8,5 riskli; GFS eşdeğeri 8,30e-7. Değer 18 Eki'de ayarlanacak.
+- ✅ Fikir 3: rota isteğinde `topluluk=true` → son 4 GFS koşusundan deneysel TI1 aşım oranı (rota kararına girmez).
+
 ## 2026-10-16 gece (dal `claude/literatur-bolme-yontemi`)
 
 - ✅ Fikir 1: ILGILI_CALISMALAR §5 paragraf + §9 "değerlendirme bölmesi" sütunu; Gökdeniz 2026, Gu ve Wang 2024 eklendi (künyeler arXiv/Crossref ☑).

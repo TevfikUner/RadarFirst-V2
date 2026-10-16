@@ -8,6 +8,7 @@ listesidir ve elle düzenlenmez.
 | Paket | Durum | Kesme |
 |---|---|---|
 | [`2026-10-07/`](2026-10-07/SAYILAR.md) | **Ön paket.** Belgeler şimdilik bu paketin sayılarını kullanır. | 7 Ekim 2026 |
+| [`2026-10-16/`](2026-10-16/README.md) | Ek analiz (ML paketi değil): ERA5 → canlı GFS TI1 eşik eşlemesi. | 9–11 Ekim 2026 verisi |
 | `2026-10-18/` | Nihai paket, veri dondurma günü üretilecek. Belgelerdeki sayılar o gün bu paketle değiştirilir. | 18 Ekim 2026 |
 
 ## Paketin içeriği

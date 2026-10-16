@@ -117,6 +117,14 @@ def gfs_kupunu_normalize_et(ham: xr.Dataset) -> xr.Dataset:
 _yeniden_dene = gecici_hatada_yeniden_dene()
 
 
+def gfs_kosu_url(calisma_zamani, best_url=None) -> str:
+    taban = (best_url or config.GFS_THREDDS_URL).rstrip("/").rsplit("/", 1)[0]
+    zaman = _utc(calisma_zamani)
+    if zaman.hour % 6 or zaman.minute:
+        raise ValueError(f"GFS koşusu 00/06/12/18 UTC olmalı: {zaman.isoformat()}")
+    return f"{taban}/GFS_Global_0p25deg_{zaman:%Y%m%d_%H%M}.grib2"
+
+
 class GfsThreddsSaglayici:
     kaynak = "gfs"
     zaman_adimi = "3h"

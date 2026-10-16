@@ -70,7 +70,11 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   `TI1_ESIK_ORTA_SIDDETLI` (7e-7 s⁻²) eşiğini aşarsa "riskli" sayılır. Eşik 8 Ekim'de
   veriden seçildi: altın test günleri dışındaki 64 günde Peirce'i en yüksek eşiğin
   (5,3e-7) bir standart hatası içindeki en tutucu eşik (1-SE kuralı, 7,06e-7). Önceki
-  değer 8e-7 literatürden kaba bir başlangıçtı ve bu bandın dışındaydı.
+  değer 8e-7 literatürden kaba bir başlangıçtı ve bu bandın dışındaydı. Eşik ERA5'te
+  seçildi; canlı GFS'te aynı eşik noktaların daha büyük bir kısmını riskli sayıyor (16 Ekim:
+  %11,1'e karşı %8,5; GFS eşdeğeri 8,30e-7, `docs/sonuclar/2026-10-16/`). GFS için ayrı eşik
+  `TI1_ESIK_ORTA_SIDDETLI_GFS` ile verilebilir; şu an boştur ve GFS'te de 7e-7 kullanılır.
+  Kullanılan eşik `uretim_bilgisi.esikler.ti1_orta_siddetli_uygulanan` alanında yazar.
 - **Rota adayları:**
   - A* ile yanal sapma: büyük daire etrafında 41 ara nokta; her bacağın büyük
     daire yönüne göre açısı en fazla 30°, toplam sapma en fazla 400 km, ızgara

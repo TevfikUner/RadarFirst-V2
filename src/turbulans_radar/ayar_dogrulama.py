@@ -35,6 +35,7 @@ class AyarSemasi(BaseModel):
 
     TI1_ESIK_HAFIF: Pozitif
     TI1_ESIK_ORTA_SIDDETLI: Pozitif
+    TI1_ESIK_ORTA_SIDDETLI_GFS: Pozitif | None
     EDR_ESIK_HAFIF: Pozitif
     EDR_ESIK_ORTA: Pozitif
     EDR_ESIK_SIDDETLI: Pozitif

@@ -110,6 +110,7 @@ class EsiklerYaniti(BaseModel):
 
     ti1_esik_hafif: float
     ti1_esik_orta_siddetli: float
+    ti1_esik_orta_siddetli_gfs: float | None = None
     ti1_guvenilirlik_notu: str | None = None
 
 

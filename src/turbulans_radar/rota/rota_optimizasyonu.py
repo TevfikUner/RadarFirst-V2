@@ -84,6 +84,7 @@ from turbulans_radar.fizik.birim_donusumleri import (
 from turbulans_radar.fizik.cografya import mesafe_km as buyuk_daire_mesafesi_km
 from turbulans_radar.fizik.eslestirme import kapsam_disi_maskesi
 from turbulans_radar.fizik.iz_bulutu import duyarli_nokta_sayisi
+from turbulans_radar.fizik.ti1_esigi import ayri_esik_baglaminda, etkin_ti1_esigi, kaynaga_gore_ayarla
 from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.rota import hava_yolu_agi, performans_modeli, ucus_seviyeleri
@@ -758,7 +759,7 @@ def _ti1_ozeti_cikar(ti1_degerleri):
     if ti1_degerleri is None or np.all(np.isnan(ti1_degerleri)):
         return None, 0
     maks_ti1 = float(np.nanmax(ti1_degerleri))
-    riskli_sayisi = int(np.nansum(ti1_degerleri >= config.TI1_ESIK_ORTA_SIDDETLI))
+    riskli_sayisi = int(np.nansum(ti1_degerleri >= etkin_ti1_esigi()))
     return maks_ti1, riskli_sayisi
 
 
@@ -775,7 +776,8 @@ def _riskli_maskesi(ti1):
         return None
     ti1 = np.asarray(ti1, dtype=float)
     with np.errstate(invalid="ignore"):
-        return [None if np.isnan(t) else bool(t >= config.TI1_ESIK_ORTA_SIDDETLI) for t in ti1]
+        esik = etkin_ti1_esigi()
+        return [None if np.isnan(t) else bool(t >= esik) for t in ti1]
 
 
 def _sonlu(deger):
@@ -1199,6 +1201,7 @@ def _temel_strateji(strateji: str) -> str:
     return "yanal" if strateji.startswith("yanal") else "ats_alternatif"
 
 
+@ayri_esik_baglaminda
 def rota_simulasyonu_olustur(
     baslangic_enlem,
     baslangic_boylam,
@@ -1276,6 +1279,7 @@ def rota_simulasyonu_olustur(
         canli_bekleme_saniye=canli_bekleme_saniye,
     )
     ruzgarli_mi = _era5_tamamen_kapsiyor_mu(veri_kupu, enlemler_gc, boylamlar_gc, zaman_iso, irtifa_m)
+    kaynaga_gore_ayarla(veri_kupu_kaynagi(veri_kupu) if ruzgarli_mi else None)
     kup_adi = veri_kupu_adi(veri_kupu)
     sigmet_katmani, sigmet_kontrolu = _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, tas_ms)
     saha_katmani, kisitli_saha_kontrolu = _kisitli_saha_katmanini_hazirla(
@@ -1823,9 +1827,8 @@ def _bulgulari_olustur(
                 _bulgu(
                     "ti1_risk_yok",
                     "bilgi",
-                    f"Normal rota üzerinde riskli türbülans (TI1 >= {config.TI1_ESIK_ORTA_SIDDETLI:.1e} s^-2) "
-                    "TESPİT EDİLMEDİ.",
-                    esik=config.TI1_ESIK_ORTA_SIDDETLI,
+                    f"Normal rota üzerinde riskli türbülans (TI1 >= {etkin_ti1_esigi():.1e} s^-2) TESPİT EDİLMEDİ.",
+                    esik=etkin_ti1_esigi(),
                 )
             )
         else:
@@ -1837,7 +1840,7 @@ def _bulgulari_olustur(
                     f"{sum(b['uzunluk_nm'] for b in normal_bolumler):.0f} NM, ~"
                     f"{sum(b['sure_dk'] for b in normal_bolumler):.0f} dk) riskli türbülans tespit edildi.",
                     riskli_nokta_sayisi=normal["riskli_sayisi"],
-                    esik=config.TI1_ESIK_ORTA_SIDDETLI,
+                    esik=etkin_ti1_esigi(),
                 )
             )
     elif canli_hata:

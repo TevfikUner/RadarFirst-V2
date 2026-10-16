@@ -3279,6 +3279,17 @@
             "type": "number",
             "title": "Ti1 Esik Orta Siddetli"
           },
+          "ti1_esik_orta_siddetli_gfs": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ti1 Esik Orta Siddetli Gfs"
+          },
           "ti1_guvenilirlik_notu": {
             "anyOf": [
               {
