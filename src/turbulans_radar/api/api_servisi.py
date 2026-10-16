@@ -114,7 +114,7 @@ from turbulans_radar.api.semalar import (
     UcakProfiliYaniti,
     WsBiletiYaniti,
 )
-from turbulans_radar.api.yollar import analiz, hava_sahasi, ml, ucuslar
+from turbulans_radar.api.yollar import analiz, geri_bildirim, hava_sahasi, ml, ucuslar
 from turbulans_radar.api.yollar.ml import MlGeceIsiIstegi
 from turbulans_radar.ayar_dogrulama import ayarlari_dogrula
 from turbulans_radar.cli.statik_indir import yerel_kutuphane_durumu
@@ -1219,5 +1219,5 @@ async def _derin_saglik_onbellekli():
 app.include_router(v1)
 # Alt router'lar kendi /api/v1 öneki ve anahtar korumasıyla doğrudan uygulamaya bağlanır (önek
 # include sırasında verilirse FastAPI metrik etiketindeki route şablonunu öneksiz bırakıyor).
-for _yollar in (ucuslar, analiz, hava_sahasi, ml):
+for _yollar in (ucuslar, analiz, hava_sahasi, ml, geri_bildirim):
     app.include_router(_yollar.router)

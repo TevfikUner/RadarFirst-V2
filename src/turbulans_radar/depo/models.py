@@ -370,6 +370,21 @@ class EdrOrnegi(Base):
     olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
+class KullaniciGeriBildirimi(Base):
+    __tablename__ = "kullanici_geri_bildirimleri"
+    __table_args__ = (Index("ix_kullanici_geri_bildirimleri_hedef", "hedef_turu", "olusturulma_zamani"),)
+
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
+    hedef_turu: Mapped[str] = mapped_column(String(16), nullable=False)
+    hedef_kimligi: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    yararli_mi: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    dogru_mu: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    aciklama: Mapped[str | None] = mapped_column(Text, nullable=True)
+    rol: Mapped[str] = mapped_column(String(16), nullable=False)
+    yazilim_surumu: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 def kutu_ifadesi(model):
     """Satırın sınır kutusu, Postgres'in yerleşik `box` tipinde (PostGIS
     gerekmez). GiST indeksi bu ifadenin üzerine kurulur; sorgu da AYNI ifadeyi

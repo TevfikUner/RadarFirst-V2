@@ -89,6 +89,18 @@ bulursanız onu kullanın ve atıf verin).
 | 9 | Sistemi kullanırken kendimden emin hissettim. | ☐ | ☐ | ☐ | ☐ | ☐ |
 | 10 | Bu sistemi kullanmaya başlamadan önce birçok şey öğrenmem gerekti. | ☐ | ☐ | ☐ | ☐ | ☐ |
 
+### 5.2a Her rota görevinden sonra iki evet/hayır sorusu
+
+NTDA saha gösteriminde (Craig vd., ~2008) pilotlara sorulan iki soruya benzer; yanıtlar
+`POST /api/v1/geri-bildirim` ile kaydedilir (`hedef_turu: "rota"`, `hedef_kimligi`: görev
+kodu, ör. `E7-K03-G2`). Kayıt kişisel veri içermez; katılımcı kodu not alanına yazılmaz.
+
+1. "Bu öneri gerçek bir uçuş hazırlığında işinize yarar mıydı?" → `yararli_mi`
+2. "Gördüğünüz risk bilgisi size doğru/makul göründü mü?" → `dogru_mu`
+
+Toplamlar `GET /api/v1/geri-bildirim/ozet` (yönetici anahtarı) ile alınır. Bu bir doğruluk
+ölçümü değildir; kullanıcının algısıdır.
+
 ### 5.3 Açık uçlu sorular (5 dk)
 
 1. Bu ekranlarda gördüğünüz bilgilerden hangisi gerçek bir uçuş hazırlığında işinize yarardı?

@@ -2708,6 +2708,118 @@
           }
         }
       }
+    },
+    "/api/v1/geri-bildirim": {
+      "post": {
+        "tags": [
+          "Geri bildirim"
+        ],
+        "summary": "Geri Bildirim Gonder",
+        "operationId": "geri_bildirim_gonder_api_v1_geri_bildirim_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GeriBildirimIstegi"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeriBildirimYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/geri-bildirim/ozet": {
+      "get": {
+        "tags": [
+          "Geri bildirim"
+        ],
+        "summary": "Geri Bildirim Ozetini Getir",
+        "operationId": "geri_bildirim_ozetini_getir_api_v1_geri_bildirim_ozet_get",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "additionalProperties": {
+                    "$ref": "#/components/schemas/GeriBildirimHedefOzeti"
+                  },
+                  "title": "Response Geri Bildirim Ozetini Getir Api V1 Geri Bildirim Ozet Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6830,6 +6942,127 @@
           "aciklama"
         ],
         "title": "FplMadde15Yaniti"
+      },
+      "GeriBildirimHedefOzeti": {
+        "properties": {
+          "toplam": {
+            "type": "integer",
+            "title": "Toplam"
+          },
+          "yararli_yanitlayan": {
+            "type": "integer",
+            "title": "Yararli Yanitlayan"
+          },
+          "yararli_evet": {
+            "type": "integer",
+            "title": "Yararli Evet"
+          },
+          "dogru_yanitlayan": {
+            "type": "integer",
+            "title": "Dogru Yanitlayan"
+          },
+          "dogru_evet": {
+            "type": "integer",
+            "title": "Dogru Evet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "toplam",
+          "yararli_yanitlayan",
+          "yararli_evet",
+          "dogru_yanitlayan",
+          "dogru_evet"
+        ],
+        "title": "GeriBildirimHedefOzeti"
+      },
+      "GeriBildirimIstegi": {
+        "properties": {
+          "hedef_turu": {
+            "type": "string",
+            "enum": [
+              "rota",
+              "analiz",
+              "nokta_tahmini",
+              "genel"
+            ],
+            "title": "Hedef Turu"
+          },
+          "hedef_kimligi": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hedef Kimligi"
+          },
+          "yararli_mi": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yararli Mi"
+          },
+          "dogru_mu": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dogru Mu"
+          },
+          "aciklama": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hedef_turu"
+        ],
+        "title": "GeriBildirimIstegi"
+      },
+      "GeriBildirimYaniti": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "kaydedildi_mi": {
+            "type": "boolean",
+            "title": "Kaydedildi Mi",
+            "default": true
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama",
+            "default": "Teşekkürler. Kayıt kişisel veri içermez (IP, ad ya da e-posta saklanmaz)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "GeriBildirimYaniti"
       }
     }
   }

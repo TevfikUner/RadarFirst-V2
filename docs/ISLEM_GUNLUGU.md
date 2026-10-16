@@ -2,6 +2,10 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dal `claude/geri-bildirim`)
+
+- ✅ Fikir 14: `POST /api/v1/geri-bildirim` + yönetici özeti; migration önce -test DB'de upgrade/downgrade, yedek 16 Eki var.
+
 ## 2026-10-16 gece (dal `claude/fpl-madde15`)
 
 - ✅ Fikir 13: önerilen rota için ICAO Madde 15 dizgisi (NON-OPERATIONAL), web brifing kartında; biçim AIP'den doğrulandı.
