@@ -147,6 +147,7 @@ class RotaSimulasyonuIstegi(BaseModel):
     # ats modunda: ToC/ToD bu meydanların AIP FRA kalkış/varış bağlantı noktalarına bağlanır.
     kalkis_meydani: str | None = Field(default=None, pattern=r"^[A-Z]{4}$")
     varis_meydani: str | None = Field(default=None, pattern=r"^[A-Z]{4}$")
+    topluluk: bool = False
 
     @field_validator("zaman")
     @classmethod
@@ -175,6 +176,7 @@ class RotaNoktasiYaniti(BaseModel):
     ti1: float | None = None
     birlesik_edr: float | None = None
     riskli: bool | None = None
+    ti1_asim_olasiligi: float | None = None
 
 
 class RiskliBolumYaniti(BaseModel):
@@ -425,6 +427,23 @@ class YakitModeliYaniti(BaseModel):
     openap_surumu: str | None = None
 
 
+class ToplulukRotaOzetiYaniti(BaseModel):
+    en_yuksek: float | None = None
+    yari_ve_ustu_nokta_sayisi: int = 0
+    hesaplanan_nokta_sayisi: int = 0
+
+
+class ToplulukYaniti(BaseModel):
+    hesaplandi_mi: bool
+    neden: str | None = None
+    uye_sayisi: int = 0
+    kosular: list[str] = []
+    eksik_kosular: list[dict] = []
+    esik: float | None = None
+    rotalar: dict[str, ToplulukRotaOzetiYaniti] = {}
+    aciklama: str
+
+
 class RotaSimulasyonuYaniti(BaseModel):
     ruzgar_verisi_kaynagi: str
     aciklama: str
@@ -455,6 +474,7 @@ class RotaSimulasyonuYaniti(BaseModel):
     kapsam: KapsamYaniti | None = None
     planlama_ufku: PlanlamaUfkuYaniti | None = None
     ats: AtsRotaYaniti | None = None
+    topluluk: ToplulukYaniti | None = None
     czml: list[dict]
 
 

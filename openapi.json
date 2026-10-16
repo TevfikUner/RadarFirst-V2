@@ -4549,6 +4549,17 @@
               }
             ],
             "title": "Riskli"
+          },
+          "ti1_asim_olasiligi": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ti1 Asim Olasiligi"
           }
         },
         "type": "object",
@@ -4734,6 +4745,11 @@
               }
             ],
             "title": "Varis Meydani"
+          },
+          "topluluk": {
+            "type": "boolean",
+            "title": "Topluluk",
+            "default": false
           }
         },
         "type": "object",
@@ -4928,6 +4944,16 @@
             "anyOf": [
               {
                 "$ref": "#/components/schemas/YakitModeliYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "topluluk": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ToplulukYaniti"
               },
               {
                 "type": "null"
@@ -6590,6 +6616,103 @@
           "aciklama"
         ],
         "title": "BacktestYakitiYaniti"
+      },
+      "ToplulukRotaOzetiYaniti": {
+        "properties": {
+          "en_yuksek": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "En Yuksek"
+          },
+          "yari_ve_ustu_nokta_sayisi": {
+            "type": "integer",
+            "title": "Yari Ve Ustu Nokta Sayisi",
+            "default": 0
+          },
+          "hesaplanan_nokta_sayisi": {
+            "type": "integer",
+            "title": "Hesaplanan Nokta Sayisi",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "ToplulukRotaOzetiYaniti"
+      },
+      "ToplulukYaniti": {
+        "properties": {
+          "hesaplandi_mi": {
+            "type": "boolean",
+            "title": "Hesaplandi Mi"
+          },
+          "neden": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Neden"
+          },
+          "uye_sayisi": {
+            "type": "integer",
+            "title": "Uye Sayisi",
+            "default": 0
+          },
+          "kosular": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Kosular",
+            "default": []
+          },
+          "eksik_kosular": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Eksik Kosular",
+            "default": []
+          },
+          "esik": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Esik"
+          },
+          "rotalar": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ToplulukRotaOzetiYaniti"
+            },
+            "type": "object",
+            "title": "Rotalar",
+            "default": {}
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hesaplandi_mi",
+          "aciklama"
+        ],
+        "title": "ToplulukYaniti"
       }
     }
   }
