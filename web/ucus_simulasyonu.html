@@ -139,6 +139,11 @@
       <span style="color:#9fb3c8;">Kalkış saati penceresi (yalnız bilgi, öneri değil):</span>
       <table id="kalkis-penceresi-tablosu" style="width:100%;"></table>
     </div>
+    <div id="dikey-kesit-kutusu" style="display:none; margin-top:3px;">
+      <span style="color:#9fb3c8;">Dikey kesit, önerilen rota (TI1; yeşil &lt; ½ eşik, turuncu &lt; eşik, kırmızı ≥ eşik, gri veri yok):</span>
+      <canvas id="dikey-kesit" width="300" height="84" style="width:100%; background:#111; display:block;"></canvas>
+      <div id="dikey-kesit-notu" style="color:#9fb3c8;"></div>
+    </div>
     <div style="color:#9fb3c8; margin-top:2px;">Karar destek amaçlıdır; sertifikalı EDR değildir.</div>
   </div>
   <table>
@@ -495,7 +500,39 @@ function brifingKartiniGoster(sonuc) {
   }
   document.getElementById("kalkis-penceresi-kutusu").style.display = pencere ? "block" : "none";
   document.getElementById("kalkis-penceresi-kutusu").title = pencere ? pencere.bilgi_notu : "";
+  dikeyKesitiCiz(sonuc);
   kutu.style.display = satirlar.childElementCount ? "block" : "none";
+}
+
+// Dikey kesit: sunucunun hesapladığı seviye x mesafe TI1 ızgarası (rota_optimizasyonu.dikey_kesit).
+function dikeyKesitiCiz(sonuc) {
+  const kesit = sonuc.dikey_kesit;
+  const kutu = document.getElementById("dikey-kesit-kutusu");
+  if (!kesit) { kutu.style.display = "none"; return; }
+  const tuval = document.getElementById("dikey-kesit");
+  const ctx = tuval.getContext("2d");
+  const sol = 34, satirSayisi = kesit.fl.length, sutunSayisi = kesit.mesafe_nm.length;
+  const h = tuval.height / satirSayisi, g = (tuval.width - sol) / sutunSayisi;
+  ctx.clearRect(0, 0, tuval.width, tuval.height);
+  ctx.font = "9px sans-serif";
+  kesit.fl.forEach((fl, i) => {
+    const y = (satirSayisi - 1 - i) * h;
+    ctx.fillStyle = "#9fb3c8";
+    ctx.fillText(`FL${fl}`, 1, y + h - 2);
+    const satir = kesit.ti1[i];
+    for (let j = 0; j < sutunSayisi; j++) {
+      const deger = satir ? satir[j] : null;
+      ctx.fillStyle = deger == null ? "#444" : deger >= kesit.esik ? "#e74c3c" : deger >= kesit.esik / 2 ? "#e67e22" : "#2ecc71";
+      ctx.fillRect(sol + j * g, y, Math.ceil(g), h - 1);
+    }
+    if (sonuc.optimize_rota && fl === sonuc.optimize_rota.fl) {
+      ctx.strokeStyle = "#fff";
+      ctx.strokeRect(sol, y + 0.5, tuval.width - sol - 1, h - 2);
+    }
+  });
+  document.getElementById("dikey-kesit-notu").textContent =
+    `0–${kesit.mesafe_nm[kesit.mesafe_nm.length - 1].toFixed(0)} NM; beyaz çerçeve önerilen seviye. ${kesit.aciklama}`;
+  kutu.style.display = "block";
 }
 
 // Kabin önerisi yalnızca ÖNERİLEN rotada kalan risk varsa çıkar (metin sunucudan,
