@@ -6,6 +6,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 - ✅ Gece işi 11:02 UTC'de başladı (çalışıyor).
 - ✅ Hocaya haftalık ilerleme raporu: `docs/rapor/ILERLEME_RAPORU.md` (Cuma–Perşembe haftaları, sade dil, her hafta alta eklenir).
+- ✅ PDF: `python scripts/ilerleme_raporu_pdf.py` → `ILERLEME_RAPORU.pdf` (tamamı, e-posta) + `_SON_HAFTA.pdf` (çıktı).
 
 ## 2026-10-15 akşam (dallar `claude/openap-yakit`, `claude/demo-ekranlari-openap`, `claude/deneyler-f9-f3-f6`)
 
