@@ -35,6 +35,7 @@ import shapely.affinity
 
 from turbulans_radar import config
 from turbulans_radar.fizik.eslestirme import rotayi_hava_durumuyla_eslestir
+from turbulans_radar.fizik.ti1_esigi import etkin_ti1_esigi
 from turbulans_radar.veri.saha_aktivasyonu import aktif_maskesi
 
 TURBULANS_CEZASI_SANIYE = 6 * 3600.0
@@ -92,7 +93,7 @@ class Ti1CezaKatmani:
         """onbellek: aynı küp ve aynı ızgara için TI1'i paylaşan sözlük (tek rota isteği
         içinde, yalnız ceza düzeyi farklı katmanlar arasında)."""
         self.veri_kupu = veri_kupu
-        self.esik = config.TI1_ESIK_ORTA_SIDDETLI if esik is None else esik
+        self.esik = etkin_ti1_esigi() if esik is None else esik
         self.ceza_saniye = ceza_saniye
         self.onbellek = onbellek
 

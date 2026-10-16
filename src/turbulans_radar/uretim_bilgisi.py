@@ -11,6 +11,7 @@ from pathlib import Path
 import pandas as pd
 
 from turbulans_radar import config
+from turbulans_radar.fizik.ti1_esigi import kaynak_ti1_esigi
 
 
 @cache
@@ -46,7 +47,13 @@ def uretim_bilgisi(veri_kupu=None, model_bilgisi: dict | None = None, parametrel
         "yazilim_surumu": yazilim_surumu(),
         "uretim_zamani": datetime.now(UTC).isoformat(),
         "hava_verisi": hava_verisi_bilgisi(veri_kupu),
-        "esikler": {"ti1_hafif": config.TI1_ESIK_HAFIF, "ti1_orta_siddetli": config.TI1_ESIK_ORTA_SIDDETLI},
+        "esikler": {
+            "ti1_hafif": config.TI1_ESIK_HAFIF,
+            "ti1_orta_siddetli": config.TI1_ESIK_ORTA_SIDDETLI,
+            "ti1_orta_siddetli_uygulanan": kaynak_ti1_esigi(
+                veri_kupu.attrs.get("kaynak") if veri_kupu is not None else None
+            ),
+        },
         "model": (
             {
                 "secilen_model": model_bilgisi.get("secilen_model"),

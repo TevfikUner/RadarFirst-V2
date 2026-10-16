@@ -43,6 +43,7 @@ turbulans-sanal-pirep-duyarlilik = "turbulans_radar.analiz.dedektor_duyarliligi:
 turbulans-kimlik-kontrol = "turbulans_radar.cli.kimlik_kontrol:ana"
 turbulans-ornek-ucus = "turbulans_radar.cli.ornek_ucus_bul:ana"
 turbulans-veri-kontrol = "turbulans_radar.cli.veri_kontrol:ana"
+turbulans-esik-esleme = "turbulans_radar.analiz.esik_esleme:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }

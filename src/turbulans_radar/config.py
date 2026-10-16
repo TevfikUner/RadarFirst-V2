@@ -280,6 +280,7 @@ DIKEY_KAPSAM_TOLERANSI_HPA = _ortam_sayi("DIKEY_KAPSAM_TOLERANSI_HPA", 50.0)
 # (sonuc_paketi.json: esik_taramasi.bir_se). Kesin bir eşik değildir.
 TI1_ESIK_HAFIF = _ortam_sayi("TI1_ESIK_HAFIF", 4e-7)
 TI1_ESIK_ORTA_SIDDETLI = _ortam_sayi("TI1_ESIK_ORTA_SIDDETLI", 7e-7)
+TI1_ESIK_ORTA_SIDDETLI_GFS = _ortam_sayi("TI1_ESIK_ORTA_SIDDETLI_GFS", None)
 # Dispeç ekranında bundan kısa riskli bölümler listelenmez. 0 = her riskli nokta
 # (mevcut davranış); eşik kalibre edilmedi.
 RISKLI_BOLUM_MIN_NM = _ortam_sayi("RISKLI_BOLUM_MIN_NM", 0.0)
