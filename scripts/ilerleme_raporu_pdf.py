@@ -42,6 +42,8 @@ ul { margin: 4px 0 6px; padding-left: 20px; }
 ul ul { margin: 2px 0; }
 li { margin: 1px 0; break-inside: avoid; }
 p { margin: 6px 0; }
+.uyari { background: #fff7e0; border-left: 4px solid #d99a00; padding: 6px 10px; margin: 2px 0 6px 20px;
+  border-radius: 0 4px 4px 0; break-inside: avoid; }
 """
 
 
@@ -66,7 +68,7 @@ def liste_html(ogeler):
 
 
 def govde_html(satirlar):
-    parcalar, ogeler, paragraf = [], [], []
+    parcalar, ogeler, paragraf, uyari = [], [], [], []
 
     def bosalt():
         if ogeler:
@@ -75,12 +77,19 @@ def govde_html(satirlar):
         if paragraf:
             parcalar.append(f"<p>{satir_ici(' '.join(paragraf))}</p>")
             paragraf.clear()
+        if uyari:
+            parcalar.append(f'<div class="uyari">{satir_ici(" ".join(uyari))}</div>')
+            uyari.clear()
 
     for satir in satirlar:
         duz = satir.strip()
         madde = re.match(r"^(\s*)- (.*)$", satir)
         if not duz:
             bosalt()
+        elif duz.startswith(">"):
+            if ogeler or paragraf:
+                bosalt()
+            uyari.append(duz.lstrip("> "))
         elif madde:
             if paragraf:
                 bosalt()

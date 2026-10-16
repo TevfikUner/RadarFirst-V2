@@ -1,4 +1,4 @@
-# Türbülans Radar — Proje İlerleme Raporu
+# Türbülans Tespit ve Rota Optimizasyonu — Proje İlerleme Raporu
 
 **Hazırlayan:** Tevfik ÜNER  
 **Danışman:** Fatih TİTREK  
@@ -116,14 +116,15 @@ ortaya çıktı.
 - Her gece çalışan veri toplama işi düzenli ilerliyor: şu ana kadar 148 güne ait yaklaşık
   14.500 örnek toplandı. 15 Ekim'de eğitilen yeni model, mevcut modelden daha iyi olmadığı
   için devreye alınmadı.
-  Hocam, burada küçük bir açıklama yapmak istiyorum. (Verileri Copernicus (Avrupa'nın hava
-  durumu arşivi), Iowa Environmental Mesonet (pilot raporları) ve NOAA MADIS (uçakların
-  ölçtüğü türbülans) gibi herkese ücretsiz hizmet veren kurumlardan alıyorum. Bu kurumların
-  sunucuları herkesin ortak kullanımında olduğu için, kısa sürede çok fazla veri isteyenlerin
-  erişimi kısıtlanabiliyor. Ben de verinin hepsini bir anda indirmek yerine her gece
-  kendiliğinden çalışan bir otomasyon kurdum. Sistem günde en fazla 500 MB olacak şekilde,
-  istekler arasında bekleyerek az az veri topluyor. Veri bu yüzden yavaş ama düzenli
-  birikiyor.)
+
+> ⚠️ Hocam, burada küçük bir açıklama yapmak istiyorum. (Verileri Copernicus (Avrupa'nın hava
+> durumu arşivi), Iowa Environmental Mesonet (pilot raporları) ve NOAA MADIS (uçakların
+> ölçtüğü türbülans) gibi herkese ücretsiz hizmet veren kurumlardan alıyorum. Bu kurumların
+> sunucuları herkesin ortak kullanımında olduğu için, kısa sürede çok fazla veri isteyenlerin
+> erişimi kısıtlanabiliyor. Ben de verinin hepsini bir anda indirmek yerine her gece
+> kendiliğinden çalışan bir otomasyon kurdum. Sistem günde en fazla 500 MB olacak şekilde,
+> istekler arasında bekleyerek az az veri topluyor. Veri bu yüzden yavaş ama düzenli
+> birikiyor.)
 
 **Önceki çalışmalarda yapılan değişiklikler**
 - Demo örneklerinden birinin sayıları kendi bilgisayarımdaki farklı veriden alınmıştı; temiz
