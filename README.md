@@ -1214,9 +1214,13 @@ UTC'de tetikler; ağ hatasında 3 kez yeniden dener; 202/409 dışındaki yanıt
 ## İz bulutu (contrail) duyarlılığı (M9)
 
 Hava küpünde ERA5 bağıl nemi (`r`) varsa her nokta için kalıcı iz bulutu
-duyarlılığı hesaplanır (`fizik/iz_bulutu.py`): T ≤ −40 °C ve buza göre bağıl
-nem ≥ %100. ERA5 bağıl nemi −23 °C'nin altında buza göre verilir (ECMWF ERA5
-belgeleri), bu yüzden dönüşüm gerekmez.
+duyarlılığı hesaplanır (`fizik/iz_bulutu.py`): T ≤ T_LC(p) ve buza göre bağıl
+nem ≥ %100. T_LC, basınca bağlı Schmidt–Appleman eşik sıcaklığıdır (η = 0,4,
+`SAC_ITKI_VERIMI`; sabitler ve Murphy–Koop doyma basınçları Sun ve Roosenbrand
+2023, JOAS 1). RHi = %100 için 200/250/300 hPa'da sırasıyla −49,1 / −46,9 /
+−45,0 °C'dir; eski sabit −40 °C ölçütü `IZ_BULUTU_OLCUTU=sabit` ile seçilebilir.
+ERA5 bağıl nemi −23 °C'nin altında buza göre verilir (ECMWF ERA5 belgeleri), bu
+yüzden dönüşüm gerekmez.
 
 - Uçuşa özel ERA5 dilimi nemi de indirir (`ERA5_UCUS_EK_DEGISKENLER`; istek sayısı
   aynı, dosya ~%30 büyük). Eşleşmeye `buz_bagil_nem_yuzde` ve `iz_bulutu_duyarli`
@@ -1225,6 +1229,9 @@ belgeleri), bu yüzden dönüşüm gerekmez.
   tanımı doğrulanmadığı için orada hesaplanmaz.
 - Yalnızca göstergedir, rota maliyetine girmez. ERA5 buzda aşırı doymayı az
   gösterir (bkz. ACP 25, 157, 2025); sonuç gözlenmiş iz bulutu değildir.
+- Önerilen rotada duyarlı nokta varsa yanıtın `iz_bulutu_seviye_bilgisi` alanı aynı izin
+  ±2000 ft'teki duyarlı nokta sayısını verir (Sun vd., 2024: irtifa sapmasıyla önleme).
+  Bilgi amaçlıdır; yakıt, yarım daire kuralı ve ATC değerlendirilmez.
 
 ## Sanal PIREP: ADS-B'den canlı türbülans olayı (M6)
 

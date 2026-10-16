@@ -364,6 +364,8 @@ ROTA_YAKIT_MODELI = _ortam_str("ROTA_YAKIT_MODELI", "openap")
 # Seyir başı kütlesi = MTOW x bu oran. Parametrik varsayım, kalibre edilmedi
 # (yük ve yakıt planı bilinmiyor).
 ROTA_SEYIR_KUTLE_ORANI = _ortam_sayi("ROTA_SEYIR_KUTLE_ORANI", 0.85)
+IZ_BULUTU_OLCUTU = _ortam_str("IZ_BULUTU_OLCUTU", "sac")
+SAC_ITKI_VERIMI = _ortam_sayi("SAC_ITKI_VERIMI", 0.4)
 ROTA_DIKEY_KESIT_FL = tuple(
     int(s) for s in _ortam_str("ROTA_DIKEY_KESIT_FL", "280,300,320,340,360,380,400").split(",") if s.strip()
 )

@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dal `claude/iz-bulutu-sac`)
+
+- ✅ Fikir 30: M9 eşiği sabit −40 °C yerine Schmidt–Appleman T_LC(p) (250 hPa'da −46,9 °C) + ±2000 ft iz bulutu bilgisi.
+- ⚠️ Fikir 26 ve 27 bilinçli olarak yapılmadı (gerekçe KAYNAK_INCELEMESI'nde).
+
 ## 2026-10-16 gece (dal `claude/cat-egilim-baglami`)
 
 - ✅ Fikir 25: ILGILI_CALISMALAR §1'e bölgesel CAT eğilimleri (Foudad 2024, Soliva Fabrega 2025, Zhang 2025).

@@ -5132,6 +5132,16 @@
                 "type": "null"
               }
             ]
+          },
+          "iz_bulutu_seviye_bilgisi": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IzBulutuSeviyeBilgisiYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -7262,6 +7272,61 @@
           "aciklama"
         ],
         "title": "DikeyKesitYaniti"
+      },
+      "IzBulutuSeviyeBilgisiYaniti": {
+        "properties": {
+          "fl": {
+            "type": "integer",
+            "title": "Fl"
+          },
+          "duyarli_nokta_sayisi": {
+            "type": "integer",
+            "title": "Duyarli Nokta Sayisi"
+          },
+          "secenekler": {
+            "items": {
+              "$ref": "#/components/schemas/IzBulutuSeviyeSecenegiYaniti"
+            },
+            "type": "array",
+            "title": "Secenekler"
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fl",
+          "duyarli_nokta_sayisi",
+          "secenekler",
+          "aciklama"
+        ],
+        "title": "IzBulutuSeviyeBilgisiYaniti"
+      },
+      "IzBulutuSeviyeSecenegiYaniti": {
+        "properties": {
+          "fl": {
+            "type": "integer",
+            "title": "Fl"
+          },
+          "duyarli_nokta_sayisi": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duyarli Nokta Sayisi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fl"
+        ],
+        "title": "IzBulutuSeviyeSecenegiYaniti"
       }
     }
   }

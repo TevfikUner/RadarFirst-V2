@@ -349,7 +349,7 @@ def rotayi_hava_durumuyla_eslestir(rota_df, veri_kupu):
     if "r" in veri_kupu.data_vars:
         dilim_seviye = _seviye_dilimi_sec(en_yakin_seviyeler)
         buz_bagil_nem = np.asarray(dilim_seviye["r"].values, dtype=float)
-        iz_bulutu = iz_bulutu_duyarli(dilim_seviye["t"].values, buz_bagil_nem)
+        iz_bulutu = iz_bulutu_duyarli(dilim_seviye["t"].values, buz_bagil_nem, en_yakin_seviyeler)
     else:
         buz_bagil_nem = np.full(n, np.nan)
         iz_bulutu = np.full(n, None, dtype=object)

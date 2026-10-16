@@ -947,6 +947,8 @@ sıra benim değerlendirmem.
   analiz edilmemiş; ancak "komşu bölgeler" denebilir.
 
 ### Fikir 26. Eşik katılığı ailesiyle Pareto seçenekleri
+- **Durum:** Uygulanmadı (16 Ekim): mevcut ceza düzeyli Pareto aynı ödünleşimi veriyor; demo öncesi
+  Pareto çıktılarını değiştirmeye değmez.
 - **Kaynak:** Makale11 (s97–s99.6 TOR ailesi).
 - **Katkısı:** Kullanıcı deneyimi. "En sert %1'den kaçın" ile "%2'den kaçın" gibi seçenekler,
   saniye cinsinden cezadan daha kolay anlaşılır.
@@ -956,6 +958,8 @@ sıra benim değerlendirmem.
 - **Risk ve bağımlılıklar:** Fikir 2'nin yüzdelik altyapısına bağlı.
 
 ### Fikir 27. IWXXM Schematron doğrulaması
+- **Durum:** Uygulanmadı (16 Ekim): `IWXXM/rule/iwxxm.sch` `queryBinding="xslt2"` ve 33 `document()`
+  çağrısı kullanıyor; lxml (XSLT 1.0) çalıştıramaz, Saxon + ağdan kod listesi gerekir. Maliyet > fayda.
 - **Kaynak:** R22 (resmi Schematron kuralları).
 - **Katkısı:** Standart uyumu. XSD'nin kontrol etmediği iş kuralları (örneğin geçerlilik
   aralıkları) da sınanır.
@@ -982,6 +986,8 @@ sıra benim değerlendirmem.
 - **Risk ve bağımlılıklar:** PIREP tip kodlarının OpenAP tiplerine eşlenmesi eksik kalabilir.
 
 ### Fikir 30. M9 için Schmidt–Appleman ölçütü ve ±1 FL önerisi
+- **Durum:** Uygulandı (16 Ekim; T_LC(p), η = 0,4; `iz_bulutu_seviye_bilgisi` ±2000 ft). Formül ve
+  sabitler SIL_Makale12'den; Murphy–Koop eğrileri üçlü noktada 611,657 Pa'da kesişiyor (test).
 - **Kaynak:** SIL_Makale9 (SAC), Makale17 (±2000 ft ile %70 önleme), SIL_Makale12, R5.
 - **Katkısı:** Akademik doğruluk. Şu anki ölçüt (T ≤ −40 °C, RHi ≥ %100) basit bir vekil.
 - **Uygulama yolu:** `fizik/iz_bulutu.py`'ye basınca ve itki verimine bağlı SAC eşik
