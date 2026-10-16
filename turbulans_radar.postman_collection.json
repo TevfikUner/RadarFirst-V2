@@ -20,6 +20,22 @@
       "name": "Sistem",
       "item": [
         {
+          "name": "Saglik Kontrolu",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{taban_url}}/saglik",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "saglik"
+              ]
+            }
+          }
+        },
+        {
           "name": "Ws Bileti",
           "request": {
             "method": "POST",
@@ -85,22 +101,6 @@
                 "v1",
                 "sistem",
                 "durum"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Saglik Kontrolu",
-          "request": {
-            "method": "GET",
-            "header": [],
-            "url": {
-              "raw": "{{taban_url}}/saglik",
-              "host": [
-                "{{taban_url}}"
-              ],
-              "path": [
-                "saglik"
               ]
             }
           }
@@ -680,89 +680,6 @@
       ]
     },
     {
-      "name": "SIGMET",
-      "item": [
-        {
-          "name": "Sigmetleri Yenile",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "X-API-Key",
-                "value": "{{api_anahtari}}"
-              }
-            ],
-            "url": {
-              "raw": "{{taban_url}}/api/v1/sigmet/guncelle",
-              "host": [
-                "{{taban_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "sigmet",
-                "guncelle"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Aktif Sigmetleri Listele",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "X-API-Key",
-                "value": "{{api_anahtari}}"
-              }
-            ],
-            "url": {
-              "raw": "{{taban_url}}/api/v1/sigmet",
-              "host": [
-                "{{taban_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "sigmet"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Sigmet Iwxxm Disa Aktar",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "X-API-Key",
-                "value": "{{api_anahtari}}"
-              }
-            ],
-            "url": {
-              "raw": "{{taban_url}}/api/v1/sigmet/:sigmet_id/iwxxm",
-              "host": [
-                "{{taban_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "sigmet",
-                ":sigmet_id",
-                "iwxxm"
-              ],
-              "variable": [
-                {
-                  "key": "sigmet_id",
-                  "value": ""
-                }
-              ]
-            }
-          }
-        }
-      ]
-    },
-    {
       "name": "Sanal PIREP",
       "item": [
         {
@@ -850,6 +767,240 @@
                 "api",
                 "v1",
                 "sanal-pirep"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Veri Sağlayıcı",
+      "item": [
+        {
+          "name": "Hava Durumu Kupleri",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/veri/kupler",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "veri",
+                "kupler"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Canli Veri Hazirla",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/veri/canli/hazirla",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "veri",
+                "canli",
+                "hazirla"
+              ]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Backtest",
+      "item": [
+        {
+          "name": "Ucus Backtesti",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/backtest/ucuslar/:ucus_numarasi/:tarih",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "backtest",
+                "ucuslar",
+                ":ucus_numarasi",
+                ":tarih"
+              ],
+              "variable": [
+                {
+                  "key": "ucus_numarasi",
+                  "value": ""
+                },
+                {
+                  "key": "tarih",
+                  "value": ""
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Toplu Backtest Baslat",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/backtest/toplu",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "backtest",
+                "toplu"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Backtest Sonuclari",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/backtest",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "backtest"
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "SIGMET",
+      "item": [
+        {
+          "name": "Sigmetleri Yenile",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/sigmet/guncelle",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sigmet",
+                "guncelle"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Aktif Sigmetleri Listele",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/sigmet",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sigmet"
+              ]
+            }
+          }
+        },
+        {
+          "name": "Sigmet Iwxxm Disa Aktar",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_anahtari}}"
+              }
+            ],
+            "url": {
+              "raw": "{{taban_url}}/api/v1/sigmet/:sigmet_id/iwxxm",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "sigmet",
+                ":sigmet_id",
+                "iwxxm"
+              ],
+              "variable": [
+                {
+                  "key": "sigmet_id",
+                  "value": ""
+                }
               ]
             }
           }
@@ -1033,34 +1184,10 @@
       ]
     },
     {
-      "name": "Veri Sağlayıcı",
+      "name": "Geri bildirim",
       "item": [
         {
-          "name": "Hava Durumu Kupleri",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "X-API-Key",
-                "value": "{{api_anahtari}}"
-              }
-            ],
-            "url": {
-              "raw": "{{taban_url}}/api/v1/veri/kupler",
-              "host": [
-                "{{taban_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "veri",
-                "kupler"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Canli Veri Hazirla",
+          "name": "Geri Bildirim Gonder",
           "request": {
             "method": "POST",
             "header": [
@@ -1070,16 +1197,14 @@
               }
             ],
             "url": {
-              "raw": "{{taban_url}}/api/v1/veri/canli/hazirla",
+              "raw": "{{taban_url}}/api/v1/geri-bildirim",
               "host": [
                 "{{taban_url}}"
               ],
               "path": [
                 "api",
                 "v1",
-                "veri",
-                "canli",
-                "hazirla"
+                "geri-bildirim"
               ]
             },
             "body": {
@@ -1092,74 +1217,9 @@
               }
             }
           }
-        }
-      ]
-    },
-    {
-      "name": "Backtest",
-      "item": [
-        {
-          "name": "Ucus Backtesti",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "X-API-Key",
-                "value": "{{api_anahtari}}"
-              }
-            ],
-            "url": {
-              "raw": "{{taban_url}}/api/v1/backtest/ucuslar/:ucus_numarasi/:tarih",
-              "host": [
-                "{{taban_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "backtest",
-                "ucuslar",
-                ":ucus_numarasi",
-                ":tarih"
-              ],
-              "variable": [
-                {
-                  "key": "ucus_numarasi",
-                  "value": ""
-                },
-                {
-                  "key": "tarih",
-                  "value": ""
-                }
-              ]
-            }
-          }
         },
         {
-          "name": "Toplu Backtest Baslat",
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "X-API-Key",
-                "value": "{{api_anahtari}}"
-              }
-            ],
-            "url": {
-              "raw": "{{taban_url}}/api/v1/backtest/toplu",
-              "host": [
-                "{{taban_url}}"
-              ],
-              "path": [
-                "api",
-                "v1",
-                "backtest",
-                "toplu"
-              ]
-            }
-          }
-        },
-        {
-          "name": "Backtest Sonuclari",
+          "name": "Geri Bildirim Ozetini Getir",
           "request": {
             "method": "GET",
             "header": [
@@ -1169,14 +1229,15 @@
               }
             ],
             "url": {
-              "raw": "{{taban_url}}/api/v1/backtest",
+              "raw": "{{taban_url}}/api/v1/geri-bildirim/ozet",
               "host": [
                 "{{taban_url}}"
               ],
               "path": [
                 "api",
                 "v1",
-                "backtest"
+                "geri-bildirim",
+                "ozet"
               ]
             }
           }

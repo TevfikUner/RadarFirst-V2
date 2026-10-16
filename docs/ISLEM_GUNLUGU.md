@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dal `claude/demo-ekranlari-16-ekim`)
+
+- ✅ Demo ekranları temiz klondan (5532/8100) yenilendi; sayılar aynı. Postman koleksiyonu yeni uçlarla güncellendi.
+- ✅ OpenSky taslağına alıcı (contact@opensky-network.org) eklendi; gönderim sizde.
+
 ## 2026-10-16 gece (dal `claude/iz-bulutu-sac`)
 
 - ✅ Fikir 30: M9 eşiği sabit −40 °C yerine Schmidt–Appleman T_LC(p) (250 hPa'da −46,9 °C) + ±2000 ft iz bulutu bilgisi.

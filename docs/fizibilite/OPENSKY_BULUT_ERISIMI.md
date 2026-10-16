@@ -6,8 +6,11 @@ seçenekleri (Azure for Students, Hetzner CX23) bu kapsama girebilir. README'dek
 REST API'ye mi, Trino'ya mı, yoksa ikisine de mi uygulandığı yazmıyor.
 
 Taşıma yapılmadan önce OpenSky'a sorulmalı. Bu bir dış iletişimdir: gönderim kullanıcı
-tarafından yapılır. Alıcı adresi OpenSky web sitesindeki iletişim sayfasından alınmalıdır
-(burada yazılmadı, tahmin edilmedi).
+tarafından yapılır.
+
+**Alıcı:** contact@opensky-network.org (OpenSky veri lisansında geçen adres; Zenodo kopyası,
+zenodo.org/records/6325961. Resmî iletişim sayfası otomatik erişime 403 döndüğü için oradan
+teyit edilemedi; göndermeden önce sitede kontrol edin.)
 
 ## E-posta taslağı
 
