@@ -40,3 +40,11 @@ def test_iz_yakiti_sabit_izde_seyir_yakitina_esittir():
     tirmanis = performans_modeli.iz_yakiti("A320", [0.0, 60.0], [230.0] * 2, [10668.0, 11277.6])
     duz = performans_modeli.iz_yakiti("A320", [0.0, 60.0], [230.0] * 2, [10972.8] * 2)
     assert tirmanis["yakit_kg"] > duz["yakit_kg"]
+
+
+def test_kutle_orani_parametresi_agir_ucakta_daha_cok_yakar():
+    hafif = performans_modeli.seyir_yakiti("A320", 3600.0, 230.0, 11277.6, kutle_orani=0.70)
+    agir = performans_modeli.seyir_yakiti("A320", 3600.0, 230.0, 11277.6, kutle_orani=0.90)
+    varsayilan = performans_modeli.seyir_yakiti("A320", 3600.0, 230.0, 11277.6)
+    assert hafif["yakit_kg"] < varsayilan["yakit_kg"] < agir["yakit_kg"]
+    assert performans_modeli.baslangic_kutlesi_kg("A320", 0.70) < performans_modeli.baslangic_kutlesi_kg("A320")

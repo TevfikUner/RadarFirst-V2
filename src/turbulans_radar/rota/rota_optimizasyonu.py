@@ -917,6 +917,17 @@ _BRIFING_STRATEJI = {
 _SIDDET_SIRASI = ("hafif altı", "hafif", "orta", "şiddetli")
 
 
+def _kutle_bandi_metni(sonuc) -> str:
+    bant = sonuc.get("yakit_tasarrufu_yuzde_araligi") or {}
+    if bant.get("en_dusuk") is None or round(bant["en_dusuk"], 1) == round(bant["en_yuksek"], 1):
+        return ""
+    oranlar = bant["kutle_oranlari"]
+    return (
+        f" (kütle %{100 * oranlar[0]:.0f}–{100 * oranlar[-1]:.0f} MTOW: "
+        f"%{-bant['en_yuksek']:+.1f}…%{-bant['en_dusuk']:+.1f})"
+    )
+
+
 def brifing_karti(sonuc) -> list[str]:
     """Var olan sonucun 3 satırlık özeti (rota, kalan risk, kabin); yeni hesap
     yapmaz. Karar destek amaçlıdır; sertifikalı EDR değildir."""
@@ -929,7 +940,7 @@ def brifing_karti(sonuc) -> list[str]:
         rota = (
             f"Rota: {etiket}, FL{optimize['fl']:03d}; riskli nokta {normal['riskli_nokta_sayisi']}→"
             f"{optimize['riskli_nokta_sayisi']}, süre {-sonuc['sure_tasarrufu_dk']:+.0f} dk, "
-            f"yakıt %{-sonuc['yakit_tasarrufu_yuzde']:+.1f}."
+            f"yakıt %{-sonuc['yakit_tasarrufu_yuzde']:+.1f}{_kutle_bandi_metni(sonuc)}."
         )
     bolumler = optimize["riskli_bolumler"]
     if bolumler is None:
@@ -1483,6 +1494,36 @@ def rota_simulasyonu_olustur(
     # Yakıt = seyir yakıtı (OpenAP ya da sabit tablo) + seviye geçişlerinin ek yakıtı (bkz. _seviye_ekstrasi).
     optimize_yakit_kg = _aday_toplam_yakit_kg(en_iyi)
     optimize_saniye = en_iyi["saniye"] + en_iyi["ekstra_saniye"]
+
+    def _kutleli_yakit_kg(aday, oran):
+        seyir = performans_modeli.seyir_yakiti(
+            ucak_modeli_kodu, aday["saniye"], tas_ms, aday["irtifa_m"], kutle_orani=oran
+        )
+        if seyir is None:
+            return None
+        ek = 0.0
+        if aday["irtifa_m"] != irtifa_m:
+            ek = performans_modeli.seviye_degisimi_ek_yakiti(
+                ucak_modeli_kodu, irtifa_m, aday["irtifa_m"], tas_ms, DIKEY_HIZ_FT_DK, kutle_orani=oran
+            )
+        return seyir["yakit_kg"] + ek
+
+    yakit_bandi = None
+    if yakit_modeli == "openap" and config.ROTA_KUTLE_BANDI:
+        oranlar = sorted({*config.ROTA_KUTLE_BANDI, config.ROTA_SEYIR_KUTLE_ORANI})
+        yuzdeler = []
+        for oran in oranlar:
+            n_kg, o_kg = _kutleli_yakit_kg(normal, oran), _kutleli_yakit_kg(en_iyi, oran)
+            yuzdeler.append(100.0 * (n_kg - o_kg) / n_kg if n_kg else None)
+        gecerli = [y for y in yuzdeler if y is not None]
+        yakit_bandi = {
+            "kutle_oranlari": oranlar,
+            "yakit_tasarrufu_yuzde": yuzdeler,
+            "en_dusuk": min(gecerli) if gecerli else None,
+            "en_yuksek": max(gecerli) if gecerli else None,
+            "aciklama": "Aynı iki rota için seyir başı kütlesi MTOW'un bu oranlarıyla yeniden hesaplandı; rota seçimi "
+            "ROTA_SEYIR_KUTLE_ORANI ile yapıldı. Kütle bilinmediği için tek bir değer yerine bu aralık okunmalıdır.",
+        }
     secenekler = pareto_secenekleri(
         [normal, *(adaylar if en_iyi is not normal else [])], en_iyi, normal, _aday_toplam_yakit_kg
     )
@@ -1543,6 +1584,7 @@ def rota_simulasyonu_olustur(
             100.0 * (normal_yakit_kg - optimize_yakit_kg) / normal_yakit_kg if normal_yakit_kg > 0 else 0.0
         ),
         "co2_farki_kg": normal_yakit_kg * CO2_KG_PER_KG_YAKIT - optimize_yakit_kg * CO2_KG_PER_KG_YAKIT,
+        "yakit_tasarrufu_yuzde_araligi": yakit_bandi,
         "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
         "yakit_modeli": {
             "kaynak": yakit_modeli,

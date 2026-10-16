@@ -87,6 +87,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
     gidiş ve planlanan seviyeye dönüşün yakıt bedeli hesaba katılır (OpenAP:
     tırmanış ek yakıt, alçalış kredi; seyir yakıtı seviyeye ve kütleye bağlı).
     Kurala aykırı girilen seviye en yakın yasal FL'ye yuvarlanır, uyarı verilir.
+    Seyir başı kütlesi bilinmediği için (varsayım MTOW × 0,85) yanıt aynı iki rotanın yakıt
+    farkını %70 ve %90 MTOW ile de verir (`yakit_tasarrufu_yuzde_araligi`, Sun vd., 2023).
+    Yanal sapmada fark kütleye neredeyse duyarsız (S1: %−3,83 ± 0,01); seviye değişiminde
+    duyarlı (S3: %70 MTOW'da %2,9, %85'te %1,5, %90'da %1,1 tasarruf).
 - **Öncelik sırası:**
   1. Aktif SIGMET'e ve kısıtlı/yasak hava sahasına **girmemek** (sert
      kısıtlar). Kısıt dört boyutludur: poligon, irtifa bandı, uçağın o

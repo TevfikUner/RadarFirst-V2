@@ -52,17 +52,19 @@ def kullanilabilir_mi(tip: str) -> bool:
     return config.ROTA_YAKIT_MODELI == "openap" and _modeller(tip) is not None
 
 
-def baslangic_kutlesi_kg(tip: str) -> float | None:
+def baslangic_kutlesi_kg(tip: str, kutle_orani: float | None = None) -> float | None:
     if not kullanilabilir_mi(tip):
         return None
-    return float(_modeller(tip)[2]["mtow"]) * config.ROTA_SEYIR_KUTLE_ORANI
+    return float(_modeller(tip)[2]["mtow"]) * (config.ROTA_SEYIR_KUTLE_ORANI if kutle_orani is None else kutle_orani)
 
 
 def _yakit_akisi_kg_s(tip, kutle_kg, tas_kt, irtifa_ft, dikey_hiz_ftdk=0.0) -> float:
     return float(_modeller(tip)[0].enroute(mass=kutle_kg, tas=tas_kt, alt=irtifa_ft, vs=dikey_hiz_ftdk))
 
 
-def seyir_yakiti(tip: str, sure_s: float, tas_ms: float, irtifa_m: float, adim_s: float = 60.0) -> dict | None:
+def seyir_yakiti(
+    tip: str, sure_s: float, tas_ms: float, irtifa_m: float, adim_s: float = 60.0, kutle_orani: float | None = None
+) -> dict | None:
     """Sabit TAS ve irtifada sure_s boyunca yakıt ve NOx (kg). Kütle her adımda
     yanan yakıt kadar azalır. Kullanılamıyorsa None."""
     if not kullanilabilir_mi(tip):
@@ -71,7 +73,7 @@ def seyir_yakiti(tip: str, sure_s: float, tas_ms: float, irtifa_m: float, adim_s
     tas_kt, irtifa_ft = tas_ms * MS_KT, irtifa_m * METRE_FT
     adim_sayisi = max(1, math.ceil(sure_s / adim_s))
     dt = sure_s / adim_sayisi
-    kutle = baslangic_kutlesi_kg(tip)
+    kutle = baslangic_kutlesi_kg(tip, kutle_orani)
     yakit = nox = 0.0
     for _ in range(adim_sayisi):
         akis = _yakit_akisi_kg_s(tip, kutle, tas_kt, irtifa_ft)
@@ -82,7 +84,12 @@ def seyir_yakiti(tip: str, sure_s: float, tas_ms: float, irtifa_m: float, adim_s
 
 
 def seviye_degisimi_ek_yakiti(
-    tip: str, eski_irtifa_m: float, yeni_irtifa_m: float, tas_ms: float, dikey_hiz_ftdk: float
+    tip: str,
+    eski_irtifa_m: float,
+    yeni_irtifa_m: float,
+    tas_ms: float,
+    dikey_hiz_ftdk: float,
+    kutle_orani: float | None = None,
 ) -> float | None:
     """Geçici seviyeye gidiş + planlanan seviyeye dönüşte, düşey hızın
     (±dikey_hiz_ftdk) seyre göre ek yakıtı (kg). Tırmanış ek yakıt, alçalış
@@ -95,7 +102,7 @@ def seviye_degisimi_ek_yakiti(
         return 0.0
     sure_s = fark_ft / dikey_hiz_ftdk * 60.0
     tas_kt, irtifa_ft = tas_ms * MS_KT, (eski_irtifa_m + yeni_irtifa_m) / 2 * METRE_FT
-    kutle = baslangic_kutlesi_kg(tip)
+    kutle = baslangic_kutlesi_kg(tip, kutle_orani)
     seyir = _yakit_akisi_kg_s(tip, kutle, tas_kt, irtifa_ft)
     tirmanis = _yakit_akisi_kg_s(tip, kutle, tas_kt, irtifa_ft, dikey_hiz_ftdk)
     alcalis = _yakit_akisi_kg_s(tip, kutle, tas_kt, irtifa_ft, -dikey_hiz_ftdk)

@@ -4959,6 +4959,16 @@
                 "type": "null"
               }
             ]
+          },
+          "yakit_tasarrufu_yuzde_araligi": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/YakitBandiYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
           }
         },
         "type": "object",
@@ -6713,6 +6723,64 @@
           "aciklama"
         ],
         "title": "ToplulukYaniti"
+      },
+      "YakitBandiYaniti": {
+        "properties": {
+          "kutle_oranlari": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Kutle Oranlari"
+          },
+          "yakit_tasarrufu_yuzde": {
+            "items": {
+              "anyOf": [
+                {
+                  "type": "number"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Yakit Tasarrufu Yuzde"
+          },
+          "en_dusuk": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "En Dusuk"
+          },
+          "en_yuksek": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "En Yuksek"
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "kutle_oranlari",
+          "yakit_tasarrufu_yuzde",
+          "aciklama"
+        ],
+        "title": "YakitBandiYaniti"
       }
     }
   }

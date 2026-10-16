@@ -427,6 +427,14 @@ class YakitModeliYaniti(BaseModel):
     openap_surumu: str | None = None
 
 
+class YakitBandiYaniti(BaseModel):
+    kutle_oranlari: list[float]
+    yakit_tasarrufu_yuzde: list[float | None]
+    en_dusuk: float | None = None
+    en_yuksek: float | None = None
+    aciklama: str
+
+
 class ToplulukRotaOzetiYaniti(BaseModel):
     en_yuksek: float | None = None
     yari_ve_ustu_nokta_sayisi: int = 0
@@ -470,6 +478,7 @@ class RotaSimulasyonuYaniti(BaseModel):
     uretim_bilgisi: UretimBilgisiYaniti | None = None
     yakit_tasarrufu_yuzde: float
     co2_farki_kg: float
+    yakit_tasarrufu_yuzde_araligi: YakitBandiYaniti | None = None
     secenekler: list[RotaSecenegiYaniti] = []
     kapsam: KapsamYaniti | None = None
     planlama_ufku: PlanlamaUfkuYaniti | None = None

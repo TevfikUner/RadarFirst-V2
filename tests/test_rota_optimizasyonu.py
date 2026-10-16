@@ -750,3 +750,19 @@ def test_ti1_onbellegi_rota_yanitini_degistirmez_hesabi_azaltir(gercek_senaryo, 
     onbelleksiz = json.dumps(_zamansiz(rota_simulasyonu_olustur(*girdi, sigmetler=[], kisitli_sahalar=[])), default=str)
     assert onbellekli == onbelleksiz
     assert onbellekli_sayi < sayac["n"]
+
+
+def test_kutle_bandi_varsayilan_orani_icerir_ve_tek_degeri_kapsar(gercek_senaryo):
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320", sigmetler=[], kisitli_sahalar=[])
+    bant = sonuc["yakit_tasarrufu_yuzde_araligi"]
+    assert bant["kutle_oranlari"] == sorted({*config.ROTA_KUTLE_BANDI, config.ROTA_SEYIR_KUTLE_ORANI})
+    varsayilan = bant["yakit_tasarrufu_yuzde"][bant["kutle_oranlari"].index(config.ROTA_SEYIR_KUTLE_ORANI)]
+    assert varsayilan == pytest.approx(sonuc["yakit_tasarrufu_yuzde"], abs=1e-6)
+    assert bant["en_dusuk"] <= sonuc["yakit_tasarrufu_yuzde"] + 1e-9 <= bant["en_yuksek"] + 2e-9
+    assert "aralık" in bant["aciklama"]
+
+
+def test_sabit_yakit_modelinde_kutle_bandi_yok(gercek_senaryo, monkeypatch):
+    monkeypatch.setattr(config, "ROTA_YAKIT_MODELI", "sabit")
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320", sigmetler=[], kisitli_sahalar=[])
+    assert sonuc["yakit_tasarrufu_yuzde_araligi"] is None
