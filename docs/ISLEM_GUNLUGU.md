@@ -2,6 +2,10 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-16 gece (dal `claude/opensky-bulut-sorusu`)
+
+- ✅ Fikir 12: OpenSky'a bulut IP/Trino sorusu taslağı → `docs/fizibilite/OPENSKY_BULUT_ERISIMI.md` (gönderim sizde).
+
 ## 2026-10-16 gece (dal `claude/ongoru-uyarisi`)
 
 - ✅ Fikir 7: GFS rotasında kalkışa >48 sa ise `ongoru_belirsiz` uyarısı (Lee 2025; kalibre değil).
