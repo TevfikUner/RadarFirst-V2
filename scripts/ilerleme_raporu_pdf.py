@@ -21,10 +21,10 @@ TARAYICI_ADAYLARI = [
 ]
 
 STIL = """
-@page { size: A4; margin: 20mm 18mm 20mm 18mm;
+@page { size: A4; margin: 15mm 17mm 15mm 17mm;
   @bottom-center { content: counter(page) " / " counter(pages); font: 9pt 'Segoe UI', sans-serif; color: #7a8696; } }
 * { box-sizing: border-box; }
-body { font-family: 'Segoe UI', 'Calibri', sans-serif; font-size: 10.5pt; line-height: 1.5; color: #1f2933; margin: 0; }
+body { font-family: 'Segoe UI', 'Calibri', sans-serif; font-size: 10pt; line-height: 1.42; color: #1f2933; margin: 0; }
 .kapak { border-bottom: 3px solid #1d4e89; padding-bottom: 10px; margin-bottom: 14px; }
 .ust-baslik { font-size: 9pt; letter-spacing: .12em; text-transform: uppercase; color: #1d4e89; font-weight: 600; }
 h1 { font-size: 21pt; margin: 2px 0 8px; color: #10243e; }
@@ -37,10 +37,10 @@ h1 { font-size: 21pt; margin: 2px 0 8px; color: #10243e; }
 h2 { display: flex; align-items: baseline; gap: 10px; background: #1d4e89; color: #fff; font-size: 12.5pt;
   padding: 7px 12px; border-radius: 4px; margin: 0 0 8px; break-after: avoid; }
 h2 .tarih { font-weight: 400; font-size: 10.5pt; opacity: .9; }
-h3 { font-size: 11pt; color: #1d4e89; margin: 12px 0 4px; padding-bottom: 2px; border-bottom: 1px solid #d9e2ec; break-after: avoid; }
+h3 { font-size: 11pt; color: #1d4e89; margin: 10px 0 3px; padding-bottom: 2px; border-bottom: 1px solid #d9e2ec; break-after: avoid; }
 ul { margin: 4px 0 6px; padding-left: 20px; }
 ul ul { margin: 2px 0; }
-li { margin: 2px 0; break-inside: avoid; }
+li { margin: 1px 0; break-inside: avoid; }
 p { margin: 6px 0; }
 """
 
