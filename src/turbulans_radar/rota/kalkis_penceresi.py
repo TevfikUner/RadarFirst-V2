@@ -1,5 +1,9 @@
 import pandas as pd
 
+from turbulans_radar.loglama import logger_al
+
+_logger = logger_al(__name__)
+
 BILGI_NOTU = (
     "Yalnız bilgi amaçlıdır, öneri değildir: kalkış saati slot, ATC ve operasyonel kısıtlara bağlıdır. "
     "Her satır aynı rota isteğinin yalnız kalkış saati kaydırılarak yeniden hesaplanmasıdır; ileri saatlerde "
@@ -36,5 +40,6 @@ def kalkis_penceresi(
             sonuc = rota_fonksiyonu(*argumanlar, kalkis.strftime("%Y-%m-%dT%H:%M:%S"), **anahtarlar)
             satirlar.append(_satir(fark, kalkis, sonuc))
         except Exception as hata:
-            hatalar.append({"fark_saat": fark, "hata": f"{type(hata).__name__}: {hata}"})
+            _logger.warning("Kalkış penceresi %+d sa hesaplanamadı: %s", fark, hata)
+            hatalar.append({"fark_saat": fark, "hata": type(hata).__name__})
     return {"bilgi_notu": BILGI_NOTU, "satirlar": sorted(satirlar, key=lambda s: s["fark_saat"]), "hatalar": hatalar}

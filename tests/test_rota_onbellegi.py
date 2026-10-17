@@ -55,6 +55,23 @@ def test_gecici_durumlar_onbellege_alinmaz():
     assert len(onbellek) == 0
 
 
+def test_gecici_topluluk_ve_kalkis_penceresi_hatalari_onbellege_alinmaz():
+    gfs = {"uretim_bilgisi": {"hava_verisi": {"kaynak": "gfs"}}}
+    era5 = {"uretim_bilgisi": {"hava_verisi": {"kaynak": "era5"}}}
+    onbellek = RotaOnbellegi(ttl_saniye=60, maks_kayit=10)
+    onbellek.koy("topluluk_hata", _sonuc(**gfs, topluluk={"hesaplandi_mi": False}), 0)
+    onbellek.koy("topluluk_eksik", _sonuc(**gfs, topluluk={"hesaplandi_mi": True, "eksik_kosular": [{}]}), 0)
+    onbellek.koy("pencere_hata", _sonuc(kalkis_penceresi={"satirlar": [], "hatalar": [{"fark_saat": 1}]}), 0)
+    onbellek.koy(
+        "pencere_canli", _sonuc(kalkis_penceresi={"satirlar": [{"veri": "canli_veri_hazirlaniyor"}], "hatalar": []}), 0
+    )
+    assert len(onbellek) == 0
+    onbellek.koy("topluluk_era5", _sonuc(**era5, topluluk={"hesaplandi_mi": False}), 0)
+    onbellek.koy("topluluk_tam", _sonuc(**gfs, topluluk={"hesaplandi_mi": True, "eksik_kosular": []}), 0)
+    onbellek.koy("pencere_tam", _sonuc(kalkis_penceresi={"satirlar": [{"veri": "gfs_tahmin"}], "hatalar": []}), 0)
+    assert len(onbellek) == 3
+
+
 def test_hesap_surerken_temizlenirse_eski_sonuc_yazilmaz():
     onbellek = RotaOnbellegi(ttl_saniye=60, maks_kayit=10)
     nesil = onbellek.nesil

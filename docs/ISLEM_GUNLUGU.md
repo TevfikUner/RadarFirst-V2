@@ -2,6 +2,13 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-17 (dal `claude/onbellek-hata-duzeltmeleri`)
+
+- ✅ Proje taraması: 1019 test, ruff, CI, servisler, yedek temiz; gece işi bitti (aday aktifi geçemedi).
+- ✅ Rota önbelleği geçici topluluk/kalkış penceresi hatalarını artık saklamıyor.
+- ✅ Yanıtta ham hata metni yerine yalnız tür adı; uyarı dinleyicisi hatada bağlantıyı kapatıyor.
+- ✅ Birleşmiş eski yerel dallar silindi. Docker önbellek temizliği yapılmadı (onay yok).
+
 ## 2026-10-17 (dal `claude/opensky-yaniti`)
 
 - ✅ OpenSky yanıtı: bulut IP engeli Trino'yu da kapsıyor, Hetzner garantisiz; B planında OpenSky dizüstünde.

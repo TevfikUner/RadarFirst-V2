@@ -275,6 +275,8 @@ async def _uyari_dinleyicisi(yeniden_deneme_saniye=30.0):
             raise
         except Exception as hata:
             _logger.warning("Canlı uyarı dinleyicisi bağlanamadı: %s", dostane_hata_mesaji(hata))
+            if baglanti is not None:
+                baglanti.terminate()
         await asyncio.sleep(yeniden_deneme_saniye)
 
 
@@ -840,9 +842,10 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
             try:
                 sonuc = await asyncio.to_thread(rota_sonucuna_topluluk_ekle, sonuc)
             except Exception as hata:
+                _logger.warning("GFS topluluğu hesaplanamadı: %s", dostane_hata_mesaji(hata))
                 sonuc["topluluk"] = {
                     "hesaplandi_mi": False,
-                    "neden": f"{type(hata).__name__}: {hata}",
+                    "neden": f"Topluluk hesaplanamadı ({type(hata).__name__}).",
                     "aciklama": TOPLULUK_DENEYSEL_NOT,
                 }
         metrikler.ROTA_HESABI_SURESI.observe(time.monotonic() - hesap_baslangici)

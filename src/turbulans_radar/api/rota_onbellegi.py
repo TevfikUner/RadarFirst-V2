@@ -33,8 +33,27 @@ from sqlalchemy.dialects.postgresql import JSONB
 _GECICI_VERI_KAYNAKLARI = frozenset({"canli_veri_hazirlaniyor", "canli_veri_alinamadi"})
 
 
+def _topluluk_gecici_mi(sonuc: dict) -> bool:
+    topluluk = sonuc.get("topluluk")
+    if not topluluk:
+        return False
+    hava_kaynagi = ((sonuc.get("uretim_bilgisi") or {}).get("hava_verisi") or {}).get("kaynak")
+    return bool(topluluk.get("eksik_kosular")) or (not topluluk.get("hesaplandi_mi") and hava_kaynagi == "gfs")
+
+
+def _kalkis_penceresi_gecici_mi(sonuc: dict) -> bool:
+    pencere = sonuc.get("kalkis_penceresi")
+    if not pencere:
+        return False
+    return bool(pencere.get("hatalar")) or any(
+        satir.get("veri") in _GECICI_VERI_KAYNAKLARI for satir in pencere.get("satirlar") or []
+    )
+
+
 def onbellege_alinabilir_mi(sonuc: dict) -> bool:
     if sonuc.get("ruzgar_verisi_kaynagi") in _GECICI_VERI_KAYNAKLARI:
+        return False
+    if _topluluk_gecici_mi(sonuc) or _kalkis_penceresi_gecici_mi(sonuc):
         return False
     return all(
         (sonuc.get(alan) or {}).get("durum") != "erisilemedi" for alan in ("sigmet_kontrolu", "kisitli_saha_kontrolu")

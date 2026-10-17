@@ -67,7 +67,7 @@ def uyeleri_getir(kutu: Kutu, baslangic, bitis, kosular, klasor=None, saglayici_
             uyeler.append((kosu, xr.load_dataset(yol)))
         except Exception as hata:
             _logger.warning("GFS topluluk üyesi alınamadı (%s): %s", kosu.isoformat(), hata)
-            hatalar.append({"kosu": kosu.isoformat(), "hata": f"{type(hata).__name__}: {hata}"})
+            hatalar.append({"kosu": kosu.isoformat(), "hata": type(hata).__name__})
     return uyeler, hatalar
 
 
