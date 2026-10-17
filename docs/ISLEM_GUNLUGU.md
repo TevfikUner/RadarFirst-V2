@@ -2,6 +2,12 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-17 (dal `claude/ogrenme-rehberi`)
+
+- ✅ Gece işi kontrolü: ml_veri tamamlandı; aday aktif modeli geçemedi (+0,003), yalnız sürüm.
+- ✅ 8 derslik öğrenme rehberi `docs/ogrenme/PROJE_REHBERI.md` (kod değişikliği yok).
+- ✅ Ders testleri 213/213, tarayıcı 8/8 görünür modda (geçici port, -test DB); yığın durdurulmadı.
+
 ## 2026-10-17 (dal `claude/hiz-siniri-test-kararliligi`)
 
 - ✅ PR #76 CI test (3.12) hatası kod değil zamanlama: 429 testi dakika sınırına denk geldi; 4 test sınırdan uzaklaşıyor.
