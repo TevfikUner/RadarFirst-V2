@@ -1253,8 +1253,11 @@ def rota_simulasyonu_olustur(
     ats_agi=None,
     kalkis_meydani=None,
     varis_meydani=None,
+    veri_kupu=None,
 ):
     """
+    veri_kupu: verilirse küp seçimi/canlı indirme atlanır, bu küp kullanılır
+    (deney için belirli bir GFS koşusu, bkz. analiz/kacinma_baslangici.py).
     arama_uzayi: "koridor" (büyük daire etrafında yanal ızgara) ya da "ats"
     (ATS yolu/FRA ağı, bkz. hava_yolu_agi.py; ats_agi verilmezse
     config.ATS_AGI_DOSYASI). ATS modunda normal rota ağdaki en hızlı yol,
@@ -1305,15 +1308,16 @@ def rota_simulasyonu_olustur(
         )
 
     veri_durumu = {}
-    veri_kupu = veri_kupune_eris(
-        enlemler_gc,
-        boylamlar_gc,
-        zaman_iso,
-        irtifa_m,
-        zamanlar=_tahmini_varis_zamanlari(enlemler_gc, boylamlar_gc, zaman_iso, tas_ms),
-        durum=veri_durumu,
-        canli_bekleme_saniye=canli_bekleme_saniye,
-    )
+    if veri_kupu is None:
+        veri_kupu = veri_kupune_eris(
+            enlemler_gc,
+            boylamlar_gc,
+            zaman_iso,
+            irtifa_m,
+            zamanlar=_tahmini_varis_zamanlari(enlemler_gc, boylamlar_gc, zaman_iso, tas_ms),
+            durum=veri_durumu,
+            canli_bekleme_saniye=canli_bekleme_saniye,
+        )
     ruzgarli_mi = _era5_tamamen_kapsiyor_mu(veri_kupu, enlemler_gc, boylamlar_gc, zaman_iso, irtifa_m)
     kaynaga_gore_ayarla(veri_kupu_kaynagi(veri_kupu) if ruzgarli_mi else None)
     kup_adi = veri_kupu_adi(veri_kupu)

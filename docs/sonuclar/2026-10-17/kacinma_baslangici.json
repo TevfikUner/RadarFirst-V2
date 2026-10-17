@@ -1,0 +1,1066 @@
+{
+  "uretim_zamani": "2026-10-17T14:14:32+00:00",
+  "ayarlar": {
+    "ucak": "A320",
+    "irtifa_ft": 35000,
+    "plan_oncesi_saat": 6,
+    "kosu_gecikmesi_saat": 5,
+    "kutu": [
+      31.0,
+      46.0,
+      20.0,
+      51.0
+    ],
+    "rotalar": {
+      "LTFM-LTAI": [
+        41.26,
+        28.74,
+        36.9,
+        30.8
+      ],
+      "LTFM-LTCI": [
+        41.26,
+        28.74,
+        38.47,
+        43.33
+      ],
+      "LTBJ-LTCE": [
+        38.29,
+        27.16,
+        39.96,
+        41.17
+      ],
+      "LTAI-LTCG": [
+        36.9,
+        30.8,
+        41.0,
+        39.78
+      ],
+      "LTAJ-LTFM": [
+        36.95,
+        37.48,
+        41.26,
+        28.74
+      ]
+    },
+    "kalkislar": [
+      "2026-10-12T10:00:00Z",
+      "2026-10-14T16:00:00Z",
+      "2026-10-16T04:00:00Z"
+    ]
+  },
+  "indirilen_mb": 9.48,
+  "uyari": "Gösterim amaçlı küçük deney; istatistiksel genelleme yapılmaz. Referans gerçek analiz değil, yeniden planlama anında başlamış en son GFS koşusunun kısa öngörülü tahminidir; R1'in koşusu referansa zamanca daha yakın olduğu için sonuç R1 lehine yanlı olabilir (bu günlerde gözlemle doğrulama yok). SIGMET ve kısıtlı sahalar yok sayıldı; yalnız seyir bölümü. Karar destek amaçlıdır, sertifikalı EDR değildir.",
+  "ozet": {
+    "vaka_sayisi": 15,
+    "hesaplanan": 15,
+    "hata": 0,
+    "riskli_vaka": 9,
+    "yeni_kosu_olmayan": 0,
+    "kazanc_pozitif": 6,
+    "kazanc_negatif": 3,
+    "kazanc_sifir": 6,
+    "riskli_sure_kazanci_dk": {
+      "toplam": 11.875157466666668,
+      "ortalama": 0.7916771644444445,
+      "medyan": 0.0
+    },
+    "sure_maliyeti_dk": {
+      "ortalama": -0.10807880839432613,
+      "medyan": -0.0024017092606030133,
+      "en_buyuk": 2.5575926852123345
+    }
+  },
+  "vakalar": [
+    {
+      "rota": "LTFM-LTAI",
+      "kalkis_utc": "2026-10-12T10:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-12T10:20:20.727766911+00:00",
+      "ara_nokta": {
+        "indeks": 20,
+        "enlem": 39.08452655200555,
+        "boylam": 29.801844628452994,
+        "fl": 330
+      },
+      "kosular": {
+        "r0": "2026-10-11T18:00:00+00:00",
+        "r1": "2026-10-12T00:00:00+00:00",
+        "referans": "2026-10-12T06:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.34,
+        4.68
+      ],
+      "strateji": {
+        "r0": "irtifa_asagi",
+        "r1": "yok"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": 0.0
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 20.336843718015302,
+        "riskli_sure_dk": 0.0,
+        "maks_ti1": 3.615490338584327e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 935.6725828360256,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 20.41672205814683,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 4.672485607686672e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 939.3319895765017,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 20.414459881725705,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 4.672485607686672e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 939.2283558557764,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 20.414459881725705,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 4.672485607686672e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 939.2283558557764,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": 0.0,
+      "sure_maliyeti_dk": -0.0022621764211265827,
+      "yakit_maliyeti_kg": -0.10363372072527
+    },
+    {
+      "rota": "LTFM-LTCI",
+      "kalkis_utc": "2026-10-12T10:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-12T10:46:40.660196683+00:00",
+      "ara_nokta": {
+        "indeks": 20,
+        "enlem": 40.09417079983453,
+        "boylam": 36.18415984249025,
+        "fl": 350
+      },
+      "kosular": {
+        "r0": "2026-10-11T18:00:00+00:00",
+        "r1": "2026-10-12T00:00:00+00:00",
+        "referans": "2026-10-12T06:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.78,
+        5.53
+      ],
+      "strateji": {
+        "r0": "yok",
+        "r1": "irtifa_asagi"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": -2.0351255497330385
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 44.87688295126931,
+        "riskli_sure_dk": 0.0,
+        "maks_ti1": 3.2021987004051316e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 2009.1964028825046,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 45.14303757255205,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 2.8986933233144775e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 2020.9785127182172,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 45.134191634463576,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 4.859123381928418e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 2063.3273211267797,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 45.134191634463576,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 3.5076414020683563e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 2020.5866050456639,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": 0.0,
+      "sure_maliyeti_dk": -0.008845938088477112,
+      "yakit_maliyeti_kg": 42.34880840856249
+    },
+    {
+      "rota": "LTBJ-LTCE",
+      "kalkis_utc": "2026-10-12T10:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-12T10:43:46.679923616+00:00",
+      "ara_nokta": {
+        "indeks": 20,
+        "enlem": 39.33527486076788,
+        "boylam": 34.08153978364248,
+        "fl": 330
+      },
+      "kosular": {
+        "r0": "2026-10-11T18:00:00+00:00",
+        "r1": "2026-10-12T00:00:00+00:00",
+        "referans": "2026-10-12T06:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.73,
+        5.44
+      ],
+      "strateji": {
+        "r0": "irtifa_asagi",
+        "r1": "yok"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": 0.0
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 42.57555822280228,
+        "riskli_sure_dk": 0.0,
+        "maks_ti1": 2.6712068665289165e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 1949.3645079561525,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 42.5134437148865,
+          "riskli_sure_dk": 1.05293075,
+          "maks_ti1": 7.291573727994175e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1946.546190654098,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 42.51188372613401,
+          "riskli_sure_dk": 0.5265438166666666,
+          "maks_ti1": 7.291573727994175e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1946.475408440612,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 42.51188372613401,
+          "riskli_sure_dk": 0.5265438166666666,
+          "maks_ti1": 7.291573727994175e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1946.475408440612,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": 0.5263869333333334,
+      "sure_maliyeti_dk": -0.0015599887524899714,
+      "yakit_maliyeti_kg": -0.07078221348592706
+    },
+    {
+      "rota": "LTAI-LTCG",
+      "kalkis_utc": "2026-10-12T10:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-12T10:31:21.773425089+00:00",
+      "ara_nokta": {
+        "indeks": 20,
+        "enlem": 39.03605417493786,
+        "boylam": 35.15981928950881,
+        "fl": 350
+      },
+      "kosular": {
+        "r0": "2026-10-11T18:00:00+00:00",
+        "r1": "2026-10-12T00:00:00+00:00",
+        "referans": "2026-10-12T06:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.52,
+        5.04
+      ],
+      "strateji": {
+        "r0": "yok",
+        "r1": "yok"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": 0.0
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 31.167438271643313,
+        "riskli_sure_dk": 0.0,
+        "maks_ti1": 2.6029270243517325e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 1399.9186369185581,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 31.1550510098867,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 1.4703503275136055e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1399.3662242057796,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 31.15002261076959,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 1.4703503275136055e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1399.141980728749,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 31.15002261076959,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 1.4703503275136055e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1399.141980728749,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": 0.0,
+      "sure_maliyeti_dk": -0.005028399117112059,
+      "yakit_maliyeti_kg": -0.22424347703054082
+    },
+    {
+      "rota": "LTAJ-LTFM",
+      "kalkis_utc": "2026-10-12T10:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-12T10:32:06.488634737+00:00",
+      "ara_nokta": {
+        "indeks": 20,
+        "enlem": 39.186594759280695,
+        "boylam": 33.24392120192456,
+        "fl": 340
+      },
+      "kosular": {
+        "r0": "2026-10-11T18:00:00+00:00",
+        "r1": "2026-10-12T00:00:00+00:00",
+        "referans": "2026-10-12T06:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.54,
+        5.05
+      ],
+      "strateji": {
+        "r0": "yok",
+        "r1": "irtifa_asagi"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": -2.1952463492737024
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 30.959990513438978,
+        "riskli_sure_dk": 0.0,
+        "maks_ti1": 2.1071265191394134e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 1405.016382659154,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 30.999156829292513,
+          "riskli_sure_dk": 2.342244383333333,
+          "maks_ti1": 9.960873655016918e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1406.7816902217012,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 30.986476943479957,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 2.1489631684377214e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1438.0067568128375,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 30.986476943479957,
+          "riskli_sure_dk": 2.7181404666666666,
+          "maks_ti1": 1.032633247951435e-06,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1406.2101846342039,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": 2.342244383333333,
+      "sure_maliyeti_dk": -0.01267988581255608,
+      "yakit_maliyeti_kg": 31.225066591136283
+    },
+    {
+      "rota": "LTFM-LTAI",
+      "kalkis_utc": "2026-10-14T16:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-14T16:19:13.646236478+00:00",
+      "ara_nokta": {
+        "indeks": 20,
+        "enlem": 39.08452655200555,
+        "boylam": 29.801844628452994,
+        "fl": 370
+      },
+      "kosular": {
+        "r0": "2026-10-14T00:00:00+00:00",
+        "r1": "2026-10-14T06:00:00+00:00",
+        "referans": "2026-10-14T12:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.32,
+        4.64
+      ],
+      "strateji": {
+        "r0": "irtifa_yukari",
+        "r1": "yanal"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": 0.0
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 19.073994620454087,
+        "riskli_sure_dk": 10.9544164,
+        "maks_ti1": 2.541916660097485e-06,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 843.842783376112,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 19.36484191215441,
+          "riskli_sure_dk": 1.9528160666666667,
+          "maks_ti1": 7.96177566156803e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 856.6484344327071,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 21.372865590337252,
+          "riskli_sure_dk": 0.9593036666666667,
+          "maks_ti1": 7.388085577802273e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 944.9853554575433,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 19.354164111978005,
+          "riskli_sure_dk": 1.95094645,
+          "maks_ti1": 7.96177566156803e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 856.17833641547,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": 0.9935124000000001,
+      "sure_maliyeti_dk": 2.008023678182841,
+      "yakit_maliyeti_kg": 88.33692102483622
+    },
+    {
+      "rota": "LTFM-LTCI",
+      "kalkis_utc": "2026-10-14T16:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-14T16:50:21.786909051+00:00",
+      "ara_nokta": {
+        "indeks": 20,
+        "enlem": 40.578638006908434,
+        "boylam": 36.34138565751334,
+        "fl": 350
+      },
+      "kosular": {
+        "r0": "2026-10-14T00:00:00+00:00",
+        "r1": "2026-10-14T06:00:00+00:00",
+        "referans": "2026-10-14T12:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.84,
+        5.65
+      ],
+      "strateji": {
+        "r0": "yanal",
+        "r1": "irtifa_asagi"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": -2.0351255497330385
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 49.230035731838186,
+        "riskli_sure_dk": 0.0,
+        "maks_ti1": 6.45917950383369e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 2201.834147584105,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 48.90416321742171,
+          "riskli_sure_dk": 4.730415883333333,
+          "maks_ti1": 1.0293128485049778e-06,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 2187.433467467206,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 47.388426635655414,
+          "riskli_sure_dk": 1.2231649666666666,
+          "maks_ti1": 7.091779682026382e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 2165.4252614513966,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 47.388426635655414,
+          "riskli_sure_dk": 8.240115433333333,
+          "maks_ti1": 1.287296378697871e-06,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 2120.3849722585733,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": 3.507250916666667,
+      "sure_maliyeti_dk": -1.5157365817662978,
+      "yakit_maliyeti_kg": -22.008206015809264
+    },
+    {
+      "rota": "LTBJ-LTCE",
+      "kalkis_utc": "2026-10-14T16:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-14T16:47:42.710925466+00:00",
+      "ara_nokta": {
+        "indeks": 20,
+        "enlem": 39.33527486076788,
+        "boylam": 34.08153978364248,
+        "fl": 350
+      },
+      "kosular": {
+        "r0": "2026-10-14T00:00:00+00:00",
+        "r1": "2026-10-14T06:00:00+00:00",
+        "referans": "2026-10-14T12:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.8,
+        5.55
+      ],
+      "strateji": {
+        "r0": "yanal",
+        "r1": "yanal"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": 0.0
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 45.418205199558244,
+        "riskli_sure_dk": 0.0,
+        "maks_ti1": 6.41899265446385e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 2033.1686614706882,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 45.37647573373223,
+          "riskli_sure_dk": 2.14206215,
+          "maks_ti1": 7.481498609965794e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 2031.3201110058428,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 46.44989544974889,
+          "riskli_sure_dk": 3.5453787666666665,
+          "maks_ti1": 7.278348735195603e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 2078.849258097778,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 43.38543494451605,
+          "riskli_sure_dk": 10.795493683333333,
+          "maks_ti1": 1.1657948586028032e-06,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1943.09862867241,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": -1.4033166166666664,
+      "sure_maliyeti_dk": 1.0734197160166588,
+      "yakit_maliyeti_kg": 47.52914709193533
+    },
+    {
+      "rota": "LTAI-LTCG",
+      "kalkis_utc": "2026-10-14T16:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-14T16:30:47.444295478+00:00",
+      "ara_nokta": {
+        "indeks": 20,
+        "enlem": 39.03605417493786,
+        "boylam": 35.15981928950881,
+        "fl": 370
+      },
+      "kosular": {
+        "r0": "2026-10-14T00:00:00+00:00",
+        "r1": "2026-10-14T06:00:00+00:00",
+        "referans": "2026-10-14T12:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.51,
+        5.02
+      ],
+      "strateji": {
+        "r0": "irtifa_yukari",
+        "r1": "yanal"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": 0.0
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 30.400354933784364,
+        "riskli_sure_dk": 1.5419677999999999,
+        "maks_ti1": 8.275423829835482e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 1340.9898455864422,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 30.134331836662,
+          "riskli_sure_dk": 3.0176540833333334,
+          "maks_ti1": 7.372945963575833e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1329.343849857997,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 32.691924521874334,
+          "riskli_sure_dk": 3.0939199,
+          "maks_ti1": 7.42510005193272e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1441.2227621394259,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 30.109450158269958,
+          "riskli_sure_dk": 3.7856357333333337,
+          "maks_ti1": 7.372945963575833e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1328.2544972288533,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": -0.07626581666666654,
+      "sure_maliyeti_dk": 2.5575926852123345,
+      "yakit_maliyeti_kg": 111.87891228142894
+    },
+    {
+      "rota": "LTAJ-LTFM",
+      "kalkis_utc": "2026-10-14T16:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-14T16:32:13.067444943+00:00",
+      "ara_nokta": {
+        "indeks": 21,
+        "enlem": 39.29432836154503,
+        "boylam": 33.025224920073214,
+        "fl": 340
+      },
+      "kosular": {
+        "r0": "2026-10-14T00:00:00+00:00",
+        "r1": "2026-10-14T06:00:00+00:00",
+        "referans": "2026-10-14T12:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.54,
+        5.06
+      ],
+      "strateji": {
+        "r0": "yanal",
+        "r1": "yanal"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": 0.0
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 32.02111554716399,
+        "riskli_sure_dk": 0.9045881666666666,
+        "maks_ti1": 8.145659356335937e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 1452.8121509800342,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 31.138639848684356,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 5.884969959551422e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1413.0581641046783,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 30.047922721571354,
+          "riskli_sure_dk": 3.8759083333333337,
+          "maks_ti1": 1.0533687952523548e-06,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1363.8990096252846,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 28.85131649578087,
+          "riskli_sure_dk": 5.064433083333333,
+          "maks_ti1": 1.0533687952523548e-06,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1309.948375711049,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": -3.8759083333333337,
+      "sure_maliyeti_dk": -1.0907171271130025,
+      "yakit_maliyeti_kg": -49.15915447939369
+    },
+    {
+      "rota": "LTFM-LTAI",
+      "kalkis_utc": "2026-10-16T04:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-16T04:18:27.410292621+00:00",
+      "ara_nokta": {
+        "indeks": 20,
+        "enlem": 39.08452655200555,
+        "boylam": 29.801844628452994,
+        "fl": 370
+      },
+      "kosular": {
+        "r0": "2026-10-15T12:00:00+00:00",
+        "r1": "2026-10-15T18:00:00+00:00",
+        "referans": "2026-10-16T00:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.31,
+        4.61
+      ],
+      "strateji": {
+        "r0": "irtifa_yukari",
+        "r1": "yok"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": 0.0
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 18.075191417201257,
+        "riskli_sure_dk": 0.0,
+        "maks_ti1": 2.7862524525226887e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 799.862593873378,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 18.018550713020105,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 2.3215010882931706e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 797.3672681247018,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 18.017618893115117,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 2.3215010882931706e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 797.3262158958547,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 18.017618893115117,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 2.3215010882931706e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 797.3262158958547,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": 0.0,
+      "sure_maliyeti_dk": -0.0009318199049879183,
+      "yakit_maliyeti_kg": -0.04105222884709292
+    },
+    {
+      "rota": "LTFM-LTCI",
+      "kalkis_utc": "2026-10-16T04:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-16T04:47:12.869809511+00:00",
+      "ara_nokta": {
+        "indeks": 21,
+        "enlem": 40.02350226439951,
+        "boylam": 36.549124783804615,
+        "fl": 370
+      },
+      "kosular": {
+        "r0": "2026-10-15T12:00:00+00:00",
+        "r1": "2026-10-15T18:00:00+00:00",
+        "referans": "2026-10-16T00:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.79,
+        5.51
+      ],
+      "strateji": {
+        "r0": "irtifa_yukari",
+        "r1": "yok"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": 0.0
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 43.281167588740686,
+        "riskli_sure_dk": 0.0,
+        "maks_ti1": 6.998490159785324e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 1902.844936729658,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 43.33572112954153,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 2.635934125112372e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1905.2172520068984,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 43.35812338042732,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 3.38028408602694e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1906.1914175430024,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 43.35812338042732,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 3.38028408602694e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1906.1914175430024,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": 0.0,
+      "sure_maliyeti_dk": 0.022402250885789954,
+      "yakit_maliyeti_kg": 0.9741655361040102
+    },
+    {
+      "rota": "LTBJ-LTCE",
+      "kalkis_utc": "2026-10-16T04:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-16T04:41:25.809766658+00:00",
+      "ara_nokta": {
+        "indeks": 20,
+        "enlem": 39.33527486076788,
+        "boylam": 34.08153978364248,
+        "fl": 350
+      },
+      "kosular": {
+        "r0": "2026-10-15T12:00:00+00:00",
+        "r1": "2026-10-15T18:00:00+00:00",
+        "referans": "2026-10-16T00:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.69,
+        5.38
+      ],
+      "strateji": {
+        "r0": "yok",
+        "r1": "yok"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": 0.0
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 41.18331021868938,
+        "riskli_sure_dk": 0.0,
+        "maks_ti1": 5.5285301882548e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 1845.426248478461,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 41.336672044551584,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 4.375440244791072e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1852.2330917627125,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 41.33427033529098,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 4.537528768440109e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1852.12649747845,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 41.33427033529098,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 4.537528768440109e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1852.12649747845,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": 0.0,
+      "sure_maliyeti_dk": -0.0024017092606030133,
+      "yakit_maliyeti_kg": -0.10659428426265549
+    },
+    {
+      "rota": "LTAI-LTCG",
+      "kalkis_utc": "2026-10-16T04:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-16T04:30:28.004390700+00:00",
+      "ara_nokta": {
+        "indeks": 20,
+        "enlem": 39.03605417493786,
+        "boylam": 35.15981928950881,
+        "fl": 350
+      },
+      "kosular": {
+        "r0": "2026-10-15T12:00:00+00:00",
+        "r1": "2026-10-15T18:00:00+00:00",
+        "referans": "2026-10-16T00:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.51,
+        5.0
+      ],
+      "strateji": {
+        "r0": "yok",
+        "r1": "irtifa_yukari"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": -1.750016035783574
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 29.945099420905553,
+        "riskli_sure_dk": 0.0,
+        "maks_ti1": 6.181513164953943e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 1345.4129332475345,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 29.73427028387575,
+          "riskli_sure_dk": 5.885605766666667,
+          "maks_ti1": 8.607210063146733e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1336.0050051283783,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 29.41708541545083,
+          "riskli_sure_dk": 0.0,
+          "maks_ti1": 6.267541828102701e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1296.1970175463246,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 29.746979241274133,
+          "riskli_sure_dk": 5.1447569,
+          "maks_ti1": 8.607210063146733e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1336.5721485657248,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": 5.885605766666667,
+      "sure_maliyeti_dk": -0.31718486842492055,
+      "yakit_maliyeti_kg": -39.807987582053784
+    },
+    {
+      "rota": "LTAJ-LTFM",
+      "kalkis_utc": "2026-10-16T04:00:00+00:00",
+      "yeniden_planlama_utc": "2026-10-16T04:38:02.258702370+00:00",
+      "ara_nokta": {
+        "indeks": 21,
+        "enlem": 38.90302305446222,
+        "boylam": 32.70491244963762,
+        "fl": 340
+      },
+      "kosular": {
+        "r0": "2026-10-15T12:00:00+00:00",
+        "r1": "2026-10-15T18:00:00+00:00",
+        "referans": "2026-10-16T00:00:00+00:00"
+      },
+      "r1_yeni_kosu_mu": true,
+      "referans_on_gorusu_saat": [
+        4.63,
+        5.23
+      ],
+      "strateji": {
+        "r0": "yanal",
+        "r1": "irtifa_asagi"
+      },
+      "r1_seviye_degisimi_ek": {
+        "sure_dk": 0.0,
+        "yakit_kg": -2.1952463492737024
+      },
+      "r0_kalan_planlama_kupuyle": {
+        "sure_dk": 36.077503059107315,
+        "riskli_sure_dk": 0.0,
+        "maks_ti1": 6.471619375424708e-07,
+        "kapsam_disi_nokta": 0,
+        "yakit_kg": 1635.3471324021846,
+        "esik": 7e-07
+      },
+      "degerlendirme": {
+        "r0_kalan": {
+          "sure_dk": 35.839693346614546,
+          "riskli_sure_dk": 5.550814066666666,
+          "maks_ti1": 9.05572370631417e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1624.6626964730574,
+          "esik": 7e-07
+        },
+        "r1": {
+          "sure_dk": 31.514421385063603,
+          "riskli_sure_dk": 1.5751662333333334,
+          "maks_ti1": 8.163943397338176e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1462.3779254995882,
+          "esik": 7e-07
+        },
+        "normal_kalan": {
+          "sure_dk": 31.514421385063603,
+          "riskli_sure_dk": 7.849294400000001,
+          "maks_ti1": 9.683265747292195e-07,
+          "kapsam_disi_nokta": 0,
+          "yakit_kg": 1429.9926042965742,
+          "esik": 7e-07
+        }
+      },
+      "riskli_sure_kazanci_dk": 3.9756478333333325,
+      "sure_maliyeti_dk": -4.325271961550943,
+      "yakit_maliyeti_kg": -162.28477097346922
+    }
+  ]
+}
