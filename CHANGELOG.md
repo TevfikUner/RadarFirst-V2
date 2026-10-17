@@ -4,6 +4,12 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## MCP sunucusu kapalı başlama (18 Ekim 2026)
+
+- `turbulans-mcp`: `MCP_POSTGRES_USER/PASSWORD` boşsa ya da `postgres`/uygulama kullanıcısıysa
+  başlamaz (süper kullanıcıya düşüş kalktı); ilk sorguda rol yetkiliyse reddeder; sorgu filtresine
+  sistem fonksiyonu kara listesi (`pg_*`, `lo_*`, `dblink`, `set_config`, `*_to_xml`). Denetim P0-6.
+
 ## Deneyler ve analizler: F9, F3, F6, F5, F7 (15 Ekim 2026)
 
 Hepsi altın test günleri dışında çalışır; protokol modelini, aktif modeli ve sonuç paketini değiştirmez.

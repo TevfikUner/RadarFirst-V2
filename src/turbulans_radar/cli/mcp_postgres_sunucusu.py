@@ -15,8 +15,9 @@ Claude Code'a bağlamak için proje kökündeki .mcp.json zaten bu dosyayı
 işaret ediyor -- ayrıca bir şey yapmana gerek yok, ilk bağlantıda Claude
 Code onay isteyecek.
 
-Bağlantı: '.env'de MCP_POSTGRES_HOST/PORT/USER/PASSWORD verilirse POSTGRES_*
-yerine bunlar kullanılır. Windows'ta yerel bir PostgreSQL 5432'yi tutuyorsa
+Bağlantı: '.env'de MCP_POSTGRES_USER/PASSWORD zorunludur (HOST/PORT
+isteğe bağlı) ve POSTGRES_* yerine bunlar kullanılır. Eksikse, uygulama
+kullanıcısıyla aynıysa ya da rol süper kullanıcıysa sunucu çalışmaz. Windows'ta yerel bir PostgreSQL 5432'yi tutuyorsa
 Docker veritabanı 127.0.0.1:5433'ten okunur (MCP_POSTGRES_PORT=5433); salt
 okunur rol (MCP_POSTGRES_USER) yazmayı veritabanı düzeyinde de engeller
 (README "Claude Code'dan veritabanına MCP ile bağlanmak").
@@ -27,6 +28,7 @@ Elle çalıştırmak/test etmek için:
 
 import os
 import re
+import sys
 
 from mcp.server.mcpserver import MCPServer
 from sqlalchemy import text
@@ -45,6 +47,12 @@ _YAZMA_ANAHTAR_KELIMELERI = re.compile(
     re.IGNORECASE,
 )
 
+_YASAK_FONKSIYONLAR = re.compile(
+    r"\b(pg_\w+|lo_\w+|dblink\w*|set_config|current_setting|query_to_xml\w*|table_to_xml\w*|"
+    r"cursor_to_xml\w*|database_to_xml\w*|schema_to_xml\w*)\s*\(",
+    re.IGNORECASE,
+)
+
 
 def _salt_okunur_sorgu_dogrula(sql: str):
     temiz = sql.strip().rstrip(";").strip()
@@ -54,13 +62,38 @@ def _salt_okunur_sorgu_dogrula(sql: str):
         raise ValueError("Tek bir SELECT ifadesi dışında (noktalı virgülle ayrılmış) ek ifadeye izin verilmez.")
     if _YAZMA_ANAHTAR_KELIMELERI.search(temiz):
         raise ValueError("Sorguda yazma amaçlı bir anahtar kelime tespit edildi, reddedildi.")
+    if _YASAK_FONKSIYONLAR.search(temiz):
+        raise ValueError("Sorguda sistem/yönetim fonksiyonu tespit edildi, reddedildi.")
     return temiz
+
+
+_rol_dogrulandi = False
+
+
+def _rol_dogrula(baglanti):
+    global _rol_dogrulandi
+    if _rol_dogrulandi:
+        return
+    yetkili = baglanti.execute(
+        text("SELECT rolsuper OR rolcreaterole OR rolcreatedb FROM pg_roles WHERE rolname = current_user")
+    ).scalar()
+    if yetkili is not False:
+        raise PermissionError("MCP rolü yetkili (süper kullanıcı/rol ya da DB oluşturabilir); sorgu reddedildi.")
+    _rol_dogrulandi = True
+
+
+def _denetimli_motor():
+    motor = motor_al()
+    if not _rol_dogrulandi:
+        with motor.connect() as baglanti:
+            _rol_dogrula(baglanti)
+    return motor
 
 
 @sunucu.tool()
 def tablolari_listele() -> list[str]:
     """Veritabanındaki (public şema) tablo adlarını döndürür."""
-    motor = motor_al()
+    motor = _denetimli_motor()
     with motor.connect() as baglanti:
         sonuc = baglanti.execute(
             text("SELECT table_name FROM information_schema.tables WHERE table_schema = 'public' ORDER BY table_name")
@@ -71,6 +104,7 @@ def tablolari_listele() -> list[str]:
 @sunucu.tool()
 def ucuslar_listesi(limit: int = 100) -> list[dict]:
     """Veritabanına kaydedilmiş uçuşları (en yeni önce) listeler."""
+    _denetimli_motor()
     return ucuslari_listele(limit=min(limit, _SATIR_LIMITI_TAVANI))
 
 
@@ -80,6 +114,7 @@ def ucus_detayi(ucus_numarasi: str, tarih: str) -> dict:
 
     tarih: 'YYYY-MM-DD' formatında.
     """
+    _denetimli_motor()
     detay = ucus_detayini_getir(ucus_numarasi, tarih)
     if detay is None:
         return {"hata": f"'{ucus_numarasi}' / {tarih} için kayıt bulunamadı."}
@@ -95,7 +130,7 @@ def salt_okunur_sorgu_calistir(sql: str, limit: int = 200) -> list[dict]:
     temiz_sql = _salt_okunur_sorgu_dogrula(sql)
     limit = max(1, min(limit, _SATIR_LIMITI_TAVANI))
 
-    motor = motor_al()
+    motor = _denetimli_motor()
     with motor.connect() as baglanti:
         baglanti = baglanti.execution_options(postgresql_readonly=True)
         baglanti.execute(text(f"SET LOCAL statement_timeout = {_SORGU_ZAMAN_ASIMI_MS}"))
@@ -111,9 +146,20 @@ _MCP_ORTAM_ESLEMESI = {
 }
 
 
+_ZORUNLU_MCP_AYARLARI = ("MCP_POSTGRES_USER", "MCP_POSTGRES_PASSWORD")
+
+
 def mcp_baglanti_ayarlarini_uygula(ortam=None) -> list[str]:
-    """Dolu MCP_POSTGRES_* değerlerini POSTGRES_* üzerine yazar; uygulananları döner."""
+    """Dolu MCP_POSTGRES_* değerlerini POSTGRES_* üzerine yazar; uygulananları döner.
+
+    MCP kullanıcısı/şifresi boşsa ya da kullanıcı uygulamanınkiyle aynıysa ValueError.
+    """
     ortam = os.environ if ortam is None else ortam
+    eksik = [ad for ad in _ZORUNLU_MCP_AYARLARI if not ortam.get(ad)]
+    if eksik:
+        raise ValueError(f"{', '.join(eksik)} tanımlı değil; MCP sunucusu salt okunur rol olmadan başlamaz.")
+    if ortam["MCP_POSTGRES_USER"] in {ortam.get("POSTGRES_USER"), ortam.get("UYGULAMA_POSTGRES_USER"), "postgres"}:
+        raise ValueError("MCP_POSTGRES_USER uygulama/süper kullanıcıyla aynı olamaz; salt okunur rol kullanın.")
     uygulanan = []
     for kaynak, hedef in _MCP_ORTAM_ESLEMESI.items():
         if ortam.get(kaynak):
@@ -123,7 +169,10 @@ def mcp_baglanti_ayarlarini_uygula(ortam=None) -> list[str]:
 
 
 def ana():
-    mcp_baglanti_ayarlarini_uygula()
+    try:
+        mcp_baglanti_ayarlarini_uygula()
+    except ValueError as hata:
+        sys.exit(f"turbulans-mcp başlatılmadı: {hata} (README: MCP ile bağlanmak)")
     sunucu.run()
 
 
