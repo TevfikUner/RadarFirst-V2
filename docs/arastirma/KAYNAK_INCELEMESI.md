@@ -865,7 +865,9 @@ sıra benim değerlendirmem.
   olur ve bu arayüzde yazılmalı.
 
 ### Fikir 18. Kaçınma manevrasının başlangıç zamanı analizi
-- **Durum:** Fizibilite yapıldı: son ~8 gün için yapılabilir (`docs/fizibilite/KAYNAK_INCELEMESI_FIZIBILITE.md`).
+- **Durum:** Küçük deney yapıldı (17 Ekim; `turbulans-kacinma-baslangici`, `docs/sonuclar/2026-10-17/`).
+  15 vakada toplam riskli süre: kaçınmasız 46,1 dk, R0 26,7 dk, R1 14,8 dk; süre maliyeti pratikte
+  sıfır. Gösterim amaçlı; referans gözlem değil daha yeni tahmin olduğu için R1 lehine yanlı olabilir.
 - **Kaynak:** Makale10 (LTAR 1/2/3: +16 dk, 10 dk tasarruf, +2 dk).
 - **Katkısı:** Akademik değer. Uçuş sırasında yeniden hesaplamanın değerini sayıyla gösterir
   (bizde şu an gösterim amaçlı).

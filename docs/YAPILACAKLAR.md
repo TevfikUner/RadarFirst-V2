@@ -41,8 +41,11 @@
 - [ ] İsteğe bağlı: F5 backtest yakıtı için kalıcı veritabanı sütunu (migration; önce
   `-test` DB'de upgrade/downgrade, geliştirme DB'si için ONAY). Şu an yalnız yanıtta.
 
-- [ ] **Fikir 18 deneyi:** son 8 gün içinde 3–5 rota, R0 (kalkış −6 sa) planı ile yolda R1 yeniden
-  planı; ~10 MB tek seferlik indirme (ONAY). Plan: `docs/fizibilite/KAYNAK_INCELEMESI_FIZIBILITE.md`.
+- [x] (17 Ekim, 15 vaka, 9,5 MB; `docs/sonuclar/2026-10-17/`) **Fikir 18 deneyi:** son 8 gün içinde
+  3–5 rota, R0 (kalkış −6 sa) planı ile yolda R1 yeniden planı; ~10 MB tek seferlik indirme (ONAY).
+  Plan: `docs/fizibilite/KAYNAK_INCELEMESI_FIZIBILITE.md`.
+- [ ] Fikir 18 devamı (isteğe bağlı): dondurma sonrası MADIS/PIREP günlerinde aynı deney gözlemle
+  doğrulanırsa referans yanlılığı kalkar; yeni protokole aday.
 - [ ] **Fikir 20:** 2021 sonrası yeni günler toplanırsa IEM G-AIRMET arşiviyle karşılaştırma.
 - [ ] **Fikir 23:** tek uçuşluk `rollcall_replies_data4` deneme sorgusu (OpenSky girişi kullanıcıda).
 - [ ] **GFS topluluk oranının doğrulanması (Fikir 3 devamı):** THREDDS koşuları ~8 gün

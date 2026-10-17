@@ -2,6 +2,12 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-17 (dal `claude/kacinma-baslangici`)
+
+- ✅ Fikir 12: KAYNAK_INCELEMESI OpenSky yanıtıyla güncellendi (PR #77).
+- ✅ Fikir 18: 15 vaka, 9,5 MB; riskli süre kaçınmasız 46,1 → R0 26,7 → R1 14,8 dk, süre maliyeti ~0.
+- ⚠️ Fikir 18 referansı gözlem değil daha yeni GFS; R1 lehine yanlı olabilir (`docs/sonuclar/2026-10-17/`).
+
 ## 2026-10-17 (dal `claude/onbellek-hata-duzeltmeleri`)
 
 - ✅ Proje taraması: 1019 test, ruff, CI, servisler, yedek temiz; gece işi bitti (aday aktifi geçemedi).
