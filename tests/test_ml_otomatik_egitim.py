@@ -178,6 +178,9 @@ def test_esikler_egitim_gunlerinde_peirce_ile_secilir_ve_kalibre_ti1_raporlanir(
     assert sonuc["aday_holdout"]["esik"] == pytest.approx(esikler["model"])
     assert sonuc["ti1_referansi_holdout"]["esik"] == pytest.approx(esikler["ti1"])
     assert 0.0 <= sonuc["kalibre_ti1_holdout"]["brier"] <= 0.25
+    assert 0.0 < sonuc["kalibre_ti1_holdout"]["esik"] < 1.0
+    for metrik in ("pod", "pofd"):
+        assert sonuc["kalibre_ti1_holdout"][metrik] == pytest.approx(sonuc["ti1_referansi_holdout"][metrik])
     assert tm.ml_karar_esigi(tm.model_versiyonlarini_listele()[0]) == pytest.approx(esikler["model"])
 
 
