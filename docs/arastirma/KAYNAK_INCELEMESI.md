@@ -220,7 +220,7 @@ Liste GraphQL ile alındı (`user.lists`, 23 öğe). Lisanslar GitHub meta veris
   Ayrıca: **"We may block AWS and other hyperscalers due to generalized abuse from these IPs."**
 - **Projeyle ilgisi:** Biz Trino kullanıyoruz, REST'i kullanmıyoruz. Ancak B planındaki
   bulut sunucu seçeneği (Azure for Students) bir "hyperscaler". Bu engelin Trino'ya da
-  uygulanıp uygulanmadığı belirsiz (tahmin). Bkz. Fikir 12.
+  uygulandığı OpenSky yanıtıyla doğrulandı (17 Ekim). Bkz. Fikir 12.
 
 #### R17. hook-365/adsb-3d (MIT, ⭐52)
 - **Amaç:** readsb `aircraft.json` ile 3B/VR canlı ve geçmiş ADS-B görselleştirme, hava yolu
@@ -783,7 +783,10 @@ sıra benim değerlendirmem.
   denenmedi (tahmin). Uyuşmazlık çıkarsa ve etiket değişirse bu bir dondurma sonrası işidir.
 
 ### Fikir 12. B planında OpenSky "hyperscaler" engelini önceden kontrol
-- **Durum:** E-posta taslağı hazır (`docs/fizibilite/OPENSKY_BULUT_ERISIMI.md`); gönderim kullanıcıda.
+- **Durum:** Yapıldı. E-posta gönderildi, OpenSky yanıtladı (Ticket#837257; ayrıntı
+  `docs/fizibilite/OPENSKY_BULUT_ERISIMI.md`). Engel giriş noktasında, yani REST API ile
+  Trino'nun ikisini de kapsıyor; Hetzner şu an çalışabilir ama garantisiz. Karar: B planına
+  geçilirse yalnız CDS/MADIS işleri sanal sunucuya taşınır, OpenSky sorguları dizüstünde kalır.
 - **Kaynak:** R16 README: "We may block AWS and other hyperscalers".
 - **Katkısı:** Risk azaltma. B planında önerilen Azure for Students bir hyperscaler; taşıma
   yapıldıktan sonra OpenSky erişimi kesilirse gece işi durur.
