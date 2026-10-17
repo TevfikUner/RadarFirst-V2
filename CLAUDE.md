@@ -40,7 +40,7 @@ Kötü: update_node(temp)
 - Sırlar (şifre, token, API anahtarı) koda yazılmaz; `.env` ya da Docker secret'tan okunur.
 
 ## Mimari Özeti
-- Paket: `src/turbulans_radar` (fizik, veri, depo, analiz, rota, ml, api, isci, dogrulama, arayuz).
+- Paket: `src/turbulans_radar` (fizik, veri, depo, analiz, rota, ml, api, isci, dogrulama, arayuz, cli).
 - Hava verisi ortak şema: u, v, t; `valid_time`, `pressure_level` (hPa), `latitude` (azalan), `longitude` (-180..180).
   Kaynaklar: yerel ERA5 küpleri, uçuşa özel ERA5 dilimi (CDS birincil, ARCO yedek), canlı GFS.
 - Uçuş: OpenSky/Trino (OAuth) + Parquet rota önbelleği. Seviye seçimi barometrik irtifayla.
