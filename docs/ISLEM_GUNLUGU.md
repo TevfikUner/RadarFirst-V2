@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-17 (dal `claude/uretim-faz0`)
+
+- ✅ Faz 0 üretim denetimi: 988 test, ruff temiz; 28 bulgu: 21 doğru, 7 kısmen, 7 yeni (`docs/denetim/2026-10-17/`).
+- ⚠️ Ağa açılış için P0: kapalı başlama, CDN/CSP, yedek ayrımı, TLS vekili; Faz 1 onay bekliyor.
+
 ## 2026-10-17 (dal `claude/kacinma-baslangici`)
 
 - ✅ Fikir 12: KAYNAK_INCELEMESI OpenSky yanıtıyla güncellendi (PR #77).
