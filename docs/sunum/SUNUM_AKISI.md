@@ -101,32 +101,37 @@ Bulgu: tek süreçte GIL darboğazı; 4 süreçle aynı donanımda verim ~3 kat.
 
 ## 8. Sonuçlar: doğruluk ve ML
 
-Bu bölümdeki her sayı `docs/sonuclar/2026-10-07/SAYILAR.md` ön paketinden alındı. 18 Ekim
-dondurmasından sonra nihai paketle değiştirilir. Aralıklar gün bazlı blok bootstrap %95 GA'dır.
+Bu bölümdeki her sayı `docs/sonuclar/2026-10-18/SAYILAR.md` nihai paketinden alındı (18 Ekim
+veri dondurması). Aralıklar gün bazlı blok bootstrap %95 GA'dır.
 
-- **TI1'in bağımsız becerisi sınırlı:** Seyir irtifasındaki 7.815 PIREP'te (80 gün) ROC-AUC
-  0,680 [0,662–0,697]. Altın test günlerinde 0,673 [0,639–0,704]. Risk eşiğinde (7e-7)
-  yakalama 0,502, yanlış alarm 0,252. Gerçek bir uçuşta (PUE502, 26 Eylül, tarihçe) aktif
+- **TI1'in bağımsız becerisi sınırlı:** Seyir irtifasındaki 15.940 PIREP'te (163 gün) ROC-AUC
+  0,673 [0,661–0,684]. Altın test günlerinde 0,675 [0,641–0,706]. Risk eşiğinde (7e-7)
+  yakalama 0,501, yanlış alarm 0,248. Gerçek bir uçuşta (PUE502, 26 Eylül, tarihçe) aktif
   TURB SIGMET'in işaret ettiği türbülansı TI1 yakalamadı. Bu yüzden güvenlik garantisi
   SIGMET sert kısıtından gelir; TI1 yumuşak göstergedir.
-- **Eşik veriden seçildi:** Eğitim günlerinde Peirce'i en büyüten TI1 eşiği 5,3e-7
-  (altın günlerde POD 0,605, POFD 0,349). Risk eşiği, bunun bir standart hatası içindeki
-  en tutucu eşik oldu: 7e-7 (1-SE kuralı; yanlış alarm daha az). Eski 8e-7 bu bandın
-  dışındaydı.
+- **Eşik veriden seçildi:** Eğitim günlerinde Peirce'i en büyüten TI1 eşiği 4,96e-7
+  (altın günlerde POD 0,622, POFD 0,373). Risk eşiği, bunun bir standart hatası içindeki
+  en tutucu eşik: 8 Ekim'de 7e-7 seçildi (1-SE kuralı; yanlış alarm daha az). Nihai pakette
+  kural 7,39e-7 verdi; 7e-7 bandın içinde kaldığı için değişmedi. Eski 8e-7 bandın dışındaydı.
 - **Yalnız CAT:** CB/TS/TCU/MTN WAVE/LLWS geçen raporlar dışlanınca altın günlerde TI1
-  0,669 [0,632–0,707]; sonuç değişmiyor.
+  0,670 [0,634–0,708]; sonuç değişmiyor.
 - **Backtest (ERA5, THY322):** Riskli nokta oranı (gerçek / büyük daire / A*): 1 Ocak 2019
   0,00 / 0,20 / 0,00; 15 Ocak 2019 0,24 / 0,39 / 0,02. Ölçüm döngüseldir (A* TI1'i
   düşürür, başarı TI1 ile ölçülür); bunu açıkça söyleyin.
-- **ML (ön sonuç, olumsuz):** Protokol modeli (Lojistik Regresyon, 1-SE) altın test
-  günlerinde (16 gün, 1.554 PIREP) ROC-AUC 0,681 [0,646–0,716]. TI1'e göre fark +0,008
-  [−0,006; +0,022], p 0,268. Kapı geçilmedi. Birleşik EDR ise TI1'i küçük ama anlamlı
-  farkla geçiyor: 0,687, fark +0,014 [+0,007; +0,020], p < 0,001. F1 ve konformal kapsama
-  18 Ekim dondurma raporundadır (`turbulans-ml --dondurma-raporu`).
-- **Nesnel etiket (MADIS):** 20.144 ölçüm, 6 gün, yalnız hafif sınıf (taban oran 0,030).
-  ROC-AUC model 0,734 [0,664–0,820], TI1 0,706 [0,631–0,801]; PR-AUC 0,092 ve 0,091.
-  Model olasılığı ortalama 0,510; PIREP yanlılığı nedeniyle mutlak sıklık değildir.
-  Seçim yanlılığı var: örnekler PIREP pencerelerinden geliyor.
+- **ML (nihai):** Protokol modeli (1-SE kuralı bu kez Gradient Boosting'i seçti) altın test
+  günlerinde (16 gün, 1.583 PIREP) ROC-AUC 0,710 [0,680–0,740]. TI1'e göre fark +0,036
+  [+0,019; +0,053], p < 0,001: kapı geçildi. 7 Ekim ön paketinde (80 gün) LR geçememişti
+  (+0,008); bunu da söyleyin, sonuç veri hacmine duyarlı. Birleşik EDR TI1'i küçük ama
+  anlamlı farkla geçiyor: 0,688, fark +0,013 [+0,007; +0,020]. F1 0,645; konformal kapsama
+  0,907 (hedef 0,90), ama örneklerin %60'ı "belirsiz" kalıyor.
+- **Çalışan model farklı:** Canlıda 9 Ekim'de kapıdan geçen Random Forest aktif (altın
+  günlerde 0,707, TI1'e göre +0,033). Dondurma raporunda yeni GB aday onu geçemedi (+0,003
+  [−0,001; +0,008]) ve saklandı. Jüri "raporlanan ile çalışan model aynı mı?" diye sorarsa:
+  hayır, ikisi de aynı altın günlerde ölçüldü ve ikisi de TI1'i geçiyor.
+- **Nesnel etiket (MADIS):** 45.075 ölçüm, 14 gün, fiilen yalnız hafif sınıf (taban oran
+  0,029; orta ve üstü 1 ölçüm). ROC-AUC model 0,779 [0,738–0,816], TI1 0,722 [0,669–0,779];
+  PR-AUC 0,126 ve 0,105. Model olasılığı ortalama 0,509; PIREP yanlılığı nedeniyle mutlak
+  sıklık değildir. Seçim yanlılığı var: örnekler PIREP pencerelerinden geliyor.
 - **Sanal PIREP (M6):** İlk küçük ölçüm (2 Ekim 2026, 16 değerlendirilebilir PIREP):
   POD 1/8 = 0,13 (%95 Wilson 0,02–0,47), POFD 0/8 = 0 (0–0,32). Dedektör tutucu;
   örneklem küçük, aralıklar geniş. Eşik bu örneklemle ayarlanmadı.
@@ -148,7 +153,8 @@ dondurmasından sonra nihai paketle değiştirilir. Aralıklar gün bazlı blok 
 
 - **F1 Doğrulama karnesi:** kaynak başına (PIREP, MADIS EDR) dönemsel ROC-AUC, PR-AUC,
   POD/POFD. Bugünkü sonuç paketi (`docs/sonuclar/`) ABD doğrulama karnesinin ilk
-  örneğidir; sayılar 18 Ekim nihai paketinden okunur.
+  örneğidir: 18 Ekim nihai paketi (`docs/sonuclar/2026-10-18/`), PIREP 16 altın gün ve MADIS
+  14 gün. Sonraki adım aynı karneyi dondurmadan sonra toplanan yeni günlerde üretmek.
 - **F2 GEFS olasılığı:** topluluk (ensemble) üyelerinden rota koridorunda risk olasılığı;
   31 üye, 0,5°; bir tahmin adımı ~43 MB indirme, Türkiye kesiti ~0,6 MB (15 Ekim ölçümü,
   `docs/fizibilite/GEFS_FIZIBILITE.md`).

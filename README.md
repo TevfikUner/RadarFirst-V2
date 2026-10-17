@@ -8,12 +8,13 @@ NWP alanı üretir ve yerinde EDR ile doğrulanır.
 gerçek bir uçuş izinde seyir türbülansı riski hangi ölçülmüş beceriyle gösterilebilir
 ve bu sınır rota kararına nasıl taşınmalıdır?
 
-**Kısa cevap** (ön paket [2026-10-07](docs/sonuclar/2026-10-07/SAYILAR.md); 18 Ekim'de
-nihai). Becerisi sınırlı: Ellrod TI1, 80 günde 7.815 seyir PIREP'inde ROC-AUC 0,680
-[0,662–0,697]; altın test günlerinde risk eşiğinde (7e-7) yakalama 0,50, yanlış alarm
-0,25. Birleşik gösterge TI1'i az ama anlamlı geçiyor (+0,014 [+0,007; +0,020]); ML
-modeli geçemedi (+0,008 [−0,006; +0,022]), kapı onu devreye almıyor. Bu yüzden güvenlik
-SIGMET'e (sert kısıt) dayanır, TI1 A* rotasında yalnız yumuşak kısıttır.
+**Kısa cevap** (nihai paket [2026-10-18](docs/sonuclar/2026-10-18/SAYILAR.md)). Becerisi
+sınırlı: Ellrod TI1, 163 günde 15.940 seyir PIREP'inde ROC-AUC 0,673 [0,661–0,684]; altın
+test günlerinde risk eşiğinde (7e-7) yakalama 0,50, yanlış alarm 0,25. Birleşik gösterge
+TI1'i az ama anlamlı geçiyor (+0,013 [+0,007; +0,020]). ML modeli altın günlerde TI1'i
+geçiyor (protokol modeli Gradient Boosting +0,036 [+0,019; +0,053]; canlıdaki 9 Ekim Random
+Forest +0,033), ama ROC-AUC 0,71'de kalıyor. Bu yüzden güvenlik SIGMET'e (sert kısıt)
+dayanır, TI1 A* rotasında yalnız yumuşak kısıttır.
 
 **Demo.** Kimlik bilgisiz, çalışırken ağsız: [Beş dakikada çalıştır](#beş-dakikada-çalıştır).
 Kapsam yalnız CAT ve seyir safhası, doğrulama ABD verisiyle; çıktılar sertifikalı EDR

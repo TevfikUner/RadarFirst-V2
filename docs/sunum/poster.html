@@ -150,12 +150,12 @@ footer { border-top: 3px solid var(--murekkep); padding-top: 12px; font-size: 12
     <section>
       <h2><span class="fl">05</span>Doğruluk</h2>
       <ul>
-        <li><strong>TI1 tek başına sınırlı:</strong> seyir irtifasındaki 7.815 PIREP'te ROC-AUC 0,680 [0,662–0,697]; altın test günlerinde veriden seçilen 7e-7 eşiğinde yakalama 0,502, yanlış alarm 0,252. PUE502 uçuşunda aktif TURB SIGMET'i TI1 yakalamadı. Güvenlik garantisi SIGMET sert kısıtından gelir.</li>
-        <li><strong>ML (ön sonuç):</strong> altın test günlerinde model 0,681 [0,646–0,716], TI1'e göre +0,008 [−0,006; +0,022]: kapı geçilmedi. Birleşik EDR TI1'i küçük ama anlamlı farkla geçiyor (+0,014 [+0,007; +0,020]).</li>
-        <li><strong>MADIS ölçülen EDR (6 gün, yalnız hafif):</strong> model 0,734, TI1 0,706; PR-AUC 0,092 / 0,091 (taban oran 0,030).</li>
+        <li><strong>TI1 tek başına sınırlı:</strong> seyir irtifasındaki 15.940 PIREP'te (163 gün) ROC-AUC 0,673 [0,661–0,684]; altın test günlerinde veriden seçilen 7e-7 eşiğinde yakalama 0,501, yanlış alarm 0,248. PUE502 uçuşunda aktif TURB SIGMET'i TI1 yakalamadı. Güvenlik garantisi SIGMET sert kısıtından gelir.</li>
+        <li><strong>ML (nihai):</strong> altın test günlerinde protokol modeli (Gradient Boosting) 0,710 [0,680–0,740], TI1'e göre +0,036 [+0,019; +0,053]: kapı geçildi (7 Ekim'de 80 günle geçememişti). Canlıdaki 9 Ekim Random Forest +0,033. Birleşik EDR TI1'i küçük ama anlamlı farkla geçiyor (+0,013 [+0,007; +0,020]).</li>
+        <li><strong>MADIS ölçülen EDR (14 gün, fiilen yalnız hafif):</strong> model 0,779, TI1 0,722; PR-AUC 0,126 / 0,105 (taban oran 0,029).</li>
         <li><strong>Backtest (THY322, ERA5):</strong> riskli nokta oranı gerçek / büyük daire / A*: 15.01.2019'da 0,24 / 0,39 / 0,02. Ölçüm döngüseldir: A* TI1'i düşürür, başarı TI1 ile ölçülür.</li>
       </ul>
-      <p style="font-size:.85em; opacity:.75">Sayılar: docs/sonuclar/2026-10-07/SAYILAR.md (ön paket; 18 Ekim'de nihai). Aralıklar gün bazlı bootstrap %95 GA.</p>
+      <p style="font-size:.85em; opacity:.75">Sayılar: docs/sonuclar/2026-10-18/SAYILAR.md (nihai paket, 18 Ekim veri dondurması). Aralıklar gün bazlı bootstrap %95 GA.</p>
     </section>
 
     <section>
@@ -168,9 +168,9 @@ footer { border-top: 3px solid var(--murekkep); padding-top: 12px; font-size: 12
     <section>
       <h2><span class="fl">07</span>Sınırlar ve sonraki adımlar</h2>
       <ul>
-        <li>Etiket PIREP'tir; nesnel etiket MADIS'in herkese açık EDR arşivi (6 gün, yalnız hafif sınıf, ön sonuç).</li>
+        <li>Etiket PIREP'tir; nesnel etiket MADIS'in herkese açık EDR arşivi (14 gün, fiilen yalnız hafif sınıf, QC ön veri).</li>
         <li>OpenSky ticari olmayan araştırma içindir; ürünleşmede havayolunun kendi ADS-B akışı.</li>
-        <li>Sonraki (önce ölçmek, sonra tahmin): doğrulama karnesi (bu sonuç paketi ABD karnesinin ilk örneği), GEFS olasılığı, kalibre kabin penceresi, Türkiye etiket havuzu; ayrıca WAFS kıyası, uçak tipine duyarlı risk, OGC API – EDR.</li>
+        <li>Sonraki (önce ölçmek, sonra tahmin): doğrulama karnesi (18 Ekim nihai paketi ABD karnesinin ilk örneği; sıradaki karne dondurma sonrası yeni günlerde), GEFS olasılığı, kalibre kabin penceresi, Türkiye etiket havuzu; ayrıca WAFS kıyası, uçak tipine duyarlı risk, OGC API – EDR.</li>
       </ul>
     </section>
   </div>
