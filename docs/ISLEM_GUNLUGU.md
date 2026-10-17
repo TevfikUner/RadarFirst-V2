@@ -2,6 +2,12 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-18 (dal `claude/mcp-kapali-baslama`)
+
+- ✅ P0-6 P0'da tutuldu: MCP ayarı boş/yetkili rolse sunucu başlamaz, sistem fonksiyonları reddedilir.
+- ✅ MCP testleri 24/24, canlı salt okunur rol denetimi geçti.
+- ⚠️ Gece işi: 18 Eki ml_veri görevi yok; dondurma günü olduğu için başlatma onaya bırakıldı.
+
 ## 2026-10-17 (dal `claude/komite-incelemesi`)
 
 - ✅ Komite incelemesi `docs/denetim/2026-10-17/KOMITE_INCELEMESI.md`: 39 bulgu, jüri soruları ve cevaplar.

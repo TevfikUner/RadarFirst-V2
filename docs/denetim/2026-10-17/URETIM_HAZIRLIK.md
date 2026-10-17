@@ -18,8 +18,10 @@ Yollar depo köküne görelidir; makineye özgü yollar `<DEPO>`, `<KULLANICI>` 
 - Kısmen doğru çıkanların ortak noktası: mekanizmanın bir kısmı zaten var (yedek şifre çözme
   zinciri doğrulanmış, Docker secret iki sır için kullanılıyor, anahtar rotasyonu README'de,
   bazı fail-safe durumları Playwright'ta). Faz 1'de bunların üzerine kurulmalı, baştan yazılmamalı.
-- P0-6 (MCP) önemi **P1'e indirildi**: MCP sunucusu yalnız geliştirici makinesinde stdio ile
-  çalışıyor, üretim yolunda değil; ancak imaja giriyor (P1-5).
+- P0-6 (MCP) ilk taslakta P1'e indirilmişti; 18 Ekim'de **P0'da tutuldu ve kapatıldı**. Sunucu
+  üretim yolunda değil, ama Claude Code'un docker/WSL komutu çalıştırabildiği makinede çalışıyor ve
+  PIREP/SIGMET metnini modele taşıyor (sızma testi madde 7). Kapalı başlama 1. maddeyle aynı mantık.
+  İmajdan çıkarma P1-5'te kaldı.
 
 ## Ağa açılan yüzey (`docker compose config`, maskelenmiş özet)
 
@@ -51,7 +53,7 @@ Ham çıktı hiçbir yere yazılmadı; aşağıdaki özet yalnız yapıdır, de�
 | P0-3 | Tarayıcı güvenlik başlıkları yok (CSP, frame-ancestors, nosniff, Referrer-Policy); anahtar `sessionStorage`'da | P0 | Doğru | `src`/`web` içinde başlık adı geçmiyor; canlı yanıtta yalnız `server: uvicorn` (`temel.md`); `web/harita3d.html:157,374,547`, `web/ucus_simulasyonu.html:210,642,713`; satır içi `<script>` blokları (`harita3d.html:28,153`, `ucus_simulasyonu.html:35,206`) ve `onerror=` öznitelikleri CSP `script-src 'self'`'i şimdilik engelliyor | Önce satır içi betikleri `web/*.js`'e taşı (CDN yedeği kalkınca `onerror` da gider), sonra başlıklar (middleware; Caddy varsa orada da). Playwright CSP açıkken | M | Hayır |
 | P0-4 | CDN yedeği SRI'sız `document.write` ile yükleniyor | P0 | Doğru | `web/harita3d.html:26,29`; `web/ucus_simulasyonu.html:33,36`; `/saglik` `cdn_yedegi` yalnız uyarı (`api_servisi.py:944`) | Üretimde CDN yedeği kaldırılır (kütüphaneler imajda: `web/vendor/` mevcut); `cdn_yedegi` üretimde hata | S | Hayır |
 | P0-5 | Tüm DB dökümleri API konteynerine (ro) bağlı | P0 | Kısmen | `docker-compose.yml:39` ortak volume → **API ve işçi** (Y-3); API içinde 14 dosya (`.dump` + `dosyalar_*.tar.gz`) listelendi; okuyan tek yer `api_servisi.py:1045-1050` (yalnız tazelik) | `yedek` servisi `yedek_durumu.json` yazsın, API yalnız onu okusun; `db_yedekleri` bağlaması iki servisten de kalksın. Duman testi: API'de `.dump` yok | S | Hayır |
-| P0-6 | MCP sunucusu `MCP_POSTGRES_*` boşsa `POSTGRES_*`'a (süper kullanıcı olabilir) düşüyor; regex filtresi fonksiyon çağrılarını engellemiyor | **P1** | Kısmen | `cli/mcp_postgres_sunucusu.py:114-123` (dolu olanı yazar, boşsa sessiz geçer), `:43-57` filtre; `postgresql_readonly=True` yazmayı engelliyor ama `pg_terminate_backend`, süper kullanıcıda `pg_read_file` gibi fonksiyonlar mümkün. Bu makinede `MCP_POSTGRES_*` dolu. Sunucu yalnız `.mcp.json` ile yerelde stdio çalışıyor, üretim yolunda değil | MCP_* eksikse başlamayı reddet; fonksiyon kara listesi (`set_config`, `pg_*`, `lo_*`, `dblink`); imajdan çıkar (P1-5) | S | Hayır |
+| P0-6 | MCP sunucusu `MCP_POSTGRES_*` boşsa `POSTGRES_*`'a (süper kullanıcı olabilir) düşüyor; regex filtresi fonksiyon çağrılarını engellemiyor | P0 (kapandı) | Kısmen | `cli/mcp_postgres_sunucusu.py:114-123` (dolu olanı yazar, boşsa sessiz geçer), `:43-57` filtre; `postgresql_readonly=True` yazmayı engelliyor ama `pg_terminate_backend`, süper kullanıcıda `pg_read_file` gibi fonksiyonlar mümkün. Bu makinede `MCP_POSTGRES_*` dolu. Sunucu yalnız `.mcp.json` ile yerelde stdio çalışıyor, üretim yolunda değil | MCP_* eksikse başlamayı reddet; fonksiyon kara listesi (`set_config`, `pg_*`, `lo_*`, `dblink`); imajdan çıkar (P1-5). **18 Eki yapıldı** (imaj hariç): `MCP_POSTGRES_USER/PASSWORD` boşsa, `postgres`/uygulama kullanıcısıysa başlamaz; ilk sorguda rol `rolsuper/createrole/createdb` ise reddeder; fonksiyon kara listesi | S | Hayır |
 | P0-7 | Hibrit topoloji (OpenSky dizüstünde, API sunucuda) tasarlanmadı | P0 (B planı seçilirse) | Doğru | `docs/fizibilite/OPENSKY_BULUT_ERISIMI.md:50-56`; `docs/adr/` 0001–0012, topoloji ADR'si yok. Not: dış iz gönderme ucu zaten var (`POST /api/v1/analiz/rota`, `api/yollar/analiz.py:130`) | ADR 0013: (a) dizüstü dış izi `POST /analiz/rota` ile gönderir, (b) imzalı Parquet senkronu, (c) OpenSky'sız sunucu; güvenlik, kota, hata durumları | M | **Evet** (kod öncesi) |
 | P0-8 | Geri yükleme denenmiyor; RPO/RTO tanımsız | P0 | Kısmen | `otomasyon/db_yedekle.sh:20` yalnız `pg_restore -l`. Ancak elle prosedür README'de (`README.md:1487-1494`) ve 8 Ekim'de disk dışı `.gpg` kopyanın çözülüp yerel dump ile sha256 eşleştiği doğrulandı (veritabanına yükleme yapılmadı). RPO/RTO hiçbir belgede yok | `otomasyon/geri_yukleme_tatbikati.sh`: son dump'ı geçici bir postgres konteynerine yükle, tablo satır sayılarını karşılaştır, rapora yaz; haftalık. RPO (24 sa) / RTO hedefi `docs/ISLETIM_KILAVUZU.md`'de | S–M | Hayır |
 | P0-9 | Sır yönetimi tek `.env`; rotasyon yok; PR #1'deki eski OpenSky sırrı | P0 (depo herkese açılırsa) | Kısmen | Docker secret iki sır için zaten kullanılıyor (`cdsapirc`, `yedek_parolasi`; `docker-compose.yml:105,137,165,187-191`). `API_ANAHTARI`/`POSTGRES_PASSWORD` için `*_FILE` desteği yok. API anahtarı rotasyonu README'de var (`README.md:402-405`, `API_ANAHTARLARI`); DB şifresi rotasyonu yok. PR #1 Destek talebi bekliyor (`docs/guvenlik/GUVENLIK_TARAMASI_2026-10-05.md:10,30-38`); şifrenin kendisi geçersiz | `*_FILE` desteği (`config`/`guvenlik`/`veritabani`), üretimde secret; DB şifresi rotasyon runbook'u (P1-10). Depo görünürlüğü değişmeden önce GitHub Destek talebi | M | **Evet** (Destek talebi dış iletişim) |
@@ -109,7 +111,7 @@ Ham çıktı hiçbir yere yazılmadı; aşağıdaki özet yalnız yapıdır, de�
 ## Önerilen P0 sırası (onaya sunulur)
 
 1. **P0-2 + Y-1 kapalı başlama** (S–M): en ucuz ve diğer her şeyin emniyet kemeri; yanlış
-   `.env` ile ağa açılmayı imkânsız kılar.
+   `.env` ile ağa açılmayı imkânsız kılar. Aynı mantığın MCP ayağı (P0-6) 18 Ekim'de yapıldı.
 2. **P0-4 CDN yedeğini kaldır** (S) → **P0-3 satır içi betikleri dışarı al + güvenlik başlıkları** (M):
    P0-4 önce gelir çünkü `onerror`/`document.write` CSP'nin önündeki engeldir.
 3. **P0-5 + Y-3 yedekleri API/işçiden ayır** (S).
@@ -118,6 +120,6 @@ Ham çıktı hiçbir yere yazılmadı; aşağıdaki özet yalnız yapıdır, de�
    dondurmasından önce bir kez çalıştırılması da düşünülebilir (yalnız geçici konteyner, DB'ye dokunmaz).
 6. **P0-9 `*_FILE` sır desteği** (M); GitHub Destek talebi ayrı ONAY.
 7. **P0-7 hibrit topoloji ADR'si** (M): yalnız B planına geçilirse; kod öncesi ONAY.
-8. P0-6 → P1 olarak P1-5 ile birlikte.
+8. ~~P0-6 → P1~~: P0'da tutuldu, kod kısmı yapıldı; imajdan çıkarma P1-5 ile.
 
 Faz 1'e onaysız geçilmez.
