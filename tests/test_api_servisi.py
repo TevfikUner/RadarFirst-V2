@@ -18,6 +18,7 @@ Gerçek bir PostgreSQL bağlantısı gerektirir; bağlanılamazsa atlanır (skip
 
 import asyncio
 import os
+import time
 from datetime import UTC, datetime, timedelta
 
 import httpx
@@ -270,7 +271,16 @@ async def test_analiz_tetikleme_ve_durum_sorgulama(istemci, api_anahtari, monkey
     assert durum["baslama_zamani"] is not None and durum["bitis_zamani"] is not None
 
 
+async def _pencere_sinirindan_uzaklas(pencere_saniye=60, pay_saniye=10):
+    """Hız sınırı sabit, saate hizalı pencereyle sayar: istekler pencere sınırına
+    denk gelirse sayım ikiye bölünür ve 429 beklenen yerde gelmez (CI, 17 Ekim)."""
+    kalan = pencere_saniye - time.time() % pencere_saniye
+    if kalan < pay_saniye:
+        await asyncio.sleep(kalan + 0.1)
+
+
 async def test_hiz_siniri_asilinca_429(istemci, api_anahtari):
+    await _pencere_sinirindan_uzaklas()
     son_yanit = None
     for _ in range(ortak._ANALIZ_PENCERE_BASINA_MAKS_ISTEK + 1):
         son_yanit = await istemci.post(
@@ -285,6 +295,7 @@ async def test_silme_hiz_siniri_asilinca_429(istemci, api_anahtari):
     """DELETE /ucuslar/{..} ve DELETE /ucuslar (toplu) AYNI 'silme' hız
     sınırlama penceresini paylaşır -- ikisi karışık çağrılsa bile toplam
     istek sayısı sınırı aşınca 429 dönmeli."""
+    await _pencere_sinirindan_uzaklas()
     son_yanit = None
     for i in range(ortak._ANALIZ_PENCERE_BASINA_MAKS_ISTEK + 1):
         son_yanit = await istemci.delete(
@@ -1177,6 +1188,7 @@ async def test_hiz_siniri_sayaci_veritabaninda_paylasilir():
     anahtarı artırsa da (burada doğrudan istegi_say ile) sınır ortak işler."""
     from turbulans_radar.depo.hiz_siniri import istegi_say
 
+    await _pencere_sinirindan_uzaklas()
     assert [await istegi_say("paylasim_testi", 60) for _ in range(3)] == [1, 2, 3]
     with pytest.raises(api_servisi.HTTPException) as hata:
         await ortak._hiz_sinirini_kontrol_et("paylasim_testi", maks=3)
@@ -1206,6 +1218,7 @@ async def test_hiz_siniri_sayacina_ulasilamazsa_surec_ici_sayac_kullanilir(monke
 
     monkeypatch.setattr(ortak, "istegi_say", ulasilamaz)
     monkeypatch.setattr(ortak, "_yerel_sayaclar", {})
+    await _pencere_sinirindan_uzaklas()
     for _ in range(2):
         await ortak._hiz_sinirini_kontrol_et("herhangi", maks=2)
     with pytest.raises(api_servisi.HTTPException) as hata:
