@@ -23,7 +23,7 @@ def test_her_fark_icin_yeniden_hesaplar_sirali_ve_hata_raporlar():
         zaman = argumanlar[-1]
         cagrilar.append((zaman, anahtarlar["ucak_modeli_kodu"]))
         if zaman.endswith("13:00:00"):
-            raise RuntimeError("veri yok")
+            raise RuntimeError("/app/canli_veri/gizli_yol.nc okunamadı")
         return _sonuc(float(pd.Timestamp(zaman).hour))
 
     pencere = kalkis_penceresi(
@@ -33,5 +33,5 @@ def test_her_fark_icin_yeniden_hesaplar_sirali_ve_hata_raporlar():
     assert [s["fark_saat"] for s in pencere["satirlar"]] == [-2, -1, 0]
     assert pencere["satirlar"][2]["normal_riskli_sure_dk"] == 5.0
     assert pencere["satirlar"][0]["normal_riskli_sure_dk"] == 10.0
-    assert pencere["hatalar"][0]["fark_saat"] == 1
+    assert pencere["hatalar"] == [{"fark_saat": 1, "hata": "RuntimeError"}]
     assert "öneri değildir" in pencere["bilgi_notu"]

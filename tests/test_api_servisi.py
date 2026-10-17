@@ -342,6 +342,34 @@ async def test_iscinin_notify_uyarisi_websocket_istemcilerine_iletilir(monkeypat
         dinleyici.cancel()
 
 
+async def test_uyari_dinleyicisi_dinleyici_eklenemezse_baglantiyi_kapatir(monkeypatch):
+    acilanlar = []
+
+    class _SahteBaglanti:
+        kapandi = False
+
+        async def add_listener(self, kanal, geri_cagirma):
+            raise OSError("dinleyici eklenemedi")
+
+        def terminate(self):
+            self.kapandi = True
+
+    async def sahte_baglan(**_):
+        acilanlar.append(_SahteBaglanti())
+        return acilanlar[-1]
+
+    monkeypatch.setattr(api_servisi.asyncpg, "connect", sahte_baglan)
+    dinleyici = asyncio.create_task(api_servisi._uyari_dinleyicisi(yeniden_deneme_saniye=0.01))
+    try:
+        for _ in range(100):
+            await asyncio.sleep(0.01)
+            if len(acilanlar) >= 2:
+                break
+    finally:
+        dinleyici.cancel()
+    assert len(acilanlar) >= 2 and all(b.kapandi for b in acilanlar[:-1])
+
+
 async def test_analiz_durumu_dahili_alani_sizdirmiyor(istemci, api_anahtari):
     yanit = await istemci.post(
         "/api/v1/analiz/rota",
