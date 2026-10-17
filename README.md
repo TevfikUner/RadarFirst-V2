@@ -1424,7 +1424,10 @@ tanıtır (ilk kullanımda onay istenir). Sunucu **salt okunur** -- sadece
 `salt_okunur_sorgu_calistir` (sadece tek bir `SELECT`, yazma ifadeleri
 reddedilir) araçlarını sunar. Bağlantı bilgileri `.mcp.json`'da DEĞİL,
 `.env`'de tutulur; `MCP_POSTGRES_HOST/PORT/USER/PASSWORD` verilirse
-`POSTGRES_*` yerine onlar kullanılır.
+`POSTGRES_*` yerine onlar kullanılır. `MCP_POSTGRES_USER/PASSWORD` boşsa ya da
+kullanıcı `postgres`/uygulama kullanıcısıysa sunucu başlamaz; bağlanan rol süper
+kullanıcı, rol ya da DB oluşturabiliyorsa ilk sorguda reddeder. `pg_*`, `lo_*`,
+`dblink`, `set_config` gibi fonksiyon çağrıları da filtrelenir.
 
 Claude Code Windows'ta çalışıp veritabanı Docker'da (WSL) ise: Windows'ta
 yerel bir PostgreSQL 5432'yi tutuyorsa `localhost:5432` o sunucuya gider ve
