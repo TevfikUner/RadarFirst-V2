@@ -293,8 +293,11 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
     ti1_esik = peirce_esigi(ye, Xe["ti1_indeksi"])
     aday_holdout = _holdout_metrikleri(aday_model, Xh, yh, model_esik)
     ti1_holdout = ti1_referansi(yh, Xh["ti1_indeksi"], ti1_esik)
+    kalibre_model = kalibre_ti1_egit(ye, Xe["ti1_indeksi"])
     kalibre_ti1 = olasilik_metrikleri(
-        yh, kalibre_ti1_olasiligi(kalibre_ti1_egit(ye, Xe["ti1_indeksi"]), Xh["ti1_indeksi"]), ti1_esik
+        yh,
+        kalibre_ti1_olasiligi(kalibre_model, Xh["ti1_indeksi"]),
+        float(kalibre_ti1_olasiligi(kalibre_model, [ti1_esik])[0]),
     )
     aday_olasilik = _olasilik(aday_model, Xh)
     holdout_guven = guven_araliklari(yh, Xh["ti1_indeksi"], gh, aday_olasilik)
