@@ -38,8 +38,19 @@ Best regards,
 Tevfik Üner
 <Üniversite / bölüm>
 
-## Yanıt gelince
+## Yanıt (16 Ekim 2026, Ticket#837257)
 
-- Yanıtı bu dosyaya özetle ve `b-plani-sanal-sunucu` notunu güncelle.
-- Engel varsa B planında yalnız hava verisi (CDS, MADIS) bulutta, OpenSky sorguları dizüstünde
-  kalabilir (tahmin; o gün değerlendirilir).
+- Otomatik yanıt: kişisel/ticari olmayan kullanım kredi sınırları içinde serbest; bulut
+  sunucular bu kullanım için beyaz listeye alınmaz.
+- OpenSky (Martin Strohmeier): engel giriş noktasında (ingress) uygulanıyor, yani REST API
+  ile Trino'nun ikisini de kapsıyor. Hetzner şu an çalışabilir, ama garanti yok; kötüye
+  kullanım algılanırsa haber verilmeden değişebilir. Akademik kullanıcıların olağan yolu:
+  makale için gereken veriyi bir kez indirip analiz etmek.
+
+## Sonuç
+
+- Azure (hiperölçekli bulut) OpenSky için kullanılamaz kabul edilir.
+- B planına geçilirse yalnız hava verisi işleri (CDS, MADIS) sanal sunucuda çalışır; OpenSky
+  sorguları dizüstünde kalır. Hetzner'den OpenSky denemesi yapılmaz (garantisiz, ban riski).
+- Mevcut düzen OpenSky'ın önerdiğiyle uyumlu: uçuşlar bir kez çekilip Parquet önbelleğinde
+  tutuluyor.

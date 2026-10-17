@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-17 (dal `claude/opensky-yaniti`)
+
+- ✅ OpenSky yanıtı: bulut IP engeli Trino'yu da kapsıyor, Hetzner garantisiz; B planında OpenSky dizüstünde.
+- ✅ Gece işi bugün çalışıyor (ml_veri, 12:15 UTC).
+
 ## 2026-10-16 gece (dal `claude/yapilacaklar-opensky`)
 
 - ✅ OpenSky e-postası kullanıcı tarafından gönderildi; yanıt bekleniyor (YAPILACAKLAR).
