@@ -41,7 +41,7 @@ Bu uçuşun verisi depoda hazır gelir (`demo/`), internet gerekmez.
    `ciktilar/turbulans_haritasi_THY322_2019-01-15.html` dosyasını üretir. API açıkken aynı
    uçuş `web/harita3d.html`'de 3B olarak görülür.
 6. **Rota önerisi** (ayrı istek, Ders 4): aynı hava verisiyle A* daha sakin bir yol arar.
-   Sonuç paketine göre (`docs/sonuclar/2026-10-07/SAYILAR.md`, 7e-7 eşiği) THY322'nin riskli
+   Sonuç paketine göre (`docs/sonuclar/2026-10-18/SAYILAR.md`, 7e-7 eşiği) THY322'nin riskli
    nokta oranı: gerçek iz 0,24 · büyük daire 0,39 · önerilen rota 0,02. Backtest döngüseldir:
    A* TI1'i düşürür, başarı da TI1 ile ölçülür. (README'deki 0,19 / 0,32 / 0,00 eşik
    değişmeden önceki ölçümdür.)
@@ -113,11 +113,13 @@ ikisinden biri sıfırsa TI1 de sıfırdır.
 
 **Eşik ne demek?** "Bu sayının üstü riskli" çizgisi (`config.TI1_ESIK_ORTA_SIDDETLI = 7e-7`,
 hafif eşiği 4e-7). Çizgiyi aşağı çekersen daha çok türbülans yakalarsın ama yanlış alarm da artar.
-- **7e-7 nereden geldi?** 8 Ekim'de veriden seçildi (`docs/sonuclar/2026-10-07/SAYILAR.md`).
+- **7e-7 nereden geldi?** 8 Ekim'de veriden seçildi (`docs/sonuclar/2026-10-07/SAYILAR.md`; 18 Ekim
+  nihai paketinde yeniden hesaplandı, aşağıya bak).
   Altın test günleri dışındaki 64 günde her eşik denendi ve "yakalama oranı − yanlış alarm
   oranı" (Peirce skoru) ölçüldü. En iyi eşik 5,3e-7 çıktı. Ama tek bir en iyi sayı şansa bağlı
   olabilir. Bu yüzden en iyi skora bir standart hata yakınlıktaki **en temkinli** eşik seçildi
-  (1-SE kuralı): 7,06e-7 ≈ 7e-7. Eski 8e-7 literatürden kaba bir tahmindi.
+  (1-SE kuralı): 7,06e-7 ≈ 7e-7. Eski 8e-7 literatürden kaba bir tahmindi. 18 Ekim'de 147 eğitim
+  gününde aynı kural 7,39e-7 verdi; 7e-7 hâlâ bandın içinde olduğu için eşik değişmedi.
 - Altın test günlerinde bu eşik: türbülanslı raporların ~%50'sini yakalıyor, sakin
   olanların ~%25'inde yanlış alarm veriyor. TI1'in tek başına ayırt etme gücü orta düzeyde (ROC-AUC 0,67).
 - Eşik ERA5'te seçildi. GFS'te aynı eşik daha çok noktayı riskli sayıyor. Ayrı GFS eşiği

@@ -65,8 +65,8 @@ British Airways uçaklarının yerinde ölçümleriyle (GADS) ROC analiziyle do�
 karşılaştırması yapmadık (gelecek çalışma, M3). Sharman ve Pearson'ın eşlemesini
 açık veriye uyguladık: teşhislerin klimatolojisini ERA5 pencere deposunun eğitim
 günlerinden hesaplayıp beş göstergeyi birleştirdik (`fizik/edr_esleme.py`). Birleşik
-gösterge tek başına TI1'i küçük ama anlamlı farkla geçti (ROC-AUC 0,684'e karşı
-0,671; bkz. `SONUCLAR.md` §1).
+gösterge tek başına TI1'i küçük ama anlamlı farkla geçti (altın test günlerinde ROC-AUC
+0,688'e karşı 0,675; bkz. `SONUCLAR.md` §0.1).
 
 ## 3. Türbülans gözlemi ve doğrulama: PIREP ve EDR
 
@@ -170,17 +170,17 @@ demeyin.
 
 | Çalışma | Yöntem | Veri / etiket | Metrik | Değerlendirme bölmesi | Bu çalışmadaki karşılığı |
 |---|---|---|---|---|---|
-| Ellrod ve Knapp (1992) | TI1 = VWS × DEF | NWP, PIREP | POD, FAR, alan tehdit skoru | Bölme yok: operasyonel tahminlerin ±3 sa PIREP'le doğrulaması; eşik modele göre ayrı | TI1: PIREP ROC-AUC 0,680, altın günler 0,673, MADIS 0,706 (6 gün) |
-| Sharman vd. (2006), GTG | Çok teşhisli ağırlıklı birleşim | NWP (RUC), PIREP | PODy–PODn / AUC | — | Birleşik EDR: PIREP 0,692, altın günler 0,687 |
+| Ellrod ve Knapp (1992) | TI1 = VWS × DEF | NWP, PIREP | POD, FAR, alan tehdit skoru | Bölme yok: operasyonel tahminlerin ±3 sa PIREP'le doğrulaması; eşik modele göre ayrı | TI1: PIREP ROC-AUC 0,673, altın günler 0,675, MADIS 0,722 (14 gün) |
+| Sharman vd. (2006), GTG | Çok teşhisli ağırlıklı birleşim | NWP (RUC), PIREP | PODy–PODn / AUC | — | Birleşik EDR: PIREP 0,688, altın günler 0,688 |
 | Sharman ve Pearson (2017) | Teşhislerin log-normal EDR eşlemesi | NWP, yerinde EDR | EDR hatası, AUC | — | Aynı eşleme, ERA5 klimatolojisiyle (`edr_esleme.py`) |
-| Kim vd. (2011) | GTG teşhisleri, mevsimsel analiz | NWP, 6 yıl PIREP (Doğu Asya) | AUC | — | Yalnız ABD, 80 gün (64 eğitim, 16 altın test); mevsim analizi yok |
+| Kim vd. (2011) | GTG teşhisleri, mevsimsel analiz | NWP, 6 yıl PIREP (Doğu Asya) | AUC | — | Yalnız ABD, 163 gün (147 eğitim, 16 altın test); mevsim analizi yok |
 | Gill (2014) | WAFC SIGWX + ızgara CAT | Yerinde ölçüm (GADS) | ROC | — | WAFS karşılaştırması yok (M3) |
-| Muñoz-Esparza vd. (2020) | Rastgele orman, gradyan artırımı | HRRR + GTG, yerinde EDR | EDR hatası, kategori ayrımı | — | Protokolle seçilen lojistik regresyon, ERA5 + PIREP; altın günler ROC-AUC 0,681, TI1'den +0,008 [−0,006; +0,022], anlamsız (kapı geçilmedi) |
+| Muñoz-Esparza vd. (2020) | Rastgele orman, gradyan artırımı | HRRR + GTG, yerinde EDR | EDR hatası, kategori ayrımı | — | Protokolle seçilen gradyan artırımı, ERA5 + PIREP; altın günler ROC-AUC 0,710, TI1'den +0,036 [+0,019; +0,053] (kapı geçildi; 7 Ekim ön paketinde LR geçememişti) |
 | Gökdeniz ve Ülkü (2026) | XGBoost, LightGBM, RF, AdaBoost, LR; BADA aerodinamik özellikleri | ERA5 200–350 hPa, IEM PIREP (ABD); 1 = CAT var | POD, FAR, CSI, TSS, AUC | Rastgele 70/30 + k-katlı CV | AUC 0,904 (XGBoost). Bizim gün gruplu değerlerimizle doğrudan kıyaslanamaz |
 | Gu ve Wang (2024) | Ağırlıklı KNN (K = 27), 8 teşhis, AUC² ağırlık | ERA5 125–500 hPa, 7 yıl Colorado PIREP; yalnız türbülanssız ve orta-üstü (hafif dışarıda) | ROC, maxTSS, güvenilirlik | Rastgele 80/20 + 10 katlı CV, SMOTE | AUC 0,86, maxTSS 0,552. Bölme ve etiket tanımı farklı; bizde hafif raporlar negatif |
 | Kopeć vd. (2016) | ADS-B/Mode-S'ten EDR | Araştırma uçağı ivmeölçeri | Karşılaştırma | — | ADS-B'den yalnız olay (EDR yok), POD 1/8, POFD 0/8 |
 | Cheung (2018) | A* ile CAT'ten kaçınan rota | NWP CAT alanı | Örnek olay | — | A* + SIGMET sert / TI1 yumuşak kısıt, yakıt bedeliyle |
-| **Bu çalışma** | TI1 referansı, birleşik EDR, kapılı ML | ERA5 + IEM PIREP (ABD), MADIS EDR; 1 = orta ve üstü | ROC-AUC, Peirce, eşleştirilmiş fark | Gün gruplu CV (64 gün) + 16 altın gün zamansal holdout | — |
+| **Bu çalışma** | TI1 referansı, birleşik EDR, kapılı ML | ERA5 + IEM PIREP (ABD), MADIS EDR; 1 = orta ve üstü | ROC-AUC, Peirce, eşleştirilmiş fark | Gün gruplu CV (147 gün) + rastgele seçilip dondurulmuş 16 altın test günü | — |
 
 "Değerlendirme bölmesi" sütununda "—", o çalışmanın bölme yönteminin tam metinden
 okunmadığını gösterir. Gökdeniz ve Ülkü (2026), Gu ve Wang (2024) ve Ellrod ve Knapp

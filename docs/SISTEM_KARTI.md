@@ -73,7 +73,9 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   `TI1_ESIK_ORTA_SIDDETLI` (7e-7 s⁻²) eşiğini aşarsa "riskli" sayılır. Eşik 8 Ekim'de
   veriden seçildi: altın test günleri dışındaki 64 günde Peirce'i en yüksek eşiğin
   (5,3e-7) bir standart hatası içindeki en tutucu eşik (1-SE kuralı, 7,06e-7). Önceki
-  değer 8e-7 literatürden kaba bir başlangıçtı ve bu bandın dışındaydı. Eşik ERA5'te
+  değer 8e-7 literatürden kaba bir başlangıçtı ve bu bandın dışındaydı. 18 Ekim nihai
+  paketinde (147 eğitim günü) aynı kural 7,39e-7 verdi; 7e-7 yeni bandın da içinde kaldığı
+  için değiştirilmedi (`docs/rapor/SONUCLAR.md` §0.2). Eşik ERA5'te
   seçildi; canlı GFS'te aynı eşik noktaların daha büyük bir kısmını riskli sayıyor (16 Ekim:
   %11,1'e karşı %8,5; GFS eşdeğeri 8,30e-7, `docs/sonuclar/2026-10-16/`). GFS için ayrı eşik
   `TI1_ESIK_ORTA_SIDDETLI_GFS` ile verilebilir; şu an boştur ve GFS'te de 7e-7 kullanılır.
@@ -217,15 +219,15 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   ızgarada ~0,125°'ye kadar kayma olabilir.
 - Küp sınırının 0,125° dışına kadar (zamanda 3 saate kadar) noktalar kapsam
   içi sayılır ve kenar değerini alır.
-- Seyir irtifasındaki 7.815 PIREP'te (80 gün) TI1'in tek başına ayırt
-  ediciliği orta düzeydedir: ROC-AUC 0,680 [0,662–0,697]. Altın test günlerinde
-  0,673 [0,639–0,704]; `TI1_ESIK_ORTA_SIDDETLI`'de (7e-7) POD 0,502, POFD 0,252.
-  Eğitim günlerinde Peirce'i en büyüten eşik 5,3e-7'dir; altın günlerde POD 0,605,
-  POFD 0,349. Sayılar `docs/sonuclar/2026-10-07/SAYILAR.md` ön paketinden alındı.
+- Seyir irtifasındaki 15.940 PIREP'te (163 gün) TI1'in tek başına ayırt
+  ediciliği orta düzeydedir: ROC-AUC 0,673 [0,661–0,684]. Altın test günlerinde
+  0,675 [0,641–0,706]; `TI1_ESIK_ORTA_SIDDETLI`'de (7e-7) POD 0,501, POFD 0,248.
+  Eğitim günlerinde Peirce'i en büyüten eşik 4,96e-7'dir; altın günlerde POD 0,622,
+  POFD 0,373. Sayılar `docs/sonuclar/2026-10-18/SAYILAR.md` nihai paketinden alındı.
   Fizik düzeltmesinden önce 0,64'tü (5 Ekim, tarihçe); eski 0,44 değeri 300-400 feet'teki
   PIREP'leri seçen hatalı bir irtifa filtresinden geliyordu. Kapsam yalnız CAT'tir:
-  CB/TS/TCU/MTN WAVE/LLWS geçen raporlar dışlanınca altın günlerde TI1 0,669
-  [0,632–0,707]. Bu, tek başına KANITLANMAMIŞ bir gösterge olduğu anlamına
+  CB/TS/TCU/MTN WAVE/LLWS geçen raporlar dışlanınca altın günlerde TI1 0,670
+  [0,634–0,708]. Bu, tek başına KANITLANMAMIŞ bir gösterge olduğu anlamına
   gelir; bu not (`TI1_GUVENILIRLIK_NOTU`, bkz. `fizik/turbulans_indeksleri.py`)
   artık `POST /simulasyon/rota` ve `POST /turbulans/tahmin` yanıtlarında ayrı
   bir alan olarak (`ti1_guvenilirlik_notu`) ve iki web arayüzünde de
@@ -239,15 +241,21 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   yüzden `TI1_GORSEL_OLCEK_PIREP_SINIFINA_UYDURULDU` oldu (eski adı
   `EDR_OLCEKLENDIRME_KATSAYISI_KALIBRE_EDILDI`).
 - Eşikler mevsime ve bölgeye göre ayrılmaz; mevsim etkisi ölçülmedi (altın test
-  günleri 80 günden rastgele seçildi, mevsim dengesi aranmadı).
+  günleri 7 Ekim'deki 80 günden rastgele seçildi, mevsim dengesi aranmadı).
 
 **ML sınıflandırıcısı**
-- Aktif model (Random Forest, 5 Ekim 2026) doğru irtifalı PIREP'lerle, ama eski fizikle
-  hesaplanan özelliklerle ve altın test günlerinden önceki protokolle seçildi; o günkü
-  holdout'ta TI1'i geçmişti (tarihçe, `docs/rapor/SONUCLAR.md` §2). Eğitim gün listesi
-  olmadığı için aday karşılaştırmasında yok sayılır. Yeni aday her gece eğitilir ve
-  yalnızca altın test günlerinde TI1 referansını (ve varsa aktif modeli) geçerse
-  aktifleşir; ön pakette aday geçemedi.
+- Aktif model: 9 Ekim 2026 gece işinde eğitilen Random Forest (yeni fizik, 79 eğitim
+  günü, 7.759 PIREP, 1-SE kuralı). Altın test günlerinde ROC-AUC 0,707, TI1'e göre +0,033
+  [+0,018; +0,048]; bu yüzden kapıdan geçip aktifleşti. `/turbulans/tahmin` ve model bilgisi
+  uçları bu modeli kullanır. Yeni aday her gece eğitilir ve yalnızca altın test günlerinde
+  TI1 referansını ve aktif modeli geçerse aktifleşir.
+- Raporlanan protokol modeli (nihai paket, 147 eğitim günü): Gradient Boosting, altın
+  günlerde 0,710 [0,680–0,740], TI1'e göre +0,036 [+0,019; +0,053]. Dondurma raporunda aktif
+  modeli geçemedi (+0,003 [−0,001; +0,008]) ve yalnız sürüm olarak saklandı. Raporlanan ile
+  çalışan model farklıdır; ikisi de aynı altın günlerde TI1'i geçer
+  (`docs/rapor/SONUCLAR.md` §0.1). 9 Ekim aktivasyon kararı altın günlerde verildi ve 7–18
+  Ekim arasında 12 sürüm aynı günlerde kapıya girdi; aktif modelin altın gün skoru bu yüzden
+  protokol modelininki kadar temiz değildir.
 - Olasılık, "PIREP verilmiş bir noktada orta+ türbülans" oranına göredir
   (PIREP'lerde pozitif oran ~%52, MADIS ölçümlerinde hafif+ ~%3): raporlama
   yanlılığı nedeniyle mutlak sıklık olarak okunmamalıdır.
@@ -354,7 +362,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Bağımsız kanıt (TURB SIGMET, PIREP) yalnızca kapsanan uçuşlarda vardır:
   sistemin SIGMET arşivi başladıktan sonraki uçuşlar ve ABD hava sahası.
   IEM SIGMET arşivinde irtifa bandı yoktur (tüm irtifalar sayılır).
-- Güncel ön paket veritabanındaki iki uçuşa (THY322, 1 ve 15 Ocak 2019)
+- Nihai paket veritabanındaki iki uçuşa (THY322, 1 ve 15 Ocak 2019)
   dayanır; seyir bölümleri OpenSky kapsama boşlukları ve küp sınırı nedeniyle
   kısadır. Sonuçlar istatistiksel bir kanıt değil, doğrulama hattının
   çalıştığının gösterimidir.
@@ -414,8 +422,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
     davranış ilk istekte 16 küpü (92 MB) belleğe alıyordu.
 - **Sonuç paketi (Madde 8):** Doğruluk sayılarının tek kaynağı
   `docs/sonuclar/<kesme>/` paketidir: commit hash'li JSON, `SAYILAR.md`, ROC,
-  güvenilirlik ve backtest şekilleri (`turbulans-ml-degerlendirme --cikti`). Şu an
-  7 Ekim ön paketi geçerlidir; 18 Ekim veri dondurmasında nihai paket üretilecek.
+  güvenilirlik ve backtest şekilleri (`turbulans-ml-degerlendirme --cikti`). Geçerli
+  paket 18 Ekim nihai paketidir (`docs/sonuclar/2026-10-18/`); 7 Ekim ön paketi tarihçedir.
 - **Backtest (ERA5):** Veritabanındaki iki uçuşta riskli nokta oranı
   (gerçek / büyük daire / A*): THY322 1 Ocak 2019 0,00 / 0,20 / 0,00; THY322 15 Ocak
   2019 0,24 / 0,39 / 0,02 (`SAYILAR.md`, `backtest_ucus_basina.png`; 7e-7 eşiğiyle). Bu ölçüm

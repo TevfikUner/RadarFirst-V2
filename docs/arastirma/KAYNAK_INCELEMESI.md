@@ -30,7 +30,7 @@ Okuma kuralları:
    aynen kullanılıyor (`config.TI1_ESIK_ORTA_SIDDETLI`).
 2. **Literatürdeki yüksek AUC'lerin çoğu rastgele bölmeyle elde edilmiş.** Örnekler:
    Gökdeniz ve Ülkü (2026) AUC 0,904, rastgele 70/30. Gu ve Wang (2024) AUC 0,86, rastgele
-   80/20. Bizim gün gruplu sonuçlarımız (ön paket: TI1 0,673–0,706, birleşik EDR 0,687–0,692)
+   80/20. Bizim gün gruplu sonuçlarımız (nihai paket: TI1 0,673–0,722, birleşik EDR 0,688–0,757)
    bunlarla doğrudan kıyaslanamaz. Bu,
    savunmada en çok sorulacak noktadır.
 3. **Olasılıksal tahmin topluluk (ensemble) ister, ama GEFS şart değil.** Kim vd. (2015),

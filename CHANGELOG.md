@@ -4,6 +4,14 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Veri dondurma ve nihai sonuç paketi (18 Ekim 2026)
+
+- Nihai paket `docs/sonuclar/2026-10-18/` (163 gün, 15.940 PIREP): protokol modeli Gradient
+  Boosting, altın günlerde TI1'i +0,036 [+0,019; +0,053] ile geçti; `ml_dondurma.json`'da aday
+  aktif 9 Ekim RF'yi geçemedi. TI1 1-SE eşiği 7,39e-7, config 7e-7 bandın içinde kaldı.
+- Kalibre TI1 holdout ikili metrikleri TI1 eşiğinin olasılık karşılığıyla (komite C-9).
+- `TI1_GUVENILIRLIK_NOTU` ve belgelerdeki ön paket sayıları nihai paketle değiştirildi.
+
 ## MCP sunucusu kapalı başlama (18 Ekim 2026)
 
 - `turbulans-mcp`: `MCP_POSTGRES_USER/PASSWORD` boşsa ya da `postgres`/uygulama kullanıcısıysa

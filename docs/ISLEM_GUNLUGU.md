@@ -2,6 +2,15 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-18 (dal `claude/dondurma-2026-10-18`, `claude/nihai-paket-belgeler`)
+
+- ✅ C-9 düzeltildi (PR #86): kalibre TI1 ikili metrikleri doğru eşikle.
+- ✅ Nihai paket `docs/sonuclar/2026-10-18/` (commit 45caf3c): GB 0,710, TI1 0,675, fark +0,036 → kapı geçildi.
+- ✅ Dondurma raporu: aday aktif 9 Ekim RF'yi geçemedi (+0,003), saklandı; aktif model değişmedi.
+- ✅ 1-SE eşiği 7,39e-7; 7e-7 bandın içinde, config değişmedi. Belgelerdeki ön paket sayıları değiştirildi.
+- ⚠️ Rota performansı ölçülmedi (pilde); GFS eşiğini `.env`'ye yazmak onay bekliyor.
+- ⚠️ Önceki satırdaki "gece işi yok" yanlıştı: UTC'de hâlâ 17 Ekim'di, gece işi 12:15 UTC'de çalışmıştı.
+
 ## 2026-10-18 (dal `claude/mcp-kapali-baslama`)
 
 - ✅ P0-6 P0'da tutuldu: MCP ayarı boş/yetkili rolse sunucu başlamaz, sistem fonksiyonları reddedilir.

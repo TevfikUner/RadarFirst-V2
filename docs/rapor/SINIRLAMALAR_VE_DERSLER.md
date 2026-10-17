@@ -13,7 +13,7 @@ değerlendirilir. NTSB (2021) türbülans yaralanmalarının önemli bir kısmı
 irtifada ve yaklaşmada olduğunu gösterir; bu olaylar sistemin göremediği yerdedir.
 
 **Yalnızca ABD verisi.** Eğitim etiketleri (IEM PIREP) ve nesnel doğrulama (MADIS EDR)
-ABD hava sahasındandır; 80 gün, 7.815 PIREP (16 gün altın test). Türkiye ya da Avrupa
+ABD hava sahasındandır; 163 gün, 15.940 PIREP (16 gün altın test). Türkiye ya da Avrupa
 için geçerlilik gösterilmedi. Rota ve arayüz Türkiye'de çalışır ama oradaki beceri ölçülmedi.
 Yerel MADIS EDR deposu bu açığı kapatmaz: 11 günde Avrupa'da (35–60°K, 10°B–30°D) FL280 üstü
 21.167 gözlem var ama yalnızca 28'i hafif ve üstü (EDR ≥ 0,1); Türkiye/Doğu Akdeniz'de (34–43°K,
@@ -29,13 +29,15 @@ küpü 3 seviyeyle indirildiği için kayma orada 50 hPa'lık katmandan hesaplan
 Eğitim ise 25 hPa'lık katmanla yapıldı.
 
 **Etiket kaynaklı sınırlar.** PIREP'ler türbülansa doğru güçlü biçimde yanlıdır:
-pozitif oranı %52, aynı yerlerdeki MADIS ölçümlerinde hafif ve üstü %3. Model
-olasılıkları bu yüzden mutlak sıklık değildir. MADIS ölçümleri yalnız 6 gündür, kalite
+pozitif oranı %53, aynı yerlerdeki MADIS ölçümlerinde hafif ve üstü %3. Model
+olasılıkları bu yüzden mutlak sıklık değildir. MADIS ölçümleri yalnız 14 gündür, kalite
 kontrolsüzdür (QC "Z") ve PIREP pencerelerinin içinden gelir; sonuçlar ön sonuçtur.
 
 **İstatistiksel sınırlar.** Birleşik EDR'nin TI1'e üstünlüğü anlamlı ama küçüktür
-(altın test günlerinde +0,014 ROC-AUC); model TI1'i geçemedi (+0,008, GA 0'ı içeriyor;
-`docs/sonuclar/2026-10-07/SAYILAR.md`). Altın test 16 gündür; güven aralıkları geniştir.
+(altın test günlerinde +0,013 ROC-AUC). Model TI1'i geçti (+0,036 [+0,019; +0,053];
+`docs/sonuclar/2026-10-18/SAYILAR.md`), ama 7 Ekim ön paketinde 80 günle geçememişti; sonuç
+veri hacmine duyarlı. Altın test 16 gündür; güven aralıkları geniştir. Aynı 16 gün 9 Ekim'de
+canlı modelin aktivasyon kararında da kullanıldı.
 Sanal PIREP 16 PIREP'le ölçüldü ve eşikleri kalibre edilmedi. ATC ayırma komutu ve TCAS uyarısı ayrıca
 elenmez (seviye değişimi seyir sayılmaz, düşey hız tepkisi aranır, bildirim için ≥ 2 uçak gerekir);
 bildirimdeki ERA5 TI1 uyum etiketi olayı elemez ve başarımı ölçülmedi.

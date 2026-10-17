@@ -30,10 +30,10 @@ IEM PIREP arşivindeki `FL` alanının feet cinsinden olduğu, önceki veri seti
 yüzden seyir yerine 300–400 ft'teki (pist/yaklaşma) raporları seçtiği bulundu.
 Etiket hattı ham arşivden doğru filtreyle (FL280–FL420) yeniden kuruldu. Doğru
 veride TI1'in ROC-AUC'si 0,44'ten 0,71'e çıktı (tarihçe: 1 Ekim, 10 gün × 100 PIREP,
-gerçek CDS). Güncel değer 7.815 PIREP'te 0,680 (`docs/sonuclar/2026-10-07/SAYILAR.md`).
+gerçek CDS). Güncel değer 15.940 PIREP'te (163 gün) 0,673 (`docs/sonuclar/2026-10-18/SAYILAR.md`).
 - Kanıt: `ml/ml_veri_hatti.py`, `dogrulama/bagimsiz_kanit.py` (`pirepleri_normalize_et`).
 - Sınır: PIREP öznel ve gecikmelidir. Nesnel etiket olarak NOAA MADIS'in herkese açık
-  uçak EDR arşivi kullanılır (geliştirme planı M1, ADR 0012); yalnız 6 gün ve hafif sınıf.
+  uçak EDR arşivi kullanılır (geliştirme planı M1, ADR 0012); yalnız 14 gün ve fiilen hafif sınıf.
 - En yakın çalışmadan farkı: Schwartz (1996) PIREP'in nicel kullanımındaki gürültüyü genel olarak tartışır; biz açık IEM arşivinde somut iki hatayı (FL alanının feet olması, /OV UNK konumu) bulup etiket hattını bunlara göre yeniden kurduk.
 
 **K3. Kendiliğinden büyüyen, kotalı ve tekrar indirmesiz eğitim verisi.**
@@ -64,9 +64,9 @@ durumuna çevrilir (hedef kapsama %90); gerçekleşen kapsama zamansal holdout't
 - En yakın çalışmadan farkı: Angelopoulos ve Bates (2021) çapraz-konformal yöntemi genel olarak anlatır; biz onu türbülans olasılığını "belirsiz" diyebilen üç durumlu bir karar çıktısına çevirip gerçekleşen kapsamayı holdout'ta ölçtük.
 
 **K6. Fizik göstergesinin sınırının ölçülmesi ve ürüne yansıtılması.**
-TI1'in bağımsız becerisi seyir PIREP'lerinde ölçüldü: 7.815 PIREP, ROC-AUC 0,680
-[0,662–0,697]; altın test günlerinde 0,673, veriden seçilen eşikte (7e-7) yakalama 0,502,
-yanlış alarm 0,252; MADIS ölçülen EDR'de 0,706 (`docs/sonuclar/2026-10-07/SAYILAR.md`). Gerçek bir
+TI1'in bağımsız becerisi seyir PIREP'lerinde ölçüldü: 15.940 PIREP, ROC-AUC 0,673
+[0,661–0,684]; altın test günlerinde 0,675, veriden seçilen eşikte (7e-7) yakalama 0,501,
+yanlış alarm 0,248; MADIS ölçülen EDR'de 0,722 (`docs/sonuclar/2026-10-18/SAYILAR.md`). Gerçek bir
 uçuşta (PUE502) aktif TURB SIGMET'i
 yakalamadığı gösterildi. Sonuç, her rota yanıtında ve arayüzde gösterilen bir
 güvenilirlik notuna ve güvenliğin SIGMET sert kısıtına dayandırılmasına dönüştü.

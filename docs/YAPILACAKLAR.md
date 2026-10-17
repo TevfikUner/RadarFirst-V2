@@ -5,25 +5,28 @@
 
 ## 18 Ekim 2026 — ML veri dondurma
 
-- [ ] Nihai sonuç paketi (şarjdayken):
+- [x] (18 Ekim, commit `45caf3c`; GB +0,036, kapı geçildi; dondurmada aday aktif RF'yi geçemedi)
   `turbulans-ml-degerlendirme --kesme 2026-10-18 --cikti docs/sonuclar/2026-10-18`,
-  `turbulans-performans rota --json docs/sonuclar/2026-10-18/rota_performansi.json`,
-  `turbulans-ml --dondurma-raporu docs/sonuclar/2026-10-18`. Sonuç ne çıkarsa raporlanır.
-- [ ] Ön paket (2026-10-07) sayılarını nihai `SAYILAR.md` ile değiştir: SISTEM_KARTI,
+  `turbulans-ml --dondurma-raporu docs/sonuclar/2026-10-18`.
+- [ ] Şarjdayken: `turbulans-performans rota --json docs/sonuclar/2026-10-18/rota_performansi.json`
+  (17 Ekim gecesi dizüstü pildeydi); sonra SISTEM_KARTI'daki `2026-10-07/rota_performansi.md`
+  bağlantısı ve süreleri güncellenir.
+- [x] (18 Ekim) Ön paket (2026-10-07) sayılarını nihai `SAYILAR.md` ile değiştir: SISTEM_KARTI,
   SONUCLAR §0, KATKILAR, SUNUM_AKISI §8, poster, DEMO_SENARYOSU, ILGILI_CALISMALAR,
   `TI1_GUVENILIRLIK_NOTU`, README "Kısa cevap", PROJE_ISLEYISI; `docs/sonuclar/README.md`
   tablosu; ARAC_KULLANIMI_BEYANI commit/satır sayımları güncel git'e göre.
-- [ ] `esik_taramasi.bir_se.esik` 7e-7'den belirgin farklıysa `TI1_ESIK_ORTA_SIDDETLI`'yi
+- [x] (18 Ekim: 7,39e-7; 7e-7 1-SE bandının içinde, config değişmedi, SONUCLAR §0.2) `esik_taramasi.bir_se.esik` 7e-7'den belirgin farklıysa `TI1_ESIK_ORTA_SIDDETLI`'yi
   güncelle; eşiğe bağlı testler, demo senaryosu ve ekranlar yeniden kontrol edilir.
-- [ ] GFS eşiği: nihai ERA5 eşiğiyle `turbulans-esik-esleme --baslangic 2026-10-09T00:00Z
+- [ ] (18 Ekim: ERA5 eşiği değişmediği için 16 Ekim ölçümü geçerli, yeniden çalıştırmaya gerek
+  yok; `.env`'ye yazmak canlı davranışı değiştirir, ONAY bekliyor) GFS eşiği: nihai ERA5 eşiğiyle `turbulans-esik-esleme --baslangic 2026-10-09T00:00Z
   --bitis 2026-10-11T18:00Z --esik <yeni> --cikti docs/sonuclar/2026-10-18` (veri önbellekte,
   indirme yok). 16 Ekim ölçümü: 7e-7 ↔ GFS 8,30e-7 [7,96; 8,67]e-7. Sonucu
   `TI1_ESIK_ORTA_SIDDETLI_GFS`'e (`.env`) yaz, API/worker'ı yeniden başlat; demo ekranları GFS
   kullanıyorsa yeniden kontrol et. Örneklemi büyütmek için `--bitis 2026-10-13T18:00Z`
   (12–13 Ekim için ~2 MB GFS + ~5 MB ERA5 ek indirme; THREDDS koşuları ~8 gün durur).
-- [ ] MADIS önsel kayma gösterimi (`model_olasilik_onsel_duzeltilmis`) pakette çıkınca
+- [x] (18 Ekim, SONUCLAR §0.4: 0,043) MADIS önsel kayma gösterimi (`model_olasilik_onsel_duzeltilmis`) pakette çıkınca
   SONUCLAR §0.4'e tek satır not.
-- [ ] SUNUM_AKISI §10 (F1 doğrulama karnesi) ve poster "Sonraki" satırını nihai pakete bağla.
+- [x] (18 Ekim) SUNUM_AKISI §10 (F1 doğrulama karnesi) ve poster "Sonraki" satırını nihai pakete bağla.
 - [x] (16 Ekim, ekranlar yenilendi; demo sayıları değişmedi: %9,55 ek yakıt, 26 dk kaçınma) Demo ekranlarını temiz klondan yenile: brifing kartına FPL Madde 15, dikey kesit, kalkış
   penceresi ve kütle bandı eklendi (16 Ekim, PR #62–#71); `DEMO_SENARYOSU` metnini kontrol et.
 

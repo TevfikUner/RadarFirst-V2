@@ -1,16 +1,18 @@
 # Sonuç paketleri
 
 Rapordaki, sunumdaki, posterdeki ve sistem kartındaki her doğruluk sayısı buradaki bir
-paketten alınır (Uzman Madde 8). Paket klasör adı kesme günüdür. Kesme, o güne kadar
-(dahil) veritabanına girmiş örnekleri seçer. Her paketteki `SAYILAR.md` sayıların tek
-listesidir ve elle düzenlenmez.
+paketten alınır (Uzman Madde 8). Paket klasör adı kesme günüdür. Kesme, `olusturulma_zamani`
+o güne kadar (dahil) olan örnekleri seçer. Gece işi eski satırları eşleştirerek günceller,
+yeni satır eklemez; bu yüzden kesme canlı veritabanında veriyi dondurmaz. Bir paketi aynen
+yeniden üretmek için o günün veritabanı yedeği gerekir. Her paketteki `SAYILAR.md`
+sayıların tek listesidir ve elle düzenlenmez.
 
 | Paket | Durum | Kesme |
 |---|---|---|
-| [`2026-10-07/`](2026-10-07/SAYILAR.md) | **Ön paket.** Belgeler şimdilik bu paketin sayılarını kullanır. | 7 Ekim 2026 |
+| [`2026-10-07/`](2026-10-07/SAYILAR.md) | Ön paket (tarihçe): 80 gün, protokol modeli LR, kapı geçilmedi. | 7 Ekim 2026 |
 | [`2026-10-16/`](2026-10-16/README.md) | Ek analizler (ML paketi değil): ERA5 → canlı GFS TI1 eşik eşlemesi; rota ayrıklaştırma yakınsaması. | 9–11 Ekim 2026 / Ocak 2019 |
 | [`2026-10-17/`](2026-10-17/README.md) | Ek analiz (ML paketi değil): kaçınma başlangıç zamanı, kalkışta ve yolda planlama (Fikir 18). | 12–16 Ekim 2026 GFS |
-| `2026-10-18/` | Nihai paket, veri dondurma günü üretilecek. Belgelerdeki sayılar o gün bu paketle değiştirilir. | 18 Ekim 2026 |
+| [`2026-10-18/`](2026-10-18/SAYILAR.md) | **Nihai paket.** Belgeler bu paketin sayılarını kullanır: 163 gün, protokol modeli GB, kapı geçildi (+0,036). `ml_dondurma.json`: aday aktif 9 Ekim RF'yi geçemedi, saklandı. Commit `45caf3c`, üretim 17 Ekim 23:40 UTC; yedek `turbulans_20261018.dump`. `rota_performansi` şarjdayken eklenecek. | 18 Ekim 2026 |
 
 ## Paketin içeriği
 
@@ -26,6 +28,9 @@ listesidir ve elle düzenlenmez.
 - `backtest_ucus_basina.png`: veritabanındaki her backtest uçuşu için riskli nokta oranı.
   Bu ölçüm TI1 ile yapılır ve döngüseldir.
 - `rota_performansi.md` / `.json`: `turbulans-performans rota` ile rota kararı süresi.
+- `ml_dondurma.json` (yalnız nihai pakette): `turbulans-ml --dondurma-raporu` ile gece
+  kapısının bir kez çalıştırılması; aday, aktif model ve TI1 karşılaştırması, konformal
+  kapsama, kayma özeti ve kaydedilen sürüm.
 
 ## Yeniden üretme
 

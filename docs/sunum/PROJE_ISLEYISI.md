@@ -3,8 +3,8 @@
 Bu belge Türbülans Radar'ın baştan sona nasıl çalıştığını anlatır: veriyi nereden
 çekiyoruz, nerede filtreliyoruz, nerede birleştiriyoruz, ne hesaplıyoruz, rotayı nasıl
 arıyor ve simüle ediyoruz, modeli nasıl kurduk, sonucu nasıl doğruladık. Danışmana ya da
-jüriye anlatırken bu sırayı izle. Sayıların kaynağı `docs/sonuclar/2026-10-07/SAYILAR.md`
-(ön paket; 18 Ekim'de nihai paketle güncellenecek).
+jüriye anlatırken bu sırayı izle. Sayıların kaynağı `docs/sonuclar/2026-10-18/SAYILAR.md`
+(nihai paket, 18 Ekim veri dondurması).
 
 Sistem sertifikalı EDR üretmez; operasyonel karar aracı değil, karar destek aracıdır.
 
@@ -197,11 +197,11 @@ grup için CDS'ten bir ERA5 dilimi indirilir, **uçuş analiziyle aynı eşleşt
 özellikler hesaplanır ve rapora yazılır. Her raporun çevresindeki küçük pencere (±1°, ±1 sa)
 diske saklanır; yeni bir özellik eklenirse CDS'ten yeniden indirmeden hesaplanır.
 
-Bugün: 80 günde 7.815 eşleşmiş seyir PIREP'i, pozitif oranı 0,52.
+Nihai pakette: 163 günde 15.940 eşleşmiş seyir PIREP'i, pozitif oranı 0,53.
 
 **MADIS EDR** (`veri/madis_edr.py`): Uçakların kendi sensörüyle ölçtüğü EDR (nesnel etiket).
-Seyir irtifasındaki geçerli ölçümler günlük dosyalara yazılır. 6 günde 20.144 ölçüm; hafif ve
-üstü oranı %3, orta ve üstü hiç yok.
+Seyir irtifasındaki geçerli ölçümler günlük dosyalara yazılır. 14 günde 45.075 ölçüm; hafif ve
+üstü oranı %3, orta ve üstü yalnız 1 ölçüm.
 
 ---
 
@@ -214,12 +214,13 @@ diverjans, TI2. Hepsi bölüm 5–6'daki kodla hesaplanır.
 (`ml/ml_egitimi.py`).
 
 **Protokol** (`ml/ml_otomatik_egitim.py`, `ml/degerlendirme.py`):
-1. **Altın test günleri:** 80 günden 16'sı rastgele (tohum 0) seçilip donduruldu; hiçbir
+1. **Altın test günleri:** 7 Ekim'deki 80 günden 16'sı rastgele (tohum 0) seçilip donduruldu; hiçbir
    modelin eğitimine girmez (`ml/altin_test_gunleri.json`).
 2. **Gün gruplu çapraz doğrulama:** Aynı günün raporları aynı katta kalır (aynı hava sistemi
    hem eğitimde hem testte olmasın diye).
 3. **1-SE kuralı:** En iyi modelle sade model (lojistik regresyon) arasındaki fark bir
-   standart hatadan küçükse sade model seçilir → lojistik regresyon.
+   standart hatadan küçükse sade model seçilir. 7 Ekim'de (80 gün) lojistik regresyon seçildi;
+   nihai pakette (147 eğitim günü) fark SE'den büyük çıktı ve Gradient Boosting seçildi.
 4. **Olasılık kalibrasyonu:** Sigmoid (Platt) ile çıktı gerçek olasılığa yaklaştırılır.
 5. **"Emin değilim" çıktısı:** Konformal tahminle her nokta `dusuk_risk`, `yuksek_risk` ya da
    `belirsiz` olur (hedef kapsama %90; `ml/belirsizlik.py`).
@@ -229,7 +230,8 @@ diverjans, TI2. Hepsi bölüm 5–6'daki kodla hesaplanır.
    sürüm olarak saklanır.
 
 **Eşik seçimi:** TI1 risk eşiği yalnız eğitim günlerinde seçildi: POD − POFD'yi (Peirce) en
-yükselten eşiğin bir standart hatası içindeki en tutucu eşik = 7e-7.
+yükselten eşiğin bir standart hatası içindeki en tutucu eşik = 7e-7 (8 Ekim). Nihai pakette
+kural 7,39e-7 verdi; 7e-7 bandın içinde kaldığı için değişmedi.
 
 ---
 
@@ -237,11 +239,12 @@ yükselten eşiğin bir standart hatası içindeki en tutucu eşik = 7e-7.
 
 | Ne ölçtük | Sonuç |
 |---|---|
-| TI1, 7.815 PIREP (80 gün) | ROC-AUC 0,680 [0,662–0,697] |
+| TI1, 15.940 PIREP (163 gün) | ROC-AUC 0,673 [0,661–0,684] |
 | TI1, altın günler, eşik 7e-7 | Yakalama (POD) 0,50, yanlış alarm (POFD) 0,25 |
-| Birleşik EDR − TI1 | +0,014 [+0,007; +0,020], anlamlı |
-| ML (lojistik regresyon) − TI1 | +0,008 [−0,006; +0,022], anlamsız → kapı geçilmedi, model devrede değil |
-| MADIS ölçülen EDR'de TI1 | ROC-AUC 0,706 (6 gün) |
+| Birleşik EDR − TI1 (altın günler) | +0,013 [+0,007; +0,020], anlamlı |
+| ML protokol modeli (Gradient Boosting) − TI1 | +0,036 [+0,019; +0,053], anlamlı → kapı geçildi (7 Ekim ön paketinde LR +0,008, geçememişti) |
+| Çalışan model (9 Ekim Random Forest) − TI1 | +0,033 [+0,018; +0,048]; dondurmadaki GB aday onu geçemedi (+0,003), canlıda RF kaldı |
+| MADIS ölçülen EDR'de TI1 / model | ROC-AUC 0,722 / 0,779 (14 gün) |
 | Backtest THY322, 15 Oca 2019, riskli nokta oranı | gerçek iz 0,24 / büyük daire 0,39 / A* 0,02 |
 
 **Backtest** (`dogrulama/rota_backtest.py`): Veritabanındaki gerçek bir uçuş için üç rota aynı
@@ -294,11 +297,13 @@ aktif TURB SIGMET'in gösterdiği bölgede TI1 hiç risk görmedi.
 
 ## 14. Sık gelebilecek sorular
 
-- **0,68 iyi mi?** Rastgele tahmin 0,5. Orta düzey; bu yüzden güvenlik SIGMET'e dayanıyor.
+- **0,67–0,71 iyi mi?** Rastgele tahmin 0,5. Orta düzey; bu yüzden güvenlik SIGMET'e dayanıyor.
 - **Neden GPS değil baro irtifa?** Hava verisi basınç seviyelerinde; baro irtifa ISA basıncına
   birebir denk gelir.
-- **Model neden TI1'i geçemedi?** Kanıtlanmış bir neden yok. Olası açıklama: model aynı 0,25°
-  ERA5 alanlarından türetilen özelliklerle öğreniyor, ölçek sınırı özellik eklemekle aşılmıyor.
+- **Model TI1'i ne kadar geçiyor?** Altın günlerde +0,036 ROC-AUC (0,710'a karşı 0,675). Fark
+  anlamlı ama küçük: model aynı 0,25° ERA5 alanlarından türetilen özelliklerle öğreniyor, ölçek
+  sınırı özellik eklemekle aşılmıyor. 7 Ekim'de 80 günle seçilen LR geçememişti; sonuç veri
+  hacmine duyarlı.
 - **Neden günler gruplu?** Aynı günün raporları aynı hava sistemine ait; satır satır karıştırmak
   sonucu olduğundan iyi gösterir.
 - **A* neden optimal?** Sezgisel hiçbir zaman gerçek kalan süreden büyük değil (kabul edilebilir).

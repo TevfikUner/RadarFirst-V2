@@ -123,9 +123,9 @@ def ti1_indeksi_hesapla(vws, deformasyon):
 
 # DÜRÜSTLÜK NOTU (madde 6, bkz. konuşma geçmişi): TI1'in TEK BAŞINA gerçek
 # türbülans olaylarını ayırt ettiği BAĞIMSIZ olarak kanıtlanmamıştır. Seyir
-# irtifasındaki 7815 PIREP'te (80 gün, çevreleyen katman fiziği) TI1'in tek başına
-# ayırt ediciliği orta düzeydedir (ROC-AUC 0.68; altın test günlerinde 0.67; sayılar
-# docs/sonuclar/<kesme>/SAYILAR.md'den).
+# irtifasındaki 15940 PIREP'te (163 gün, çevreleyen katman fiziği) TI1'in tek başına
+# ayırt ediciliği orta düzeydedir (ROC-AUC 0.67; altın test günlerinde 0.67; sayılar
+# docs/sonuclar/2026-10-18/SAYILAR.md'den).
 # Bağımsız kanıt modülüyle (dogrulama/bagimsiz_kanit.py)
 # yapılan canlı bir sınamada (PUE502, 26 Eylül 2026) aktif TURB SIGMET'lerin
 # işaret ettiği bir bölgede TI1 HİÇ risk görmedi -- yani bugün rota
@@ -136,8 +136,8 @@ def ti1_indeksi_hesapla(vws, deformasyon):
 # istemci (EFB arayüzü) TI1'e "kanıtlanmış" güvenmesin diye elinin altında olsun.
 TI1_GUVENILIRLIK_NOTU = (
     "TI1 fiziksel göstergesi, gerçek türbülans olaylarını TEK BAŞINA güvenilir şekilde ayırt ettiği bağımsız "
-    "olarak KANITLANMAMIŞTIR (seyir irtifasındaki 7815 PIREP'te [80 gün] ROC-AUC 0.68, altın test "
-    "günlerinde 0.67 [%95 GA 0.64-0.70]; risk eşiğinde altın günlerde yakalama 0.50, yanlış alarm 0.25; "
+    "olarak KANITLANMAMIŞTIR (seyir irtifasındaki 15940 PIREP'te [163 gün] ROC-AUC 0.67, altın test "
+    "günlerinde 0.67 [%95 GA 0.64-0.71]; risk eşiğinde altın günlerde yakalama 0.50, yanlış alarm 0.25; "
     "gerçek bir uçuşta [PUE502] aktif SIGMET'in işaret ettiği türbülansı TI1 hiç "
     "yakalamadı). Bugün güvenlik garantisi TI1'den değil SIGMET sert kısıtından "
     "gelir; TI1 yalnızca ek/yumuşak bir gösterge olarak değerlendirilmelidir. Kapsam yalnızca açık hava "
