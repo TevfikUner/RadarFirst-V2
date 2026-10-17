@@ -2,6 +2,12 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-17 (dal `claude/komite-incelemesi`)
+
+- ✅ Komite incelemesi `docs/denetim/2026-10-17/KOMITE_INCELEMESI.md`: 39 bulgu, jüri soruları ve cevaplar.
+- ⚠️ Belgeler "ML devrede değil" diyor, canlıda 9 Eki RF aktif (C-1/C-2); kalibre_ti1 eşik hatası (C-9).
+- ✅ Rehber Ders 1 backtest sayısı paketle eşitlendi (0,24 / 0,39 / 0,02).
+
 ## 2026-10-17 (dal `claude/ogrenme-rehberi`)
 
 - ✅ Gece işi kontrolü: ml_veri tamamlandı; aday aktif modeli geçemedi (+0,003), yalnız sürüm.

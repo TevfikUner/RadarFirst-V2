@@ -41,8 +41,10 @@ Bu uçuşun verisi depoda hazır gelir (`demo/`), internet gerekmez.
    `ciktilar/turbulans_haritasi_THY322_2019-01-15.html` dosyasını üretir. API açıkken aynı
    uçuş `web/harita3d.html`'de 3B olarak görülür.
 6. **Rota önerisi** (ayrı istek, Ders 4): aynı hava verisiyle A* daha sakin bir yol arar.
-   README'deki ölçüme göre THY322'nin karşılaştırılan 116 km'lik bölümünde riskli nokta
-   oranı: gerçek iz 0,19 · büyük daire 0,32 · önerilen rota 0,00 (+0,4 dk).
+   Sonuç paketine göre (`docs/sonuclar/2026-10-07/SAYILAR.md`, 7e-7 eşiği) THY322'nin riskli
+   nokta oranı: gerçek iz 0,24 · büyük daire 0,39 · önerilen rota 0,02. Backtest döngüseldir:
+   A* TI1'i düşürür, başarı da TI1 ile ölçülür. (README'deki 0,19 / 0,32 / 0,00 eşik
+   değişmeden önceki ölçümdür.)
 
 ```mermaid
 flowchart LR
