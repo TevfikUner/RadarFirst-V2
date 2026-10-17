@@ -2,6 +2,10 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-17 (dal `claude/hiz-siniri-test-kararliligi`)
+
+- ✅ PR #76 CI test (3.12) hatası kod değil zamanlama: 429 testi dakika sınırına denk geldi; 4 test sınırdan uzaklaşıyor.
+
 ## 2026-10-17 (dal `claude/uretim-faz0`)
 
 - ✅ Faz 0 üretim denetimi: 988 test, ruff temiz; 28 bulgu: 21 doğru, 7 kısmen, 7 yeni (`docs/denetim/2026-10-17/`).
