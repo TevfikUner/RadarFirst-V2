@@ -11,6 +11,7 @@ dayanır); bu katman değerleri kopyalamaz, yalnız denetler. Her ayar burada
 olmak zorunda değil: yanlış değerinin sonucu sessiz ve önemli olanlar seçildi.
 """
 
+import os
 import re
 from typing import Annotated, Literal
 
@@ -131,11 +132,63 @@ class AyarSemasi(BaseModel):
         return self
 
 
-def ayarlari_dogrula(kaynak=config) -> None:
+_YEREL_ADRESLER = ("", "127.0.0.1", "localhost", "::1")
+_MIN_ANAHTAR_UZUNLUGU = 32
+_VARSAYILAN_DB_SIFRELERI = ("", "postgres")
+
+
+def yalnizca_yerel_yayin_mi(ortam=None) -> bool:
+    ortam = os.environ if ortam is None else ortam
+    return ortam.get("API_YAYIN_ADRESI", "").strip() in _YEREL_ADRESLER
+
+
+def ag_acik_mi(ortam=None) -> bool:
+    """API_YAYIN_ADRESI yerel değilse ya da AG_ACILISI açıksa (TLS vekili arkasında üretim)."""
+    ortam = os.environ if ortam is None else ortam
+    return not yalnizca_yerel_yayin_mi(ortam) or ortam.get("AG_ACILISI", "").strip().lower() in ("1", "true", "evet")
+
+
+def _zayif_mi(deger: str) -> bool:
+    return len(deger) < _MIN_ANAHTAR_UZUNLUGU or deger.lower().startswith("demo")
+
+
+def ag_acilis_sorunlari(ortam=None, kaynak=config) -> list[str]:
+    """Ağa açık kurulumda başlamayı engelleyen sır ve ayar sorunları (değer yazılmaz)."""
+    ortam = os.environ if ortam is None else ortam
+    if not ag_acik_mi(ortam):
+        return []
+    anahtarlar = [("API_ANAHTARI", ortam.get("API_ANAHTARI", ""))]
+    if ortam.get("API_PILOT_ANAHTARI"):
+        anahtarlar.append(("API_PILOT_ANAHTARI", ortam["API_PILOT_ANAHTARI"]))
+    for girdi in filter(None, (g.strip() for g in ortam.get("API_ANAHTARLARI", "").split(","))):
+        anahtarlar.append((f"API_ANAHTARLARI[{girdi.split(':', 1)[0]}]", girdi.split(":", 2)[-1].strip()))
+    sorunlar = [
+        f"{ad}: en az {_MIN_ANAHTAR_UZUNLUGU} karakter olmalı ve demo anahtarı olamaz"
+        for ad, anahtar in anahtarlar
+        if _zayif_mi(anahtar)
+    ]
+    sifre = ortam.get("POSTGRES_PASSWORD", "")
+    if sifre in _VARSAYILAN_DB_SIFRELERI or sifre.lower().startswith("demo"):
+        sorunlar.append("POSTGRES_PASSWORD: varsayılan ya da demo şifresi")
+    if ortam.get("POSTGRES_USER", "postgres") in {"postgres", ortam.get("DB_SUPER_KULLANICI", "postgres")}:
+        sorunlar.append(
+            "POSTGRES_USER: süper kullanıcı; UYGULAMA_POSTGRES_USER/PASSWORD tanımlayın (README 'Uygulama veritabanı rolü')"
+        )
+    if getattr(kaynak, "KISITLI_SAHA_ORNEK_VERI_YUKLE", getattr(config, "KISITLI_SAHA_ORNEK_VERI_YUKLE")):
+        sorunlar.append("KISITLI_SAHA_ORNEK_VERI_YUKLE: örnek kısıtlı sahalar açık; false yapın")
+    if not getattr(kaynak, "MODEL_BUTUNLUK_ZORUNLU", getattr(config, "MODEL_BUTUNLUK_ZORUNLU")):
+        sorunlar.append("MODEL_BUTUNLUK_ZORUNLU: model bütünlük denetimi kapalı; true yapın")
+    return sorunlar
+
+
+def ayarlari_dogrula(kaynak=config, ortam=None) -> None:
     """Sorun varsa hepsini tek mesajda listeleyen AyarHatasi fırlatır."""
     degerler = {ad: getattr(kaynak, ad) for ad in AyarSemasi.model_fields}
+    satirlar = []
     try:
         AyarSemasi.model_validate(degerler)
     except ValidationError as hata:
         satirlar = [f"{'.'.join(str(p) for p in h['loc']) or 'tutarlılık'}: {h['msg']}" for h in hata.errors()]
-        raise AyarHatasi("Geçersiz ayar (ortam değişkenleri / .env):\n  " + "\n  ".join(satirlar)) from None
+    satirlar += [f"ağa açık kurulum: {sorun}" for sorun in ag_acilis_sorunlari(ortam, kaynak)]
+    if satirlar:
+        raise AyarHatasi("Geçersiz ayar (ortam değişkenleri / .env):\n  " + "\n  ".join(satirlar))

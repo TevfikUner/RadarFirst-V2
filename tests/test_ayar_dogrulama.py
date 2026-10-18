@@ -3,7 +3,7 @@ import types
 import pytest
 
 from turbulans_radar import config
-from turbulans_radar.ayar_dogrulama import AyarHatasi, AyarSemasi, ayarlari_dogrula
+from turbulans_radar.ayar_dogrulama import AyarHatasi, AyarSemasi, ag_acilis_sorunlari, ayarlari_dogrula
 
 pytestmark = pytest.mark.birim
 
@@ -52,3 +52,63 @@ def test_ortam_bool_tanimadigi_degerde_hata_verir(monkeypatch):
     monkeypatch.setenv("DENEME_BAYRAGI", "ture")
     with pytest.raises(ValueError, match="DENEME_BAYRAGI"):
         config._ortam_bool("DENEME_BAYRAGI", False)
+
+
+_GUCLU = "g" * 40
+
+
+def _ag_ortami(**degisen):
+    return {
+        "API_YAYIN_ADRESI": "0.0.0.0",
+        "API_ANAHTARI": _GUCLU,
+        "POSTGRES_USER": "turbulans_uygulama",
+        "POSTGRES_PASSWORD": _GUCLU,
+        **degisen,
+    }
+
+
+def _uretim_ayari(**degisen):
+    return types.SimpleNamespace(KISITLI_SAHA_ORNEK_VERI_YUKLE=False, MODEL_BUTUNLUK_ZORUNLU=True, **degisen)
+
+
+def test_yerel_yayinda_ag_kurallari_uygulanmaz():
+    assert ag_acilis_sorunlari({"API_ANAHTARI": "demo", "POSTGRES_PASSWORD": "postgres"}, _uretim_ayari()) == []
+
+
+def test_guclu_uretim_ayarlariyla_ag_acilisi_serbest():
+    assert ag_acilis_sorunlari(_ag_ortami(), _uretim_ayari()) == []
+    assert ag_acilis_sorunlari(_ag_ortami(API_YAYIN_ADRESI="", AG_ACILISI="true"), _uretim_ayari()) == []
+
+
+@pytest.mark.parametrize(
+    "ortam_degisen,ayar_degisen,parca",
+    [
+        ({"API_ANAHTARI": "kisa"}, {}, "API_ANAHTARI"),
+        ({"API_ANAHTARI": "demo" + _GUCLU}, {}, "API_ANAHTARI"),
+        ({"API_ANAHTARI": ""}, {}, "API_ANAHTARI"),
+        ({"API_PILOT_ANAHTARI": "demo-pilot"}, {}, "API_PILOT_ANAHTARI"),
+        ({"API_ANAHTARLARI": "tablet:pilot:kisa"}, {}, "API_ANAHTARLARI[tablet]"),
+        ({"POSTGRES_PASSWORD": "postgres"}, {}, "POSTGRES_PASSWORD"),
+        ({"POSTGRES_PASSWORD": "demo123"}, {}, "POSTGRES_PASSWORD"),
+        ({"POSTGRES_USER": "postgres"}, {}, "POSTGRES_USER"),
+        ({"POSTGRES_USER": "turbulans", "DB_SUPER_KULLANICI": "turbulans"}, {}, "POSTGRES_USER"),
+        ({}, {"KISITLI_SAHA_ORNEK_VERI_YUKLE": True}, "KISITLI_SAHA_ORNEK_VERI_YUKLE"),
+        ({}, {"MODEL_BUTUNLUK_ZORUNLU": False}, "MODEL_BUTUNLUK_ZORUNLU"),
+        ({"API_YAYIN_ADRESI": "", "AG_ACILISI": "1", "API_ANAHTARI": "kisa"}, {}, "API_ANAHTARI"),
+    ],
+)
+def test_ag_acik_kurulumda_zayif_ayar_reddedilir(ortam_degisen, ayar_degisen, parca):
+    kaynak = types.SimpleNamespace(
+        **{"KISITLI_SAHA_ORNEK_VERI_YUKLE": False, "MODEL_BUTUNLUK_ZORUNLU": True, **ayar_degisen}
+    )
+    sorunlar = ag_acilis_sorunlari(_ag_ortami(**ortam_degisen), kaynak)
+    assert len(sorunlar) == 1 and sorunlar[0].startswith(parca)
+
+
+def test_ag_sorunlari_sema_hatalariyla_tek_mesajda_ve_degersiz():
+    kaynak = _kopya(ML_HOLDOUT_ORANI=0.0, KISITLI_SAHA_ORNEK_VERI_YUKLE=False, MODEL_BUTUNLUK_ZORUNLU=True)
+    with pytest.raises(AyarHatasi) as hata:
+        ayarlari_dogrula(kaynak, _ag_ortami(API_ANAHTARI="gizli-ama-kisa"))
+    mesaj = str(hata.value)
+    assert "ML_HOLDOUT_ORANI" in mesaj and "ağa açık kurulum: API_ANAHTARI" in mesaj
+    assert "gizli-ama-kisa" not in mesaj

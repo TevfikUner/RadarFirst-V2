@@ -94,13 +94,66 @@ dis_kopyala() {
   done
 }
 
+# Haftalık geri yükleme tatbikatı (P0-8): son 7 günde rapor yoksa en yeni yedek geçici bir
+# sunucuya yüklenip canlıyla karşılaştırılır (otomasyon/geri_yukleme_tatbikati.sh).
+tatbikat_gerekirse() {
+  [ -f /geri_yukleme_tatbikati.sh ] || return 0
+  [ -n "$(find /yedekler/tatbikat -name 'tatbikat_*.txt' -mtime -7 2>/dev/null)" ] && return 0
+  sh /geri_yukleme_tatbikati.sh || echo "$(date -u +%FT%TZ) GERI YUKLEME TATBIKATI BASARISIZ" >&2
+}
+
+# /yedekler/kalici/ altındaki dosyalar (ör. veri dondurma günü yedeği) saklama süresiyle
+# silinmez; disk dışı kopyaya da (şifreliyse .gpg) bir kez yazılır.
+kalici_kopyala() {
+  [ -d /dis_yedek ] && [ -d /yedekler/kalici ] || return 0
+  mkdir -p /dis_yedek/kalici
+  for kaynak in /yedekler/kalici/*; do
+    [ -s "$kaynak" ] || continue
+    hedef="/dis_yedek/kalici/$(basename "$kaynak")"
+    if sifreli_mi; then
+      [ -s "$hedef.gpg" ] && continue
+      mkdir -p -m 700 /tmp/gnupg
+      gpg --homedir /tmp/gnupg --batch --yes --pinentry-mode loopback --passphrase-file "$PAROLA"         --symmetric --cipher-algo AES256 --compress-algo none -o "$hedef.gpg.yaziliyor" "$kaynak"         && mv "$hedef.gpg.yaziliyor" "$hedef.gpg"         && echo "$(date -u +%FT%TZ) kalici dis kopya (sifreli): $(basename "$hedef").gpg"
+    else
+      [ -s "$hedef" ] && continue
+      cp "$kaynak" "$hedef.yaziliyor" && mv "$hedef.yaziliyor" "$hedef"         && echo "$(date -u +%FT%TZ) kalici dis kopya: $(basename "$hedef")"
+    fi
+  done
+}
+
+# API'nin sağlık raporu için küçük durum dosyası (P0-5): API dump'ları görmez, yalnız bunu
+# okur. Değerler son dosyaların zamanı (epoch) ve son tatbikatın sonucu.
+son_zaman() {
+  dosya="$(ls -1t $1 2>/dev/null | head -n 1)"
+  [ -n "$dosya" ] && stat -c %Y "$dosya" || echo null
+}
+
+durum_yaz() {
+  mkdir -p /yedekler/durum
+  tatbikat="$(ls -1t /yedekler/tatbikat/tatbikat_*.txt 2>/dev/null | head -n 1)"
+  if [ -n "$tatbikat" ]; then
+    sonuc="$(sed -n 's/^sonuc: \([A-Z]*\).*/\1/p' "$tatbikat")"
+    tatbikat_json="{\"sonuc\": \"$sonuc\", \"zaman\": $(stat -c %Y "$tatbikat")}"
+  else
+    tatbikat_json=null
+  fi
+  printf '{"veritabani": %s, "dosyalar": %s, "tatbikat": %s, "guncelleme": %s}\n' \
+    "$(son_zaman '/yedekler/turbulans_*.dump')" "$(son_zaman '/yedekler/dosyalar_*.tar.gz')" \
+    "$tatbikat_json" "$(date +%s)" > /yedekler/durum/yedek_durumu.json.yaziliyor \
+    && mv /yedekler/durum/yedek_durumu.json.yaziliyor /yedekler/durum/yedek_durumu.json
+}
+
 while true; do
   GUN="$(date -u +%Y%m%d)"
   dis_kopyala
   if veritabani_yedegi "$GUN" && dosya_yedegi "$GUN"; then
     dis_kopyala
+    kalici_kopyala
+    tatbikat_gerekirse
+    durum_yaz
     sleep 3600
   else
+    durum_yaz
     sleep "$YENIDEN"
   fi
 done

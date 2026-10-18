@@ -1882,6 +1882,22 @@ def test_yedek_saglik_kontrolu_yas_ve_eksikligi_raporlar(monkeypatch, tmp_path):
     assert sonuc["durum"] == "eski" and sonuc["dosyalar_yas_saat"] > 70
 
 
+def test_yedek_saglik_kontrolu_durum_dosyasini_okur_dumplari_gormeden(monkeypatch, tmp_path):
+    import json
+    import time
+
+    monkeypatch.setattr(config, "YEDEK_KLASORU", str(tmp_path))
+    (tmp_path / "durum").mkdir()
+    simdi = time.time()
+    kayit = {"veritabani": simdi - 3600, "dosyalar": simdi - 3600, "tatbikat": {"sonuc": "GECTI", "zaman": simdi}}
+    (tmp_path / "durum" / "yedek_durumu.json").write_text(json.dumps(kayit), encoding="utf-8")
+    sonuc = api_servisi._yedek_kontrolu()
+    assert sonuc["durum"] == "tamam" and sonuc["veritabani_yas_saat"] == 1.0 and sonuc["tatbikat_sonuc"] == "GECTI"
+    kayit["tatbikat"]["sonuc"] = "KALDI"
+    (tmp_path / "durum" / "yedek_durumu.json").write_text(json.dumps(kayit), encoding="utf-8")
+    assert api_servisi._yedek_kontrolu()["durum"] == "eski"
+
+
 def test_canli_gfs_uzun_suredir_kullanilmadiysa_bosta_hata_degil(monkeypatch):
     monkeypatch.setattr(config, "CANLI_HAVA_VERISI_ETKIN", True)
     monkeypatch.setattr(config, "CANLI_ISITMA_SAAT", 0)
