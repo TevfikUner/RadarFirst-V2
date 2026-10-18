@@ -17,8 +17,8 @@
   tablosu; ARAC_KULLANIMI_BEYANI commit/satır sayımları güncel git'e göre.
 - [x] (18 Ekim: 7,39e-7; 7e-7 1-SE bandının içinde, config değişmedi, SONUCLAR §0.2) `esik_taramasi.bir_se.esik` 7e-7'den belirgin farklıysa `TI1_ESIK_ORTA_SIDDETLI`'yi
   güncelle; eşiğe bağlı testler, demo senaryosu ve ekranlar yeniden kontrol edilir.
-- [ ] (18 Ekim: ERA5 eşiği değişmediği için 16 Ekim ölçümü geçerli, yeniden çalıştırmaya gerek
-  yok; `.env`'ye yazmak canlı davranışı değiştirir, ONAY bekliyor) GFS eşiği: nihai ERA5 eşiğiyle `turbulans-esik-esleme --baslangic 2026-10-09T00:00Z
+- [x] (18 Ekim: ERA5 eşiği değişmedi, 16 Ekim ölçümü geçerli; `.env`'ye 8,3e-7 yazıldı, API/işçi
+  yeniden başlatıldı; demo ekranları ERA5 kullandığı için değişmedi) GFS eşiği: nihai ERA5 eşiğiyle `turbulans-esik-esleme --baslangic 2026-10-09T00:00Z
   --bitis 2026-10-11T18:00Z --esik <yeni> --cikti docs/sonuclar/2026-10-18` (veri önbellekte,
   indirme yok). 16 Ekim ölçümü: 7e-7 ↔ GFS 8,30e-7 [7,96; 8,67]e-7. Sonucu
   `TI1_ESIK_ORTA_SIDDETLI_GFS`'e (`.env`) yaz, API/worker'ı yeniden başlat; demo ekranları GFS

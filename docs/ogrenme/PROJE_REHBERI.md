@@ -123,7 +123,7 @@ hafif eşiği 4e-7). Çizgiyi aşağı çekersen daha çok türbülans yakalars�
 - Altın test günlerinde bu eşik: türbülanslı raporların ~%50'sini yakalıyor, sakin
   olanların ~%25'inde yanlış alarm veriyor. TI1'in tek başına ayırt etme gücü orta düzeyde (ROC-AUC 0,67).
 - Eşik ERA5'te seçildi. GFS'te aynı eşik daha çok noktayı riskli sayıyor. Ayrı GFS eşiği
-  tanımlanabilir ama şu an boş (`fizik/ti1_esigi.py` → `kaynak_ti1_esigi`).
+  18 Ekim'den beri `.env`'de 8,3e-7 (`fizik/ti1_esigi.py` → `kaynak_ti1_esigi`).
 
 **Neden "sertifikalı EDR değil"?** EDR, uçağın kendi sensörünün sarsıntıyı onaylı bir
 yöntemle ölçmesidir. Bizim TI1'imiz ~25–30 km'lik ızgaralı hava verisinden çıkarılan bir

@@ -152,15 +152,16 @@ def _zayif_mi(deger: str) -> bool:
     return len(deger) < _MIN_ANAHTAR_UZUNLUGU or deger.lower().startswith("demo")
 
 
-def ag_acilis_sorunlari(ortam=None, kaynak=config) -> list[str]:
-    """Ağa açık kurulumda başlamayı engelleyen sır ve ayar sorunları (değer yazılmaz)."""
+def ag_acilis_sorunlari(ortam=None, kaynak=config, anahtarlari_denetle=True) -> list[str]:
+    """Ağa açık kurulumda başlamayı engelleyen sır ve ayar sorunları (değer yazılmaz).
+    İşçi API anahtarı taşımadığı için anahtarlari_denetle=False ile çağırır."""
     ortam = os.environ if ortam is None else ortam
     if not ag_acik_mi(ortam):
         return []
-    anahtarlar = [("API_ANAHTARI", ortam.get("API_ANAHTARI", ""))]
-    if ortam.get("API_PILOT_ANAHTARI"):
+    anahtarlar = [("API_ANAHTARI", ortam.get("API_ANAHTARI", ""))] if anahtarlari_denetle else []
+    if anahtarlari_denetle and ortam.get("API_PILOT_ANAHTARI"):
         anahtarlar.append(("API_PILOT_ANAHTARI", ortam["API_PILOT_ANAHTARI"]))
-    for girdi in filter(None, (g.strip() for g in ortam.get("API_ANAHTARLARI", "").split(","))):
+    for girdi in filter(None, (g.strip() for g in ortam.get("API_ANAHTARLARI", "").split(",") if anahtarlari_denetle)):
         anahtarlar.append((f"API_ANAHTARLARI[{girdi.split(':', 1)[0]}]", girdi.split(":", 2)[-1].strip()))
     sorunlar = [
         f"{ad}: en az {_MIN_ANAHTAR_UZUNLUGU} karakter olmalı ve demo anahtarı olamaz"
@@ -181,7 +182,7 @@ def ag_acilis_sorunlari(ortam=None, kaynak=config) -> list[str]:
     return sorunlar
 
 
-def ayarlari_dogrula(kaynak=config, ortam=None) -> None:
+def ayarlari_dogrula(kaynak=config, ortam=None, anahtarlari_denetle=True) -> None:
     """Sorun varsa hepsini tek mesajda listeleyen AyarHatasi fırlatır."""
     degerler = {ad: getattr(kaynak, ad) for ad in AyarSemasi.model_fields}
     satirlar = []
@@ -189,6 +190,6 @@ def ayarlari_dogrula(kaynak=config, ortam=None) -> None:
         AyarSemasi.model_validate(degerler)
     except ValidationError as hata:
         satirlar = [f"{'.'.join(str(p) for p in h['loc']) or 'tutarlılık'}: {h['msg']}" for h in hata.errors()]
-    satirlar += [f"ağa açık kurulum: {sorun}" for sorun in ag_acilis_sorunlari(ortam, kaynak)]
+    satirlar += [f"ağa açık kurulum: {sorun}" for sorun in ag_acilis_sorunlari(ortam, kaynak, anahtarlari_denetle)]
     if satirlar:
         raise AyarHatasi("Geçersiz ayar (ortam değişkenleri / .env):\n  " + "\n  ".join(satirlar))

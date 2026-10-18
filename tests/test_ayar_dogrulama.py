@@ -105,6 +105,12 @@ def test_ag_acik_kurulumda_zayif_ayar_reddedilir(ortam_degisen, ayar_degisen, pa
     assert len(sorunlar) == 1 and sorunlar[0].startswith(parca)
 
 
+def test_isci_anahtarsiz_ag_kurallarindan_gecer_ama_db_kurallari_kalir():
+    ortam = _ag_ortami(API_ANAHTARI="", POSTGRES_USER="postgres")
+    sorunlar = ag_acilis_sorunlari(ortam, _uretim_ayari(), anahtarlari_denetle=False)
+    assert len(sorunlar) == 1 and sorunlar[0].startswith("POSTGRES_USER")
+
+
 def test_ag_sorunlari_sema_hatalariyla_tek_mesajda_ve_degersiz():
     kaynak = _kopya(ML_HOLDOUT_ORANI=0.0, KISITLI_SAHA_ORNEK_VERI_YUKLE=False, MODEL_BUTUNLUK_ZORUNLU=True)
     with pytest.raises(AyarHatasi) as hata:

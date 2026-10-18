@@ -78,7 +78,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   için değiştirilmedi (`docs/rapor/SONUCLAR.md` §0.2). Eşik ERA5'te
   seçildi; canlı GFS'te aynı eşik noktaların daha büyük bir kısmını riskli sayıyor (16 Ekim:
   %11,1'e karşı %8,5; GFS eşdeğeri 8,30e-7, `docs/sonuclar/2026-10-16/`). GFS için ayrı eşik
-  `TI1_ESIK_ORTA_SIDDETLI_GFS` ile verilebilir; şu an boştur ve GFS'te de 7e-7 kullanılır.
+  `TI1_ESIK_ORTA_SIDDETLI_GFS` ile verilir: 18 Ekim'den beri bu kurulumda 8,3e-7 (`.env`; ERA5 eşiği
+  nihai pakette değişmediği için 16 Ekim eşlemesi geçerli). Tek bölge, tek mevsim, 3 günlük ölçümdür.
   Kullanılan eşik `uretim_bilgisi.esikler.ti1_orta_siddetli_uygulanan` alanında yazar.
 - **Rota adayları:**
   - A* ile yanal sapma: büyük daire etrafında 41 ara nokta; her bacağın büyük

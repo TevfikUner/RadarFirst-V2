@@ -362,7 +362,7 @@ def ana():
 
     konsolu_utf8_yap()
     loglama.ayarla()
-    ayarlari_dogrula()
+    ayarlari_dogrula(anahtarlari_denetle=False)
     isci = GorevIscisi().baslat()
     dur = threading.Event()
     for sinyal in (signal.SIGINT, signal.SIGTERM):
