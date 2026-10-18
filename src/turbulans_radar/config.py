@@ -23,6 +23,42 @@ try:
 except ImportError:
     pass
 
+# Sırlar ortam değişkeni yerine dosyadan da verilebilir (Docker secret, P0-9): NAME_FILE
+# tanımlıysa dosyanın içeriği NAME'in yerine geçer (compose varsayılanlarını da ezer).
+# Dosya okunamazsa süreç başlamaz; yanlış sırla sessizce çalışmaktan iyidir.
+DOSYADAN_OKUNABILEN_SIRLAR = (
+    "API_ANAHTARI",
+    "API_PILOT_ANAHTARI",
+    "API_ANAHTARLARI",
+    "POSTGRES_PASSWORD",
+    "MCP_POSTGRES_PASSWORD",
+    "OPENSKY_PASSWORD",
+    "OPENSKY_CLIENT_SECRET",
+    "OPENAIP_API_ANAHTARI",
+)
+
+
+def dosyadan_sirlari_yukle(ortam=None) -> list[str]:
+    """NAME_FILE verilmiş sırları dosyadan NAME'e yükler; yüklenen adları döner (değer değil)."""
+    ortam = os.environ if ortam is None else ortam
+    yuklenen = []
+    for ad in DOSYADAN_OKUNABILEN_SIRLAR:
+        yol = ortam.get(f"{ad}_FILE", "").strip()
+        if not yol:
+            continue
+        try:
+            with open(yol, encoding="utf-8") as dosya:
+                ortam[ad] = dosya.read().strip()
+        except OSError as hata:
+            raise RuntimeError(f"{ad}_FILE okunamadı ({yol}): {hata.strerror}") from None
+        if not ortam[ad]:
+            raise RuntimeError(f"{ad}_FILE boş ({yol})")
+        yuklenen.append(ad)
+    return yuklenen
+
+
+dosyadan_sirlari_yukle()
+
 
 def _ortam_str(isim, varsayilan):
     return os.environ.get(isim, varsayilan)
