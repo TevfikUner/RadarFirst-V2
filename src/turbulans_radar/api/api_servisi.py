@@ -571,6 +571,54 @@ def _denetim_yolu(request: Request) -> str:
     return f"{request.url.path}?{urlencode(parcalar)}"
 
 
+# Tarayıcı güvenlik başlıkları (P0-3). CSP yalnız /harita sayfalarına: betikler yalnız bu
+# sunucudan (satır içi betik ve CDN yok), altlık karolar Esri'den, WebSocket aynı origin.
+# /docs (Swagger, yalnız yerelde açık) CDN ve satır içi betik kullandığı için CSP almaz.
+# CesiumJS kendi içinde new Function ve WebAssembly kullanır; yalnız onun sayfası ve işçi
+# dosyaları 'unsafe-eval' 'wasm-unsafe-eval' ve blob: (işçiler importScripts ile) alır; satır içi
+# ve dış betik yine yasak.
+_CESIUM_YOLLARI = ("/harita/ucus_simulasyonu", "/harita/vendor/cesium/")
+
+
+def _harita_csp(betik_kaynagi: str) -> str:
+    return "; ".join(
+        (
+            "default-src 'self'",
+            f"script-src {betik_kaynagi}",
+            "style-src 'self' 'unsafe-inline'",
+            "img-src 'self' data: blob: https://server.arcgisonline.com",
+            "connect-src 'self' https://server.arcgisonline.com",
+            "worker-src 'self' blob:",
+            "font-src 'self' data:",
+            "object-src 'none'",
+            "base-uri 'self'",
+            "form-action 'self'",
+            "frame-ancestors 'none'",
+        )
+    )
+
+
+_HARITA_CSP = _harita_csp("'self'")
+_CESIUM_CSP = _harita_csp("'self' blob: 'unsafe-eval' 'wasm-unsafe-eval'")
+_GUVENLIK_BASLIKLARI = {
+    "X-Content-Type-Options": "nosniff",
+    "Referrer-Policy": "no-referrer",
+    "X-Frame-Options": "DENY",
+    "Permissions-Policy": "camera=(), microphone=(), geolocation=()",
+}
+
+
+@app.middleware("http")
+async def _guvenlik_basliklari(request: Request, call_next):
+    yanit = await call_next(request)
+    for ad, deger in _GUVENLIK_BASLIKLARI.items():
+        yanit.headers.setdefault(ad, deger)
+    yol = request.url.path
+    if yol.startswith("/harita"):
+        yanit.headers["Content-Security-Policy"] = _CESIUM_CSP if yol.startswith(_CESIUM_YOLLARI) else _HARITA_CSP
+    return yanit
+
+
 @app.middleware("http")
 async def _http_metrikleri(request: Request, call_next):
     baslangic = time.monotonic()
@@ -941,7 +989,7 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi, request: Request, rol:
 # ---------------------------------------------------------------------------
 
 _SAGLIKSIZ_DURUMLAR = {"bayat", "hata", "birikiyor"}
-_UYARI_DURUMLARI = {"cdn_yedegi", "ornek_veri", "veri_yok", "son_deneme_basarisiz", "gecikmis", "yok", "eski"}
+_UYARI_DURUMLARI = {"eksik", "ornek_veri", "veri_yok", "son_deneme_basarisiz", "gecikmis", "yok", "eski"}
 _KUYRUK_BIRIKME_ESIGI_SANIYE = 120
 
 
