@@ -144,32 +144,44 @@ kurulur, komut satırı araçları `[project.scripts]` ile gelir):
 
 ```
 turbulans_radar/
-  config.py, loglama.py, hata_yardimcisi.py, konsol_kurulumu.py   -> çekirdek: ayarlar, log, hata mesajları
+  config.py, ayar_dogrulama.py, loglama.py, hata_yardimcisi.py,   -> çekirdek: ayarlar (*_FILE sırları), doğrulama ve ağa açılışta
+    konsol_kurulumu.py, uretim_bilgisi.py, yeniden_deneme.py,         kapalı başlama, log, hata mesajları, sürüm bilgisi, yeniden deneme,
+    webhook.py, ucus_kurallari.py                                     webhook, uçuş kuralları
   depo/       models.py, veritabani.py         -> SQLAlchemy ORM + senkron/asenkron PostgreSQL erişimi
-              gorev_deposu.py                  -> API analiz görevlerinin kalıcı kaydı
-              kup_katalogu.py                  -> hava durumu küplerinin kataloğu (ızgara diskte, meta veri DB'de)
-  veri/       veri_yukleme.py                  -> NetCDF yükleme/önbellek, yerel küp seçimi, OpenSky/Trino sorguları
-              veri_saglayicilari.py            -> Veri Sağlayıcı katmanı: canlı NOAA GFS (THREDDS) + ERA5 seçimi
-              sigmet_saglayici.py              -> canlı AWC SIGMET'leri (ABD + uluslararası, Ankara FIR dahil)
-              kisitli_saha_saglayici.py        -> kısıtlı/yasak hava sahaları (GeoJSON içe aktarma, örnek veri)
-              veri_indirme.py                  -> ERA5 indirme altyapısı (güvenlik sınırlı, varsayılan kuru deneme)
-              kimlik_dogrulama.py              -> .env'den OpenSky kimlik bilgisi
-  fizik/      turbulans_indeksleri.py          -> Ellrod TI1, Richardson, TI1 görsel ölçeği
-              eslestirme.py                    -> rota <-> hava küpü vektörel eşleştirme, 3 boyutlu kapsam kontrolü
-              birim_donusumleri.py             -> irtifa <-> basınç (ISA)
-              kalibrasyon.py                   -> EDR ölçekleme katsayısı kalibrasyonu (bootstrap GA)
-  rota/       rota_optimizasyonu.py            -> büyük daire vs A* rotası (yanal + irtifa), CZML üretimi
-              risk_katmanlari.py               -> A*'ın modüler risk katmanları (TI1 cezası, SIGMET/kısıtlı saha sert kısıtı)
-  dogrulama/  rota_backtest.py                 -> A* rotası vs gerçek uçuş izi (otomatik backtest)
-              sigmet_dogrulama.py              -> TI1'in tarihsel AWC SIGMET'leriyle karşılaştırması (ABD)
-  ml/         turbulans_ml_modeli.py           -> PIREP + ERA5 ile eğitilmiş risk sınıflandırıcısı, versiyonlama
-              ml_veri_hatti.py, ml_otomatik_egitim.py, ml_egitimi.py
-  analiz/     ucus_analizi.py                  -> uçtan uca uçuş analizi (OpenSky ya da hazır iz -> küp -> DB -> harita)
-              toplu_analiz.py                  -> CSV listesindeki uçuşları sırayla analiz
-  api/        api_servisi.py, semalar.py       -> FastAPI REST + WebSocket, Pydantic şemaları
+              gorev_deposu.py, dagitik_kilit.py -> kalıcı görev kuyruğu, advisory lock
+              kup_katalogu.py, kaynak_durumu.py, veri_butcesi.py -> küp kataloğu, veri kaynağı durumu, günlük indirme bütçesi
+              denetim.py, hiz_siniri.py, geri_bildirim_deposu.py, sanal_pirep_deposu.py
+  veri/       veri_yukleme.py, opensky_onbellegi.py -> NetCDF yükleme/önbellek, OpenSky/Trino + Parquet rota önbelleği
+              veri_saglayicilari.py, era5_saglayici.py, veri_indirme.py -> canlı GFS, uçuşa özel ERA5 (CDS, ARCO yedek)
+              sigmet_saglayici.py, iwxxm.py    -> AWC SIGMET'leri (Ankara FIR dahil), IWXXM dışa aktarımı
+              kisitli_saha_saglayici.py, openaip_saglayici.py, saha_aktivasyonu.py, fir_sinirlari.py
+              madis_edr.py, canli_adsb.py, kimlik_dogrulama.py
+  fizik/      turbulans_indeksleri.py, eslestirme.py -> Ellrod TI1, Richardson, rota <-> küp eşleştirme
+              edr_esleme.py, ti1_esigi.py, kalibrasyon.py -> birleşik gösterge, kaynağa göre eşik, görsel ölçek
+              birim_donusumleri.py, cografya.py, iz_bulutu.py, sanal_pirep.py
+  rota/       rota_optimizasyonu.py, risk_katmanlari.py -> A* (yanal + irtifa), SIGMET/kısıtlı saha sert, TI1 yumuşak kısıt
+              hava_yolu_agi.py, ucus_seviyeleri.py, fpl.py -> ATS/FRA ağı, yarım daire kuralı, FPL Madde 15
+              performans_modeli.py, dikey_kesit.py, kalkis_penceresi.py -> OpenAP yakıt, kesit, kalkış penceresi
+  dogrulama/  rota_backtest.py, bagimsiz_kanit.py, sigmet_dogrulama.py -> backtest ve SIGMET/PIREP bağımsız kanıt
+              sanal_pirep_dogrulama.py, anomali_tabani.py, ayirma_gostergesi.py
+  ml/         turbulans_ml_modeli.py, ml_veri_hatti.py, ml_otomatik_egitim.py, ml_egitimi.py -> model, gece işi, kapı
+              degerlendirme.py, sonuc_disa_aktarimi.py, sonuc_paketi.py -> TI1 referansı, nihai sonuç paketi
+              belirsizlik.py, kayma_izleme.py, model_butunlugu.py, ozellik_deposu.py, madis_hatti.py
+              edr_eslestirme.py, edr_kalibrasyonu.py, gosterge_degerlendirme.py, duyarlilik_analizi.py,
+              rf_deneyi.py, tip_analizi.py -> deneyler (altın günler dışında)
+  analiz/     ucus_analizi.py, toplu_analiz.py -> uçtan uca uçuş analizi
+              esik_esleme.py, gfs_toplulugu.py, kacinma_baslangici.py, ayriklastirma.py,
+              dedektor_duyarliligi.py, sanal_pirep_hatti.py -> ek analizler
+  api/        api_servisi.py, semalar.py, guvenlik.py, ortak.py -> FastAPI REST + WebSocket, şemalar, anahtar/rol, CSP
+              metrikler.py, rota_onbellegi.py
+              yollar/ analiz.py, ucuslar.py, ml.py, hava_sahasi.py, geri_bildirim.py
+  isci/       gorev_iscisi.py                  -> uzun işler (analiz, backtest, ML gece işi) ayrı süreçte
   arayuz/     harita.py, web_arayuzu.py        -> Folium zaman kaydırıcılı harita, Streamlit arayüzü
-  cli/        ornek_ucus_bul.py, veri_kontrol.py, kimlik_kontrol.py, openapi_disa_aktar.py, mcp_postgres_sunucusu.py
-web/                                           -> harita3d.html (MapLibre) + ucus_simulasyonu.html (CesiumJS)
+  cli/        demo.py, demo_ekranlari.py, performans_olcumu.py, statik_indir.py, openapi_disa_aktar.py,
+              mcp_postgres_sunucusu.py, aip_ats_agi.py, aip_enr51.py, ornek_ucus_bul.py, veri_kontrol.py,
+              kimlik_kontrol.py
+web/                                           -> harita3d.html/.js (MapLibre) + ucus_simulasyonu.html/.js (CesiumJS); vendor/
+otomasyon/                                     -> yedek + geri yükleme tatbikatı, Caddyfile (TLS vekili), uygulama rolü
 migrations/, alembic.ini                       -> Alembic şema migration'ları
 tests/                                         -> pytest (birim + PostgreSQL + gerçek veri + Playwright)
 ```

@@ -32,8 +32,9 @@
 
 ## 18 Ekim sonrası (paket çıktıktan sonra)
 
-- [ ] Madde 10 adım 6: SISTEM_KARTI §5/§6 ve README mimari/paket ağacının kodla çelişki
-  denetimi; test sayısı CI'dan alınır.
+- [x] (18 Ekim: §5/§6'daki 32 kod adı kodda var; README paket ağacı yeniden yazıldı ve iki yönlü
+  kodla eşleşiyor; test sayısı CI #93'ten 1.066, kapsam %84,5) Madde 10 adım 6: SISTEM_KARTI §5/§6
+  ve README mimari/paket ağacının kodla çelişki denetimi; test sayısı CI'dan alınır.
 - [ ] Yeni ML protokolü (F9 devamı): `docs/deney_protokolu.md`'ye geniş özellik setini
   (temel 8 + 5 bağlam) ve aday modelleri önceden yaz. Değerlendirme dondurmadan SONRA
   toplanan yeni günlerde yapılır; aynı 16 altın gün kullanılmaz (bkz. SONUCLAR §2.4).
