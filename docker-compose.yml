@@ -98,6 +98,9 @@ services:
       # Ağa açılınca (/docs, /openapi.json) kendiliğinden kapanır; bkz. API_BELGELERI_ACIK.
       API_YAYIN_ADRESI: ${API_YAYIN_ADRESI:-127.0.0.1}
       <<: [*veri_ortami, *uygulama_db]
+    # vekil_agi: TLS vekili (profil 'uretim') API'ye sabit adresten ulaşır; FORWARDED_ALLOW_IPS
+    # yalnız bu adrese güvenir (.env.uretim.example).
+    networks: [default, vekil_agi]
     # Varsayılan yalnızca bu makine; ağdaki bir cihaz (ör. EFB tableti) erişecekse
     # .env'de API_YAYIN_ADRESI=0.0.0.0 (anahtarlar herkese açık ağda düz HTTP'den geçer).
     ports:
@@ -186,6 +189,36 @@ services:
     volumes:
       - ./ciktilar:/app/ciktilar
 
+  # TLS sonlandıran ters vekil (P0-1, bkz. otomasyon/Caddyfile, README "TLS vekili").
+  #   docker compose --profile uretim up -d
+  # API host portu 127.0.0.1'de kalır; dışarıya yalnız vekil açılır.
+  vekil:
+    image: caddy:2.8.4
+    profiles: ["uretim"]
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    environment:
+      ALAN_ADI: ${ALAN_ADI:-localhost}
+      VEKIL_TLS: ${VEKIL_TLS:-internal}
+    ports:
+      - "${VEKIL_HTTP_PORT:-80}:80"
+      - "${VEKIL_HTTPS_PORT:-443}:443"
+    volumes:
+      - ./otomasyon/Caddyfile:/etc/caddy/Caddyfile:ro
+      - vekil_veri:/data
+    networks:
+      vekil_agi:
+        ipv4_address: 172.31.250.200
+
+networks:
+  vekil_agi:
+    ipam:
+      config:
+        - subnet: 172.31.250.0/24
+          ip_range: 172.31.250.0/25
+
 secrets:
   cdsapirc:
     file: ${CDSAPI_RC_DOSYASI:-/dev/null}
@@ -194,3 +227,4 @@ secrets:
 
 volumes:
   turbulans_pgdata:
+  vekil_veri:
