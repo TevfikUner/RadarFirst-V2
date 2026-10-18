@@ -1040,21 +1040,46 @@ async def _ml_gece_isi_kontrolu():
     }
 
 
-def _yedek_kontrolu():
-    """docker-compose'un 'yedek' servisinin dosyaları (API'ye salt okunur bağlı)."""
+def _yedek_zamanlari() -> tuple[dict, dict | None] | None:
+    """Son yedeklerin (ad -> epoch) zamanları ve son tatbikat. Docker'da API dump'ları görmez;
+    'yedek' servisinin yazdığı durum dosyasını okur. Dosya yoksa (yerel çalışma) klasör taranır."""
+    durum_dosyasi = os.path.join(config.YEDEK_KLASORU, "durum", "yedek_durumu.json")
+    try:
+        with open(durum_dosyasi, encoding="utf-8") as dosya:
+            kayit = json.load(dosya)
+        return {ad: kayit.get(ad) for ad in ("veritabani", "dosyalar")}, kayit.get("tatbikat")
+    except (OSError, ValueError):
+        pass
     if not os.path.isdir(config.YEDEK_KLASORU):
-        return {"durum": "kapali"}
-    simdi = time.time()
-    sonuc, durum = {}, "tamam"
+        return None
+    zamanlar = {}
     for ad, desen in (("veritabani", "turbulans_*.dump"), ("dosyalar", "dosyalar_*.tar.gz")):
         dosyalar = glob.glob(os.path.join(config.YEDEK_KLASORU, desen))
-        if not dosyalar:
+        zamanlar[ad] = max(os.path.getmtime(d) for d in dosyalar) if dosyalar else None
+    return zamanlar, None
+
+
+def _yedek_kontrolu():
+    """docker-compose'un 'yedek' servisinin son yedekleri ve haftalık geri yükleme tatbikatı."""
+    bilgi = _yedek_zamanlari()
+    if bilgi is None:
+        return {"durum": "kapali"}
+    zamanlar, tatbikat = bilgi
+    simdi = time.time()
+    sonuc, durum = {}, "tamam"
+    for ad in ("veritabani", "dosyalar"):
+        if not zamanlar.get(ad):
             sonuc[f"{ad}_yas_saat"] = None
             durum = "yok"
             continue
-        yas = (simdi - max(os.path.getmtime(d) for d in dosyalar)) / 3600
+        yas = (simdi - float(zamanlar[ad])) / 3600
         sonuc[f"{ad}_yas_saat"] = round(yas, 1)
         if yas > config.SAGLIK_YEDEK_MAKS_YAS_SAAT and durum == "tamam":
+            durum = "eski"
+    if tatbikat:
+        sonuc["tatbikat_sonuc"] = tatbikat.get("sonuc")
+        sonuc["tatbikat_yas_gun"] = round((simdi - float(tatbikat.get("zaman", 0))) / 86400, 1)
+        if tatbikat.get("sonuc") != "GECTI" and durum == "tamam":
             durum = "eski"
     return {"durum": durum, **sonuc}
 

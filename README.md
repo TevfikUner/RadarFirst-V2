@@ -426,6 +426,13 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
 - **TLS:** API düz HTTP konuşur. `API_YAYIN_ADRESI=0.0.0.0` ile ağa açılırsa
   anahtarlar açık metin gider (açılışta uyarı loglanır); güvenilmeyen ağda
   önüne TLS sonlandıran bir ters vekil (ör. Caddy) koyun.
+- **Ağa açılışta kapalı başlama:** `API_YAYIN_ADRESI` yerel değilse ya da
+  `AG_ACILISI=true` ise API ve işçi şu durumlarda hiç başlamaz ve sorunların
+  hepsini tek mesajda (değerleri yazmadan) listeler: 32 karakterden kısa ya da
+  `demo` ile başlayan herhangi bir API anahtarı; boş, `postgres` ya da demo DB
+  şifresi; uygulamanın süper kullanıcıyla bağlanması (`UYGULAMA_POSTGRES_*`
+  tanımsız); `KISITLI_SAHA_ORNEK_VERI_YUKLE=true`; `MODEL_BUTUNLUK_ZORUNLU=false`.
+  Yerel geliştirme (`127.0.0.1`) bu kurallardan etkilenmez.
 - **Konteyner kabuğu:** Uygulama süreçleri uid 1000 ile çalışır, ama
   `docker compose exec` varsayılan olarak root açar; elle komut için
   `docker compose exec -u turbulans api ...` kullanın.
@@ -1496,6 +1503,32 @@ docker compose exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB
 sh otomasyon/uygulama_rolu_olustur.sh   # geri yüklenen tablolar postgres'e ait olur; sahipliği uygulama rolüne geri ver
 docker compose start api worker
 ```
+
+**Geri yükleme tatbikatı (haftalık).** `yedek` servisi son 7 günde rapor yoksa en yeni
+dump'ı kendi içinde geçici bir PostgreSQL sunucusuna (yalnız unix soketi) yükler; tablo
+listesi, alembic sürümü ve satır sayıları canlıyla karşılaştırılır. Rapor
+`db_yedekleri/tatbikat/tatbikat_YYYYAAGG.txt`; eksik tablo, farklı alembic sürümü, boş
+sayım ya da canlının yarısından az satır "KALDI" sayılır ve logda
+`GERI YUKLEME TATBIKATI BASARISIZ` yazar. Elle:
+`docker compose exec yedek sh /geri_yukleme_tatbikati.sh [/yedekler/turbulans_YYYYAAGG.dump]`.
+Canlı veritabanına yalnız okuma sorgusu gider. İlk tatbikat (18 Ekim 2026): 10 MB dump,
+3 sn, 16 tablonun hepsi canlıyla aynı.
+
+**Kalıcı yedekler.** `db_yedekleri/kalici/` saklama süresiyle silinmez ve disk dışı
+kopyaya bir kez (şifreliyse `.gpg`) yazılır. Veri dondurma günü yedeği
+(`turbulans_20261018_dondurma.dump`, `dosyalar_20261018_dondurma.tar.gz`) buradadır; nihai
+sonuç paketi bu yedekle yeniden üretilir.
+
+**Hedefler (RPO / RTO).** Bu tek makinelik geliştirme yığını içindir, üretim SLA'sı değildir.
+- RPO (kabul edilen en büyük veri kaybı): 24 saat. Yedek her UTC gününün ilk açılışında
+  alınır; bilgisayar kapalı kalan günlerde yeni veri de girmez, kayıp süresi uzamaz. Gece
+  işinin bir günlük eşleşmesi kaybolursa ertesi gece yeniden indirilebilir (CDS bütçesi).
+- RTO (aynı makinede geri dönüş): 15 dakika. Ölçülen geri yükleme 3 sn; süreyi servisleri
+  durdurma/başlatma ve uygulama rolü betiği belirler.
+- RTO (disk kaybı, yeni makine): 1 iş günü. Docker/WSL kurulumu, depo klonu, OneDrive'daki
+  `.gpg` kopyanın parola yöneticisindeki parolayla çözülmesi ve geri yükleme. Bu senaryo
+  uçtan uca denenmedi; 8 Ekim'de yalnız `.gpg` kopyanın çözülüp yerel dump ile aynı sha256'yı
+  verdiği doğrulandı.
 
 ### Uygulama veritabanı rolü
 

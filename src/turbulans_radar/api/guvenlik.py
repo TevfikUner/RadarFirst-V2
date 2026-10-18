@@ -22,6 +22,7 @@ from fastapi import (
 )
 
 from turbulans_radar import loglama
+from turbulans_radar.ayar_dogrulama import yalnizca_yerel_yayin_mi
 
 _logger = loglama.logger_al(__name__)
 
@@ -159,4 +160,4 @@ def ws_biletini_kullan(bilet: str | None) -> bool:
 
 
 def _yalnizca_yerel_yayin_mi() -> bool:
-    return os.environ.get("API_YAYIN_ADRESI", "").strip() in ("", "127.0.0.1", "localhost", "::1")
+    return yalnizca_yerel_yayin_mi()

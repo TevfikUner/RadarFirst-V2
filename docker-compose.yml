@@ -35,8 +35,9 @@ x-ortak-volumeler: &ortak_volumeler
   # ATS yolu/FRA ağı (AIP'ten elle hazırlanır, depoya konmaz; bkz.
   # docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md). Yoksa ATS modu 400 döner.
   - ./ats_verisi:/app/ats_verisi:ro
-  # Sağlık raporu yedeğin tazeliğini okur (yazmaz).
-  - ./db_yedekleri:/app/db_yedekleri:ro
+  # Sağlık raporu yedeğin tazeliğini 'yedek' servisinin yazdığı durum dosyasından okur;
+  # dump'lar API ve işçiye bağlanmaz (P0-5).
+  - ./db_yedekleri/durum:/app/db_yedekleri/durum:ro
   - ${YEREL_VERI_KOKU:-.}/${HAVA_DURUMU_DOSYA_ADI:-ocak_2019_turbulans.nc}:/veri/${HAVA_DURUMU_DOSYA_ADI:-ocak_2019_turbulans.nc}:ro
   - ${YEREL_VERI_KOKU:-.}/${EK_HAVA_DURUMU_KLASOR_ADI:-era5_egitim_verisi}:/veri/${EK_HAVA_DURUMU_KLASOR_ADI:-era5_egitim_verisi}:ro
   - ${YEREL_VERI_KOKU:-.}/${ML_PIREP_ARSIV_KLASOR_ADI:-pirep_ham}:/veri/${ML_PIREP_ARSIV_KLASOR_ADI:-pirep_ham}:ro
@@ -155,6 +156,7 @@ services:
     volumes:
       - ./db_yedekleri:/yedekler
       - ./otomasyon/db_yedekle.sh:/db_yedekle.sh:ro
+      - ./otomasyon/geri_yukleme_tatbikati.sh:/geri_yukleme_tatbikati.sh:ro
       - ./ml_ozellik_deposu:/kaynak/ml_ozellik_deposu:ro
       - ./madis_edr:/kaynak/madis_edr:ro
       - ./opensky_onbellek:/kaynak/opensky_onbellek:ro
