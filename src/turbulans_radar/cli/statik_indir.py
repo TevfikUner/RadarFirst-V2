@@ -192,8 +192,8 @@ def dosyayi_kur(ad: str, hedef_yol: str | None = None, zorla=False, indirici=_in
 
 
 def yerel_kutuphane_durumu(hedef: Path = VARSAYILAN_HEDEF) -> dict:
-    """Sağlık kontrolü için: her kütüphane yerelden mi sunuluyor (yoksa
-    sayfalar CDN'e düşer)."""
+    """Sağlık kontrolü için: her kütüphane yerelden mi sunuluyor. CDN yedeği yok
+    (CSP script-src 'self'); eksikse harita sayfaları açılmaz."""
     manifest = _manifesti_oku(hedef)
     paketler = {
         ad: {
@@ -203,7 +203,7 @@ def yerel_kutuphane_durumu(hedef: Path = VARSAYILAN_HEDEF) -> dict:
         }
         for ad, bilgi in PAKETLER.items()
     }
-    return {"durum": "yerel" if all(p["yerel"] for p in paketler.values()) else "cdn_yedegi", "paketler": paketler}
+    return {"durum": "yerel" if all(p["yerel"] for p in paketler.values()) else "eksik", "paketler": paketler}
 
 
 def ana(argv=None):

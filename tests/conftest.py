@@ -164,6 +164,16 @@ def canli_sunucu():
             surec.kill()
 
 
+def _kosul_bekle(sayfa, ifade, timeout=30_000):
+    """wait_for_function'ın CSP'ye takılmayan karşılığı: Playwright dize koşulu sayfada eval
+    ile değerlendirir ve CSP script-src 'self' bunu engeller; page.evaluate engellenmez."""
+    bitis = time.monotonic() + timeout / 1000
+    while not sayfa.evaluate(ifade):
+        if time.monotonic() > bitis:
+            raise TimeoutError(f"Koşul {timeout} ms içinde sağlanmadı: {ifade}")
+        time.sleep(0.1)
+
+
 @pytest.fixture(scope="module")
 def tarayici_sayfasi(canli_sunucu):
     from playwright.sync_api import Error as PlaywrightHatasi
@@ -180,10 +190,16 @@ def tarayici_sayfasi(canli_sunucu):
         # CesiumJS (~5.8 MB) CDN'den iniyor; yavaş ağda 30 sn'lik varsayılan
         # sayfa yükleme sınırı aşılıp test, kod hatası olmadan düşüyordu.
         sayfa.set_default_navigation_timeout(120_000)
-        hatalar = []
+        sayfa.wait_for_function = lambda ifade, timeout=30_000, **_: _kosul_bekle(sayfa, ifade, timeout)
+        hatalar, csp_ihlalleri = [], []
         sayfa.on("pageerror", lambda err: hatalar.append(str(err)))
+        sayfa.on(
+            "console",
+            lambda mesaj: "Content Security Policy" in mesaj.text and csp_ihlalleri.append(mesaj.text),
+        )
         yield {"sayfa": sayfa, "hatalar": hatalar}
         tarayici.close()
+        assert csp_ihlalleri == [], f"CSP ihlali: {csp_ihlalleri[:3]}"
 
 
 @pytest.fixture

@@ -72,7 +72,7 @@ def test_paket_kurulur_manifest_yazilir_ve_guncelse_yeniden_indirilmez(tmp_path,
         return ARSIV
 
     hedef = tmp_path / "vendor"
-    assert si.yerel_kutuphane_durumu(hedef)["durum"] == "cdn_yedegi"
+    assert si.yerel_kutuphane_durumu(hedef)["durum"] == "eksik"
     assert si.paketi_kur("deneme", hedef, indirici=indirici) == "kuruldu"
     assert indirmeler == ["https://registry.npmjs.org/deneme/-/deneme-1.0.0.tgz"]
     assert si.paketi_kur("deneme", hedef, indirici=indirici) == "guncel"
@@ -88,7 +88,7 @@ def test_degistirilmis_paket_kurulmaz(tmp_path, deneme_paketi):
     with pytest.raises(si.ButunlukHatasi):
         si.paketi_kur("deneme", hedef, indirici=lambda url: _tarball({"package/Build/Cesium/Cesium.js": "kotu();"}))
     assert not (hedef / "deneme").exists()
-    assert si.yerel_kutuphane_durumu(hedef)["durum"] == "cdn_yedegi"
+    assert si.yerel_kutuphane_durumu(hedef)["durum"] == "eksik"
 
 
 def test_kopan_indirme_kaldigi_yerden_devam_eder(monkeypatch):

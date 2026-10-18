@@ -628,7 +628,34 @@ async def test_model_versiyonu_aktiflestir_bilinmeyen_id_404(istemci, api_anahta
 async def test_harita3d_sayfasi_sunuluyor(istemci):
     yanit = await istemci.get("/harita/harita3d.html")
     assert yanit.status_code == 200
-    assert "maplibregl" in yanit.text
+    assert '<script src="harita3d.js">' in yanit.text
+    betik = await istemci.get("/harita/harita3d.js")
+    assert betik.status_code == 200 and "maplibregl" in betik.text
+
+
+@pytest.mark.parametrize("sayfa", ["harita3d.html", "ucus_simulasyonu.html"])
+async def test_harita_sayfalarinda_csp_var_ve_satir_ici_betik_yok(istemci, sayfa):
+    import re
+
+    yanit = await istemci.get(f"/harita/{sayfa}")
+    csp = yanit.headers["content-security-policy"]
+    assert (
+        "script-src 'self'" in csp
+        and "frame-ancestors 'none'" in csp
+        and "unsafe-inline'" not in csp.split("style-src")[0]
+    )
+    assert ("unsafe-eval" in csp) == (sayfa == "ucus_simulasyonu.html")
+    assert yanit.headers["x-content-type-options"] == "nosniff"
+    html = re.sub(r"<!--.*?-->", "", yanit.text, flags=re.S)
+    assert not re.search(r"<script(?![^>]*\bsrc=)[^>]*>", html)
+    assert not re.search(r"<[^>]+\son[a-z]+\s*=", html) and "document.write" not in html
+    assert "cdn.jsdelivr" not in html
+
+
+async def test_api_yanitlarinda_guvenlik_basliklari_var_csp_yok(istemci):
+    yanit = await istemci.get("/saglik")
+    assert yanit.headers["x-frame-options"] == "DENY" and yanit.headers["referrer-policy"] == "no-referrer"
+    assert "content-security-policy" not in yanit.headers
 
 
 # --- CSV/GeoJSON dışa aktarma ---

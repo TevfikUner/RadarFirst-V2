@@ -426,6 +426,14 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
 - **TLS:** API düz HTTP konuşur. `API_YAYIN_ADRESI=0.0.0.0` ile ağa açılırsa
   anahtarlar açık metin gider (açılışta uyarı loglanır); güvenilmeyen ağda
   önüne TLS sonlandıran bir ters vekil (ör. Caddy) koyun.
+- **Tarayıcı güvenlik başlıkları:** Her yanıtta `X-Content-Type-Options: nosniff`,
+  `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, `Permissions-Policy`.
+  `/harita` sayfalarında CSP: betikler yalnız bu sunucudan (`script-src 'self'`; satır içi
+  betik, `onerror=` ve CDN yedeği yok, kütüphaneler `web/vendor`'dan), altlık karolar Esri'den,
+  `frame-ancestors 'none'`. CesiumJS kendi içinde `new Function` ve WebAssembly kullandığı için
+  yalnız simülasyon sayfası ve Cesium dosyaları `'unsafe-eval' 'wasm-unsafe-eval' blob:` alır.
+  `/docs` (yalnız yerelde açık) CSP almaz. Tarayıcı testleri CSP ihlalini hata sayar. Anahtar
+  hâlâ `sessionStorage`'dadır; CSP satır içi betik enjeksiyonunu engelleyerek bunu korur.
 - **Ağa açılışta kapalı başlama:** `API_YAYIN_ADRESI` yerel değilse ya da
   `AG_ACILISI=true` ise API ve işçi şu durumlarda hiç başlamaz ve sorunların
   hepsini tek mesajda (değerleri yazmadan) listeler: 32 karakterden kısa ya da
@@ -1378,7 +1386,7 @@ yeniden kodlar (`veri/iwxxm.py`; yapı WMO'nun resmi örneği wmo-im/iwxxm
   başarılı mı), `gorev_kuyrugu` (en eski bekleyen görev 2 dakikadan eskiyse
   `birikiyor` -- işçi yok ya da yetişemiyor), `kisitli_sahalar`,
   `kup_onbellegi`, `statik_dosyalar`. Operasyonel bir sorun genel durumu
-  `bozulmus` yapar; yapılandırma eksikleri (`cdn_yedegi`, `ornek_veri`,
+  `bozulmus` yapar; yapılandırma eksikleri (`eksik` web kütüphanesi, `ornek_veri`,
   `veri_yok`) `uyarilar`'da listelenir. Dış servislerin ham hata metinleri
   anahtarsız uçta gösterilmez; `GET /api/v1/sistem/durum` (anahtarlı) aynı
   raporu hata ayrıntılarıyla verir.
