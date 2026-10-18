@@ -443,6 +443,14 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
   yalnız simülasyon sayfası ve Cesium dosyaları `'unsafe-eval' 'wasm-unsafe-eval' blob:` alır.
   `/docs` (yalnız yerelde açık) CSP almaz. Tarayıcı testleri CSP ihlalini hata sayar. Anahtar
   hâlâ `sessionStorage`'dadır; CSP satır içi betik enjeksiyonunu engelleyerek bunu korur.
+- **Sırlar dosyadan (`*_FILE`, Docker secret):** `API_ANAHTARI`, `API_PILOT_ANAHTARI`,
+  `API_ANAHTARLARI`, `POSTGRES_PASSWORD`, `MCP_POSTGRES_PASSWORD`, `OPENSKY_PASSWORD`,
+  `OPENSKY_CLIENT_SECRET`, `OPENAIP_API_ANAHTARI` için `AD_FILE=/run/secrets/...` verilirse
+  değer dosyadan okunur ve ortamdaki değeri ezer; dosya yoksa ya da boşsa süreç başlamaz.
+  Üretimde `.env` yerine `docker-compose.override.yml` ile (depoya girmez):
+  `services.api.secrets: [api_anahtari]`, `services.api.environment.API_ANAHTARI_FILE:
+  /run/secrets/api_anahtari`, `secrets.api_anahtari.file: /guvenli/yol/api_anahtari`; işçi
+  için aynısı. `db` imajı `POSTGRES_PASSWORD_FILE`'ı zaten destekler.
 - **Ağa açılışta kapalı başlama:** `API_YAYIN_ADRESI` yerel değilse ya da
   `AG_ACILISI=true` ise API ve işçi şu durumlarda hiç başlamaz ve sorunların
   hepsini tek mesajda (değerleri yazmadan) listeler: 32 karakterden kısa ya da
