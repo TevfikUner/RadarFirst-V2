@@ -91,7 +91,7 @@ def pirep_ornekleri(motor, kesme=None):
     if kesme is not None:
         sorgu = sorgu.where(MlOrnegi.olusturulma_zamani < _kesme_siniri(kesme))
     with Session(motor) as oturum:
-        satirlar = oturum.execute(sorgu).all()
+        satirlar = oturum.execute(sorgu.order_by(MlOrnegi.id)).all()
     ozellikler = pd.DataFrame([s.ozellikler for s in satirlar]).reindex(columns=MODEL_OZELLIK_SUTUNLARI)
     bilgi = pd.DataFrame(
         {
@@ -108,7 +108,7 @@ def madis_ornekleri(motor, kesme=None) -> pd.DataFrame:
     if kesme is not None:
         sorgu = sorgu.where(EdrOrnegi.olusturulma_zamani < _kesme_siniri(kesme))
     with Session(motor) as oturum:
-        satirlar = oturum.execute(sorgu).all()
+        satirlar = oturum.execute(sorgu.order_by(EdrOrnegi.id)).all()
     df = pd.DataFrame(satirlar, columns=["zaman", "max_edr", "edr_sinifi", "ozellikler"])
     if df.empty:
         return df

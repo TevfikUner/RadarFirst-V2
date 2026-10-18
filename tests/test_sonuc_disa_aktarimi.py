@@ -231,3 +231,41 @@ def _yalniz_test_madis(asil):
 
 def test_ozellik_sutunlari_sentetik_ornekle_uyumlu():
     assert set(_ozellikler(np.random.default_rng(0), 1)) == set(MODEL_OZELLIK_SUTUNLARI)
+
+
+class _SorguYakalayan:
+    def __init__(self, *_args, **_kwargs):
+        pass
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *_):
+        return False
+
+    def execute(self, sorgu):
+        _SorguYakalayan.son = str(sorgu)
+        return self
+
+    def all(self):
+        return []
+
+
+@pytest.mark.parametrize(
+    "modul_adi,fonksiyon",
+    [
+        ("turbulans_radar.ml.sonuc_disa_aktarimi", "pirep_ornekleri"),
+        ("turbulans_radar.ml.sonuc_disa_aktarimi", "madis_ornekleri"),
+        ("turbulans_radar.ml.ml_otomatik_egitim", "veritabanindan_veri_hazirla"),
+    ],
+)
+def test_ornek_sorgulari_birincil_anahtara_gore_sirali(monkeypatch, modul_adi, fonksiyon):
+    import importlib
+
+    modul = importlib.import_module(modul_adi)
+    monkeypatch.setattr(modul, "Session", _SorguYakalayan)
+    try:
+        getattr(modul, fonksiyon)(object())
+    except Exception:
+        pass
+    assert "ORDER BY" in _SorguYakalayan.son and ".id" in _SorguYakalayan.son.split("ORDER BY")[1]

@@ -76,7 +76,7 @@ def _utc_gunu(zaman) -> str:
 def veritabanindan_veri_hazirla(motor=None):
     sorgu = select(MlOrnegi.zaman, MlOrnegi.sinif, MlOrnegi.ozellikler).where(MlOrnegi.durum == "eslesti")
     with Session(motor or motor_al()) as oturum:
-        satirlar = oturum.execute(sorgu).all()
+        satirlar = oturum.execute(sorgu.order_by(MlOrnegi.id)).all()
     if not satirlar:
         return pd.DataFrame(columns=MODEL_OZELLIK_SUTUNLARI), pd.Series(dtype=int), pd.Series(dtype=str)
     ozellikler = pd.DataFrame([s.ozellikler for s in satirlar]).reindex(columns=MODEL_OZELLIK_SUTUNLARI)
