@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-18 (kapanış; PR #97)
+
+- ✅ Kalan ve yarım işler YAPILACAKLAR "18 Ekim gecesinden kalanlar" bölümünde (imaj derlemesi öncelikli).
+- ✅ Yerel tam test 1.078/1.078, ruff ve gitleaks temiz; CI #95 tüm işler yeşil.
+
 ## 2026-10-18 (Madde 10 adım 6; PR #95–#96)
 
 - ✅ CI güvenlik işi kırmızıydı: testteki sahte anahtar gitleaks yanlış pozitifi (#95), gerçek sır yok.

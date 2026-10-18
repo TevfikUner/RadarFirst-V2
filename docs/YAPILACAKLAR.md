@@ -30,6 +30,44 @@
 - [x] (16 Ekim, ekranlar yenilendi; demo sayıları değişmedi: %9,55 ek yakıt, 26 dk kaçınma) Demo ekranlarını temiz klondan yenile: brifing kartına FPL Madde 15, dikey kesit, kalkış
   penceresi ve kütle bandı eklendi (16 Ekim, PR #62–#71); `DEMO_SENARYOSU` metnini kontrol et.
 
+## 18 Ekim gecesinden kalanlar (P0 oturumu, PR #85–#96)
+
+Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.md` 18 Ekim satırları,
+`docs/denetim/2026-10-17/URETIM_HAZIRLIK.md` "Faz 1 durumu" tablosu.
+
+- [ ] **Docker imajını yeniden derle (öncelikli):** 18 Ekim 01:00 UTC'de npm'e
+  (`registry.npmjs.org`) erişilemedi; `docker compose build api worker` Cesium indirmesinde
+  takıldı ve durduruldu. Çalışan imaj #90 öncesi koddan: CSP ve güvenlik başlıkları (#91),
+  `ORDER BY id` (#89), `*_FILE` (#93), işçinin anahtarsız kapalı başlaması (#94) imajda yok.
+  npm dönünce derle, `docker compose up -d api worker`, ardından `/harita` yanıtında
+  `content-security-policy` başlığını ve iki sayfanın açıldığını kontrol et.
+- [ ] **Rota performansı (şarjdayken):** yukarıdaki 18 Ekim maddesi; SISTEM_KARTI §1'deki
+  `docs/sonuclar/2026-10-07/rota_performansi.md` bağlantısı ve süreler nihai pakete taşınır.
+- [ ] **Demo ekranlarını yenile:** `TI1_GUVENILIRLIK_NOTU` metni (15.940 PIREP / 163 gün) ve
+  `harita3d.html`'deki "karar destek aracıdır" satırı değişti; `docs/sunum/ekranlar/`
+  görüntüleri eski metni gösteriyor. İmaj derlendikten sonra temiz klondan (5532/8100 portları).
+- [ ] **GitHub Destek talebi (P0-9, kullanıcı):** PR #1'deki eski OpenSky şifresi; metin
+  `docs/guvenlik/GUVENLIK_TARAMASI_2026-10-05.md`. Depo herkese açılmadan önce şart.
+- [ ] **Y-6 `docker builder prune` (~50 GB):** imaj npm erişimiyle başarıyla derlendikten sonra
+  (önbellek silinirse Cesium yeniden indirilir). Geri alınamaz, ONAY.
+- [ ] **`Turbulence-db-dondurma` veritabanı:** dondurma yedeğinin geri yüklenmiş kopyası,
+  yeniden üretim kanıtı için bırakıldı (`POSTGRES_DB=Turbulence-db-dondurma turbulans-ml-degerlendirme
+  --kesme 2026-10-18`). Sunumdan sonra gerekmiyorsa silinebilir (DROP, ONAY).
+- [ ] **ARAC_KULLANIMI_BEYANI sayımları:** 18 Ekim'de 284 commit sayıldı, sonra 12 PR daha
+  girdi; rapor teslim edilmeden önce yeniden sayılır.
+- [ ] **Y-2:** `uretim` profilinde DB host portları (5432/5433) yayınlanmasın; compose profilleri
+  port kaldıramadığı için `docker-compose.uretim.yml` override'ı gerekir (P2).
+- [ ] **P0-7 hibrit topoloji ADR'si:** yalnız B planına (sanal sunucu) geçilirse; koddan önce ONAY.
+- [ ] **P1 listesi (URETIM_HAZIRLIK §P1):** P1-1 kaynak sınırı/log rotasyonu, P1-2 migration
+  öncesi yedek, P1-3 izleme yığını, P1-4 imaj/Action sabitleme, P1-5 `.dockerignore` (MCP sunucusu
+  ve belgeler imajdan çıkar), P1-6 derin sağlık anahtarsız, P1-7 WS bileti çok süreçli, P1-8 Esri
+  karo kapatma bayrağı, P1-9 AIRAC (29 Ekim maddesi), P1-10 işletim kılavuzu + DB şifre rotasyonu.
+- [ ] **Komite incelemesinin açık bulguları:** `docs/denetim/2026-10-17/KOMITE_INCELEMESI.md`;
+  kapananlar dosya sonundaki "18 Ekim durumu" bölümünde, kalanlar (ör. B-8 çoklu karşılaştırma için
+  dondurma sonrası yeni günlerde değerlendirme, T-1 üçüncü kişi yeniden üretimi) savunma öncesi gözden geçirilir.
+- [ ] **Bu gece (03:00 UTC) eğitimi eski imajla çalışır:** sıralı sorgu yok, yani aday seçimi RF/GB
+  arasında satır sırasına bağlı kalabilir; karar kapısı etkilenmez. İmaj derlenince kendiliğinden düzelir.
+
 ## 18 Ekim sonrası (paket çıktıktan sonra)
 
 - [x] (18 Ekim: §5/§6'daki 32 kod adı kodda var; README paket ağacı yeniden yazıldı ve iki yönlü
