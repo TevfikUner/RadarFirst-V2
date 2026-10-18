@@ -390,8 +390,9 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 974 test (15 Ekim 2026; 2'si gerçek dış servise
-  istek attığı için varsayılan çalıştırmada hariç), kod kapsamı %85 (CI). Kapsamı: birim testleri, gerçek PostgreSQL
+- **Otomatik testler:** 1.066 test (18 Ekim 2026, CI `test (3.12)` PR #93 birleştirmesi: 1.022
+  geçti, 42 atlandı, 2'si gerçek dış servise istek attığı için varsayılan çalıştırmada hariç;
+  tarayıcı işi 8/8), kod kapsamı %85 (CI). Kapsamı: birim testleri, gerçek PostgreSQL
   üzerinde API, depo ve görev kuyruğu testleri (eşzamanlı işçiler, ölen işçi
   kurtarma, LISTEN/NOTIFY), gerçek ERA5 küpüyle eşleştirme ve rota testleri,
   Playwright ile iki web önyüzünün tarayıcı testleri. Ağa çıkan bileşenler

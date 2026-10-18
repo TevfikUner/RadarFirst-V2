@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-18 (Madde 10 adım 6; PR #95–#96)
+
+- ✅ CI güvenlik işi kırmızıydı: testteki sahte anahtar gitleaks yanlış pozitifi (#95), gerçek sır yok.
+- ✅ README paket ağacı kodla iki yönlü eşleşiyor; SISTEM_KARTI test sayısı CI'dan (1.066, kapsam %84,5).
+
 ## 2026-10-18 (P0 devamı; PR #91–#94)
 
 - ✅ P0-4/P0-3 CSP + güvenlik başlıkları (#91), tarayıcı 8/8; P0-1 Caddy TLS vekili (#92); P0-9 `*_FILE` (#93).
