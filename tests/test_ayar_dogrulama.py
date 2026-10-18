@@ -114,7 +114,7 @@ def test_isci_anahtarsiz_ag_kurallarindan_gecer_ama_db_kurallari_kalir():
 def test_ag_sorunlari_sema_hatalariyla_tek_mesajda_ve_degersiz():
     kaynak = _kopya(ML_HOLDOUT_ORANI=0.0, KISITLI_SAHA_ORNEK_VERI_YUKLE=False, MODEL_BUTUNLUK_ZORUNLU=True)
     with pytest.raises(AyarHatasi) as hata:
-        ayarlari_dogrula(kaynak, _ag_ortami(API_ANAHTARI="gizli-ama-kisa"))
+        ayarlari_dogrula(kaynak, _ag_ortami(API_ANAHTARI="gizli-ama-kisa"))  # gitleaks:allow
     mesaj = str(hata.value)
     assert "ML_HOLDOUT_ORANI" in mesaj and "ağa açık kurulum: API_ANAHTARI" in mesaj
     assert "gizli-ama-kisa" not in mesaj

@@ -6,3 +6,7 @@
 
 # Yanlış pozitif: RFC 6455 örnek WebSocket anahtarı ("the sample nonce"), sır değil (güncel ağaçta gitleaks:allow).
 932552c0f549bc08c567a4a13e80d4bc941d8ddd:scripts/demo_goster.py:generic-api-key:679
+
+# Yanlış pozitif: kapalı başlama testinde değerin mesaja sızmadığını sınayan sahte anahtar
+# (güncel ağaçta gitleaks:allow ile işaretli).
+9a40494af4d63865ed100ac651d1c12d4a15a22a:tests/test_ayar_dogrulama.py:turkce-sir-atamasi:111
