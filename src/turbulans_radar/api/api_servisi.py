@@ -97,7 +97,6 @@ from turbulans_radar.api.guvenlik import (
     _YONETICI,
     _anahtar_ayarlarini_denetle,
     _anahtari_coz,
-    _yalnizca_yerel_yayin_mi,
     api_anahtarini_dogrula,
     ws_bileti_uret,
     ws_biletini_kullan,
@@ -116,7 +115,7 @@ from turbulans_radar.api.semalar import (
 )
 from turbulans_radar.api.yollar import analiz, geri_bildirim, hava_sahasi, ml, ucuslar
 from turbulans_radar.api.yollar.ml import MlGeceIsiIstegi
-from turbulans_radar.ayar_dogrulama import ayarlari_dogrula
+from turbulans_radar.ayar_dogrulama import ag_acik_mi, ayarlari_dogrula
 from turbulans_radar.cli.statik_indir import yerel_kutuphane_durumu
 from turbulans_radar.depo.dagitik_kilit import LiderKilidi
 from turbulans_radar.depo.denetim import denetim_kaydet, denetim_kayitlarini_listele
@@ -405,12 +404,12 @@ async def _sigmet_zamanlayicisi(aralik_saniye):
 
 def api_belgeleri_acik_mi() -> bool:
     """/docs, /redoc, /openapi.json: API_BELGELERI_ACIK açıkça verilmediyse
-    yalnızca API bu makineye bağlıyken (API_YAYIN_ADRESI yerel/boş) açıktır;
-    ağa açılınca uç nokta listesi anahtarsız görünmesin."""
+    yalnızca API bu makineye bağlıyken (API_YAYIN_ADRESI yerel/boş) ve TLS vekili
+    arkasında değilken (AG_ACILISI) açıktır; ağa açılınca uç nokta listesi anahtarsız görünmesin."""
     acik = os.environ.get("API_BELGELERI_ACIK", "").strip().lower()
     if acik:
         return acik in ("1", "true", "evet", "acik")
-    return _yalnizca_yerel_yayin_mi()
+    return not ag_acik_mi()
 
 
 _BELGELER_ACIK = api_belgeleri_acik_mi()

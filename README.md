@@ -425,7 +425,16 @@ curl http://localhost:8000/api/v1/ucuslar/THY1234/2019-01-01 \
   açılınca kapanır. `API_BELGELERI_ACIK=true|false` ile zorlanabilir.
 - **TLS:** API düz HTTP konuşur. `API_YAYIN_ADRESI=0.0.0.0` ile ağa açılırsa
   anahtarlar açık metin gider (açılışta uyarı loglanır); güvenilmeyen ağda
-  önüne TLS sonlandıran bir ters vekil (ör. Caddy) koyun.
+  önüne TLS sonlandıran bir ters vekil koyun.
+- **TLS vekili (`--profile uretim`):** `vekil` servisi (Caddy 2.8.4,
+  `otomasyon/Caddyfile`) 80/443'ü dinler, HTTPS'i sonlandırır, HSTS ekler ve API'ye iç
+  ağdan (`vekil_agi`, sabit adres 172.31.250.200) gider. API'nin host portu 127.0.0.1'de
+  kalır. `.env.uretim.example`: `AG_ACILISI=true` (kapalı başlama kuralları ve `/docs`
+  kapanır), `FORWARDED_ALLOW_IPS=172.31.250.200` (IP başına hız sınırı ve denetim kaydı
+  gerçek istemciyi görür), `ALAN_ADI` + `VEKIL_TLS` (e-posta: Let's Encrypt; `internal`:
+  Caddy'nin yerel CA'sı, EFB'ye kök sertifika yüklenir:
+  `docker compose cp vekil:/data/caddy/pki/authorities/local/root.crt .`). WebSocket
+  (`/ws/uyarilar`) vekilden geçer. Başlatma: `docker compose --profile uretim up -d`.
 - **Tarayıcı güvenlik başlıkları:** Her yanıtta `X-Content-Type-Options: nosniff`,
   `Referrer-Policy: no-referrer`, `X-Frame-Options: DENY`, `Permissions-Policy`.
   `/harita` sayfalarında CSP: betikler yalnız bu sunucudan (`script-src 'self'`; satır içi

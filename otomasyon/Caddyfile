@@ -1,0 +1,13 @@
+# TLS sonlandıran ters vekil (P0-1): docker compose --profile uretim up -d
+# ALAN_ADI gerçek bir alan adıysa ve VEKIL_TLS bir e-posta ise Caddy Let's Encrypt sertifikası
+# alır; varsayılan (localhost + internal) yerel ağ/EFB için Caddy'nin kendi CA'sını kullanır
+# (cihaza kök sertifika yüklenir: docker compose cp vekil:/data/caddy/pki/authorities/local/root.crt .).
+{$ALAN_ADI:localhost} {
+	tls {$VEKIL_TLS:internal}
+	encode gzip
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		-Server
+	}
+	reverse_proxy api:8000
+}

@@ -1263,6 +1263,13 @@ def test_api_belgeleri_ag_acilinca_kapanir(monkeypatch, ayar, adres, beklenen):
     assert api_servisi.api_belgeleri_acik_mi() is beklenen
 
 
+def test_api_belgeleri_tls_vekili_arkasinda_kapanir(monkeypatch):
+    monkeypatch.setenv("API_BELGELERI_ACIK", "")
+    monkeypatch.setenv("API_YAYIN_ADRESI", "127.0.0.1")
+    monkeypatch.setenv("AG_ACILISI", "true")
+    assert api_servisi.api_belgeleri_acik_mi() is False
+
+
 async def test_agir_hesap_tavani_doluysa_503(monkeypatch):
     monkeypatch.setattr(config, "AGIR_HESAP_MAKS_ESZAMANLI", 1)
     monkeypatch.setattr(config, "AGIR_HESAP_BEKLEME_SANIYE", 0.05)
