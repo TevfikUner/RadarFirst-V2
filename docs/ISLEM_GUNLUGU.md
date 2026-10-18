@@ -2,6 +2,14 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-18 (tam yetkiyle P0 listesi; PR #88–#90)
+
+- ✅ P0-8: haftalık geri yükleme tatbikatı (3 sn, 16 tablo aynı), RPO 24 sa / RTO 15 dk; dondurma yedeği `kalici/`.
+- ✅ P0-2 + Y-1: ağa açılışta zayıf anahtar/şifre, süper kullanıcı, örnek saha, kapalı bütünlükle başlamaz.
+- ✅ P0-5 + Y-3: dump'lar API/işçide yok; sağlık raporu `yedek_durumu.json`'dan.
+- ⚠️ Yedekten yeniden üretimde model seçimi değişti (RF/GB berabere, sorgu sırasız) → ORDER BY id (PR #89).
+- ✅ Nihai paket deterministik: yedekten = canlıdan; RF 0,708, +0,033 [+0,018; +0,049]. İlk üretim `ilk_uretim_sirasiz/`.
+
 ## 2026-10-18 (dal `claude/dondurma-2026-10-18`, `claude/nihai-paket-belgeler`)
 
 - ✅ C-9 düzeltildi (PR #86): kalibre TI1 ikili metrikleri doğru eşikle.

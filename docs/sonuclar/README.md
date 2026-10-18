@@ -12,7 +12,7 @@ sayıların tek listesidir ve elle düzenlenmez.
 | [`2026-10-07/`](2026-10-07/SAYILAR.md) | Ön paket (tarihçe): 80 gün, protokol modeli LR, kapı geçilmedi. | 7 Ekim 2026 |
 | [`2026-10-16/`](2026-10-16/README.md) | Ek analizler (ML paketi değil): ERA5 → canlı GFS TI1 eşik eşlemesi; rota ayrıklaştırma yakınsaması. | 9–11 Ekim 2026 / Ocak 2019 |
 | [`2026-10-17/`](2026-10-17/README.md) | Ek analiz (ML paketi değil): kaçınma başlangıç zamanı, kalkışta ve yolda planlama (Fikir 18). | 12–16 Ekim 2026 GFS |
-| [`2026-10-18/`](2026-10-18/SAYILAR.md) | **Nihai paket.** Belgeler bu paketin sayılarını kullanır: 163 gün, protokol modeli GB, kapı geçildi (+0,036). `ml_dondurma.json`: aday aktif 9 Ekim RF'yi geçemedi, saklandı. Commit `45caf3c`, üretim 17 Ekim 23:40 UTC; yedek `turbulans_20261018.dump`. `rota_performansi` şarjdayken eklenecek. | 18 Ekim 2026 |
+| [`2026-10-18/`](2026-10-18/SAYILAR.md) | **Nihai paket.** Belgeler bu paketin sayılarını kullanır: 163 gün, protokol modeli RF, kapı geçildi (+0,033). Commit `5ddcd40`, üretim 18 Ekim 00:25 UTC; yedekten ve canlıdan birebir aynı üretildi (yedek `kalici/turbulans_20261018_dondurma.dump`). `ml_dondurma.json`: aday (GB) aktif 9 Ekim RF'yi geçemedi, saklandı. `ilk_uretim_sirasiz/`: sıralama düzeltmesinden önceki ilk üretim (GB +0,036), tarihçe. `rota_performansi` şarjdayken eklenecek. | 18 Ekim 2026 |
 
 ## Paketin içeriği
 

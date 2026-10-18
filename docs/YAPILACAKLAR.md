@@ -5,7 +5,7 @@
 
 ## 18 Ekim 2026 — ML veri dondurma
 
-- [x] (18 Ekim, commit `45caf3c`; GB +0,036, kapı geçildi; dondurmada aday aktif RF'yi geçemedi)
+- [x] (18 Ekim, commit `5ddcd40`, sıralı sorgu; RF +0,033, kapı geçildi; dondurmada aday aktif RF'yi geçemedi)
   `turbulans-ml-degerlendirme --kesme 2026-10-18 --cikti docs/sonuclar/2026-10-18`,
   `turbulans-ml --dondurma-raporu docs/sonuclar/2026-10-18`.
 - [ ] Şarjdayken: `turbulans-performans rota --json docs/sonuclar/2026-10-18/rota_performansi.json`
@@ -24,7 +24,7 @@
   `TI1_ESIK_ORTA_SIDDETLI_GFS`'e (`.env`) yaz, API/worker'ı yeniden başlat; demo ekranları GFS
   kullanıyorsa yeniden kontrol et. Örneklemi büyütmek için `--bitis 2026-10-13T18:00Z`
   (12–13 Ekim için ~2 MB GFS + ~5 MB ERA5 ek indirme; THREDDS koşuları ~8 gün durur).
-- [x] (18 Ekim, SONUCLAR §0.4: 0,043) MADIS önsel kayma gösterimi (`model_olasilik_onsel_duzeltilmis`) pakette çıkınca
+- [x] (18 Ekim, SONUCLAR §0.4: 0,041) MADIS önsel kayma gösterimi (`model_olasilik_onsel_duzeltilmis`) pakette çıkınca
   SONUCLAR §0.4'e tek satır not.
 - [x] (18 Ekim) SUNUM_AKISI §10 (F1 doğrulama karnesi) ve poster "Sonraki" satırını nihai pakete bağla.
 - [x] (16 Ekim, ekranlar yenilendi; demo sayıları değişmedi: %9,55 ek yakıt, 26 dk kaçınma) Demo ekranlarını temiz klondan yenile: brifing kartına FPL Madde 15, dikey kesit, kalkış

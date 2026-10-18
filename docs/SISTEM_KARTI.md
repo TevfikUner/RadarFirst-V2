@@ -249,10 +249,11 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   [+0,018; +0,048]; bu yüzden kapıdan geçip aktifleşti. `/turbulans/tahmin` ve model bilgisi
   uçları bu modeli kullanır. Yeni aday her gece eğitilir ve yalnızca altın test günlerinde
   TI1 referansını ve aktif modeli geçerse aktifleşir.
-- Raporlanan protokol modeli (nihai paket, 147 eğitim günü): Gradient Boosting, altın
-  günlerde 0,710 [0,680–0,740], TI1'e göre +0,036 [+0,019; +0,053]. Dondurma raporunda aktif
+- Raporlanan protokol modeli (nihai paket, 147 eğitim günü): Random Forest, altın günlerde
+  0,708 [0,677–0,738], TI1'e göre +0,033 [+0,018; +0,049]. CV'de RF ve GB berabere (fark
+  0,0001); ilk, sırasız üretimde GB seçilmişti (+0,036). Dondurma raporundaki aday (GB) aktif
   modeli geçemedi (+0,003 [−0,001; +0,008]) ve yalnız sürüm olarak saklandı. Raporlanan ile
-  çalışan model farklıdır; ikisi de aynı altın günlerde TI1'i geçer
+  çalışan model aynı türdür ama ayrı eğitimlerdir; ikisi de aynı altın günlerde TI1'i geçer
   (`docs/rapor/SONUCLAR.md` §0.1). 9 Ekim aktivasyon kararı altın günlerde verildi ve 7–18
   Ekim arasında 12 sürüm aynı günlerde kapıya girdi; aktif modelin altın gün skoru bu yüzden
   protokol modelininki kadar temiz değildir.

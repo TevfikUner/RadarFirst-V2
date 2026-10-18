@@ -1,8 +1,8 @@
 {
   "meta": {
     "kesme": "2026-10-18",
-    "uretim_zamani": "2026-10-17T23:39:56+00:00",
-    "commit": "45caf3ce890f816407c2bcbf9b3e6e722451ddc8",
+    "uretim_zamani": "2026-10-18T00:24:59+00:00",
+    "commit": "5ddcd40caa13dcff01879dfb26d127ac9cb80d04",
     "kirli": false,
     "bootstrap_tekrar": 1000,
     "uyari": "Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır."
@@ -37,7 +37,7 @@
     ]
   },
   "model": {
-    "secilen": "Gradient Boosting",
+    "secilen": "Random Forest",
     "secim": "gün gruplu CV ROC-AUC, 1-SE kuralı; sigmoid kalibrasyon; yalnız eğitim günleri",
     "cv": {
       "Lojistik Regresyon": {
@@ -45,12 +45,12 @@
         "roc_auc_se": 0.0027734460059739593
       },
       "Random Forest": {
-        "roc_auc": 0.699786524864365,
-        "roc_auc_se": 0.0035953735713937195
+        "roc_auc": 0.7000270512016947,
+        "roc_auc_se": 0.0035782904205225873
       },
       "Gradient Boosting": {
-        "roc_auc": 0.699858835996063,
-        "roc_auc_se": 0.00369186815936837
+        "roc_auc": 0.6998955787828267,
+        "roc_auc_se": 0.0036583228434309257
       }
     }
   },
@@ -61,20 +61,20 @@
     "gun": 16,
     "skorlar": {
       "Model": {
-        "roc_auc": 0.7104553759123037,
+        "roc_auc": 0.7077420624382066,
         "roc_auc_ga": [
-          0.6799802446085573,
-          0.7396537600584029
+          0.6767244857153795,
+          0.7378142477271682
         ],
-        "pr_auc": 0.6924923545236492,
+        "pr_auc": 0.6883487984450274,
         "pr_auc_ga": [
-          0.6523639283445116,
-          0.7241499683508875
+          0.6488702537341453,
+          0.7193791102372298
         ],
         "ti1_farki": {
-          "fark": 0.03589380961370481,
-          "alt": 0.01875448940870394,
-          "ust": 0.05320758686422316,
+          "fark": 0.03318049613960772,
+          "alt": 0.017870559005904566,
+          "ust": 0.049117465553610275,
           "p_degeri": 0.0,
           "anlamli": true,
           "guven": 0.95,
@@ -203,101 +203,92 @@
     "ornek": 1583,
     "pozitif": 754,
     "esik": 0.5,
-    "roc_auc": 0.7104553759123037,
-    "pod": 0.669761273209549,
-    "pofd": 0.3703256936067551,
-    "far": 0.37807881773399016,
-    "csi": 0.4759660697455231,
-    "peirce": 0.29943557960279393,
-    "dogru_pozitif": 505,
-    "yanlis_pozitif": 307,
-    "yanlis_negatif": 249,
-    "dogru_negatif": 522,
-    "brier": 0.21747171540983878,
-    "brier_becerisi": 0.12815609958525098,
-    "ortalama_olasilik": 0.5184186349553035,
+    "roc_auc": 0.7077420624382066,
+    "pod": 0.6657824933687002,
+    "pofd": 0.36308805790108567,
+    "far": 0.37484433374844334,
+    "csi": 0.4758293838862559,
+    "peirce": 0.30269443546761454,
+    "dogru_pozitif": 502,
+    "yanlis_pozitif": 301,
+    "yanlis_negatif": 252,
+    "dogru_negatif": 528,
+    "brier": 0.2190966251867992,
+    "brier_becerisi": 0.12164183783356786,
+    "ortalama_olasilik": 0.5191577983434037,
     "gozlenen_oran": 0.476310802274163,
     "guvenilirlik": [
-      {
-        "aralik": [
-          0.1,
-          0.2
-        ],
-        "adet": 3,
-        "ortalama_tahmin": 0.18097913859939416,
-        "gozlenen_oran": 0.0
-      },
       {
         "aralik": [
           0.2,
           0.3
         ],
-        "adet": 137,
-        "ortalama_tahmin": 0.26311879486199913,
-        "gozlenen_oran": 0.19708029197080293
+        "adet": 120,
+        "ortalama_tahmin": 0.2838790250780849,
+        "gozlenen_oran": 0.18333333333333332
       },
       {
         "aralik": [
           0.3,
           0.4
         ],
-        "adet": 292,
-        "ortalama_tahmin": 0.3506419108136737,
-        "gozlenen_oran": 0.3082191780821918
+        "adet": 418,
+        "ortalama_tahmin": 0.3479589298899208,
+        "gozlenen_oran": 0.32057416267942584
       },
       {
         "aralik": [
           0.4,
           0.5
         ],
-        "adet": 339,
-        "ortalama_tahmin": 0.4492434824284835,
-        "gozlenen_oran": 0.3893805309734513
+        "adet": 242,
+        "ortalama_tahmin": 0.45242198668190636,
+        "gozlenen_oran": 0.39669421487603307
       },
       {
         "aralik": [
           0.5,
           0.6
         ],
-        "adet": 310,
-        "ortalama_tahmin": 0.5462675209666817,
-        "gozlenen_oran": 0.4870967741935484
+        "adet": 267,
+        "ortalama_tahmin": 0.5502964117030533,
+        "gozlenen_oran": 0.50187265917603
       },
       {
         "aralik": [
           0.6,
           0.7
         ],
-        "adet": 248,
-        "ortalama_tahmin": 0.6502914576214709,
-        "gozlenen_oran": 0.5887096774193549
+        "adet": 236,
+        "ortalama_tahmin": 0.6529503147922392,
+        "gozlenen_oran": 0.576271186440678
       },
       {
         "aralik": [
           0.7,
           0.8
         ],
-        "adet": 164,
-        "ortalama_tahmin": 0.7442059901540901,
-        "gozlenen_oran": 0.8109756097560976
+        "adet": 208,
+        "ortalama_tahmin": 0.745046737188323,
+        "gozlenen_oran": 0.75
       },
       {
         "aralik": [
           0.8,
           0.9
         ],
-        "adet": 76,
-        "ortalama_tahmin": 0.8410866657146309,
-        "gozlenen_oran": 0.8289473684210527
+        "adet": 88,
+        "ortalama_tahmin": 0.8317348702224262,
+        "gozlenen_oran": 0.8295454545454546
       },
       {
         "aralik": [
           0.9,
           1.0
         ],
-        "adet": 14,
-        "ortalama_tahmin": 0.9141375965804232,
-        "gozlenen_oran": 0.8571428571428571
+        "adet": 4,
+        "ortalama_tahmin": 0.9101380417003133,
+        "gozlenen_oran": 0.75
       }
     ]
   },
@@ -808,20 +799,20 @@
       "gun": 14,
       "skorlar": {
         "Model": {
-          "roc_auc": 0.7083661366743065,
+          "roc_auc": 0.7050032375098925,
           "roc_auc_ga": [
-            0.6729675563360774,
-            0.7452744108728836
+            0.6696009879797987,
+            0.7441234358334164
           ],
-          "pr_auc": 0.6877058330230607,
+          "pr_auc": 0.6844679078612104,
           "pr_auc_ga": [
-            0.6421112149337079,
-            0.7261256762419325
+            0.6378030457660426,
+            0.723452622779003
           ],
           "ti1_farki": {
-            "fark": 0.04133118184527795,
-            "alt": 0.024999130218326428,
-            "ust": 0.05758327646768262,
+            "fark": 0.03796828268086394,
+            "alt": 0.023076411068803336,
+            "ust": 0.052242495315093666,
             "p_degeri": 0.0,
             "anlamli": true,
             "guven": 0.95,
@@ -891,20 +882,20 @@
       "gun": 14,
       "skorlar": {
         "Model": {
-          "roc_auc": 0.7097849222641001,
+          "roc_auc": 0.7066447789069862,
           "roc_auc_ga": [
-            0.6742512062506718,
-            0.7469303280230768
+            0.6707076541360678,
+            0.745333911137657
           ],
-          "pr_auc": 0.6900687400494545,
+          "pr_auc": 0.6867616499603155,
           "pr_auc_ga": [
-            0.6466835494854947,
-            0.7281444661420249
+            0.6413507258150172,
+            0.7245568310884869
           ],
           "ti1_farki": {
-            "fark": 0.03971135078745447,
-            "alt": 0.022799643031860283,
-            "ust": 0.0561068573397966,
+            "fark": 0.03657120743034059,
+            "alt": 0.022424876766496658,
+            "ust": 0.051158209366290584,
             "p_degeri": 0.0,
             "anlamli": true,
             "guven": 0.95,
@@ -1104,20 +1095,20 @@
     "gun": 14,
     "skorlar": {
       "Model": {
-        "roc_auc": 0.7786232506543013,
+        "roc_auc": 0.7747686071427637,
         "roc_auc_ga": [
-          0.7380748878220637,
-          0.8164267919286792
+          0.7338903333282494,
+          0.8143234008930897
         ],
-        "pr_auc": 0.1259890046085844,
+        "pr_auc": 0.12558484563307437,
         "pr_auc_ga": [
-          0.09546659559424579,
-          0.16513396727336793
+          0.09319633908093472,
+          0.16891366122437873
         ],
         "ti1_farki": {
-          "fark": 0.05657699911829572,
-          "alt": 0.030984471354592636,
-          "ust": 0.08192449332052494,
+          "fark": 0.0527223556067582,
+          "alt": 0.0283953687246014,
+          "ust": 0.07651969539416373,
           "p_degeri": 0.0,
           "anlamli": true,
           "guven": 0.95,
@@ -1183,102 +1174,93 @@
       "ornek": 45075,
       "pozitif": 1310,
       "esik": 0.5,
-      "roc_auc": 0.7786232506543013,
-      "pod": 0.850381679389313,
-      "pofd": 0.4816177310636353,
-      "far": 0.9498017303532804,
-      "csi": 0.049758799356798285,
-      "peirce": 0.36876394832567766,
-      "dogru_pozitif": 1114,
-      "yanlis_pozitif": 21078,
-      "yanlis_negatif": 196,
-      "dogru_negatif": 22687,
-      "brier": 0.26944739841257015,
-      "brier_becerisi": -8.548765698937776,
-      "ortalama_olasilik": 0.5087143984746499,
+      "roc_auc": 0.7747686071427637,
+      "pod": 0.8458015267175573,
+      "pofd": 0.460847709356792,
+      "far": 0.9479249894252009,
+      "csi": 0.051585269332836726,
+      "peirce": 0.3849538173607653,
+      "dogru_pozitif": 1108,
+      "yanlis_pozitif": 20169,
+      "yanlis_negatif": 202,
+      "dogru_negatif": 23596,
+      "brier": 0.2679927930485193,
+      "brier_becerisi": -8.497216914694285,
+      "ortalama_olasilik": 0.5050406737781312,
       "gozlenen_oran": 0.02906267332224071
     },
     "guvenilirlik": [
       {
         "aralik": [
-          0.1,
-          0.2
-        ],
-        "adet": 35,
-        "ortalama_tahmin": 0.18666753573028896,
-        "gozlenen_oran": 0.0
-      },
-      {
-        "aralik": [
           0.2,
           0.3
         ],
-        "adet": 2305,
-        "ortalama_tahmin": 0.2691888184067605,
-        "gozlenen_oran": 0.0013015184381778742
+        "adet": 1472,
+        "ortalama_tahmin": 0.28719517374578746,
+        "gozlenen_oran": 0.0020380434782608695
       },
       {
         "aralik": [
           0.3,
           0.4
         ],
-        "adet": 8799,
-        "ortalama_tahmin": 0.35576434891243763,
-        "gozlenen_oran": 0.005682463916354131
+        "adet": 13132,
+        "ortalama_tahmin": 0.3504828462343677,
+        "gozlenen_oran": 0.007081937252512945
       },
       {
         "aralik": [
           0.4,
           0.5
         ],
-        "adet": 11744,
-        "ortalama_tahmin": 0.45040025297171704,
-        "gozlenen_oran": 0.012176430517711171
+        "adet": 9194,
+        "ortalama_tahmin": 0.4489591796341967,
+        "gozlenen_oran": 0.011529258211877311
       },
       {
         "aralik": [
           0.5,
           0.6
         ],
-        "adet": 10583,
-        "ortalama_tahmin": 0.5474253391932976,
-        "gozlenen_oran": 0.024945667580081262
+        "adet": 8579,
+        "ortalama_tahmin": 0.5487586714931165,
+        "gozlenen_oran": 0.0264599603683413
       },
       {
         "aralik": [
           0.6,
           0.7
         ],
-        "adet": 6848,
-        "ortalama_tahmin": 0.6460205128367577,
-        "gozlenen_oran": 0.04570677570093458
+        "adet": 6927,
+        "ortalama_tahmin": 0.6519568631146427,
+        "gozlenen_oran": 0.040710264183629274
       },
       {
         "aralik": [
           0.7,
           0.8
         ],
-        "adet": 3479,
-        "ortalama_tahmin": 0.7432430019654653,
-        "gozlenen_oran": 0.08249496981891348
+        "adet": 4574,
+        "ortalama_tahmin": 0.7409944642724733,
+        "gozlenen_oran": 0.07783121993878443
       },
       {
         "aralik": [
           0.8,
           0.9
         ],
-        "adet": 1184,
-        "ortalama_tahmin": 0.8364318012117599,
-        "gozlenen_oran": 0.17989864864864866
+        "adet": 1137,
+        "ortalama_tahmin": 0.8300093471619908,
+        "gozlenen_oran": 0.1917326297273527
       },
       {
         "aralik": [
           0.9,
           1.0
         ],
-        "adet": 98,
-        "ortalama_tahmin": 0.918248479846493,
-        "gozlenen_oran": 0.37755102040816324
+        "adet": 60,
+        "ortalama_tahmin": 0.9125083274814668,
+        "gozlenen_oran": 0.4166666666666667
       }
     ],
     "model_olasilik_onsel_duzeltilmis": {
@@ -1287,7 +1269,7 @@
       "ornek": 45075,
       "pozitif": 1310,
       "esik": 0.5,
-      "roc_auc": 0.7786232506543013,
+      "roc_auc": 0.7747686071427637,
       "pod": 0.0,
       "pofd": 0.0,
       "far": null,
@@ -1297,9 +1279,9 @@
       "yanlis_pozitif": 0,
       "yanlis_negatif": 1310,
       "dogru_negatif": 43765,
-      "brier": 0.027001259240524753,
-      "brier_becerisi": 0.04312047700950705,
-      "ortalama_olasilik": 0.03165997660645135,
+      "brier": 0.027068351944895406,
+      "brier_becerisi": 0.04074282364221604,
+      "ortalama_olasilik": 0.0316576662935661,
       "gozlenen_oran": 0.02906267332224071
     }
   },

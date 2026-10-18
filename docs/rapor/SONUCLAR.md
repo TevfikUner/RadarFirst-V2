@@ -21,8 +21,9 @@ maxEDR (QC "Z", ön veri), PIREP pencerelerinin içinden (±1°, ±1 sa).
 ## 0. Nihai sonuç paketi (Madde 8, 18 Ekim veri dondurması)
 
 Güncel sayılar [`docs/sonuclar/2026-10-18/`](../sonuclar/2026-10-18/SAYILAR.md) nihai
-paketindendir: kesme 18 Ekim 2026, commit `45caf3c`, üretim 17 Ekim 23:40 UTC, tek liste
-`SAYILAR.md`. 7 Ekim ön paketi ([`2026-10-07/`](../sonuclar/2026-10-07/SAYILAR.md))
+paketindendir: kesme 18 Ekim 2026, commit `5ddcd40`, üretim 18 Ekim 00:25 UTC, tek liste
+`SAYILAR.md`. Paket dondurma yedeğinden (`db_yedekleri/kalici/turbulans_20261018_dondurma.dump`)
+ve canlı veritabanından ayrı ayrı üretildi; iki çıktı birebir aynı. 7 Ekim ön paketi ([`2026-10-07/`](../sonuclar/2026-10-07/SAYILAR.md))
 tarihçe olarak durur. Aşağıdaki §1–§3 ölçümleri 5 Ekim tarihlidir ve o günkü zamansal
 holdout'u kullanır; onlar da tarihçedir.
 
@@ -35,14 +36,15 @@ turbulans-ml --dondurma-raporu docs/sonuclar/2026-10-18
 
 Değerlendirme günleri, 7 Ekim'de dondurulan 16 altın test günüdür (1.583 PIREP). Model bu
 günleri görmedi: 147 eğitim gününde (14.357 PIREP; tümü 163 gün, 15.940 PIREP) gün gruplu
-CV ve 1-SE kuralıyla seçildi. CV'de Gradient Boosting 0,6999, Random Forest 0,6998,
-Lojistik Regresyon 0,689 (SE ~0,003); LR'nin farkı SE'den büyük olduğu için seçilen
-Gradient Boosting oldu. Altın günlerde pozitif oranı 0,476'dır; PR-AUC'nin rastgele
-tabanı bu orandır.
+CV ve 1-SE kuralıyla seçildi. CV'de Random Forest 0,7000, Gradient Boosting 0,6999,
+Lojistik Regresyon 0,689 (SE ~0,004); LR'nin farkı SE'den büyük olduğu için seçilen
+Random Forest oldu. RF ile GB arasındaki fark (0,0001) SE'nin çok altındadır; ikisinden
+hangisinin seçildiği anlamlı değildir. Altın günlerde pozitif oranı 0,476'dır; PR-AUC'nin
+rastgele tabanı bu orandır.
 
 | Gösterge | ROC-AUC [%95 GA] | PR-AUC [%95 GA] | TI1'e göre ROC-AUC farkı |
 |---|---|---|---|
-| Model (GB) | 0,710 [0,680–0,740] | 0,692 [0,652–0,724] | +0,036 [+0,019; +0,053], p < 0,001 |
+| Model (RF) | 0,708 [0,677–0,738] | 0,688 [0,649–0,719] | +0,033 [+0,018; +0,049], p < 0,001 |
 | Birleşik EDR | 0,688 [0,656–0,717] | 0,675 [0,634–0,709] | +0,013 [+0,007; +0,020], p < 0,001 |
 | TI1 | 0,675 [0,641–0,706] | 0,665 [0,622–0,701] | — |
 | 1/Ri | 0,655 [0,627–0,681] | 0,636 [0,589–0,674] | −0,020 [−0,052; +0,011], p 0,202 |
@@ -53,18 +55,30 @@ Fizik göstergeleri eğitilmediği için tüm 163 günde de ölçülebilir: TI1 
 **Kapı sonucu:** protokol modeli altın günlerde TI1'i anlamlı farkla geçti (GA 0'ı
 içermiyor). 7 Ekim ön paketinde (80 gün) seçilen LR geçememişti (+0,008 [−0,006; +0,022]).
 Kural ve altın günler değişmedi; veri iki katına çıkınca 1-SE kuralı LR yerine ağaç modelini
-seçti. Birleşik EDR'nin TI1'e üstünlüğü küçük ama tutarlı. Model olasılığında Brier 0,217,
-Brier becerisi 0,128; ortalama olasılık 0,518, gözlenen oran 0,476.
+seçti. Birleşik EDR'nin TI1'e üstünlüğü küçük ama tutarlı. Model olasılığında Brier 0,219,
+Brier becerisi 0,122; ortalama olasılık 0,519, gözlenen oran 0,476.
+
+**Paketin iki kez üretilmesi (şeffaflık notu).** İlk üretimde (17 Ekim 23:40 UTC, commit
+`45caf3c`) eğitim sorgusu sırasızdı; 1-SE kuralı Gradient Boosting'i seçti: 0,710
+[0,680–0,740], TI1'e göre +0,036 [+0,019; +0,053]. Yedekten yeniden üretimde satır sırası
+değişince RF seçildi; RF ve GB satır sırasına duyarlıdır ve CV'de berabere oldukları için
+seçim sıraya göre değişiyordu. Sorgular birincil anahtara göre sıralandı (PR #89) ve paket
+yeniden üretildi. Düzeltme sonuca bakılarak seçim değildir: kural, altın günler ve veri
+değişmedi; iki üretimde de model TI1'i anlamlı geçiyor. İlk çıktı
+[`ilk_uretim_sirasiz/`](../sonuclar/2026-10-18/ilk_uretim_sirasiz/SAYILAR.md) altında durur.
 
 **Raporlanan model ile çalışan model.** Canlı sistemde 9 Ekim'de gece kapısından geçen
 Random Forest aktiftir (79 eğitim günü, 7.759 PIREP; aynı 1-SE kuralıyla seçildi). Aynı
 altın günlerde ROC-AUC'si 0,707, TI1'e göre +0,033 [+0,018; +0,048]. Dondurma raporu
-(`ml_dondurma.json`) yeni adayı (GB, 0,710) aktif modelle karşılaştırdı: fark +0,003
-[−0,001; +0,008], anlamlı değil; aday yalnız sürüm olarak saklandı, aktif model değişmedi.
+(`ml_dondurma.json`, sıralama düzeltmesinden önce üretildi; aday GB, 0,710) yeni adayı aktif
+modelle karşılaştırdı: fark +0,003 [−0,001; +0,008], anlamlı değil; aday yalnız sürüm olarak
+saklandı, aktif model değişmedi. Dondurma raporu bir model sürümü kaydettiği için yeniden
+çalıştırılmadı (aynı altın günlerde bir karşılaştırma daha olurdu).
 9 Ekim aktivasyon kararı altın günlerde verildi. Bu model seçimi değil kapı kararıdır, ama
 7–18 Ekim arasında 12 sürüm aynı 16 günde kapıya girdi ve biri aktifleşti (çoklu
 karşılaştırma). Bu yüzden aktif modelin altın gün skoru protokol modelininki kadar temiz
-değildir. Protokol modelinin skoru tek bir değerlendirmedir.
+değildir. Protokol modeli altın günlerde iki kez ölçüldü (yukarıdaki not); ikisi de seçime
+etki etmedi.
 
 Şekiller: [ROC (TI1 ve Ri)](../sonuclar/2026-10-18/roc_ti1_ri.png),
 [güvenilirlik diyagramı](../sonuclar/2026-10-18/guvenilirlik_modeli.png).
@@ -119,7 +133,7 @@ kaldı.
 
 | Gösterge | Yalnız CAT, altın günler | Yalnız CAT, tüm günler |
 |---|---|---|
-| Model | 0,710 [0,674–0,747] | — |
+| Model | 0,707 [0,671–0,745] | — |
 | Birleşik EDR | 0,684 [0,650–0,721] | 0,688 [0,676–0,699] |
 | TI1 | 0,670 [0,634–0,708] | 0,673 [0,661–0,685] |
 | 1/Ri | 0,654 [0,623–0,687] | 0,656 [0,644–0,667] |
@@ -137,16 +151,16 @@ günleriyle çakışabilir (model MADIS etiketini görmedi, aynı günlerin PIRE
 
 | Gösterge | ROC-AUC [%95 GA] | PR-AUC [%95 GA] | TI1'e göre fark |
 |---|---|---|---|
-| Model | 0,779 [0,738–0,816] | 0,126 [0,095–0,165] | +0,057 [+0,031; +0,082], p < 0,001 |
+| Model | 0,775 [0,734–0,814] | 0,126 [0,093–0,169] | +0,053 [+0,028; +0,077], p < 0,001 |
 | Birleşik EDR | 0,757 [0,710–0,804] | 0,115 [0,085–0,161] | +0,035 [+0,020; +0,050], p < 0,001 |
 | TI1 | 0,722 [0,669–0,779] | 0,105 [0,073–0,154] | — |
 | 1/Ri | 0,722 [0,672–0,766] | 0,085 [0,058–0,116] | −0,000 [−0,060; +0,053], p 0,942 |
 
 PR-AUC taban orandan 3–4 kat yüksek, ama mutlak değeri düşük. %3'lük bir olayda ROC-AUC
 0,7–0,8 sıralamanın rastgeleden iyi olduğunu söyler; uyarıların çoğunun yanlış alarm
-olacağını gizler. Model olasılığı ortalama 0,509, Brier becerisi −8,55: olasılık PIREP taban
+olacağını gizler. Model olasılığı ortalama 0,505, Brier becerisi −8,50: olasılık PIREP taban
 oranına göre kalibre olduğu için ölçülen sıklık olarak okunamaz (§4). Önsel kayma
-düzeltmesiyle (PIREP taban oranından MADIS taban oranına) Brier becerisi 0,043 olur; bu
+düzeltmesiyle (PIREP taban oranından MADIS taban oranına) Brier becerisi 0,041 olur; bu
 yalnız bir gösterimdir, düzeltme aynı veriden yapıldığı için iyimserdir ve karara girmez.
 
 ### 0.5 Rota backtest'i
@@ -259,7 +273,8 @@ sonra holdout 16 altın test günüdür; bu satırlar birbiriyle karşılaştır
 | 5 Eki 2026 (yeni fizik) | yeni | Random Forest | 0,730 [0,684–0,774] | 0,707 [0,657–0,755] | TI1 kapısı geçildi; aktif modeli F1'de geçemedi (0,695'e karşı 0,704), saklandı |
 | 7 Eki 2026 (ön paket, altın günler) | yeni | Lojistik Regresyon | 0,681 [0,646–0,716] | 0,673 [0,639–0,704] | Kapı geçilmedi (+0,008 [−0,006; +0,022]) |
 | 9 Eki 2026 (gece işi, altın günler) | yeni | Random Forest | 0,707 | 0,675 [0,641–0,706] | TI1'i geçti (+0,033 [+0,018; +0,048]), aktifleştirildi; bugün de aktif |
-| 18 Eki 2026 (dondurma, altın günler) | yeni | Gradient Boosting | 0,710 [0,680–0,740] | 0,675 [0,641–0,706] | TI1'i geçti (+0,036); aktif modeli geçemedi (+0,003 [−0,001; +0,008]), saklandı |
+| 18 Eki 2026 (dondurma raporu, altın günler) | yeni | Gradient Boosting | 0,710 [0,680–0,740] | 0,675 [0,641–0,706] | TI1'i geçti (+0,036); aktif modeli geçemedi (+0,003 [−0,001; +0,008]), saklandı |
+| 18 Eki 2026 (nihai paket, sıralı sorgu) | yeni | Random Forest | 0,708 [0,677–0,738] | 0,675 [0,641–0,706] | TI1'i geçti (+0,033 [+0,018; +0,049]); paket modeli, sürüm kaydedilmez |
 
 **Olumsuz ara bulgu (3 Ekim):** Doğru irtifalı veriyle yapılan ilk gerçek eğitimde model
 tek başına TI1'i geçemedi (0,646'ya karşı 0,667). Kapılı aktivasyon modeli devreye
@@ -314,7 +329,8 @@ sırasıyla +0,031 [+0,016; +0,047] ve +0,033 [+0,013; +0,053] farkla geçiyor. 
 günlerine bakılarak görüldü. Seçim kuralını buna göre değiştirmek test verisine bakarak
 model seçmek olur. Bu yüzden 18 Ekim dondurmasında protokol değişmeden uygulanır; bulgu
 yalnız tartışma bölümünde yer alır. Dondurmada protokol değişmeden uygulandı; 1-SE kuralı
-163 günlük veride Gradient Boosting'i seçti ve model TI1'i geçti (§0.1).
+163 günlük veride ağaç modelini (sıralı sorguyla RF, ilk üretimde GB) seçti ve model TI1'i
+geçti (§0.1).
 
 ### 2.4 RF ayarı ve bağlam özellikleri (F9 deneyi, 15 Ekim)
 
@@ -393,11 +409,12 @@ ayırt edici çıkmadı. Ayrıntı: ADR 0011.
 
 ## 6. Veri dondurma
 
-Veri ve protokol **18 Ekim 2026**'da donduruldu (paket 17 Ekim 23:40 UTC'de üretildi,
-commit `45caf3c`). Bu tarihten sonra eğitim verisi, etiket tanımı, holdout kuralı ve kapı
-ölçütü değişmez. Rapordaki nihai sayılar `db_yedekleri/turbulans_20261018.dump`
-yedeğinden (18 Ekim 00:07 UTC; paketle yedek arasında `ml_ornekleri`'ne yazan iş yok)
-yukarıdaki komutlarla yeniden üretilir. Canlı veritabanında gece işi eşleşen örnekleri
+Veri ve protokol **18 Ekim 2026**'da donduruldu (nihai paket 18 Ekim 00:25 UTC, commit
+`5ddcd40`). Bu tarihten sonra eğitim verisi, etiket tanımı, holdout kuralı ve kapı ölçütü
+değişmez. Rapordaki nihai sayılar `db_yedekleri/kalici/turbulans_20261018_dondurma.dump`
+yedeğinden (18 Ekim 00:02 UTC; saklama süresiyle silinmez, disk dışında şifreli kopyası var)
+yukarıdaki komutla yeniden üretilir: yedekten ve canlıdan üretilen paketler birebir aynı
+çıktı. Geri yükleme tatbikatı da bu yedekle yapıldı (README "Veritabanı yedeği"). Canlı veritabanında gece işi eşleşen örnekleri
 güncellemeye devam ettiği için aynı komut canlı veride farklı sayı verir; kesme
 `olusturulma_zamani`'na göredir ve sonradan eşleşen eski satırları dışlamaz.
 Dondurmadan önce kapanan işler:

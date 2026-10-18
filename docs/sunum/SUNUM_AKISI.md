@@ -118,9 +118,11 @@ veri dondurması). Aralıklar gün bazlı blok bootstrap %95 GA'dır.
 - **Backtest (ERA5, THY322):** Riskli nokta oranı (gerçek / büyük daire / A*): 1 Ocak 2019
   0,00 / 0,20 / 0,00; 15 Ocak 2019 0,24 / 0,39 / 0,02. Ölçüm döngüseldir (A* TI1'i
   düşürür, başarı TI1 ile ölçülür); bunu açıkça söyleyin.
-- **ML (nihai):** Protokol modeli (1-SE kuralı bu kez Gradient Boosting'i seçti) altın test
-  günlerinde (16 gün, 1.583 PIREP) ROC-AUC 0,710 [0,680–0,740]. TI1'e göre fark +0,036
-  [+0,019; +0,053], p < 0,001: kapı geçildi. 7 Ekim ön paketinde (80 gün) LR geçememişti
+- **ML (nihai):** Protokol modeli (1-SE kuralı bu kez Random Forest'ı seçti; GB ile berabere)
+  altın test günlerinde (16 gün, 1.583 PIREP) ROC-AUC 0,708 [0,677–0,738]. TI1'e göre fark
+  +0,033 [+0,018; +0,049], p < 0,001: kapı geçildi. Jüri "neden RF?" derse: CV'de RF ile GB
+  berabere (0,0001 fark); ilk, sırasız üretimde GB seçilmişti (+0,036). Sıralama düzeltilince
+  paket yedekten birebir yeniden üretilebilir oldu; iki durumda da model TI1'i geçiyor. 7 Ekim ön paketinde (80 gün) LR geçememişti
   (+0,008); bunu da söyleyin, sonuç veri hacmine duyarlı. Birleşik EDR TI1'i küçük ama
   anlamlı farkla geçiyor: 0,688, fark +0,013 [+0,007; +0,020]. F1 0,645; konformal kapsama
   0,907 (hedef 0,90), ama örneklerin %60'ı "belirsiz" kalıyor.
@@ -129,8 +131,8 @@ veri dondurması). Aralıklar gün bazlı blok bootstrap %95 GA'dır.
   [−0,001; +0,008]) ve saklandı. Jüri "raporlanan ile çalışan model aynı mı?" diye sorarsa:
   hayır, ikisi de aynı altın günlerde ölçüldü ve ikisi de TI1'i geçiyor.
 - **Nesnel etiket (MADIS):** 45.075 ölçüm, 14 gün, fiilen yalnız hafif sınıf (taban oran
-  0,029; orta ve üstü 1 ölçüm). ROC-AUC model 0,779 [0,738–0,816], TI1 0,722 [0,669–0,779];
-  PR-AUC 0,126 ve 0,105. Model olasılığı ortalama 0,509; PIREP yanlılığı nedeniyle mutlak
+  0,029; orta ve üstü 1 ölçüm). ROC-AUC model 0,775 [0,734–0,814], TI1 0,722 [0,669–0,779];
+  PR-AUC 0,126 ve 0,105. Model olasılığı ortalama 0,505; PIREP yanlılığı nedeniyle mutlak
   sıklık değildir. Seçim yanlılığı var: örnekler PIREP pencerelerinden geliyor.
 - **Sanal PIREP (M6):** İlk küçük ölçüm (2 Ekim 2026, 16 değerlendirilebilir PIREP):
   POD 1/8 = 0,13 (%95 Wilson 0,02–0,47), POFD 0/8 = 0 (0–0,32). Dedektör tutucu;
