@@ -2,6 +2,12 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-18 (P0 devamı; PR #91–#94)
+
+- ✅ P0-4/P0-3 CSP + güvenlik başlıkları (#91), tarayıcı 8/8; P0-1 Caddy TLS vekili (#92); P0-9 `*_FILE` (#93).
+- ✅ GFS eşiği 8,3e-7 `.env`'de, API/işçi yeniden başlatıldı; Y-4, Y-5 (#94). Durum tablosu URETIM_HAZIRLIK başında.
+- ⚠️ npm erişilemiyor: imaj derlemesi Cesium indirmesinde takıldı, durduruldu; CSP canlı imajda yok.
+
 ## 2026-10-18 (tam yetkiyle P0 listesi; PR #88–#90)
 
 - ✅ P0-8: haftalık geri yükleme tatbikatı (3 sn, 16 tablo aynı), RPO 24 sa / RTO 15 dk; dondurma yedeği `kalici/`.

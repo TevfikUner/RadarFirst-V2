@@ -10,6 +10,26 @@ Yollar depo köküne görelidir; makineye özgü yollar `<DEPO>`, `<KULLANICI>` 
 Önem: **P0** canlıya (güvenilmeyen ağa) açılmayı engeller · **P1** üretim kalitesi ·
 **P2** sonraya bırakılabilir. Efor: S (≤2 sa), M (yarım gün), L (≥1 gün).
 
+## Faz 1 durumu (18 Ekim 2026, kullanıcının tam yetkisiyle)
+
+| No | Durum | PR | Not |
+|---|---|---|---|
+| P0-1 | ✅ | #92 | Caddy `vekil` (`--profile uretim`), HTTPS + HSTS; 8088/8443'te canlı denendi |
+| P0-2 + Y-1 | ✅ | #88 | `API_YAYIN_ADRESI` yerel değil ya da `AG_ACILISI=true` iken zayıf/demo sır, süper kullanıcı, örnek saha, kapalı bütünlük → API/işçi başlamaz |
+| P0-3 | ✅ | #91 | CSP (`script-src 'self'`; Cesium sayfası `'unsafe-eval' 'wasm-unsafe-eval' blob:`), nosniff, Referrer-Policy, X-Frame-Options; tarayıcı testleri CSP ihlalini hata sayar |
+| P0-4 | ✅ | #91 | CDN yedeği ve satır içi betikler kaldırıldı; `cdn_yedegi` → `eksik` |
+| P0-5 + Y-3 | ✅ | #88 | Dump'lar API/işçiye bağlanmıyor; `db_yedekleri/durum/yedek_durumu.json` |
+| P0-6 | ✅ | #85 | MCP ayarı boşsa/yetkili rolse başlamaz; fonksiyon kara listesi. İmajdan çıkarma P1-5 |
+| P0-7 | ⏸ | — | Yalnız B planı seçilirse; seçilmedi |
+| P0-8 | ✅ | #88 | Haftalık tatbikat (3 sn, 16 tablo aynı), RPO 24 sa / RTO 15 dk; kalıcı dondurma yedeği |
+| P0-9 | ✅ (kod) | #93 | `*_FILE` sır desteği. GitHub Destek talebi metni hazır, gönderim kullanıcıda (web formu) |
+| Y-4 | ✅ | bu PR | İşçi ve demo'da API anahtarları boş; işçi kapalı başlamada anahtar denetimini atlar |
+| Y-5 | ✅ | bu PR | `harita3d.html` lejantına "sertifikalı EDR değildir / karar destek aracıdır" |
+| Y-2, Y-6, Y-7 | ⏸ | — | Y-2 ayrı override gerektirir (P2); Y-6 `docker builder prune` npm erişimi dönene kadar ertelendi (Cesium yeniden indirilemiyor); Y-7 yalnız dizüstü |
+
+Docker imajı CSP kodunu henüz içermiyor: 18 Ekim gecesi npm'e erişilemediği için derleme
+Cesium indirmesinde takıldı ve durduruldu (canlı yığın #90 imajıyla çalışıyor, yerel yayın).
+
 ## Özet
 
 - 28 bulgunun 21'i **doğru**, 7'si **kısmen doğru**; **yanlış** çıkan yok. 7 **yeni** bulgu eklendi.

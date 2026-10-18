@@ -82,6 +82,6 @@ olduğu için yatay deformasyon daha keskin çıkıyor.
 - Tek bölge, tek mevsim, 3 gün. Gün içi ilişki nedeniyle etkin örneklem 12 saattir.
 - Eşleme iki kaynağı tutarlı yapar; GFS'in türbülans becerisini göstermez (F1 doğrulama
   karnesi).
-- `TI1_ESIK_ORTA_SIDDETLI_GFS` şimdilik **boş** bırakıldı. 18 Ekim nihai paketinde ERA5
-  eşiği yeniden seçileceği için GFS eşdeğeri o eşikle yeniden hesaplanıp birlikte
-  ayarlanacak (bkz. `docs/YAPILACAKLAR.md`).
+- `TI1_ESIK_ORTA_SIDDETLI_GFS` 16 Ekim'de boş bırakıldı. 18 Ekim nihai paketinde ERA5 eşiği
+  değişmedi (7e-7, 1-SE bandının içinde), bu yüzden eşleme yeniden çalıştırılmadı ve 8,3e-7
+  `.env`'ye yazıldı (18 Ekim).
