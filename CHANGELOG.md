@@ -6,9 +6,12 @@ gruplanmıştır, en yeni en üstte.
 
 ## Veri dondurma ve nihai sonuç paketi (18 Ekim 2026)
 
-- Nihai paket `docs/sonuclar/2026-10-18/` (163 gün, 15.940 PIREP): protokol modeli Gradient
-  Boosting, altın günlerde TI1'i +0,036 [+0,019; +0,053] ile geçti; `ml_dondurma.json`'da aday
-  aktif 9 Ekim RF'yi geçemedi. TI1 1-SE eşiği 7,39e-7, config 7e-7 bandın içinde kaldı.
+- Nihai paket `docs/sonuclar/2026-10-18/` (163 gün, 15.940 PIREP): protokol modeli Random
+  Forest, altın günlerde TI1'i +0,033 [+0,018; +0,049] ile geçti; `ml_dondurma.json`'da aday
+  aktif 9 Ekim RF'yi geçemedi. Eğitim sorguları birincil anahtara göre sıralandı; paket
+  dondurma yedeğinden ve canlıdan birebir aynı üretiliyor (ilk sırasız üretim GB +0,036).
+- Haftalık geri yükleme tatbikatı, kalıcı yedek klasörü, RPO/RTO (P0-8); ağa açılışta kapalı
+  başlama (P0-2); dump'lar API/işçiden ayrıldı (P0-5). TI1 1-SE eşiği 7,39e-7, config 7e-7 bandın içinde kaldı.
 - Kalibre TI1 holdout ikili metrikleri TI1 eşiğinin olasılık karşılığıyla (komite C-9).
 - `TI1_GUVENILIRLIK_NOTU` ve belgelerdeki ön paket sayıları nihai paketle değiştirildi.
 

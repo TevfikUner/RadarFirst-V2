@@ -147,17 +147,21 @@ Ayrıntı ve kanıt [`URETIM_HAZIRLIK.md`](URETIM_HAZIRLIK.md)'de. Komite için 
 
 - **C-9 kapandı** (PR #86): kalibre TI1'in ikili metrikleri artık TI1 eşiğinin olasılık
   karşılığıyla hesaplanıyor; nihai pakette POD/POFD TI1 referansıyla aynı (0,622 / 0,373).
-- **C-1, C-2 kapandı:** nihai pakette protokol modeli Gradient Boosting, altın günlerde TI1'i
-  +0,036 [+0,019; +0,053] ile geçti. Canlıdaki 9 Ekim RF (+0,033) ile yan yana SONUCLAR §0.1,
+- **C-1, C-2 kapandı:** nihai pakette protokol modeli Random Forest, altın günlerde TI1'i
+  +0,033 [+0,018; +0,049] ile geçti. Canlıdaki 9 Ekim RF (+0,033) ile yan yana SONUCLAR §0.1,
   SISTEM_KARTI, README "Kısa cevap", PROJE_ISLEYISI ve SUNUM_AKISI §8'de anlatılıyor. Dondurma
   raporunda aday aktif modeli geçemedi (+0,003), saklandı.
 - **C-7 kapandı:** `TI1_GUVENILIRLIK_NOTU` 15.940 PIREP / 163 güne güncellendi.
 - **B-6 değişti:** MADIS 14 gün, 45.075 ölçüm; orta ve üstü yalnız 1 ölçüm (hâlâ fiilen hafif sınıf).
-- **B-7 değişti:** 1-SE kuralı 163 günde GB seçti ve model geçti; 80 günde LR seçip geçememişti.
+- **B-7 değişti:** 1-SE kuralı 163 günde ağaç modeli seçti (RF ve GB berabere) ve model geçti; 80 günde LR seçip geçememişti.
   Sonucun veri hacmine duyarlılığı belgelerde açıkça yazıyor.
 - **B-8 belgelendi:** 7–18 Ekim arasında 12 sürümün aynı altın günlerde kapıya girdiği SONUCLAR
   §0.1 ve SISTEM_KARTI'nda not edildi.
 - **Yeni bulgu:** kesme `olusturulma_zamani`'na göre; gece işi eski satırları güncellediği için
   kesme canlı veride dondurmuyor. Paket ancak `turbulans_20261018.dump` yedeğiyle aynen yeniden
   üretilir (`docs/sonuclar/README.md`, SONUCLAR §6).
+- **Yeni bulgu kapandı (PR #89):** eğitim sorgusu sırasızdı; dondurma yedeğinden yeniden
+  üretimde RF/GB seçimi değişti (CV'de berabere). Sorgular sıralandı; nihai paket yedekten ve
+  canlıdan birebir aynı üretildi (RF +0,033). İlk üretim (GB +0,036) `ilk_uretim_sirasiz/`'da.
+  T-1 (yeniden üretilebilirlik) bu yedek ve tatbikatla kısmen kapandı; yedek depoda değil.
 - Y-1 beyan sayımları güncellendi (284 commit, %1,6 kalan satır, 1.051 test).

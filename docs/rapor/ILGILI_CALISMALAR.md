@@ -175,7 +175,7 @@ demeyin.
 | Sharman ve Pearson (2017) | Teşhislerin log-normal EDR eşlemesi | NWP, yerinde EDR | EDR hatası, AUC | — | Aynı eşleme, ERA5 klimatolojisiyle (`edr_esleme.py`) |
 | Kim vd. (2011) | GTG teşhisleri, mevsimsel analiz | NWP, 6 yıl PIREP (Doğu Asya) | AUC | — | Yalnız ABD, 163 gün (147 eğitim, 16 altın test); mevsim analizi yok |
 | Gill (2014) | WAFC SIGWX + ızgara CAT | Yerinde ölçüm (GADS) | ROC | — | WAFS karşılaştırması yok (M3) |
-| Muñoz-Esparza vd. (2020) | Rastgele orman, gradyan artırımı | HRRR + GTG, yerinde EDR | EDR hatası, kategori ayrımı | — | Protokolle seçilen gradyan artırımı, ERA5 + PIREP; altın günler ROC-AUC 0,710, TI1'den +0,036 [+0,019; +0,053] (kapı geçildi; 7 Ekim ön paketinde LR geçememişti) |
+| Muñoz-Esparza vd. (2020) | Rastgele orman, gradyan artırımı | HRRR + GTG, yerinde EDR | EDR hatası, kategori ayrımı | — | Protokolle seçilen rastgele orman, ERA5 + PIREP; altın günler ROC-AUC 0,708, TI1'den +0,033 [+0,018; +0,049] (kapı geçildi; 7 Ekim ön paketinde LR geçememişti) |
 | Gökdeniz ve Ülkü (2026) | XGBoost, LightGBM, RF, AdaBoost, LR; BADA aerodinamik özellikleri | ERA5 200–350 hPa, IEM PIREP (ABD); 1 = CAT var | POD, FAR, CSI, TSS, AUC | Rastgele 70/30 + k-katlı CV | AUC 0,904 (XGBoost). Bizim gün gruplu değerlerimizle doğrudan kıyaslanamaz |
 | Gu ve Wang (2024) | Ağırlıklı KNN (K = 27), 8 teşhis, AUC² ağırlık | ERA5 125–500 hPa, 7 yıl Colorado PIREP; yalnız türbülanssız ve orta-üstü (hafif dışarıda) | ROC, maxTSS, güvenilirlik | Rastgele 80/20 + 10 katlı CV, SMOTE | AUC 0,86, maxTSS 0,552. Bölme ve etiket tanımı farklı; bizde hafif raporlar negatif |
 | Kopeć vd. (2016) | ADS-B/Mode-S'ten EDR | Araştırma uçağı ivmeölçeri | Karşılaştırma | — | ADS-B'den yalnız olay (EDR yok), POD 1/8, POFD 0/8 |

@@ -220,7 +220,7 @@ diverjans, TI2. Hepsi bölüm 5–6'daki kodla hesaplanır.
    hem eğitimde hem testte olmasın diye).
 3. **1-SE kuralı:** En iyi modelle sade model (lojistik regresyon) arasındaki fark bir
    standart hatadan küçükse sade model seçilir. 7 Ekim'de (80 gün) lojistik regresyon seçildi;
-   nihai pakette (147 eğitim günü) fark SE'den büyük çıktı ve Gradient Boosting seçildi.
+   nihai pakette (147 eğitim günü) fark SE'den büyük çıktı ve Random Forest seçildi (GB ile berabere).
 4. **Olasılık kalibrasyonu:** Sigmoid (Platt) ile çıktı gerçek olasılığa yaklaştırılır.
 5. **"Emin değilim" çıktısı:** Konformal tahminle her nokta `dusuk_risk`, `yuksek_risk` ya da
    `belirsiz` olur (hedef kapsama %90; `ml/belirsizlik.py`).
@@ -242,9 +242,9 @@ kural 7,39e-7 verdi; 7e-7 bandın içinde kaldığı için değişmedi.
 | TI1, 15.940 PIREP (163 gün) | ROC-AUC 0,673 [0,661–0,684] |
 | TI1, altın günler, eşik 7e-7 | Yakalama (POD) 0,50, yanlış alarm (POFD) 0,25 |
 | Birleşik EDR − TI1 (altın günler) | +0,013 [+0,007; +0,020], anlamlı |
-| ML protokol modeli (Gradient Boosting) − TI1 | +0,036 [+0,019; +0,053], anlamlı → kapı geçildi (7 Ekim ön paketinde LR +0,008, geçememişti) |
+| ML protokol modeli (Random Forest) − TI1 | +0,033 [+0,018; +0,049], anlamlı → kapı geçildi (7 Ekim ön paketinde LR +0,008, geçememişti) |
 | Çalışan model (9 Ekim Random Forest) − TI1 | +0,033 [+0,018; +0,048]; dondurmadaki GB aday onu geçemedi (+0,003), canlıda RF kaldı |
-| MADIS ölçülen EDR'de TI1 / model | ROC-AUC 0,722 / 0,779 (14 gün) |
+| MADIS ölçülen EDR'de TI1 / model | ROC-AUC 0,722 / 0,775 (14 gün) |
 | Backtest THY322, 15 Oca 2019, riskli nokta oranı | gerçek iz 0,24 / büyük daire 0,39 / A* 0,02 |
 
 **Backtest** (`dogrulama/rota_backtest.py`): Veritabanındaki gerçek bir uçuş için üç rota aynı
@@ -300,7 +300,7 @@ aktif TURB SIGMET'in gösterdiği bölgede TI1 hiç risk görmedi.
 - **0,67–0,71 iyi mi?** Rastgele tahmin 0,5. Orta düzey; bu yüzden güvenlik SIGMET'e dayanıyor.
 - **Neden GPS değil baro irtifa?** Hava verisi basınç seviyelerinde; baro irtifa ISA basıncına
   birebir denk gelir.
-- **Model TI1'i ne kadar geçiyor?** Altın günlerde +0,036 ROC-AUC (0,710'a karşı 0,675). Fark
+- **Model TI1'i ne kadar geçiyor?** Altın günlerde +0,033 ROC-AUC (0,708'e karşı 0,675). Fark
   anlamlı ama küçük: model aynı 0,25° ERA5 alanlarından türetilen özelliklerle öğreniyor, ölçek
   sınırı özellik eklemekle aşılmıyor. 7 Ekim'de 80 günle seçilen LR geçememişti; sonuç veri
   hacmine duyarlı.

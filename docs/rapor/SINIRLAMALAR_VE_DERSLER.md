@@ -34,7 +34,7 @@ olasılıkları bu yüzden mutlak sıklık değildir. MADIS ölçümleri yalnız
 kontrolsüzdür (QC "Z") ve PIREP pencerelerinin içinden gelir; sonuçlar ön sonuçtur.
 
 **İstatistiksel sınırlar.** Birleşik EDR'nin TI1'e üstünlüğü anlamlı ama küçüktür
-(altın test günlerinde +0,013 ROC-AUC). Model TI1'i geçti (+0,036 [+0,019; +0,053];
+(altın test günlerinde +0,013 ROC-AUC). Model TI1'i geçti (+0,033 [+0,018; +0,049];
 `docs/sonuclar/2026-10-18/SAYILAR.md`), ama 7 Ekim ön paketinde 80 günle geçememişti; sonuç
 veri hacmine duyarlı. Altın test 16 gündür; güven aralıkları geniştir. Aynı 16 gün 9 Ekim'de
 canlı modelin aktivasyon kararında da kullanıldı.

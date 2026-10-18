@@ -1,6 +1,6 @@
 # Sayılar (sonuç paketi)
 
-Kesme: 2026-10-18 · üretim: 2026-10-17T23:39:56+00:00 · commit `45caf3ce890f816407c2bcbf9b3e6e722451ddc8`
+Kesme: 2026-10-18 · üretim: 2026-10-18T00:24:59+00:00 · commit `5ddcd40caa13dcff01879dfb26d127ac9cb80d04`
 
 Bu dosya `turbulans-ml-degerlendirme --cikti` ile üretilir; elle düzenlenmez. Kaynak: `sonuc_paketi.json` (anahtar sütunu). GA: gün bazlı blok bootstrap %95. Çıktılar sertifikalı EDR değildir; sistem karar destek aracıdır.
 
@@ -11,10 +11,10 @@ Bu dosya `turbulans-ml-degerlendirme --cikti` ile üretilir; elle düzenlenmez. 
 | Pozitif oranı (orta ve üstü) | 0,532 | `veri.pozitif_orani` |
 | Eğitim örnek / gün | 14.357 / 147 | `veri.egitim_ornek, egitim_gun` |
 | Altın test örnek / gün | 1.583 / 16 | `veri.test_ornek, test_gun` |
-| Protokol modeli (1-SE) | Gradient Boosting | `model.secilen` |
-| Model ROC-AUC (altın günler) | 0,710 [0,680–0,740] | `pirep_test.skorlar.Model.roc_auc` |
-| Model PR-AUC (altın günler) | 0,692 [0,652–0,724] | `pirep_test.skorlar.Model.pr_auc` |
-| Model − TI1 ROC-AUC farkı | +0,036 [+0,019; +0,053], p < 0,001 | `pirep_test.skorlar.Model.ti1_farki` |
+| Protokol modeli (1-SE) | Random Forest | `model.secilen` |
+| Model ROC-AUC (altın günler) | 0,708 [0,677–0,738] | `pirep_test.skorlar.Model.roc_auc` |
+| Model PR-AUC (altın günler) | 0,688 [0,649–0,719] | `pirep_test.skorlar.Model.pr_auc` |
+| Model − TI1 ROC-AUC farkı | +0,033 [+0,018; +0,049], p < 0,001 | `pirep_test.skorlar.Model.ti1_farki` |
 | TI1 ROC-AUC (altın günler) | 0,675 [0,641–0,706] | `pirep_test.skorlar.TI1.roc_auc` |
 | TI1 PR-AUC (altın günler) | 0,665 [0,622–0,701] | `pirep_test.skorlar.TI1.pr_auc` |
 | 1/Ri ROC-AUC (altın günler) | 0,655 [0,627–0,681] | `pirep_test.skorlar.1/Ri.roc_auc` |
@@ -23,8 +23,8 @@ Bu dosya `turbulans-ml-degerlendirme --cikti` ile üretilir; elle düzenlenmez. 
 | Birleşik EDR ROC-AUC (altın günler) | 0,688 [0,656–0,717] | `pirep_test.skorlar.Birleşik EDR.roc_auc` |
 | Birleşik EDR PR-AUC (altın günler) | 0,675 [0,634–0,709] | `pirep_test.skorlar.Birleşik EDR.pr_auc` |
 | Birleşik EDR − TI1 ROC-AUC farkı | +0,013 [+0,007; +0,020], p < 0,001 | `pirep_test.skorlar.Birleşik EDR.ti1_farki` |
-| Model Brier / Brier becerisi (altın günler) | 0,217 / 0,128 | `model_olasilik_test.brier, brier_becerisi` |
-| Model ortalama olasılık / gözlenen oran (altın günler) | 0,518 / 0,476 | `model_olasilik_test` |
+| Model Brier / Brier becerisi (altın günler) | 0,219 / 0,122 | `model_olasilik_test.brier, brier_becerisi` |
+| Model ortalama olasılık / gözlenen oran (altın günler) | 0,519 / 0,476 | `model_olasilik_test` |
 | TI1 ROC-AUC (tüm günler) | 0,673 [0,661–0,684] | `pirep_tum_gunler_fizik.skorlar.TI1.roc_auc` |
 | 1/Ri ROC-AUC (tüm günler) | 0,655 [0,644–0,666] | `pirep_tum_gunler_fizik.skorlar.1/Ri.roc_auc` |
 | Birleşik EDR ROC-AUC (tüm günler) | 0,688 [0,676–0,698] | `pirep_tum_gunler_fizik.skorlar.Birleşik EDR.roc_auc` |
@@ -45,7 +45,7 @@ Bu dosya `turbulans-ml-degerlendirme --cikti` ile üretilir; elle düzenlenmez. 
 | Metni olan / CAT dışı işaretli örnek | 14.493 / 233 | `cat_alt_kumesi` |
 | CAT dışı örneklerde pozitif oranı | 0,438 | `cat_alt_kumesi.cat_disi_pozitif_orani` |
 | Altın günlerde metinli / yalnız CAT örnek | 1.398 / 1.382 | `cat_alt_kumesi.test_metinli.ornek, test_cat.ornek` |
-| Model ROC-AUC, yalnız CAT (altın günler) | 0,710 [0,674–0,747] | `cat_alt_kumesi.test_cat.skorlar.Model.roc_auc` |
+| Model ROC-AUC, yalnız CAT (altın günler) | 0,707 [0,671–0,745] | `cat_alt_kumesi.test_cat.skorlar.Model.roc_auc` |
 | TI1 ROC-AUC, yalnız CAT (altın günler) | 0,670 [0,634–0,708] | `cat_alt_kumesi.test_cat.skorlar.TI1.roc_auc` |
 | 1/Ri ROC-AUC, yalnız CAT (altın günler) | 0,654 [0,623–0,687] | `cat_alt_kumesi.test_cat.skorlar.1/Ri.roc_auc` |
 | Birleşik EDR ROC-AUC, yalnız CAT (altın günler) | 0,684 [0,650–0,721] | `cat_alt_kumesi.test_cat.skorlar.Birleşik EDR.roc_auc` |
@@ -54,9 +54,9 @@ Bu dosya `turbulans-ml-degerlendirme --cikti` ile üretilir; elle düzenlenmez. 
 | Birleşik EDR ROC-AUC, yalnız CAT (tüm günler) | 0,688 [0,676–0,699] | `cat_alt_kumesi.tum_gunler_cat_fizik.skorlar.Birleşik EDR.roc_auc` |
 | MADIS ölçüm / pozitif / gün | 45.075 / 1.310 / 14 | `madis` |
 | MADIS orta ve üstü ölçüm | 1 | `madis.orta_ve_ustu` |
-| MADIS Model ROC-AUC | 0,779 [0,738–0,816] | `madis.skorlar.Model.roc_auc` |
-| MADIS Model PR-AUC | 0,126 [0,095–0,165] | `madis.skorlar.Model.pr_auc` |
-| MADIS Model − TI1 ROC-AUC farkı | +0,057 [+0,031; +0,082], p < 0,001 | `madis.skorlar.Model.ti1_farki` |
+| MADIS Model ROC-AUC | 0,775 [0,734–0,814] | `madis.skorlar.Model.roc_auc` |
+| MADIS Model PR-AUC | 0,126 [0,093–0,169] | `madis.skorlar.Model.pr_auc` |
+| MADIS Model − TI1 ROC-AUC farkı | +0,053 [+0,028; +0,077], p < 0,001 | `madis.skorlar.Model.ti1_farki` |
 | MADIS TI1 ROC-AUC | 0,722 [0,669–0,779] | `madis.skorlar.TI1.roc_auc` |
 | MADIS TI1 PR-AUC | 0,105 [0,073–0,154] | `madis.skorlar.TI1.pr_auc` |
 | MADIS 1/Ri ROC-AUC | 0,722 [0,672–0,766] | `madis.skorlar.1/Ri.roc_auc` |
@@ -66,8 +66,8 @@ Bu dosya `turbulans-ml-degerlendirme --cikti` ile üretilir; elle düzenlenmez. 
 | MADIS Birleşik EDR PR-AUC | 0,115 [0,085–0,161] | `madis.skorlar.Birleşik EDR.pr_auc` |
 | MADIS Birleşik EDR − TI1 ROC-AUC farkı | +0,035 [+0,020; +0,050], p < 0,001 | `madis.skorlar.Birleşik EDR.ti1_farki` |
 | MADIS taban oran (hafif ve üstü) | 0,029 | `madis.taban_oran` |
-| MADIS model ortalama olasılık | 0,509 | `madis.model_olasilik.ortalama_olasilik` |
-| MADIS model Brier becerisi | -8,549 | `madis.model_olasilik.brier_becerisi` |
-| MADIS model Brier becerisi, önsel kayma düzeltmeli (gösterim, iyimser) | 0,043 | `madis.model_olasilik_onsel_duzeltilmis.brier_becerisi` |
+| MADIS model ortalama olasılık | 0,505 | `madis.model_olasilik.ortalama_olasilik` |
+| MADIS model Brier becerisi | -8,497 | `madis.model_olasilik.brier_becerisi` |
+| MADIS model Brier becerisi, önsel kayma düzeltmeli (gösterim, iyimser) | 0,041 | `madis.model_olasilik_onsel_duzeltilmis.brier_becerisi` |
 | Backtest THY322 2019-01-01 riskli oran (gerçek / büyük daire / A*) | 0,00 / 0,20 / 0,00 | `backtest[0]` |
 | Backtest THY322 2019-01-15 riskli oran (gerçek / büyük daire / A*) | 0,24 / 0,39 / 0,02 | `backtest[1]` |
