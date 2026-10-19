@@ -78,6 +78,43 @@ services:
       timeout: 5s
       retries: 10
 
+  # P1-2: şema değişikliği API açılışından ayrıldı. Her açılışta önce doğrulanmış bir yedek
+  # (db_yedekleri/migration_oncesi/, en yeni 5), sonra tek seferlik `alembic upgrade head`;
+  # API ancak ikisi başarıyla bitince başlar. Güncel şemada upgrade bir şey yapmaz.
+  migrate_yedegi:
+    image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    logging: *gunluk
+    restart: "no"
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATABASE: ${POSTGRES_DB:-Turbulence-db}
+      MIGRATION_YEDEK_SAKLA: ${MIGRATION_YEDEK_SAKLA:-5}
+    volumes:
+      - ./db_yedekleri:/yedekler
+      - ./otomasyon/migration_oncesi_yedek.sh:/migration_oncesi_yedek.sh:ro
+    entrypoint: ["sh", "/migration_oncesi_yedek.sh"]
+
+  migrate:
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-}
+    logging: *gunluk
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    depends_on:
+      migrate_yedegi:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    environment:
+      <<: [*uygulama_db, *anahtarsiz]
+
   api:
     build:
       context: .
@@ -85,9 +122,12 @@ services:
         GIT_SHA: ${GIT_SHA:-}
     logging: *gunluk
     restart: unless-stopped
+    command: ["uvicorn", "turbulans_radar.api.api_servisi:app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]
     depends_on:
       db:
         condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     env_file:
       - .env
     environment:
@@ -142,7 +182,7 @@ services:
     # varsayılan 10 sn'si süren CDS indirmesini SIGKILL ile yarıda kesiyordu.
     stop_grace_period: 300s
     depends_on:
-      # API açılışta şemayı (alembic upgrade head) günceller; işçi ondan sonra başlar.
+      # Şema 'migrate' servisinde güncellenir; işçi API sağlıklı olunca başlar.
       api:
         condition: service_healthy
     env_file:

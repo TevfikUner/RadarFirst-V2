@@ -223,7 +223,8 @@ manuel indirilmiş) proje köküne koyman gerekir -- büyük olduğu için
 docker compose up --build
 ```
 
-Bu, PostgreSQL'i, API'yi (önce `alembic upgrade head` çalıştırıp) ve uzun
+Bu, PostgreSQL'i, API'yi (önce tek seferlik `migrate_yedegi` doğrulanmış bir yedek alır,
+`migrate` `alembic upgrade head` çalıştırır; ikisi başarıyla bitmeden API başlamaz) ve uzun
 işleri çalıştıran ayrı **worker** servisini tek komutla ayağa kaldırır
 (ölçeklemek için: `docker compose up --scale worker=3`). `.env` dosyanın hazır olması gerekir;
 `POSTGRES_HOST` konteynerler arası iletişim için otomatik olarak compose
@@ -1504,7 +1505,10 @@ alembic revision --autogenerate -m "kisa aciklama"   # yeni migration
 ```
 
 Bağlantı bilgisi `alembic.ini`'ye yazılmaz; `migrations/env.py`, tıpkı
-`veritabani.py` gibi, `.env`'den okur.
+`veritabani.py` gibi, `.env`'den okur. Docker'da şema `migrate` servisinde güncellenir; ondan
+hemen önce `migrate_yedegi` `db_yedekleri/migration_oncesi/`'ne `pg_restore -l` ile doğrulanmış
+bir dump yazar (en yeni 5'i tutulur, `MIGRATION_YEDEK_SAKLA`). Yedek alınamazsa migration ve API
+başlamaz. Geri dönüş: README "Veritabanı yedeği"ndeki `pg_restore` komutu bu dosyayla.
 
 ### Veritabanı yedeği
 
