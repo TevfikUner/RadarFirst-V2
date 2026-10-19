@@ -79,7 +79,10 @@ services:
       retries: 10
 
   api:
-    build: .
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-}
     logging: *gunluk
     restart: unless-stopped
     depends_on:
@@ -128,7 +131,10 @@ services:
       retries: 12
 
   worker:
-    build: .
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-}
     logging: *gunluk
     restart: unless-stopped
     command: ["python", "-m", "turbulans_radar.isci.gorev_iscisi"]
@@ -191,7 +197,10 @@ services:
   # API ayağa kalkınca THY322 (2019-01-15) demo paketinden analiz edilip
   # veritabanına yazılır; 3B harita http://localhost:8000/harita/harita3d.html.
   demo:
-    build: .
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-}
     logging: *gunluk
     profiles: ["demo"]
     restart: "no"

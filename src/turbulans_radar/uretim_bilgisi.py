@@ -2,6 +2,9 @@
 (provenance). Yanıtla birlikte döner ki aynı sonuç sonradan yeniden üretilebilsin
 ya da eşik/model değişince eski sonuçlardan ayrılabilsin."""
 
+import os
+import re
+import subprocess
 import tomllib
 from datetime import UTC, datetime
 from functools import cache
@@ -27,6 +30,24 @@ def yazilim_surumu() -> str:
         return "bilinmiyor"
 
 
+@cache
+def yazilim_commit() -> str | None:
+    """İmajda derleme argümanı GIT_SHA, yerelde git; ikisi de yoksa None."""
+    commit = (os.environ.get("GIT_SHA") or "").strip().lower()
+    if not commit:
+        try:
+            commit = subprocess.run(
+                ["git", "rev-parse", "HEAD"],
+                cwd=Path(__file__).resolve().parent,
+                capture_output=True,
+                text=True,
+                timeout=5,
+            ).stdout.strip()
+        except (OSError, subprocess.SubprocessError):
+            return None
+    return commit if re.fullmatch(r"[0-9a-f]{40}", commit) else None
+
+
 def hava_verisi_bilgisi(veri_kupu) -> dict | None:
     if veri_kupu is None:
         return None
@@ -45,6 +66,7 @@ def hava_verisi_bilgisi(veri_kupu) -> dict | None:
 def uretim_bilgisi(veri_kupu=None, model_bilgisi: dict | None = None, parametreler: dict | None = None) -> dict:
     return {
         "yazilim_surumu": yazilim_surumu(),
+        "yazilim_commit": yazilim_commit(),
         "uretim_zamani": datetime.now(UTC).isoformat(),
         "hava_verisi": hava_verisi_bilgisi(veri_kupu),
         "esikler": {

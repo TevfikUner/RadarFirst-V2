@@ -6634,6 +6634,17 @@
             "type": "object",
             "title": "Parametreler",
             "default": {}
+          },
+          "yazilim_commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yazilim Commit"
           }
         },
         "type": "object",
