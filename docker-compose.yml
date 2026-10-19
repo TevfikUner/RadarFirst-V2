@@ -28,6 +28,9 @@ x-uygulama-db: &uygulama_db
   MCP_POSTGRES_PASSWORD: ""
 
 # Konteyner günlükleri sınırsız büyümesin (P1-1): servis başına en fazla 5 x 10 MB.
+# Bellek/CPU sınırları (P1-1) 19 Ekim yük ölçümünden (docs/PERFORMANS_RAPORU.md §5): API tek
+# süreçte tepe 440 MiB / %112 CPU, db 121 MiB. API sınırı 4 süreci (WEB_CONCURRENCY=4) karşılar.
+# worker'a sınır konmadı: ML gece işinin tepe belleği ölçülmedi, yanlış sınır işi OOM ile öldürür.
 x-gunluk: &gunluk
   driver: json-file
   options:
@@ -58,6 +61,7 @@ x-ortak-volumeler: &ortak_volumeler
 services:
   db:
     image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    mem_limit: ${DB_BELLEK_SINIRI:-1g}
     logging: *gunluk
     restart: unless-stopped
     environment:
@@ -83,6 +87,7 @@ services:
   # API ancak ikisi başarıyla bitince başlar. Güncel şemada upgrade bir şey yapmaz.
   migrate_yedegi:
     image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    mem_limit: 512m
     logging: *gunluk
     restart: "no"
     depends_on:
@@ -107,6 +112,7 @@ services:
     logging: *gunluk
     restart: "no"
     command: ["alembic", "upgrade", "head"]
+    mem_limit: 512m
     depends_on:
       migrate_yedegi:
         condition: service_completed_successfully
@@ -123,6 +129,8 @@ services:
     logging: *gunluk
     restart: unless-stopped
     command: ["uvicorn", "turbulans_radar.api.api_servisi:app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]
+    mem_limit: ${API_BELLEK_SINIRI:-2g}
+    cpus: ${API_CPU_SINIRI:-4}
     depends_on:
       db:
         condition: service_healthy
@@ -206,6 +214,7 @@ services:
   # ./db_yedekleri'nde (depoya konmaz); geri yükleme README "Veritabanı yedeği".
   yedek:
     image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    mem_limit: 512m
     logging: *gunluk
     restart: unless-stopped
     depends_on:
