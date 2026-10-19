@@ -97,3 +97,4 @@ omit = ["*/site-packages/*"]
 # rapor, CI'nin GERÇEKTEN neyi çalıştırdığını dürüstçe yansıtsın diye.
 precision = 1
 skip_empty = true
+fail_under = 80
