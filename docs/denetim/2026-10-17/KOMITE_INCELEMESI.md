@@ -192,4 +192,10 @@ Ayrıntı ve kanıt [`URETIM_HAZIRLIK.md`](URETIM_HAZIRLIK.md)'de. Komite için 
 - **B-3 ertelendi (ONAY alındı):** 19 Ekim veri bütçesi dolu olduğu için 7 seviyeli Türkiye küpü
   20 Ekim'de indirilecek (`scripts/turkiye_kupu_7seviye.py`, YAPILACAKLAR). Ayrı dosya;
   varsayılan küp ve demo sayıları değişmez, fark raporlanır.
-- Açık kalanlar: B-3 (20 Ekim), Y-1 (beyan sayımları teslimden hemen önce), O-3 (29 Ekim AIRAC).
+- **Y-1 kapandı:** beyan 19 Ekim git'ine göre (308 commit'in 208'i işaretli, 41.808 satırın
+  669'u, 1.099 test). `scripts/beyan_sayimlari.py --kontrol` farkı yazar; teslim günü bir kez çalıştırılır.
+- **O-3 kapandı:** AIRAC yenilemesi otomatik (`cli/airac_yenile.py`, Windows görevi her gün 12:00).
+  Döngü bitince DHMİ'den ENR 1.3/4.1/4.4/5.1 alınır, FRA kuralları ENR 1.3'ten okunur, ENR 5.1
+  yalnız günün yedeği varken veritabanına aktarılır. Savunmada veri güncel döngüde olur.
+  Suriye/Irak örnek sahaları resmî değildir ve arayüzde "örnek" diye işaretlidir (değişmedi).
+- Açık kalan: B-3 (20 Ekim indirmesi).

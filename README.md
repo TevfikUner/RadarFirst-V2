@@ -179,7 +179,7 @@ turbulans_radar/
   isci/       gorev_iscisi.py                  -> uzun işler (analiz, backtest, ML gece işi) ayrı süreçte
   arayuz/     harita.py, web_arayuzu.py        -> Folium zaman kaydırıcılı harita, Streamlit arayüzü
   cli/        demo.py, demo_ekranlari.py, performans_olcumu.py, statik_indir.py, openapi_disa_aktar.py,
-              mcp_postgres_sunucusu.py, aip_ats_agi.py, aip_enr51.py, ornek_ucus_bul.py, veri_kontrol.py,
+              mcp_postgres_sunucusu.py, aip_ats_agi.py, aip_enr51.py, airac_yenile.py, ornek_ucus_bul.py, veri_kontrol.py,
               kimlik_kontrol.py
 web/                                           -> harita3d.html/.js (MapLibre) + ucus_simulasyonu.html/.js (CesiumJS); vendor/
 otomasyon/                                     -> yedek + geri yükleme tatbikatı, Caddyfile (TLS vekili), uygulama rolü

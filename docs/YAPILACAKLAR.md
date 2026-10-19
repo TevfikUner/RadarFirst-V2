@@ -135,9 +135,10 @@ jüri sorularına doğrudan yanıt verenler önde.
 ## Tarihli hatırlatmalar
 
 - [ ] **25 Ekim:** sunum için Docker imajı yedeği (`docker save`).
-- [ ] **29 Ekim (AIRAC bitişi, ATS ağı `airac_bitis=2026-10-29`):** ONAY ile
-  `turbulans-aip-ats --indir` ve `turbulans-aip-sahalar --indir` (DHMİ'ye belge başına tek
-  istek); `/saglik` `ats_agi` yeniden "tamam" olmalı.
+- [ ] **29–30 Ekim (AIRAC bitişi, otomatik; ONAY 19 Ekim, komite O-3):** "TurbulansRadar AIRAC
+  yenileme" Windows görevi (her gün 12:00) yeniler; yalnız kontrol: `ciktilar/airac_yenile.log`
+  "yenilendi" ve `db_aktarildi: true` diyor mu, `/saglik` `ats_agi` "tamam" mı. Görev ENR 1.3 FRA
+  cümlesini bulamazsa (ör. H24'e geçiş) eski ağı korur ve BAŞARISIZ yazar; o zaman ENR 1.3 elle okunur.
 - [ ] **5 Kasım:** E8 yedek demo videosu (3–5 dk, metin `docs/sunum/DEMO_SENARYOSU.md` §4;
   ekranlar temiz klondan).
 - [ ] Sunum konuşulmaya başlanınca: E7 kullanılabilirlik oturumları (katılımcı bulmak zaman alır).

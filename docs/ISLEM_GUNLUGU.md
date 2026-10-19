@@ -9,6 +9,8 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ✅ C-10: `test_sayi_tutarliligi.py`, ön paket sayısı tarihçe dışında geçerse CI kırmızı.
 - ✅ T-4: deformasyon/diverjans MetPy ile gerçek ERA5'te aynı (~1e-6); `metpy` dev bağımlılığı.
 - ✅ T-2: kapsam alt sınırı `fail_under = 80`.
+- ✅ Y-1: beyan 308 commit / 41.808 satır / 1.099 test; `scripts/beyan_sayimlari.py --kontrol`.
+- ✅ O-3: AIRAC otomatik yenileme (`cli/airac_yenile.py`), Windows görevi 12:00 kaydedildi, ilk çalışma "güncel".
 
 ## 2026-10-19 (öğleden sonra; PR #99–#102)
 
