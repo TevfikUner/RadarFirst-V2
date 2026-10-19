@@ -69,6 +69,7 @@ class AyarSemasi(BaseModel):
     ROTA_KUTLE_BANDI: tuple[Annotated[float, Field(gt=0, le=1)], ...]
     ROTA_DIKEY_KESIT_FL: tuple[Annotated[int, Field(ge=50, le=600)], ...]
     IZ_BULUTU_OLCUTU: Literal["sac", "sabit"]
+    ALTLIK_KATMANI: Literal["esri", "dogal"]
     SAC_ITKI_VERIMI: Annotated[float, Field(gt=0, lt=1)]
     SIGMET_MAKS_COZUMLENEMEYEN_ORAN: KapaliOran
     DEVRE_KESICI_ESIK: NegatifOlmayanTam

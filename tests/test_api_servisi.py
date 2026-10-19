@@ -652,6 +652,20 @@ async def test_harita_sayfalarinda_csp_var_ve_satir_ici_betik_yok(istemci, sayfa
     assert "cdn.jsdelivr" not in html
 
 
+async def test_harita_ayarlari_anahtarsiz_altlik_katmanini_verir(istemci, monkeypatch):
+    monkeypatch.setattr(config, "ALTLIK_KATMANI", "dogal")
+    yanit = await istemci.get("/harita-ayarlari")
+    assert yanit.status_code == 200 and yanit.json() == {"altlik_katmani": "dogal"}
+
+
+def test_dogal_altlikta_csp_esriye_izin_vermez(monkeypatch):
+    from turbulans_radar.api.api_servisi import _harita_csp
+
+    assert "server.arcgisonline.com" in _harita_csp("'self'")
+    monkeypatch.setattr(config, "ALTLIK_KATMANI", "dogal")
+    assert "arcgisonline" not in _harita_csp("'self'")
+
+
 async def test_api_yanitlarinda_guvenlik_basliklari_var_csp_yok(istemci):
     yanit = await istemci.get("/saglik")
     assert yanit.headers["x-frame-options"] == "DENY" and yanit.headers["referrer-policy"] == "no-referrer"

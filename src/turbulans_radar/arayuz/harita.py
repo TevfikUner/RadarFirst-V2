@@ -110,8 +110,12 @@ def zaman_kaydiricili_harita_olustur(
     harita = folium.Map(
         location=[merkez_enlem, merkez_boylam],
         zoom_start=7,
-        tiles="https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
-        attr="Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ",
+        tiles=(
+            "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"
+            if config.ALTLIK_KATMANI == "esri"
+            else None
+        ),
+        attr="Tiles &copy; Esri &mdash; Source: Esri, DeLorme, NAVTEQ" if config.ALTLIK_KATMANI == "esri" else None,
     )
 
     # --- Statik rota çizgisi (referans için) ---

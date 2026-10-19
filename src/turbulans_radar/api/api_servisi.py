@@ -580,13 +580,14 @@ _CESIUM_YOLLARI = ("/harita/ucus_simulasyonu", "/harita/vendor/cesium/")
 
 
 def _harita_csp(betik_kaynagi: str) -> str:
+    esri = " https://server.arcgisonline.com" if config.ALTLIK_KATMANI == "esri" else ""
     return "; ".join(
         (
             "default-src 'self'",
             f"script-src {betik_kaynagi}",
             "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: blob: https://server.arcgisonline.com",
-            "connect-src 'self' https://server.arcgisonline.com",
+            f"img-src 'self' data: blob:{esri}",
+            f"connect-src 'self'{esri}",
             "worker-src 'self' blob:",
             "font-src 'self' data:",
             "object-src 'none'",
@@ -1264,6 +1265,12 @@ async def prometheus_metrikleri(
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Metrikler için yönetici anahtarı gerekli.")
     await _anlik_metrikleri_guncelle()
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+@app.get("/harita-ayarlari", tags=["Sistem"])
+async def harita_ayarlari():
+    """Harita sayfalarının API anahtarı girilmeden önce okuduğu görünüm ayarları (P1-8)."""
+    return {"altlik_katmani": config.ALTLIK_KATMANI}
 
 
 @app.get("/saglik", response_model=SaglikYaniti, tags=["Sistem"])

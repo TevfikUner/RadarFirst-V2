@@ -52,21 +52,14 @@ function haritayiHazirla() {
     style: {
       version: 8,
       // Altlık: sunucudan gelen sade ülke sınırları (Natural Earth, kamu
-      // malı) -- İNTERNETSİZ de görünür; Esri karoları üstte, bağlantı
-      // yoksa gelmezler ama harita boş kalmaz.
+      // malı) -- İNTERNETSİZ de görünür; Esri karoları (ALTLIK_KATMANI=esri)
+      // yüklenince üste eklenir, bağlantı yoksa gelmezler ama harita boş kalmaz.
       sources: {
         "ulke-sinirlari": { type: "geojson", data: new URL("veri/ulke_sinirlari.geojson", location.href).href },
-        "esri-yol": {
-          type: "raster",
-          tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"],
-          tileSize: 256,
-          attribution: "Tiles &copy; Esri",
-        },
       },
       layers: [
         { id: "arka-plan", type: "background", paint: { "background-color": "#16222e" } },
         { id: "ulke-sinirlari", type: "line", source: "ulke-sinirlari", paint: { "line-color": "#7f95a8", "line-width": 0.8 } },
-        { id: "esri-yol", type: "raster", source: "esri-yol" },
       ],
     },
     center: [30, 40],
@@ -82,8 +75,27 @@ function haritayiHazirla() {
   // olayında bir savunmacı deneme daha yapılıyor.
   harita.once("load", () => {
     try { harita.setProjection({ type: "globe" }); } catch (e) { console.warn("globe projeksiyonu kullanılamadı", e); }
+    esriKatmaniniEkle();
   });
   harita.addControl(new maplibregl.NavigationControl());
+}
+
+async function esriKatmaniniEkle() {
+  let ayarlar = {};
+  try {
+    const yanit = await fetch("/harita-ayarlari");
+    if (yanit.ok) ayarlar = await yanit.json();
+  } catch (e) {}
+  if (ayarlar.altlik_katmani !== "esri") return;
+  harita.addSource("esri-yol", {
+    type: "raster",
+    tiles: ["https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}"],
+    tileSize: 256,
+    attribution: "Tiles &copy; Esri",
+  });
+  const katmanlar = harita.getStyle().layers;
+  const sonraki = katmanlar[katmanlar.findIndex(k => k.id === "ulke-sinirlari") + 1];
+  harita.addLayer({ id: "esri-yol", type: "raster", source: "esri-yol" }, sonraki && sonraki.id);
 }
 
 function rotaKatmaniniGuncelle(noktalar) {
