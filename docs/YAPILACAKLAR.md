@@ -134,7 +134,9 @@ jüri sorularına doğrudan yanıt verenler önde.
 
 ## Tarihli hatırlatmalar
 
-- [ ] **25 Ekim:** sunum için Docker imajı yedeği (`docker save`).
+- [ ] **25 Ekim:** sunum için Docker imajı yedeği: WSL'de `bash scripts/sunum_paketi.sh` (S-8; temiz klon,
+  demo, ağsız ekran provası, `docker save`, SHA256SUMS). Çıktıyı OneDrive'a kopyala. Betik 19 Ekim'de
+  yalnız sözdizimi ve compose ayarıyla denendi; ilk gerçek çalıştırma bu gün.
 - [ ] **29–30 Ekim (AIRAC bitişi, otomatik; ONAY 19 Ekim, komite O-3):** "TurbulansRadar AIRAC
   yenileme" Windows görevi (her gün 12:00) yeniler; yalnız kontrol: `ciktilar/airac_yenile.log`
   "yenilendi" ve `db_aktarildi: true` diyor mu, `/saglik` `ats_agi` "tamam" mı. Görev ENR 1.3 FRA
