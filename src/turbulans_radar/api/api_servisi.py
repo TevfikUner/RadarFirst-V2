@@ -781,7 +781,7 @@ baglanti_yoneticisi = _BaglantiYoneticisi()
 async def uyarilar_websocket(websocket: WebSocket, bilet: str | None = None):
     """Kimlik: POST /api/v1/ws-bileti'den alınan 60 sn'lik, tek kullanımlık
     bilet. ?api_key= kabul edilmez (anahtar URL'de/loglarda kalırdı)."""
-    if not os.environ.get("API_ANAHTARI") or not ws_biletini_kullan(bilet):
+    if not os.environ.get("API_ANAHTARI") or not await ws_biletini_kullan(bilet):
         await websocket.close(code=4401)
         return
     await baglanti_yoneticisi.baglan(websocket)

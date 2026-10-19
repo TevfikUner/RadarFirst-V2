@@ -1,5 +1,6 @@
 """API anahtarı, rol (yonetici/pilot) ve WebSocket bileti doğrulaması."""
 
+import asyncio
 import hashlib
 import hmac
 import os
@@ -127,11 +128,6 @@ def ws_bileti_uret(rol: str, simdi: float | None = None) -> str:
     return f"{govde}.{_bilet_imzasi(govde)}"
 
 
-# Kullanılmış biletler (imza -> bitiş): süreç başınadır; WEB_CONCURRENCY>1 iken bir
-# bilet en fazla süreç sayısı kadar, yine de yalnızca 60 sn içinde kullanılabilir.
-_kullanilmis_biletler: dict[str, int] = {}
-
-
 def ws_bileti_gecerli_mi(bilet: str | None) -> bool:
     if not bilet or not os.environ.get("API_ANAHTARI"):
         return False
@@ -144,19 +140,15 @@ def ws_bileti_gecerli_mi(bilet: str | None) -> bool:
     return secrets.compare_digest(imza.encode(), beklenen.encode()) and int(bitis) >= time.time()
 
 
-def ws_biletini_kullan(bilet: str | None) -> bool:
-    """Geçerli ve daha önce kullanılmamışsa bileti tüketir."""
+async def ws_biletini_kullan(bilet: str | None) -> bool:
+    """Geçerli ve daha önce kullanılmamışsa bileti tüketir. Kullanılmışlık PostgreSQL'de
+    tutulur (P1-7): WEB_CONCURRENCY>1 iken de bilet yalnız bir kez kullanılır."""
     if not ws_bileti_gecerli_mi(bilet):
         return False
-    simdi = time.time()
-    for imza, bitis in list(_kullanilmis_biletler.items()):
-        if bitis < simdi:
-            del _kullanilmis_biletler[imza]
+    from turbulans_radar.depo.hiz_siniri import ilk_kullanim_mi
+
     bitis, _, _, imza = bilet.split(".")
-    if imza in _kullanilmis_biletler:
-        return False
-    _kullanilmis_biletler[imza] = int(bitis)
-    return True
+    return await asyncio.to_thread(ilk_kullanim_mi, f"wsbilet:{imza}", int(bitis))
 
 
 def _yalnizca_yerel_yayin_mi() -> bool:

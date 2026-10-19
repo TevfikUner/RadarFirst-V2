@@ -134,11 +134,25 @@ def test_ws_bileti_gecerli_ve_suresi_dolunca_gecersiz(api_anahtari):
     assert not guvenlik.ws_bileti_gecerli_mi(api_servisi.ws_bileti_uret("pilot", simdi=0))
 
 
-def test_ws_bileti_tek_kullanimlik_ve_ayni_saniyede_benzersiz(api_anahtari):
+async def test_ws_bileti_tek_kullanimlik_ve_ayni_saniyede_benzersiz(api_anahtari):
     birinci, ikinci = api_servisi.ws_bileti_uret("pilot", simdi=1e10), api_servisi.ws_bileti_uret("pilot", simdi=1e10)
     assert birinci != ikinci
-    assert api_servisi.ws_biletini_kullan(birinci) and not api_servisi.ws_biletini_kullan(birinci)
-    assert api_servisi.ws_biletini_kullan(ikinci)
+    assert await api_servisi.ws_biletini_kullan(birinci) and not await api_servisi.ws_biletini_kullan(birinci)
+    assert await api_servisi.ws_biletini_kullan(ikinci)
+
+
+async def test_ws_bileti_kullanilmisligi_veritabaninda_tutulur(api_anahtari):
+    from sqlalchemy import text
+
+    from turbulans_radar.depo.veritabani import motor_al
+
+    bilet = api_servisi.ws_bileti_uret("pilot", simdi=1e10)
+    assert await api_servisi.ws_biletini_kullan(bilet)
+    with motor_al().connect() as baglanti:
+        sayi = baglanti.execute(
+            text("SELECT sayi FROM hiz_siniri_sayaclari WHERE anahtar = :a"), {"a": f"wsbilet:{bilet.split('.')[-1]}"}
+        ).scalar_one()
+    assert sayi == 1
 
 
 async def test_v1_dogru_anahtar_200(istemci, api_anahtari):
