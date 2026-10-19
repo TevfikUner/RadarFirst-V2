@@ -38,6 +38,7 @@ turbulans-gosterge-degerlendirme = "turbulans_radar.ml.gosterge_degerlendirme:an
 turbulans-sonuc-paketi = "turbulans_radar.ml.sonuc_paketi:ana"
 turbulans-ml-duyarlilik = "turbulans_radar.ml.duyarlilik_analizi:ana"
 turbulans-ml-rf-deneyi = "turbulans_radar.ml.rf_deneyi:ana"
+turbulans-ml-yeni-gun = "turbulans_radar.ml.yeni_gun_degerlendirmesi:ana"
 turbulans-ml-tip-analizi = "turbulans_radar.ml.tip_analizi:ana"
 turbulans-sanal-pirep-duyarlilik = "turbulans_radar.analiz.dedektor_duyarliligi:ana"
 turbulans-kimlik-kontrol = "turbulans_radar.cli.kimlik_kontrol:ana"

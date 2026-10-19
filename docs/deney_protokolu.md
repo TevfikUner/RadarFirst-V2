@@ -150,6 +150,9 @@ gerekirse ayrı alt madde olarak, tarihiyle ve "sonuçtan sonra" notuyla eklenir
 - **Ne zaman:** test günleri ilk kez **≥ 30 gün** ve ADR 0004 yeterliliğini (≥ 50 örnek,
   her sınıftan ≥ 5) sağladığında **bir kez**. Ara bakış yok; "biraz daha gün bekleyelim"
   kararı skora bakılarak verilmez.
+- **Kod:** `turbulans-ml-yeni-gun` (`ml/yeni_gun_degerlendirmesi.py`), test günlerine bakılmadan
+  commit'lendi. `--durum` yalnız gün/örnek sayısını verir; `--cikti <klasör>` koşul sağlanmadan skor
+  hesaplamaz ve `yeni_gun_degerlendirmesi.json` varsa üzerine yazmaz.
 
 ### 10.2 Birincil hipotez (H1)
 

@@ -2,13 +2,14 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
-## 2026-10-19 (öğleden sonra; PR #99–#101)
+## 2026-10-19 (öğleden sonra; PR #99–#102)
 
 - ✅ Rota performansı (şarjda): kütle bandı yavaşlatmıştı (0,25–0,69 sn); yinelenen OpenAP hesabı kaldırıldı, sonuç aynı, 0,10–0,42 sn.
 - ✅ `deney_protokolu.md` §10: yeni günlerde geniş özellik seti, Fikir 4/8 önceden kayıtlı; 163 dondurma günü `ml/dondurma_gunleri.json`.
 - ✅ P1-5 `.dockerignore`, P1-1 log rotasyonu, P1-6 sunucu başlığı, P1-9 AIRAC 7 gün uyarısı, Y-2 `docker-compose.uretim.yml`, S-7 etiketi.
 - ✅ Komite C-3, C-5, C-8 belge düzeltmeleri; durum KOMITE_INCELEMESI "19 Ekim durumu".
 - ✅ Yığın yeni imajla yeniden başlatıldı (log sınırı etkin, `server` başlığı yok); AWC `airsigmet` boş akış (204), dış kaynak.
+- ✅ §10 kodu `turbulans-ml-yeni-gun` (sentetik testli); `--durum`: 16 yeni gün / 1.509 örnek, eşik 30, skor hesaplanmadı.
 - ✅ Demo ekranları temiz klondan yenilendi (sayılar aynı); ekran aracı CSP'ye takılıyordu, `page.evaluate` yoklamasıyla düzeltildi.
 
 ## 2026-10-19
