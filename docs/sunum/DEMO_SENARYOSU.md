@@ -4,7 +4,8 @@ Jüri sunumundaki canlı demo ve yedek video için adım adım akış. Demo, dep
 demo paketiyle (THY322, 15 Ocak 2019, gerçek OpenSky izi + ERA5 dilimi) **ağ
 bağlantısı ve kimlik bilgisi olmadan** çalışır. Aşağıdaki tüm sayılar bu paketle
 14 Ekim 2026'da temiz demo klonunda (yalnız depodaki ERA5 dilimi ve örnek kısıtlı sahalar, ağsız provada) alınmış gerçek çıktılardır; ekran görüntüleri `ekranlar/`
-klasöründedir ve `turbulans-demo-ekranlari` ile yeniden üretilir.
+klasöründedir ve `turbulans-demo-ekranlari` ile yeniden üretilir (son yenileme 19 Ekim 2026,
+temiz klon, commit `071ecdb`; sayılar değişmedi: %9,55 ek yakıt, ~26 dk riskli bölüm).
 
 Sistem sertifikalı EDR üretmez; karar destek aracıdır. Demo boyunca bu cümle
 en az bir kez söylenmelidir.
