@@ -43,7 +43,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   `content-security-policy` başlığını ve iki sayfanın açıldığını kontrol et.
 - [x] (19 Ekim, yukarıdaki madde) **Rota performansı (şarjdayken):** yukarıdaki 18 Ekim maddesi; SISTEM_KARTI §1'deki
   `docs/sonuclar/2026-10-07/rota_performansi.md` bağlantısı ve süreler nihai pakete taşınır.
-- [ ] **Demo ekranlarını yenile:** `TI1_GUVENILIRLIK_NOTU` metni (15.940 PIREP / 163 gün) ve
+- [x] (19 Ekim, temiz klon `071ecdb`, sayılar aynı; ekran aracı CSP'ye takılıyordu, düzeltildi) **Demo ekranlarını yenile:** `TI1_GUVENILIRLIK_NOTU` metni (15.940 PIREP / 163 gün) ve
   `harita3d.html`'deki "karar destek aracıdır" satırı değişti; `docs/sunum/ekranlar/`
   görüntüleri eski metni gösteriyor. İmaj derlendikten sonra temiz klondan (5532/8100 portları).
 - [ ] **GitHub Destek talebi (P0-9, kullanıcı):** PR #1'deki eski OpenSky şifresi; metin

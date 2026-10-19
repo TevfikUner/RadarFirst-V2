@@ -16,6 +16,7 @@ TURBULANS_API_ANAHTARI (yoksa API_ANAHTARI) ortam değişkeninden okunur.
 
 import argparse
 import os
+import time
 from urllib.parse import urlparse
 
 from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
@@ -49,6 +50,16 @@ SAAT_ILERLEDI = (
 )
 
 
+def _kosul_bekle(sayfa, ifade, timeout=30_000):
+    """wait_for_function dize koşulunu sayfada eval eder ve CSP (script-src 'self') bunu
+    engeller; page.evaluate engellenmez (tests/conftest.py ile aynı yöntem)."""
+    bitis = time.monotonic() + timeout / 1000
+    while not sayfa.evaluate(ifade):
+        if time.monotonic() > bitis:
+            raise TimeoutError(f"Koşul {timeout} ms içinde sağlanmadı: {ifade}")
+        time.sleep(0.2)
+
+
 def ag_engelleyici(engellenenler: list):
     """Playwright route işleyicisi: yerel olmayan istekleri keser ve kaydeder."""
 
@@ -76,9 +87,9 @@ def harita3d(sayfa, taban_url, anahtar, yol):
     sayfa.fill("#giris-tarih", DEMO_TARIHI)
     sayfa.fill("#giris-anahtar", anahtar)
     sayfa.click("#yukle-buton")
-    sayfa.wait_for_function("document.getElementById('durum').innerText.includes('nokta yüklendi')", timeout=60_000)
-    sayfa.wait_for_function(
-        "!document.getElementById('model-bilgisi-govde').innerText.includes('Uçuş yüklenince')", timeout=30_000
+    _kosul_bekle(sayfa, "document.getElementById('durum').innerText.includes('nokta yüklendi')", timeout=60_000)
+    _kosul_bekle(
+        sayfa, "!document.getElementById('model-bilgisi-govde').innerText.includes('Uçuş yüklenince')", timeout=30_000
     )
     sayfa.wait_for_timeout(4000)
     sayfa.screenshot(path=yol, type="jpeg", quality=85)
@@ -89,9 +100,7 @@ def simulasyon(sayfa, taban_url, anahtar, senaryo, yol):
     sayfa.goto(f"{taban_url}/harita/ucus_simulasyonu.html")
     sayfa.fill("#giris-anahtar", anahtar)
     sayfa.dispatch_event("#giris-anahtar", "change")
-    sayfa.wait_for_function(
-        "document.querySelectorAll('#ucak-modeli option[value=\"A320\"]').length > 0", timeout=30_000
-    )
+    _kosul_bekle(sayfa, "document.querySelectorAll('#ucak-modeli option[value=\"A320\"]').length > 0", timeout=30_000)
     sayfa.select_option("#ucak-modeli", "A320")
     for kimlik, deger in (
         ("#baslangic-enlem", senaryo["baslangic"][0]),
@@ -103,8 +112,8 @@ def simulasyon(sayfa, taban_url, anahtar, senaryo, yol):
         sayfa.fill(kimlik, str(deger))
     sayfa.fill("#zaman", senaryo["zaman"])
     sayfa.click("#simule-et-buton")
-    sayfa.wait_for_function("document.getElementById('s-optimize-sure').innerText.trim().length > 0", timeout=120_000)
-    sayfa.wait_for_function(SAAT_ILERLEDI, timeout=60_000)
+    _kosul_bekle(sayfa, "document.getElementById('s-optimize-sure').innerText.trim().length > 0", timeout=120_000)
+    _kosul_bekle(sayfa, SAAT_ILERLEDI, timeout=60_000)
     sayfa.wait_for_timeout(2000)
     sayfa.screenshot(path=yol, type="jpeg", quality=85)
     return sayfa.inner_text("#strateji-satiri") + " | " + sayfa.inner_text("#tasarruf-satiri")
