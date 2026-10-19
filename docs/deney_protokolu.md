@@ -130,3 +130,73 @@ farkı belirtilmelidir.
 - **Düşey çözünürlük:** 3 seviye (~1,3–1,6 km aralık) ince katman kaymasını
   kaçırır; Richardson hiç 0,25'in altına inmez. 7 seviyelik veri pencere deposunda
   birikmektedir ([ADR 0002](adr/0002-era5-pencere-deposu.md)).
+
+## 10. Dondurma sonrası protokol (F9 devamı; 19 Ekim 2026, yeni günlere bakılmadan yazıldı)
+
+Bu bölüm, 18 Ekim nihai paketinden (`docs/sonuclar/2026-10-18`) sonraki ilk ML
+değerlendirmesini önceden sabitler. Kayıt zamanı bu bölümü ekleyen commit'tir. Yazıldığı
+anda geliştirme veritabanında dondurmada olmayan 16 eşleşmiş gün vardı; yalnız sayıldı,
+hiçbir skoru hesaplanmadı. Bu bölüm değerlendirmeden sonra değiştirilmez; değişiklik
+gerekirse ayrı alt madde olarak, tarihiyle ve "sonuçtan sonra" notuyla eklenir.
+
+### 10.1 Test ve eğitim günleri
+
+- **Dondurma günleri:** `ml/dondurma_gunleri.json`, 163 gün (dondurma yedeğinin geri
+  yüklendiği `Turbulence-db-dondurma` veritabanından, `durum='eslesti'`, UTC günü). Dosya
+  üzerine yazılmaz.
+- **Test günleri:** eşleşmiş olup bu listede olmayan günler. `olusturulma_zamani` kesmesi
+  kullanılmaz: satırlar dondurmadan önce oluşturulup sonra eşleşebiliyor.
+- **Eğitim:** dondurma günlerinin tamamı (16 altın gün dahil; bu protokolde test değiller).
+- **Ne zaman:** test günleri ilk kez **≥ 30 gün** ve ADR 0004 yeterliliğini (≥ 50 örnek,
+  her sınıftan ≥ 5) sağladığında **bir kez**. Ara bakış yok; "biraz daha gün bekleyelim"
+  kararı skora bakılarak verilmez.
+
+### 10.2 Birincil hipotez (H1)
+
+Geniş özellik setiyle eğitilen protokol modeli, test günlerinde temel setle eğitilen protokol
+modelinden daha yüksek ROC-AUC verir.
+
+| Öğe | Tanım |
+|---|---|
+| Temel set (8) | `MODEL_OZELLIK_SUTUNLARI`: TI1, Ri, rüzgâr hızı, basınç, düşey kayma, yatay deformasyon, yatay diverjans, TI2 |
+| Geniş set (13) | Temel 8 + `rf_deneyi.BAGLAM_SUTUNLARI`: komşu TI1 maks/ort, kolon en düşük Ri, jet oranı, sıcaklık azalma oranı |
+| Aday modeller | §3'tekilerle aynı: lojistik (dengeli), RF (200 ağaç, derinlik 5), GB (150, derinlik 3); ayarlı RF aday değil (F9: kazanç +0,001–0,003) |
+| Seçim | §3 madde 2–4 aynen (gün gruplu CV, 1-SE, Platt, Peirce eşiği eğitim günlerinde); her set için ayrı |
+| Ölçüt | Geniş − temel ROC-AUC, gün bloklu eşleştirilmiş bootstrap (§5); %95 GA alt sınırı > 0 ise H1 desteklenir |
+
+Sonuç ne çıkarsa raporlanır; "geniş set fark yaratmadı" da bulgudur.
+
+### 10.3 İkincil analizler (önceden kayıtlı; birincil sonucu değiştirmez)
+
+1. **TI1'e karşı:** iki modelin TI1 ile farkı, ADR 0004 kapısıyla (≥ 0,02 ve GA alt > 0).
+   Geniş set kapıyı geçse bile üretime alınması ayrı karardır (gece işinin bağlam
+   özelliklerini üretmesi gerekir; ONAY).
+2. **Tabakalı doğrulama (Fikir 4):** mevsim (DJF/MAM/JJA/SON) ve örnek noktasındaki rüzgâr
+   hızı (< 30 / ≥ 30 m/s). Tabaka başına gün, örnek, model ve TI1 ROC-AUC [%95 GA]. Örnek
+   < 50 ya da bir sınıfı < 5 olan tabaka raporlanmaz. Çoklu karşılaştırma düzeltmesi
+   yapılmaz; yalnız GA ile, "keşifsel" etiketiyle yorumlanır.
+3. **"Hafif = negatif" duyarlılığı (Fikir 8):** yerel IEM arşivindeki TURBULENCE metniyle
+   sınıfı 0 olan örnekler "hafif" (`LGT`, `LIGHT` geçer) ve "yok" diye ayrılır. Hafifler
+   çıkarılınca, aynı modellerle (yeniden eğitmeden) ve aynı eşiklerle ROC-AUC ve Peirce
+   yeniden hesaplanır. Yalnız metni bulunan örnekler kullanılır; aynı alt kümede birincil
+   sayılar da yan yana verilir.
+4. **Ardışık gün sızıntısı:** dondurma gününe ±1 gün komşu test günleri çıkarılarak H1
+   farkı yeniden verilir (aynı hava sistemi iki güne yayılabilir).
+
+### 10.4 Keşifsel (hipotez değil)
+
+Fikir 9 (uyarı alanı oranı; TTS yalnız MADIS günlerinde), 10 (komşuluk maksimumu), 15 (TI3),
+19 (frontogenez, ∇T, NCSU1, PV), 24 (AUC² ağırlıklı birleşik EDR) ve 29 (uçak tipi) bu
+protokolün test günlerinde **ancak** her biri hipotez, metrik ve karar ölçütüyle bu bölüme
+test günlerine bakılmadan eklenirse çalıştırılır. Sonradan eklenenler yalnız "keşifsel"
+olarak raporlanır.
+
+### 10.5 Geçerlilik tehditleri
+
+- Yeni günler de 2018–2020 ABD PIREP'idir: zaman olarak yeni değil, yalnız modelin
+  görmediği günlerdir. Bu, dağılım kaymasını değil aynı dağılımda genellemeyi ölçer.
+- Hangi günlerin eşleşeceğini gece işinin sırası belirler (rastgele örnek değil); test
+  günlerinin tarih ve mevsim dağılımı raporda verilir.
+- Bağlam özellikleri `rf_deneyi.baglam_ozelliklerini_hesapla` ile ERA5 pencere
+  deposundan sonradan hesaplanır; penceresi olmayan örnekler iki setten de çıkarılır ki
+  iki model aynı örneklerde karşılaştırılsın.
