@@ -35,7 +35,7 @@
 Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.md` 18 Ekim satırları,
 `docs/denetim/2026-10-17/URETIM_HAZIRLIK.md` "Faz 1 durumu" tablosu.
 
-- [ ] **Docker imajını yeniden derle (öncelikli):** 18 Ekim 01:00 UTC'de npm'e
+- [x] (19 Ekim: imaj derlendi; api ve worker yeni imajda, iki harita sayfası 200, CSP başlığı var) **Docker imajını yeniden derle (öncelikli):** 18 Ekim 01:00 UTC'de npm'e
   (`registry.npmjs.org`) erişilemedi; `docker compose build api worker` Cesium indirmesinde
   takıldı ve durduruldu. Çalışan imaj #90 öncesi koddan: CSP ve güvenlik başlıkları (#91),
   `ORDER BY id` (#89), `*_FILE` (#93), işçinin anahtarsız kapalı başlaması (#94) imajda yok.
