@@ -27,6 +27,13 @@ x-uygulama-db: &uygulama_db
   MCP_POSTGRES_USER: ""
   MCP_POSTGRES_PASSWORD: ""
 
+# Konteyner günlükleri sınırsız büyümesin (P1-1): servis başına en fazla 5 x 10 MB.
+x-gunluk: &gunluk
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 x-ortak-volumeler: &ortak_volumeler
   - ./ciktilar:/app/ciktilar
   - ./canli_veri:/app/canli_veri
@@ -51,6 +58,7 @@ x-ortak-volumeler: &ortak_volumeler
 services:
   db:
     image: postgres:16
+    logging: *gunluk
     restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-postgres}
@@ -72,6 +80,7 @@ services:
 
   api:
     build: .
+    logging: *gunluk
     restart: unless-stopped
     depends_on:
       db:
@@ -120,6 +129,7 @@ services:
 
   worker:
     build: .
+    logging: *gunluk
     restart: unless-stopped
     command: ["python", "-m", "turbulans_radar.isci.gorev_iscisi"]
     # İşçi çalışan görevi GOREV_DURDURMA_BEKLEME_SANIYE (240) bekler; Docker'ın
@@ -150,6 +160,7 @@ services:
   # ./db_yedekleri'nde (depoya konmaz); geri yükleme README "Veritabanı yedeği".
   yedek:
     image: postgres:16
+    logging: *gunluk
     restart: unless-stopped
     depends_on:
       db:
@@ -181,6 +192,7 @@ services:
   # veritabanına yazılır; 3B harita http://localhost:8000/harita/harita3d.html.
   demo:
     build: .
+    logging: *gunluk
     profiles: ["demo"]
     restart: "no"
     command: ["python", "-m", "turbulans_radar.cli.demo"]
@@ -199,6 +211,7 @@ services:
   # API host portu 127.0.0.1'de kalır; dışarıya yalnız vekil açılır.
   vekil:
     image: caddy:2.8.4
+    logging: *gunluk
     profiles: ["uretim"]
     restart: unless-stopped
     depends_on:

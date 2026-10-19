@@ -813,6 +813,9 @@ gerçek seyir irtifasının bu yöndeki en yakın yasal FL'sinde hesaplanır:
 |---|---|---|---|---|
 | THY322 | FL300 → FL290 (doğu) | 116 km | 0.19 / 0.32 / 0.00 | yanal (+0,4 dk) |
 
+Bu satır 6 Ekim ölçümüdür (TI1 eşiği 7e-7 olmadan önce). Güncel değer 7e-7 eşiğiyle
+0,24 / 0,39 / 0,02'dir: [`docs/sonuclar/2026-10-18/SAYILAR.md`](docs/sonuclar/2026-10-18/SAYILAR.md) `backtest[1]`.
+
 Önceki tablodaki THY72C ve THY606 veritabanında artık olmadığı için
 yeniden üretilemedi; eski değerleri (basınç seviyesinden türetilen dikey
 alternatifler, eski fizik) geçersiz sayılmalıdır.

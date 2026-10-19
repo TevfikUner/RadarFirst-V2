@@ -1,0 +1,10 @@
+# Üretim katmanı (Y-2): veritabanı host'a hiç yayınlanmaz; API ve işçi db'ye iç ağdan
+# ulaşır. Compose profilleri port kaldıramadığı için ayrı dosya:
+#   docker compose -f docker-compose.yml -f docker-compose.uretim.yml --profile uretim up -d
+# -f verilince docker-compose.override.yml kendiliğinden okunmaz; varsa (ör. disk dışı
+# yedek bağlaması) aynı komuta -f docker-compose.override.yml olarak eklenir. Bu katmanda
+# host'taki araçlar (WSL venv'deki turbulans-* komutları, MCP) veritabanına bağlanamaz;
+# onlar `docker compose exec api ...` ile çalıştırılır.
+services:
+  db:
+    ports: !reset []

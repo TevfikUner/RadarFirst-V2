@@ -2,8 +2,9 @@
 kalibrasyon.py
 ----------------
 turbulans_indeksleri.ti1_den_edr_proxy_olcegine_cevir() içindeki
-`olceklendirme_katsayisi` (varsayılan 1.5) TAMAMEN KEYFİ bir başlangıç
-değeridir -- README'de de böyle belgelenmiştir. Bu script, gerçek PIREP
+`olceklendirme_katsayisi`, config.EDR_OLCEKLENDIRME_KATSAYISI'dır (0.27; seyir
+irtifası IEM PIREP'leriyle uydurulmuş TI1 görsel ölçeği, EDR değildir; ayrıntı
+config.py yorumunda). Bu script, gerçek PIREP
 (Pilot Report) veya AMDAR gözlemleriyle eşleştirilmiş TI1 değerlerinden bu
 katsayıyı EN KÜÇÜK KARELER ile kalibre etmek için bir araçtır.
 
