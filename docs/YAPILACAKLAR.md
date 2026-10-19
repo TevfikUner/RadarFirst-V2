@@ -76,9 +76,11 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
 - [x] (19 Ekim: `deney_protokolu.md` §10, test günleri = `ml/dondurma_gunleri.json` dışındaki ≥30 gün; değerlendirme kodu ve çalıştırma kaldı) Yeni ML protokolü (F9 devamı): `docs/deney_protokolu.md`'ye geniş özellik setini
   (temel 8 + 5 bağlam) ve aday modelleri önceden yaz. Değerlendirme dondurmadan SONRA
   toplanan yeni günlerde yapılır; aynı 16 altın gün kullanılmaz (bkz. SONUCLAR §2.4).
-- [ ] **§10 değerlendirme kodu:** test günü filtresi (`dondurma_gunleri.json` dışı), iki özellik seti,
+- [x] (19 Ekim: `turbulans-ml-yeni-gun`; 19 Ekim'de 16 yeni gün / 1.509 örnek, skor yok) **§10 değerlendirme kodu:** test günü filtresi (`dondurma_gunleri.json` dışı), iki özellik seti,
   Fikir 4/8 tabloları ve ±1 gün duyarlılığı; test günlerine bakmadan commit'lenir, sonra ≥30 yeni
   gün olunca bir kez çalıştırılır (19 Ekim'de 16 yeni gün vardı).
+- [ ] **§10 değerlendirmesini bir kez çalıştır:** her gece işi sonrası `turbulans-ml-yeni-gun --durum`;
+  `yeterli: true` olunca `turbulans-ml-yeni-gun --cikti docs/sonuclar/<tarih>`, sonuç ne çıkarsa raporlanır.
 - [ ] Türkiye ERA5 (7 seviye) ve daha fazla OpenSky uçuşu: önce CDS/OpenSky kotası ve
   günlük 500 MB bütçe hesabı, sonra ONAY.
 - [ ] F7 rüzgâr asimilasyonu küçük deneyi (5–10 gün, 2021 sonrası MADIS günleri + AWS GFS;

@@ -61,17 +61,23 @@ UYARI = (
 
 
 def ornekleri_oku(motor=None) -> pd.DataFrame:
+    altin = altin_test_gunleri()
+    if altin is None:
+        raise SystemExit("Altın test günleri dondurulmamış; deney altın günleri dışlayamaz.")
+    return altin_gunlerini_at(eslesmis_ornekleri_oku(motor), altin)
+
+
+def eslesmis_ornekleri_oku(motor=None) -> pd.DataFrame:
+    """Eşleşmiş tüm ml_ornekleri (id sırasıyla): konum, pencere dosyası, etiket, gün ve temel özellikler."""
     from sqlalchemy import select
     from sqlalchemy.orm import Session
 
     from turbulans_radar.depo.models import MlOrnegi
     from turbulans_radar.depo.veritabani import motor_al
 
-    altin = altin_test_gunleri()
-    if altin is None:
-        raise SystemExit("Altın test günleri dondurulmamış; deney altın günleri dışlayamaz.")
     sorgu = select(
         MlOrnegi.id,
+        MlOrnegi.pirep_anahtari,
         MlOrnegi.zaman,
         MlOrnegi.enlem,
         MlOrnegi.boylam,
@@ -81,10 +87,11 @@ def ornekleri_oku(motor=None) -> pd.DataFrame:
         MlOrnegi.ozellikler,
     ).where(MlOrnegi.durum == "eslesti")
     with Session(motor or motor_al()) as oturum:
-        satirlar = oturum.execute(sorgu).all()
+        satirlar = oturum.execute(sorgu.order_by(MlOrnegi.id)).all()
     df = pd.DataFrame(
         {
             "id": [s.id for s in satirlar],
+            "anahtar": [s.pirep_anahtari for s in satirlar],
             "zaman": [s.zaman for s in satirlar],
             "enlem": [s.enlem for s in satirlar],
             "boylam": [s.boylam for s in satirlar],
@@ -95,8 +102,7 @@ def ornekleri_oku(motor=None) -> pd.DataFrame:
         }
     )
     ozellikler = pd.DataFrame([s.ozellikler for s in satirlar]).reindex(columns=MODEL_OZELLIK_SUTUNLARI)
-    df = pd.concat([df, ozellikler], axis=1)
-    return altin_gunlerini_at(df, altin)
+    return pd.concat([df, ozellikler], axis=1)
 
 
 def altin_gunlerini_at(df: pd.DataFrame, altin) -> pd.DataFrame:
@@ -268,8 +274,8 @@ def ozellik_seti_raporu(X, y, gunler, tekrar=None, onem=False, deneme=12) -> dic
     return rapor
 
 
-def deney_raporu_yaz(klasor: str, motor=None, tekrar=None, deneme=12) -> dict:
-    ornekler = ornekleri_oku(motor)
+def baglam_ozellikleri_onbellekli(ornekler: pd.DataFrame) -> pd.DataFrame:
+    """Bağlam özellikleri, ML deposundaki Parquet önbelleğiyle (yalnız eksik id'ler hesaplanır)."""
     onbellek = os.path.join(config.ML_DEPO_KLASORU, "baglam_ozellikleri.parquet")
     if os.path.exists(onbellek):
         baglam = pd.read_parquet(onbellek)
@@ -280,11 +286,19 @@ def deney_raporu_yaz(klasor: str, motor=None, tekrar=None, deneme=12) -> dict:
         baglam = baglam_ozelliklerini_hesapla(ornekler)
     os.makedirs(config.ML_DEPO_KLASORU, exist_ok=True)
     baglam.to_parquet(onbellek)
+    return baglam
 
-    veri = ornekler.join(baglam, on="id")
-    sutunlar = MODEL_OZELLIK_SUTUNLARI + BAGLAM_SUTUNLARI
+
+def tam_ozellikli(veri: pd.DataFrame, sutunlar) -> pd.DataFrame:
     tam = veri.dropna(subset=sutunlar).reset_index(drop=True)
-    tam = tam[np.isfinite(tam[sutunlar].to_numpy(dtype=float)).all(axis=1)].reset_index(drop=True)
+    return tam[np.isfinite(tam[sutunlar].to_numpy(dtype=float)).all(axis=1)].reset_index(drop=True)
+
+
+def deney_raporu_yaz(klasor: str, motor=None, tekrar=None, deneme=12) -> dict:
+    ornekler = ornekleri_oku(motor)
+    veri = ornekler.join(baglam_ozellikleri_onbellekli(ornekler), on="id")
+    sutunlar = MODEL_OZELLIK_SUTUNLARI + BAGLAM_SUTUNLARI
+    tam = tam_ozellikli(veri, sutunlar)
     y, gunler = tam["y"].to_numpy(), tam["gun"].to_numpy()
     temel = ozellik_seti_raporu(tam[MODEL_OZELLIK_SUTUNLARI], y, gunler, tekrar, deneme=deneme)
     genis = ozellik_seti_raporu(tam[sutunlar], y, gunler, tekrar, onem=True, deneme=deneme)

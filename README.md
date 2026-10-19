@@ -169,6 +169,7 @@ turbulans_radar/
               belirsizlik.py, kayma_izleme.py, model_butunlugu.py, ozellik_deposu.py, madis_hatti.py
               edr_eslestirme.py, edr_kalibrasyonu.py, gosterge_degerlendirme.py, duyarlilik_analizi.py,
               rf_deneyi.py, tip_analizi.py -> deneyler (altın günler dışında)
+              yeni_gun_degerlendirmesi.py -> dondurma sonrası yeni günlerde tek değerlendirme (protokol §10)
   analiz/     ucus_analizi.py, toplu_analiz.py -> uçtan uca uçuş analizi
               esik_esleme.py, gfs_toplulugu.py, kacinma_baslangici.py, ayriklastirma.py,
               dedektor_duyarliligi.py, sanal_pirep_hatti.py -> ek analizler
