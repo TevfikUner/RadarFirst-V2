@@ -18,6 +18,8 @@ from __future__ import annotations
 import math
 from functools import lru_cache
 
+import numpy as np
+
 from turbulans_radar import config
 
 METRE_FT = 3.28084
@@ -75,11 +77,14 @@ def seyir_yakiti(
     dt = sure_s / adim_sayisi
     kutle = baslangic_kutlesi_kg(tip, kutle_orani)
     yakit = nox = 0.0
+    akislar = []
     for _ in range(adim_sayisi):
         akis = _yakit_akisi_kg_s(tip, kutle, tas_kt, irtifa_ft)
-        nox += float(emisyon.nox(akis, tas=tas_kt, alt=irtifa_ft)) * dt / 1000.0
+        akislar.append(akis)
         yakit += akis * dt
         kutle -= akis * dt
+    for deger in np.atleast_1d(emisyon.nox(np.asarray(akislar), tas=tas_kt, alt=irtifa_ft)):
+        nox += float(deger) * dt / 1000.0
     return {"yakit_kg": yakit, "nox_kg": nox}
 
 

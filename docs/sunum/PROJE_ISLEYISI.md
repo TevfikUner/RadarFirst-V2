@@ -174,7 +174,7 @@ normal ve optimize. API (`POST /api/v1/simulasyon/rota`) sonucu CZML'e çevirir;
 bölümler kırmızı, yanında UTC saat, FL ve NM olarak yer/zaman, ekstra yakıt ve süre.
 `web/harita3d.html` (MapLibre) aynı veriyi 2B/3B haritada gösterir.
 
-Hesap süresi: rota başına 0,03–0,45 sn (dizüstü, şarjda).
+Hesap süresi: rota başına 0,10–0,42 sn (dizüstü, şarjda; 19 Ekim ölçümü).
 
 ---
 

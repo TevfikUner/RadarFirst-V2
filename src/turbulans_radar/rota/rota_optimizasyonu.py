@@ -1368,11 +1368,21 @@ def rota_simulasyonu_olustur(
         }
 
     yakit_ozetleri = {}
+    seyir_onbellegi = {}
+
+    def _seyir_yakiti(aday, oran=None):
+        oran = config.ROTA_SEYIR_KUTLE_ORANI if oran is None else oran
+        anahtar = (aday["saniye"], aday["irtifa_m"], oran)
+        if anahtar not in seyir_onbellegi:
+            seyir_onbellegi[anahtar] = performans_modeli.seyir_yakiti(
+                ucak_modeli_kodu, aday["saniye"], tas_ms, aday["irtifa_m"], kutle_orani=oran
+            )
+        return seyir_onbellegi[anahtar]
 
     def _aday_yakit_ozeti(aday):
         anahtar = id(aday)
         if anahtar not in yakit_ozetleri:
-            seyir = performans_modeli.seyir_yakiti(ucak_modeli_kodu, aday["saniye"], tas_ms, aday["irtifa_m"])
+            seyir = _seyir_yakiti(aday)
             if seyir is None:
                 seyir = {"yakit_kg": profil["yakit_akisi_kg_saat"] * (aday["saniye"] / 3600.0), "nox_kg": None}
             yakit_ozetleri[anahtar] = (aday, seyir["yakit_kg"] + aday["ekstra_yakit_kg"], seyir["nox_kg"])
@@ -1525,9 +1535,7 @@ def rota_simulasyonu_olustur(
     optimize_saniye = en_iyi["saniye"] + en_iyi["ekstra_saniye"]
 
     def _kutleli_yakit_kg(aday, oran):
-        seyir = performans_modeli.seyir_yakiti(
-            ucak_modeli_kodu, aday["saniye"], tas_ms, aday["irtifa_m"], kutle_orani=oran
-        )
+        seyir = _seyir_yakiti(aday, oran)
         if seyir is None:
             return None
         ek = 0.0

@@ -8,7 +8,7 @@
 - [x] (18 Ekim, commit `5ddcd40`, sıralı sorgu; RF +0,033, kapı geçildi; dondurmada aday aktif RF'yi geçemedi)
   `turbulans-ml-degerlendirme --kesme 2026-10-18 --cikti docs/sonuclar/2026-10-18`,
   `turbulans-ml --dondurma-raporu docs/sonuclar/2026-10-18`.
-- [ ] Şarjdayken: `turbulans-performans rota --json docs/sonuclar/2026-10-18/rota_performansi.json`
+- [x] (19 Ekim: 0,10–0,42 sn; kütle bandı yavaşlatmıştı, sonuç aynı kalacak şekilde hızlandırıldı) Şarjdayken: `turbulans-performans rota --json docs/sonuclar/2026-10-18/rota_performansi.json`
   (17 Ekim gecesi dizüstü pildeydi); sonra SISTEM_KARTI'daki `2026-10-07/rota_performansi.md`
   bağlantısı ve süreleri güncellenir.
 - [x] (18 Ekim) Ön paket (2026-10-07) sayılarını nihai `SAYILAR.md` ile değiştir: SISTEM_KARTI,
@@ -41,7 +41,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   `ORDER BY id` (#89), `*_FILE` (#93), işçinin anahtarsız kapalı başlaması (#94) imajda yok.
   npm dönünce derle, `docker compose up -d api worker`, ardından `/harita` yanıtında
   `content-security-policy` başlığını ve iki sayfanın açıldığını kontrol et.
-- [ ] **Rota performansı (şarjdayken):** yukarıdaki 18 Ekim maddesi; SISTEM_KARTI §1'deki
+- [x] (19 Ekim, yukarıdaki madde) **Rota performansı (şarjdayken):** yukarıdaki 18 Ekim maddesi; SISTEM_KARTI §1'deki
   `docs/sonuclar/2026-10-07/rota_performansi.md` bağlantısı ve süreler nihai pakete taşınır.
 - [ ] **Demo ekranlarını yenile:** `TI1_GUVENILIRLIK_NOTU` metni (15.940 PIREP / 163 gün) ve
   `harita3d.html`'deki "karar destek aracıdır" satırı değişti; `docs/sunum/ekranlar/`

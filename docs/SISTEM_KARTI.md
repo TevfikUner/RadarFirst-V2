@@ -38,10 +38,12 @@ trafikle varsayımsal minima karşılaştırması yalnızca gösterge olarak var
   48 saatten fazla olan rotalarda yanıt `ongoru_belirsiz` uyarısı verir: CAT'in yeri topluluk
   tahminleriyle ancak ~24–48 saat önceden tutarlı öngörülebildi (Lee, 2025, 4 vaka). Sınır
   `GUVENILIR_ONGORU_SAAT` ile değişir; kalibre edilmedi.
-- Hesaplama süresi, veri hazırken ve dizüstü şarjdayken rota başına 0,03–0,45 sn'dir
-  (sıcak medyan; A* aramalarının toplamı 0,09–0,14 sn). Ölçüm `turbulans-performans rota`
-  ile yapıldı: `docs/sonuclar/2026-10-07/rota_performansi.md`. Pilde süreler 2–3 kat
-  uzuyor. 2 Ekim ölçümü 0,02–0,27 sn idi (tarihçe). Fark tasarımdan gelir: Pareto
+- Hesaplama süresi, veri hazırken ve dizüstü şarjdayken rota başına 0,10–0,42 sn'dir
+  (sıcak medyan; A* aramalarının toplamı 0,08–0,12 sn). Ölçüm `turbulans-performans rota`
+  ile yapıldı: `docs/sonuclar/2026-10-18/rota_performansi.md` (19 Ekim). Pilde süreler 2–3 kat
+  uzuyor. 7 Ekim ölçümü 0,03–0,45 sn, 2 Ekim ölçümü 0,02–0,27 sn idi (tarihçe); 16 Ekim'de
+  eklenen kütle bandı süreyi 0,25–0,69 sn'ye çıkarmıştı, yinelenen OpenAP hesabı kaldırılınca
+  (sonuç birebir aynı) bugünkü değere indi. Fark tasarımdan gelir: Pareto
   seçenekleri için A* her rotada 1 yerine 4 kez (bir yanal, üç ceza düzeyi) çalışır ve
   yarım daire kuralı seviye adayları ekler. 8 Ekim'de rüzgâr okuması vektörleştirildi ve
   A* çalıştırmaları aynı ızgaranın TI1'ini paylaşır oldu; sonuç birebir aynı, süre
