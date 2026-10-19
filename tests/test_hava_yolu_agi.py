@@ -6,6 +6,7 @@ ATS yolu ya da AIP verisi değildir (gerçek ağ depoya konmaz).
 
 import json
 import os
+from pathlib import Path
 
 import pandas as pd
 import pytest
@@ -425,7 +426,7 @@ def test_fir_birlesimi_ve_5_nm_sinir_kurali(monkeypatch):
 def test_gercek_fraturk_agi_sinir_ve_rol_kurallarina_uyar():
     if not os.path.isfile(config.ATS_AGI_DOSYASI) or not os.path.isfile(config.FIR_SINIRLARI_DOSYASI):
         pytest.skip("ats_verisi/ats_agi.json ya da FIR sınırı yok (turbulans-aip-ats, turbulans-statik)")
-    veri = json.loads(open(config.ATS_AGI_DOSYASI, encoding="utf-8").read())
+    veri = json.loads(Path(config.ATS_AGI_DOSYASI).read_text(encoding="utf-8"))
     noktalar = {n["ad"]: (n["enlem"], n["boylam"]) for n in veri["noktalar"]}
     fra = veri["fra"]["noktalar"]
     ciftler = [
