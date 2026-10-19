@@ -51,4 +51,4 @@ EXPOSE 8000
 # ortam değişkenlerinden (docker-compose.yml veya `docker run -e ...`)
 # okunur -- image'a gömülmez.
 
-CMD ["sh", "-c", "alembic upgrade head && uvicorn turbulans_radar.api.api_servisi:app --host 0.0.0.0 --port 8000"]
+CMD ["sh", "-c", "alembic upgrade head && uvicorn turbulans_radar.api.api_servisi:app --host 0.0.0.0 --port 8000 --no-server-header"]

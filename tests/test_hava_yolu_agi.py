@@ -202,6 +202,24 @@ def test_saglik_raporu_ats_agi_airac_bitisini_izler(tmp_path, monkeypatch):
     assert api_servisi._ats_agi_kontrolu()["durum"] == "tamam"
 
 
+def test_saglik_raporu_airac_bitisine_bir_hafta_kala_uyarir(tmp_path, monkeypatch):
+    from datetime import date
+
+    from turbulans_radar.api import api_servisi
+
+    dosya = tmp_path / "ag.json"
+    monkeypatch.setattr(config, "ATS_AGI_DOSYASI", str(dosya))
+    dosya.write_text(json.dumps(_veri(airac_bitis="2026-10-29")), encoding="utf-8")
+    assert api_servisi._ats_agi_kontrolu(date(2026, 10, 21))["durum"] == "tamam"
+    assert api_servisi._ats_agi_kontrolu(date(2026, 10, 22)) == {
+        "durum": "bitiyor",
+        "airac_bitis": "2026-10-29",
+        "kalan_gun": 7,
+    }
+    assert api_servisi._ats_agi_kontrolu(date(2026, 10, 29))["durum"] == "eski"
+    assert "bitiyor" in api_servisi._UYARI_DURUMLARI
+
+
 def test_koridor_modu_degismedi():
     sonuc = rota_simulasyonu_olustur(*TOC, *TOD, 35000, "2019-01-15T10:00:00", "A320", sigmetler=[], kisitli_sahalar=[])
     assert sonuc["ats"] is None and sonuc["kapsam"]["arama_uzayi"] == "koridor"

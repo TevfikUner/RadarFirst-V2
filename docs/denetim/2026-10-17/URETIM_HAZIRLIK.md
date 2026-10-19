@@ -25,7 +25,13 @@ Yollar depo köküne görelidir; makineye özgü yollar `<DEPO>`, `<KULLANICI>` 
 | P0-9 | ✅ (kod) | #93 | `*_FILE` sır desteği. GitHub Destek talebi metni hazır, gönderim kullanıcıda (web formu) |
 | Y-4 | ✅ | bu PR | İşçi ve demo'da API anahtarları boş; işçi kapalı başlamada anahtar denetimini atlar |
 | Y-5 | ✅ | bu PR | `harita3d.html` lejantına "sertifikalı EDR değildir / karar destek aracıdır" |
-| Y-2, Y-6, Y-7 | ⏸ | — | Y-2 ayrı override gerektirir (P2); Y-6 `docker builder prune` npm erişimi dönene kadar ertelendi (Cesium yeniden indirilemiyor); Y-7 yalnız dizüstü |
+| Y-2 | ✅ | 19 Ekim | `docker-compose.uretim.yml` (`ports: !reset []`); host araçları bu katmanda `docker compose exec` ile |
+| Y-6, Y-7 | ⏸ | — | Y-6 `docker builder prune`: imaj 19 Ekim'de derlendi, 25 Ekim `docker save` yedeğinden sonra (ONAY); Y-7 yalnız dizüstü |
+| P1-1 | ◐ | 19 Ekim | Log rotasyonu (`json-file` 10 MB × 5, tüm servisler). Kaynak sınırları yok: değerler ölçülmeden yazılmadı |
+| P1-5 | ✅ | 19 Ekim | `.dockerignore`: CLAUDE.md, .mcp.json, docs/, scripts/, .githooks/, örnek ortam dosyaları; CI imajda yokluklarını denetler |
+| P1-6 | ◐ | 19 Ekim | `--no-server-header`. `--proxy-headers` uvicorn'da varsayılan, `FORWARDED_ALLOW_IPS` zaten vekile sabit; anahtarsız derin sağlık yanıtı değişmedi |
+| P1-9 | ◐ | 19 Ekim | `/saglik` `ats_agi` bitişe ≤ 7 gün kala `bitiyor` (uyarı). AIP yenilemesi 29 Ekim'de (dış indirme, ONAY) |
+| S-7 | ✅ | 19 Ekim | "Uçuş sırasında yeniden hesapla" düğmesinde kalıcı "gösterim amaçlı · NON-OPERATIONAL" |
 
 Docker imajı CSP kodunu henüz içermiyor: 18 Ekim gecesi npm'e erişilemediği için derleme
 Cesium indirmesinde takıldı ve durduruldu (canlı yığın #90 imajıyla çalışıyor, yerel yayın).

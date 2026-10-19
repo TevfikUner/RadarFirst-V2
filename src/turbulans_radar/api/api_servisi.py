@@ -988,8 +988,9 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi, request: Request, rol:
 # ---------------------------------------------------------------------------
 
 _SAGLIKSIZ_DURUMLAR = {"bayat", "hata", "birikiyor"}
-_UYARI_DURUMLARI = {"eksik", "ornek_veri", "veri_yok", "son_deneme_basarisiz", "gecikmis", "yok", "eski"}
+_UYARI_DURUMLARI = {"eksik", "ornek_veri", "veri_yok", "son_deneme_basarisiz", "gecikmis", "yok", "eski", "bitiyor"}
 _KUYRUK_BIRIKME_ESIGI_SANIYE = 120
+_AIRAC_UYARI_GUN = 7
 
 
 def _sigmet_kontrolu():
@@ -1131,15 +1132,24 @@ def _yedek_kontrolu():
     return {"durum": durum, **sonuc}
 
 
-def _ats_agi_kontrolu():
-    """AIP'ten üretilen ATS ağının AIRAC döngüsü bittiyse 'eski' (ağ yeniden üretilmeli)."""
+def _ats_agi_kontrolu(bugun=None):
+    """AIP'ten üretilen ATS ağının AIRAC döngüsü bittiyse 'eski' (ağ yeniden üretilmeli),
+    bitişe _AIRAC_UYARI_GUN ya da daha az kaldıysa 'bitiyor'."""
     ag = agi_yukle()
     if ag is None:
         return {"durum": "kapali"}
-    return {
-        "durum": "eski" if ag.airac_uyarisi() else "tamam",
-        "airac_bitis": ag.airac_bitis.isoformat() if ag.airac_bitis else None,
-    }
+    bugun = bugun or datetime.now(UTC).date()
+    kalan_gun = (ag.airac_bitis - bugun).days if ag.airac_bitis else None
+    if ag.airac_uyarisi(bugun):
+        durum = "eski"
+    elif kalan_gun is not None and kalan_gun <= _AIRAC_UYARI_GUN:
+        durum = "bitiyor"
+    else:
+        durum = "tamam"
+    sonuc = {"durum": durum, "airac_bitis": ag.airac_bitis.isoformat() if ag.airac_bitis else None}
+    if durum == "bitiyor":
+        sonuc["kalan_gun"] = kalan_gun
+    return sonuc
 
 
 async def _gorev_kuyrugu_kontrolu():

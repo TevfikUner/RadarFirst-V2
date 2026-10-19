@@ -45,3 +45,12 @@ model_deposu/
 model_versiyonlari/
 arsiv/
 test_raporu/
+# Çalışma zamanında gerekmeyen belgeler, araç ayarları ve örnek ortam dosyaları (P1-5)
+CLAUDE.md
+.mcp.json
+docs/
+scripts/
+.githooks/
+.env.demo
+.env.uretim.example
+*.postman_collection.json

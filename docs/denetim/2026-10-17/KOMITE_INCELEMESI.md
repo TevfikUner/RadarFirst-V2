@@ -165,3 +165,18 @@ Ayrıntı ve kanıt [`URETIM_HAZIRLIK.md`](URETIM_HAZIRLIK.md)'de. Komite için 
   canlıdan birebir aynı üretildi (RF +0,033). İlk üretim (GB +0,036) `ilk_uretim_sirasiz/`'da.
   T-1 (yeniden üretilebilirlik) bu yedek ve tatbikatla kısmen kapandı; yedek depoda değil.
 - Y-1 beyan sayımları güncellendi (284 commit, %1,6 kalan satır, 1.051 test).
+
+## 19 Ekim durumu
+
+- **B-8 için yol önceden kayıtlı:** `deney_protokolu.md` §10. Sonraki değerlendirme
+  dondurmanın görmediği günlerde (`ml/dondurma_gunleri.json` dışı, ≥ 30 gün) bir kez yapılır;
+  16 altın gün artık test sayılmaz.
+- **B-9 kapandı (18 Ekim):** GFS eşiği `TI1_ESIK_ORTA_SIDDETLI_GFS=8,3e-7` (`.env`).
+- **C-3 kapandı:** `mimari.md` kapı diyagramı ROC-AUC farkı + GA alt sınırına göre.
+- **C-5 kapandı:** README THY322 satırının 6 Ekim ölçümü olduğu ve güncel değerin
+  (0,24 / 0,39 / 0,02) yeri yazıldı.
+- **C-8 kapandı:** `fizik/kalibrasyon.py` docstring'i güncel katsayıya (0,27) bağlandı.
+- **O-3:** `/saglik` AIRAC bitişine 7 gün kala `ats_agi: bitiyor` uyarısı veriyor; yenileme
+  29 Ekim'de (ONAY).
+- Açık kalanlar: T-1 (üçüncü kişi yeniden üretimi: yedeğin teslim biçimi), Y-1 (beyan
+  sayımları teslimden hemen önce), C-10 (sayı tutarlılık betiği, S-6), T-4.

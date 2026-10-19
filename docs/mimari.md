@@ -157,7 +157,7 @@ flowchart LR
     OZ --> P4[("ml_ornekleri<br/>eslesti + özellikler<br/>+ pencere_dosyasi")]
     DEP -.->|"yeni özellik: CDS'siz yeniden hesap"| OZ
     P4 --> E["işçi: ml_egitim<br/>gün bazlı gruplu CV, Platt,<br/>konformal eşik, bootstrap GA"]
-    E --> K{"Zamansal holdout:<br/>TI1'i +0,02 AUC geçiyor mu?<br/>Aktif modeli F1'de geçiyor mu?"}
+    E --> K{"Altın test günleri:<br/>TI1'i ROC-AUC'de ≥ 0,02 ve GA alt > 0 ile geçiyor mu?<br/>Aktif modeli de aynı kuralla geçiyor mu?"}
     K -->|"evet"| AKT["Aktif model"]
     K -->|"hayır"| SUR["Yalnızca sürüm<br/>(geri alınabilir)"]
 ```

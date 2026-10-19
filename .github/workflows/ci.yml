@@ -221,6 +221,9 @@ jobs:
         run: docker compose down -v
       - name: İmaj içinde API uygulamasını yükle (duman testi)
         run: docker run --rm turbulans-radar:ci python -c "from turbulans_radar.api.api_servisi import app; print(len(app.routes), 'rota')"
+      - name: İmajda araç ayarı ve belge yok (P1-5)
+        run: |
+          docker run --rm turbulans-radar:ci sh -c 'for y in .mcp.json CLAUDE.md docs scripts .githooks .env.demo .env.uretim.example turbulans_radar.postman_collection.json; do test ! -e "/app/$y" || { echo "imajda var - $y"; exit 1; }; done'
 
   # README'deki "Beş dakikada çalıştır" akışı temiz makinede, olduğu gibi:
   # .env.demo ile yığın kurulur, demo servisi THY322'yi analiz edip çıkmalı.
