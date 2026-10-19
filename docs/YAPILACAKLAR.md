@@ -48,6 +48,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   görüntüleri eski metni gösteriyor. İmaj derlendikten sonra temiz klondan (5532/8100 portları).
 - [ ] **GitHub Destek talebi (P0-9, kullanıcı):** PR #1'deki eski OpenSky şifresi; metin
   `docs/guvenlik/GUVENLIK_TARAMASI_2026-10-05.md`. Depo herkese açılmadan önce şart.
+  19 Ekim: kullanıcı başka bir zaman kendisi gönderecek (GitHub web formu; Claude gönderemez).
 - [ ] **Y-6 `docker builder prune` (~50 GB):** imaj npm erişimiyle başarıyla derlendikten sonra
   (önbellek silinirse Cesium yeniden indirilir). Geri alınamaz, ONAY.
 - [ ] **`Turbulence-db-dondurma` veritabanı:** dondurma yedeğinin geri yüklenmiş kopyası,
@@ -138,6 +139,8 @@ jüri sorularına doğrudan yanıt verenler önde.
 
 ## Kullanıcı kararı bekleyenler
 
+- [ ] GitHub Destek talebi (P0-9): PR #1'deki eski OpenSky şifresinin temizlenmesi; ayrıntı "18 Ekim gecesinden
+  kalanlar" bölümünde. Kullanıcı gönderecek (19 Ekim'de ertelendi); depo herkese açılmadan önce şart.
 - [x] (16 Ekim, kullanıcı gönderdi) OpenSky'a bulut IP / Trino sorusu (`docs/fizibilite/OPENSKY_BULUT_ERISIMI.md`).
 - [x] (17 Ekim) OpenSky yanıtı geldi, özet `OPENSKY_BULUT_ERISIMI.md`'de: hiperölçekli bulut IP'leri giriş
   noktasında engelli (Trino dahil), Hetzner garantisiz; B planında OpenSky sorguları dizüstünde kalır.
