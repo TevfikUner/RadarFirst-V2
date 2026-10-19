@@ -268,7 +268,7 @@ services:
   #   docker compose --profile uretim up -d
   # API host portu 127.0.0.1'de kalır; dışarıya yalnız vekil açılır.
   vekil:
-    image: caddy:2.8.4@sha256:226d1f059b75399fe19182893c7184591c07b97afc8dfcf44eeb80c9a77a530f
+    image: caddy:2.11.7@sha256:685ae3d7c34d9b5f8caeddc5d14051db7bbd88ff1f5a2fa0c16bd8ca328fb7af
     logging: *gunluk
     profiles: ["uretim"]
     restart: unless-stopped
