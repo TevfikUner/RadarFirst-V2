@@ -2,6 +2,14 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-19 (akşam; komite açık maddeleri)
+
+- ⚠️ B-3: 7 seviyeli Türkiye küpü betiği hazır (kuru deneme: 31 istek, ≤130 MB); bütçe dolu (461,8/500), indirme 20 Ekim.
+- ✅ T-1: dondurma yedeği talep üzerine; sha256 ve yeniden üretim adımları `docs/sonuclar/README.md`.
+- ✅ C-10: `test_sayi_tutarliligi.py`, ön paket sayısı tarihçe dışında geçerse CI kırmızı.
+- ✅ T-4: deformasyon/diverjans MetPy ile gerçek ERA5'te aynı (~1e-6); `metpy` dev bağımlılığı.
+- ✅ T-2: kapsam alt sınırı `fail_under = 80`.
+
 ## 2026-10-19 (öğleden sonra; PR #99–#102)
 
 - ✅ Rota performansı (şarjda): kütle bandı yavaşlatmıştı (0,25–0,69 sn); yinelenen OpenAP hesabı kaldırıldı, sonuç aynı, 0,10–0,42 sn.

@@ -44,6 +44,28 @@ Komut, protokol modelini aynı kurallarla yeniden eğitir: altın test günleri 
 gruplu CV, 1-SE seçimi ve sigmoid kalibrasyon. Aktif model kullanılmaz. Aynı veritabanı
 yedeği ve aynı commit ile sayılar aynı çıkar (bootstrap tohumu 0).
 
+### Üçüncü kişi için (nihai paket)
+
+Dondurma yedeği depoda değildir ve herkese açık yayımlanmaz: içindeki OpenSky uçuş verisi
+yalnız araştırma amaçlı, yeniden dağıtımı kısıtlı lisanslıdır. Komite ya da hakem isterse iki
+dosya özel bir bağlantıyla verilir; bütünlük aşağıdaki sha256 ile denetlenir.
+
+| Dosya | Boyut | sha256 |
+|---|---|---|
+| `turbulans_20261018_dondurma.dump` (`pg_dump -Fc`, 18 Ekim 00:02 UTC) | 10,4 MB | `c73d5271c4128f5b73f803d84b5c7be61306933a6b5224db767168ad5ac7f734` |
+| `dosyalar_20261018_dondurma.tar.gz` (`model_deposu`, `madis_edr`, `ml_ozellik_deposu`, `opensky_onbellek`) | 242,4 MB | `cd261464339dfaf830d2f36af21e4ba79afbe29a68af0814ae84c5516d4dcdcc` |
+
+1. `sha256sum` ile iki dosyayı tabloyla karşılaştırın; tutmazsa devam etmeyin.
+2. Depoyu `5ddcd40` commit'inde açın, `.env.example`'dan `.env` oluşturun, `docker compose up -d db`.
+3. Arşivi depo köküne açın (`tar -xzf dosyalar_20261018_dondurma.tar.gz`).
+4. Dump'ı boş veritabanına yükleyin (README "Veritabanı yedeği"):
+   `docker compose exec -T db sh -c 'pg_restore -U "$POSTGRES_USER" -d "$POSTGRES_DB" --no-owner' < turbulans_20261018_dondurma.dump`.
+5. Gece işi veriyi değiştirmesin diye `.env`'de `ML_GECE_ISI_SAATI=` (boş) bırakın,
+   `docker compose up -d api worker`, sonra yukarıdaki üç komutu `api` konteynerinde çalıştırın.
+6. Üretilen `SAYILAR.md` depodakiyle aynı olmalı (`rota_performansi` süreleri makineye bağlıdır). 18 Ekim'de paket bu yedekten ve canlı
+   veritabanından ayrı ayrı üretildi, çıktılar birebir aynıydı. Başka bir makinede uçtan uca
+   denenmedi.
+
 ## Okurken dikkat
 
 - **Etiket yanlılığı.** PIREP'lerin yaklaşık yarısı pozitiftir; pilotlar sakin havayı

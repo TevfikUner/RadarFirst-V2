@@ -178,5 +178,18 @@ Ayrıntı ve kanıt [`URETIM_HAZIRLIK.md`](URETIM_HAZIRLIK.md)'de. Komite için 
 - **C-8 kapandı:** `fizik/kalibrasyon.py` docstring'i güncel katsayıya (0,27) bağlandı.
 - **O-3:** `/saglik` AIRAC bitişine 7 gün kala `ats_agi: bitiyor` uyarısı veriyor; yenileme
   29 Ekim'de (ONAY).
-- Açık kalanlar: T-1 (üçüncü kişi yeniden üretimi: yedeğin teslim biçimi), Y-1 (beyan
-  sayımları teslimden hemen önce), C-10 (sayı tutarlılık betiği, S-6), T-4.
+- **T-1 kapandı (biçim):** yedek açık yayımlanmaz (OpenSky lisansı), komite isterse özel
+  bağlantıyla verilir; sha256 ve adımlar `docs/sonuclar/README.md` "Üçüncü kişi için". Başka
+  makinede uçtan uca denenmedi.
+- **C-10 kapandı:** `tests/test_sayi_tutarliligi.py` (CI): 7 Ekim ön paketinin GA'lı ve binlik
+  sayıları güncel belgelerde yalnız tarihçe bağlamında geçebilir; `TI1_GUVENILIRLIK_NOTU` ve
+  paket commit'i nihai paketle aynı olmalı.
+- **T-4 kapandı:** deformasyon ve diverjans, gerçek ERA5 alanında (THY322 demo küpü) MetPy
+  `total_deformation`/`divergence` ile aynı (iç noktalarda fark alan ölçeğinin ~1e-6'sı;
+  küresel metrik terimi kaldırılınca %2,6). Jüri cevabı: "Analitik alanlara ek olarak bağımsız
+  bir kütüphaneyle gerçek veride çapraz kontrol var; yayımlanmış bir vaka değeriyle karşılaştırma yok."
+- **T-2 kapandı:** `fail_under = 80` (CI kapsamı %84,5).
+- **B-3 ertelendi (ONAY alındı):** 19 Ekim veri bütçesi dolu olduğu için 7 seviyeli Türkiye küpü
+  20 Ekim'de indirilecek (`scripts/turkiye_kupu_7seviye.py`, YAPILACAKLAR). Ayrı dosya;
+  varsayılan küp ve demo sayıları değişmez, fark raporlanır.
+- Açık kalanlar: B-3 (20 Ekim), Y-1 (beyan sayımları teslimden hemen önce), O-3 (29 Ekim AIRAC).
