@@ -39,3 +39,9 @@ uyumundan; imajdaki sürümlerde yok.
 
 Onay gerektirenler (bu listede uygulanmaz): P1-3 izleme yığını (bildirim kanalı), Y-6
 `docker builder prune` (geri alınamaz), `Turbulence-db-dondurma` DROP.
+
+## Uygulama durumu (19 Ekim, aynı oturum)
+
+H-1..H-3, P1-4, S-2, P1-8/S-5, P1-7, P1-2, S-8 (betik), S-9 (ölçüm), P1-1 (worker hariç) yapıldı;
+ayrıntı `URETIM_HAZIRLIK.md` "Faz 1 durumu". Açık: S-3, S-4, P1-10 (M efor), P1-3 (onay), S-9'un
+sınır politikası kararı, worker bellek sınırı (gece işi tepe ölçümü).

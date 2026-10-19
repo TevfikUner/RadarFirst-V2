@@ -27,7 +27,14 @@ Yollar depo köküne görelidir; makineye özgü yollar `<DEPO>`, `<KULLANICI>` 
 | Y-5 | ✅ | bu PR | `harita3d.html` lejantına "sertifikalı EDR değildir / karar destek aracıdır" |
 | Y-2 | ✅ | 19 Ekim | `docker-compose.uretim.yml` (`ports: !reset []`); host araçları bu katmanda `docker compose exec` ile |
 | Y-6, Y-7 | ⏸ | — | Y-6 `docker builder prune`: imaj 19 Ekim'de derlendi, 25 Ekim `docker save` yedeğinden sonra (ONAY); Y-7 yalnız dizüstü |
-| P1-1 | ◐ | 19 Ekim | Log rotasyonu (`json-file` 10 MB × 5, tüm servisler). Kaynak sınırları yok: değerler ölçülmeden yazılmadı |
+| P1-1 | ◐ | 19 Ekim | Log rotasyonu (`json-file` 10 MB × 5). Yük ölçümüyle sınırlar: api 2g/4 CPU, db 1g, yedek/migrate 512m. worker sınırsız: gece işi tepe belleği ölçülmedi |
+| P1-2 | ✅ | 19 Ekim | `migrate_yedegi` (doğrulanmış dump, en yeni 5) → `migrate` (`alembic upgrade head`) → api |
+| P1-4 | ✅ | 19 Ekim | Actions commit SHA'sı, postgres/caddy digest; `.github/dependabot.yml` (Actions, Docker, compose) |
+| P1-7 | ✅ | 19 Ekim | WS bileti kullanılmışlığı `hiz_siniri_sayaclari`'nda (pencere = bilet bitişi), migration yok |
+| P1-8 + S-5 | ✅ | 19 Ekim | `ALTLIK_KATMANI=esri\|dogal` (varsayılan esri, üretim örneği dogal); dogal'da CSP Esri'ye izin vermez |
+| S-2 | ✅ | 19 Ekim | `uretim_bilgisi.yazilim_commit` (imajda `GIT_SHA` derleme argümanı) |
+| S-8 | ◐ | 19 Ekim | `scripts/sunum_paketi.sh`; yalnız sözdizimi denendi, ilk çalıştırma 25 Ekim |
+| S-9 | ✅ (ölçüm) | 19 Ekim | `PERFORMANS_RAPORU.md` §5.5: tek IP'den 10 istemcide rota %40 429, önbellek isabeti de sınırdan düşüyor (karar kullanıcıda) |
 | P1-5 | ✅ | 19 Ekim | `.dockerignore`: CLAUDE.md, .mcp.json, docs/, scripts/, .githooks/, örnek ortam dosyaları; CI imajda yokluklarını denetler |
 | P1-6 | ◐ | 19 Ekim | `--no-server-header`. `--proxy-headers` uvicorn'da varsayılan, `FORWARDED_ALLOW_IPS` zaten vekile sabit; anahtarsız derin sağlık yanıtı değişmedi |
 | P1-9 | ◐ | 19 Ekim | `/saglik` `ats_agi` bitişe ≤ 7 gün kala `bitiyor` (uyarı). AIP yenilemesi 29 Ekim'de (dış indirme, ONAY) |
