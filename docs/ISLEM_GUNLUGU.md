@@ -4,6 +4,11 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-19 (gece; anlık kontrol, `docs/denetim/2026-10-19/ANLIK_KONTROL.md`)
 
+- ✅ YAPILACAKLAR "Ertelenenler": rota sınırı kararı, S-3, S-4, P1-3, P1-6, P1-10, worker sınırı (#113).
+- ⚠️ Dependabot ilk çalışmada büyük sürüm PR'ları açtı (postgres 18, python 3.14); kapatıldı, ayar düzeltildi (#113).
+- ✅ Güvenlik yamalı imaj özetleri birleşti (#114 postgres 16, #115 python 3.12-slim).
+- ⚠️ Yığının yeni imajlarla derlenmesi uzun sürdüğü için yarıda bırakıldı, PR #116 CI bekliyor; ikisi YAPILACAKLAR'da (#117).
+
 - ✅ H-1: CI güvenlik kırmızıydı, aiohttp 3.14.3 → 3.14.5 (3 açık); H-2/H-3 belge ve test temizliği.
 - ✅ P1-4 SHA/digest sabitleme + Dependabot; S-2 sonuçta commit; P1-8/S-5 `ALTLIK_KATMANI`.
 - ✅ P1-7 WS bileti DB'de; P1-2 migration öncesi yedek + `migrate` servisi; P1-1 ölçüme dayalı sınırlar.
