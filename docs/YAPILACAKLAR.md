@@ -8,7 +8,7 @@
 - [x] (18 Ekim, commit `5ddcd40`, sıralı sorgu; RF +0,033, kapı geçildi; dondurmada aday aktif RF'yi geçemedi)
   `turbulans-ml-degerlendirme --kesme 2026-10-18 --cikti docs/sonuclar/2026-10-18`,
   `turbulans-ml --dondurma-raporu docs/sonuclar/2026-10-18`.
-- [ ] Şarjdayken: `turbulans-performans rota --json docs/sonuclar/2026-10-18/rota_performansi.json`
+- [x] (19 Ekim: 0,10–0,42 sn; kütle bandı yavaşlatmıştı, sonuç aynı kalacak şekilde hızlandırıldı) Şarjdayken: `turbulans-performans rota --json docs/sonuclar/2026-10-18/rota_performansi.json`
   (17 Ekim gecesi dizüstü pildeydi); sonra SISTEM_KARTI'daki `2026-10-07/rota_performansi.md`
   bağlantısı ve süreleri güncellenir.
 - [x] (18 Ekim) Ön paket (2026-10-07) sayılarını nihai `SAYILAR.md` ile değiştir: SISTEM_KARTI,
@@ -41,7 +41,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   `ORDER BY id` (#89), `*_FILE` (#93), işçinin anahtarsız kapalı başlaması (#94) imajda yok.
   npm dönünce derle, `docker compose up -d api worker`, ardından `/harita` yanıtında
   `content-security-policy` başlığını ve iki sayfanın açıldığını kontrol et.
-- [ ] **Rota performansı (şarjdayken):** yukarıdaki 18 Ekim maddesi; SISTEM_KARTI §1'deki
+- [x] (19 Ekim, yukarıdaki madde) **Rota performansı (şarjdayken):** yukarıdaki 18 Ekim maddesi; SISTEM_KARTI §1'deki
   `docs/sonuclar/2026-10-07/rota_performansi.md` bağlantısı ve süreler nihai pakete taşınır.
 - [ ] **Demo ekranlarını yenile:** `TI1_GUVENILIRLIK_NOTU` metni (15.940 PIREP / 163 gün) ve
   `harita3d.html`'deki "karar destek aracıdır" satırı değişti; `docs/sunum/ekranlar/`
@@ -73,9 +73,12 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
 - [x] (18 Ekim: §5/§6'daki 32 kod adı kodda var; README paket ağacı yeniden yazıldı ve iki yönlü
   kodla eşleşiyor; test sayısı CI #93'ten 1.066, kapsam %84,5) Madde 10 adım 6: SISTEM_KARTI §5/§6
   ve README mimari/paket ağacının kodla çelişki denetimi; test sayısı CI'dan alınır.
-- [ ] Yeni ML protokolü (F9 devamı): `docs/deney_protokolu.md`'ye geniş özellik setini
+- [x] (19 Ekim: `deney_protokolu.md` §10, test günleri = `ml/dondurma_gunleri.json` dışındaki ≥30 gün; değerlendirme kodu ve çalıştırma kaldı) Yeni ML protokolü (F9 devamı): `docs/deney_protokolu.md`'ye geniş özellik setini
   (temel 8 + 5 bağlam) ve aday modelleri önceden yaz. Değerlendirme dondurmadan SONRA
   toplanan yeni günlerde yapılır; aynı 16 altın gün kullanılmaz (bkz. SONUCLAR §2.4).
+- [ ] **§10 değerlendirme kodu:** test günü filtresi (`dondurma_gunleri.json` dışı), iki özellik seti,
+  Fikir 4/8 tabloları ve ±1 gün duyarlılığı; test günlerine bakmadan commit'lenir, sonra ≥30 yeni
+  gün olunca bir kez çalıştırılır (19 Ekim'de 16 yeni gün vardı).
 - [ ] Türkiye ERA5 (7 seviye) ve daha fazla OpenSky uçuşu: önce CDS/OpenSky kotası ve
   günlük 500 MB bütçe hesabı, sonra ONAY.
 - [ ] F7 rüzgâr asimilasyonu küçük deneyi (5–10 gün, 2021 sonrası MADIS günleri + AWS GFS;
@@ -102,9 +105,9 @@ SONRA dondurmadan sonra toplanan yeni günlerde çalıştırılır; aynı 16 alt
 kullanılmaz. Böylece sonuç görüldükten sonra seçim (p-hacking) olmaz. Öncelik sırası
 jüri sorularına doğrudan yanıt verenler önde.
 
-- [ ] **Fikir 4 — Tabakalı doğrulama:** mevsim, 250 hPa rüzgâr sınıfı (<30 / ≥30 m/s),
+- [ ] **Fikir 4 — Tabakalı doğrulama** (protokol §10.3-2'de kayıtlı): mevsim, 250 hPa rüzgâr sınıfı (<30 / ≥30 m/s),
   backtest için uçuş yönü; tabaka başına n, ROC-AUC, bootstrap GA. `ml/degerlendirme.py`.
-- [ ] **Fikir 8 — "Hafif = negatif" duyarlılığı:** hafif raporlar negatiften çıkarılır,
+- [ ] **Fikir 8 — "Hafif = negatif" duyarlılığı** (protokol §10.3-3'te kayıtlı): hafif raporlar negatiften çıkarılır,
   AUC/Peirce yeniden; birincil sonuç değişmez, yalnız duyarlılık tablosu.
 - [ ] **Fikir 9 — Uyarı alanı oranı:** seçili eşikte riskli ızgara/nokta oranı ve
   "POD – uyarı alanı" eğrisi; TTS yalnız MADIS günlerinde. `ml/gosterge_degerlendirme.py`.

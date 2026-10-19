@@ -1,0 +1,79 @@
+{
+  "zaman": "2026-10-19T12:13:45+00:00",
+  "donanim": {
+    "isletim_sistemi": "Linux-6.18.54.1-microsoft-standard-WSL2-x86_64-with-glibc2.43",
+    "python": "3.14.4",
+    "mantiksal_cekirdek": 20,
+    "islemci": "13th Gen Intel(R) Core(TM) i7-13700H",
+    "bellek_gb": 7.6
+  },
+  "rota": {
+    "tekrar": 11,
+    "senaryolar": [
+      {
+        "ad": "S1 İstanbul→Antalya FL290",
+        "veri": "era5_gercek",
+        "mesafe_km": 482,
+        "strateji": "yanal",
+        "soguk_ms": 1330.5,
+        "sicak_medyan_ms": 383.2,
+        "sicak_maks_ms": 414.4,
+        "a_yildiz_medyan_ms": 96.2
+      },
+      {
+        "ad": "S2 İzmir→Van FL350",
+        "veri": "era5_gercek",
+        "mesafe_km": 1418,
+        "strateji": "yok",
+        "soguk_ms": 122.0,
+        "sicak_medyan_ms": 123.0,
+        "sicak_maks_ms": 163.8,
+        "a_yildiz_medyan_ms": 15.2
+      },
+      {
+        "ad": "S3 İstanbul→Doğu Anadolu FL350",
+        "veri": "era5_gercek",
+        "mesafe_km": 1162,
+        "strateji": "irtifa_yukari",
+        "soguk_ms": 437.8,
+        "sicak_medyan_ms": 391.0,
+        "sicak_maks_ms": 439.9,
+        "a_yildiz_medyan_ms": 83.7
+      },
+      {
+        "ad": "S4 Malatya→Musul FL370 + örnek kısıtlı sahalar",
+        "veri": "era5_gercek",
+        "mesafe_km": 481,
+        "strateji": "yanal",
+        "soguk_ms": 409.1,
+        "sicak_medyan_ms": 414.1,
+        "sicak_maks_ms": 445.9,
+        "a_yildiz_medyan_ms": 123.9
+      },
+      {
+        "ad": "S5 İstanbul→New York FL340 (kapsam dışı)",
+        "veri": "era5_kapsam_disi",
+        "mesafe_km": 8066,
+        "strateji": "yok",
+        "soguk_ms": 101.1,
+        "sicak_medyan_ms": 102.9,
+        "sicak_maks_ms": 109.8,
+        "a_yildiz_medyan_ms": null
+      },
+      {
+        "ad": "S6 İzmir→Van FL350 + sentetik TURB SIGMET",
+        "veri": "era5_gercek",
+        "mesafe_km": 1418,
+        "strateji": "yanal",
+        "soguk_ms": 423.3,
+        "sicak_medyan_ms": 415.7,
+        "sicak_maks_ms": 437.1,
+        "a_yildiz_medyan_ms": 102.8
+      }
+    ],
+    "sicak_aralik_sn": [
+      0.1,
+      0.42
+    ]
+  }
+}
