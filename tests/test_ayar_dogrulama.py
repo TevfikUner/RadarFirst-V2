@@ -27,6 +27,7 @@ def test_varsayilan_ayarlar_gecerli():
         ({"VERITABANI_HAVUZ_BOYUTU": 0}, "VERITABANI_HAVUZ_BOYUTU"),
         ({"DEVRE_KESICI_TABAN_SANIYE": 7200.0}, "DEVRE_KESICI_TABAN_SANIYE"),
         ({"CANLI_BASINC_SEVIYELERI_HPA": ()}, "CANLI_BASINC_SEVIYELERI_HPA"),
+        ({"ALTLIK_KATMANI": "osm"}, "ALTLIK_KATMANI"),
     ],
 )
 def test_gecersiz_ayar_adiyla_raporlanir(degisen, parca):

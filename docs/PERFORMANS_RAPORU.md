@@ -146,6 +146,29 @@ iki kez de yeniden kuyruğa aldı).
    ve API/işçi çalıştırmalarında zaten üretilmez.
 4. **Gece işi dış servise bağlı.** CDS isteği başına ~68 sn; 60 isteklik gece bütçesi
    ~70 dakikada tamamlanıyor.
+5. **Varsayılan sınırlarla tek IP'den 10 eşzamanlı istemci (S-9, 19 Ekim 2026).** Aynı NAT
+   arkasındaki tabletleri temsil eder. Geliştirme yığını (tek süreç, `ocak_2019_turbulans.nc`
+   küpü, demo yığınından büyük), varsayılan `ROTA_HESABI_DAKIKADA_MAKS=20`,
+   `TAHMIN_DAKIKADA_MAKS=60`; senaryo başına 30 istek (+2 ısınma), tek ölçüm:
+   `turbulans-performans api --eszamanlilik 10 --istek-carpani 3`.
+
+   | Senaryo | p95 (ms) | Durum kodları |
+   |---|---|---|
+   | sağlık | 182 | 200: 30 |
+   | uçuş listesi | 146 | 200: 30 |
+   | uçuş detayı | 462 | 200: 30 |
+   | nokta tahmini | 1.728 | 200: 30 |
+   | rota (önbelleksiz) | 7.415 | 200: 18, 429: 12 |
+   | rota (önbellekte) | — | 429: 30 |
+
+   - Rota sınırı IP başına dakikada 20; aynı NAT'taki 10 tablet bunu ilk dakikada tüketir
+     (%40 ret, sonrasında önbellekteki rota da reddedilir). Önbellekten dönen yanıt hesap
+     yapmadığı halde sınırdan düşüyor. Seçenekler (karar kullanıcıda): önbellek isabetini
+     sınırdan muaf tutmak, sınırı cihaz/anahtar başına yapmak ya da NAT'lı kurulumda
+     `ROTA_HESABI_DAKIKADA_MAKS`'ı yükseltmek.
+   - Nokta tahmini p95 1,7 sn (H4 hedefi 1 sn), rota p95 7,4 sn (H5 hedefi 5 sn): tek süreç
+     ve daha büyük küp; H4/H5 ölçümü 4 süreç ve demo verisiyleydi, doğrudan karşılaştırılamaz.
+     Hata (5xx, zaman aşımı) yok.
 
 ## 6. Tekrar üretim
 

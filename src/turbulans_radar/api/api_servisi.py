@@ -580,13 +580,14 @@ _CESIUM_YOLLARI = ("/harita/ucus_simulasyonu", "/harita/vendor/cesium/")
 
 
 def _harita_csp(betik_kaynagi: str) -> str:
+    esri = " https://server.arcgisonline.com" if config.ALTLIK_KATMANI == "esri" else ""
     return "; ".join(
         (
             "default-src 'self'",
             f"script-src {betik_kaynagi}",
             "style-src 'self' 'unsafe-inline'",
-            "img-src 'self' data: blob: https://server.arcgisonline.com",
-            "connect-src 'self' https://server.arcgisonline.com",
+            f"img-src 'self' data: blob:{esri}",
+            f"connect-src 'self'{esri}",
             "worker-src 'self' blob:",
             "font-src 'self' data:",
             "object-src 'none'",
@@ -780,7 +781,7 @@ baglanti_yoneticisi = _BaglantiYoneticisi()
 async def uyarilar_websocket(websocket: WebSocket, bilet: str | None = None):
     """Kimlik: POST /api/v1/ws-bileti'den alınan 60 sn'lik, tek kullanımlık
     bilet. ?api_key= kabul edilmez (anahtar URL'de/loglarda kalırdı)."""
-    if not os.environ.get("API_ANAHTARI") or not ws_biletini_kullan(bilet):
+    if not os.environ.get("API_ANAHTARI") or not await ws_biletini_kullan(bilet):
         await websocket.close(code=4401)
         return
     await baglanti_yoneticisi.baglan(websocket)
@@ -1264,6 +1265,12 @@ async def prometheus_metrikleri(
         raise HTTPException(status.HTTP_403_FORBIDDEN, "Metrikler için yönetici anahtarı gerekli.")
     await _anlik_metrikleri_guncelle()
     return Response(content=generate_latest(), media_type=CONTENT_TYPE_LATEST)
+
+
+@app.get("/harita-ayarlari", tags=["Sistem"])
+async def harita_ayarlari():
+    """Harita sayfalarının API anahtarı girilmeden önce okuduğu görünüm ayarları (P1-8)."""
+    return {"altlik_katmani": config.ALTLIK_KATMANI}
 
 
 @app.get("/saglik", response_model=SaglikYaniti, tags=["Sistem"])

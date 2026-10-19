@@ -20,6 +20,22 @@
       "name": "Sistem",
       "item": [
         {
+          "name": "Harita Ayarlari",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{taban_url}}/harita-ayarlari",
+              "host": [
+                "{{taban_url}}"
+              ],
+              "path": [
+                "harita-ayarlari"
+              ]
+            }
+          }
+        },
+        {
           "name": "Saglik Kontrolu",
           "request": {
             "method": "GET",

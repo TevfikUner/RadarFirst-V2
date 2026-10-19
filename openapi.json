@@ -2820,6 +2820,26 @@
           }
         }
       }
+    },
+    "/harita-ayarlari": {
+      "get": {
+        "tags": [
+          "Sistem"
+        ],
+        "summary": "Harita Ayarlari",
+        "description": "Harita sayfalarının API anahtarı girilmeden önce okuduğu görünüm ayarları (P1-8).",
+        "operationId": "harita_ayarlari_harita_ayarlari_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -6634,6 +6654,17 @@
             "type": "object",
             "title": "Parametreler",
             "default": {}
+          },
+          "yazilim_commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yazilim Commit"
           }
         },
         "type": "object",

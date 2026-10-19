@@ -492,6 +492,9 @@ SIGMET_DIKEY_TAMPON_FT = _ortam_sayi("SIGMET_DIKEY_TAMPON_FT", 1000.0)
 # Koordinatsız SIGMET'lerin FIR'ın tamamı olarak uygulanması için FIR sınırları
 # (turbulans-statik indirir; bkz. veri/fir_sinirlari.py).
 FIR_SINIRLARI_DOSYASI = _ortam_str("FIR_SINIRLARI_DOSYASI", os.path.join("veri_dosyalari", "fir_sinirlari.geojson"))
+# Harita altlığı (P1-8): "esri" sokak karoları (server.arcgisonline.com; lisans
+# docs/VERI_KAYNAKLARI_VE_LISANSLAR.md) ya da "dogal" (yalnız sunucudaki Natural Earth; dış istek yok).
+ALTLIK_KATMANI = _ortam_str("ALTLIK_KATMANI", "esri").strip().lower()
 
 # veri_saglayicilari.py -- anlık rota için CANLI hava verisi (ERA5 reanalizi
 # birkaç gün gecikmeli yayınlandığı için "şimdi"yi kapsamaz). NOAA GFS 0.25°,

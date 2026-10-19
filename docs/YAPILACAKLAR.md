@@ -54,7 +54,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
 - [ ] **`Turbulence-db-dondurma` veritabanı:** dondurma yedeğinin geri yüklenmiş kopyası,
   yeniden üretim kanıtı için bırakıldı (`POSTGRES_DB=Turbulence-db-dondurma turbulans-ml-degerlendirme
   --kesme 2026-10-18`). Sunumdan sonra gerekmiyorsa silinebilir (DROP, ONAY).
-- [ ] **ARAC_KULLANIMI_BEYANI sayımları:** 18 Ekim'de 284 commit sayıldı, sonra 12 PR daha
+- [x] (19 Ekim, PR #105: 308 commit; teslim günü `scripts/beyan_sayimlari.py --kontrol`) **ARAC_KULLANIMI_BEYANI sayımları:** 18 Ekim'de 284 commit sayıldı, sonra 12 PR daha
   girdi; rapor teslim edilmeden önce yeniden sayılır.
 - [x] (19 Ekim, `docker-compose.uretim.yml`) **Y-2:** `uretim` profilinde DB host portları (5432/5433) yayınlanmasın; compose profilleri
   port kaldıramadığı için `docker-compose.uretim.yml` override'ı gerekir (P2).
@@ -63,7 +63,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   öncesi yedek, P1-3 izleme yığını, P1-4 imaj/Action sabitleme, P1-5 `.dockerignore` (MCP sunucusu
   ve belgeler imajdan çıkar), P1-6 derin sağlık anahtarsız, P1-7 WS bileti çok süreçli, P1-8 Esri
   karo kapatma bayrağı, P1-9 AIRAC (29 Ekim maddesi), P1-10 işletim kılavuzu + DB şifre rotasyonu.
-- [ ] **Komite incelemesinin açık bulguları:** `docs/denetim/2026-10-17/KOMITE_INCELEMESI.md`;
+- [x] (19 Ekim, PR #104–#105: yalnız B-3 kaldı, 20 Ekim maddesinde) **Komite incelemesinin açık bulguları:** `docs/denetim/2026-10-17/KOMITE_INCELEMESI.md`;
   kapananlar dosya sonundaki "18 Ekim durumu" bölümünde, kalanlar (ör. B-8 çoklu karşılaştırma için
   dondurma sonrası yeni günlerde değerlendirme, T-1 üçüncü kişi yeniden üretimi) savunma öncesi gözden geçirilir.
 - [x] (19 Ekim: gece işi bitti, aday aktifi geçemedi +0,001; imaj sonra derlendi) **Bu gece (03:00 UTC) eğitimi eski imajla çalışır:** sıralı sorgu yok, yani aday seçimi RF/GB
@@ -134,7 +134,9 @@ jüri sorularına doğrudan yanıt verenler önde.
 
 ## Tarihli hatırlatmalar
 
-- [ ] **25 Ekim:** sunum için Docker imajı yedeği (`docker save`).
+- [ ] **25 Ekim:** sunum için Docker imajı yedeği: WSL'de `bash scripts/sunum_paketi.sh` (S-8; temiz klon,
+  demo, ağsız ekran provası, `docker save`, SHA256SUMS). Çıktıyı OneDrive'a kopyala. Betik 19 Ekim'de
+  yalnız sözdizimi ve compose ayarıyla denendi; ilk gerçek çalıştırma bu gün.
 - [ ] **29–30 Ekim (AIRAC bitişi, otomatik; ONAY 19 Ekim, komite O-3):** "TurbulansRadar AIRAC
   yenileme" Windows görevi (her gün 12:00) yeniler; yalnız kontrol: `ciktilar/airac_yenile.log`
   "yenilendi" ve `db_aktarildi: true` diyor mu, `/saglik` `ats_agi` "tamam" mı. Görev ENR 1.3 FRA

@@ -50,19 +50,25 @@ const viewer = new Cesium.Viewer("cesiumContainer", {
   // eklenir). Bu proje Playwright ile gerçek bir tarayıcıda test edilirken
   // bulundu -- 'imageryProvider' kullanan eski örnekler artık çalışmıyor.
   // Altlık: Cesium paketiyle gelen NaturalEarthII dokusu -- sunucudan gelir,
-  // İNTERNETSİZ de görünür. Esri sokak haritası üstte ek katmandır;
-  // bağlantı yoksa karoları gelmez ama harita boş kalmaz.
+  // İNTERNETSİZ de görünür. Esri sokak haritası (ALTLIK_KATMANI=esri) üstte
+  // ek katmandır; bağlantı yoksa karoları gelmez ama harita boş kalmaz.
   baseLayer: Cesium.ImageryLayer.fromProviderAsync(
     Cesium.TileMapServiceImageryProvider.fromUrl(Cesium.buildModuleUrl("Assets/Textures/NaturalEarthII"))
   ),
   terrainProvider: new Cesium.EllipsoidTerrainProvider(),
 });
-viewer.imageryLayers.addImageryProvider(
-  new Cesium.UrlTemplateImageryProvider({
-    url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
-    credit: "Tiles © Esri",
+fetch("/harita-ayarlari")
+  .then((yanit) => (yanit.ok ? yanit.json() : {}))
+  .then((ayarlar) => {
+    if (ayarlar.altlik_katmani !== "esri") return;
+    viewer.imageryLayers.addImageryProvider(
+      new Cesium.UrlTemplateImageryProvider({
+        url: "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}",
+        credit: "Tiles © Esri",
+      })
+    );
   })
-);
+  .catch(() => {});
 viewer.scene.globe.enableLighting = true;
 
 let mevcutDataSource = null;

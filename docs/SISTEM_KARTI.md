@@ -112,7 +112,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   uydurma bir "iyileşme" gösterilmez.
 - **Üretim bilgisi:** Rota ve nokta tahmini yanıtları `uretim_bilgisi` taşır: yazılım sürümü,
   kullanılan hava küpü ve geçerlilik aralığı, TI1 eşikleri, varsa ML modelinin sha256'sı ve rota
-  parametreleri. Eşik ya da model değişince eski sonuçlar buradan ayrılır. Commit kimliği yoktur.
+  parametreleri, commit kimliği (`yazilim_commit`; imajda derleme argümanı `GIT_SHA`, yoksa boş).
+  Eşik ya da model değişince eski sonuçlar buradan ayrılır.
 - **Referans rotalar (koridor modu):** Büyük daire ("normal rota") rüzgârı
   görmeyen bir çizgidir; gerçek bir uçuş planı değildir. Yanıttaki
   `referans_karsilastirmasi`, risk katmanı olmadan çalışan A* ile bulunan

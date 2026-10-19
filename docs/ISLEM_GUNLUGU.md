@@ -2,6 +2,14 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-19 (gece; anlık kontrol, `docs/denetim/2026-10-19/ANLIK_KONTROL.md`)
+
+- ✅ H-1: CI güvenlik kırmızıydı, aiohttp 3.14.3 → 3.14.5 (3 açık); H-2/H-3 belge ve test temizliği.
+- ✅ P1-4 SHA/digest sabitleme + Dependabot; S-2 sonuçta commit; P1-8/S-5 `ALTLIK_KATMANI`.
+- ✅ P1-7 WS bileti DB'de; P1-2 migration öncesi yedek + `migrate` servisi; P1-1 ölçüme dayalı sınırlar.
+- ⚠️ S-9: tek IP'den 10 istemcide rota %40 429, önbellek isabeti de sınıra takılıyor (karar bekliyor).
+- ⚠️ S-8 betiği yazıldı, ilk gerçek çalıştırma 25 Ekim.
+
 ## 2026-10-19 (akşam; komite açık maddeleri)
 
 - ⚠️ B-3: 7 seviyeli Türkiye küpü betiği hazır (kuru deneme: 31 istek, ≤130 MB); bütçe dolu (461,8/500), indirme 20 Ekim.

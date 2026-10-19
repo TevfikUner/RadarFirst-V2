@@ -36,6 +36,11 @@ RUN python -m turbulans_radar.cli.statik_indir
 # buraya bağlar; yerel araçlar da aynı klasörü kullanır (imaja girmez).
 RUN mkdir -p model_deposu
 
+# S-2: sonuçların `uretim_bilgisi.yazilim_commit` alanı. .git imaja girmediği için
+# derlemede verilir: GIT_SHA=$(git rev-parse HEAD) docker compose build api worker
+ARG GIT_SHA=""
+ENV GIT_SHA=$GIT_SHA
+
 # Root olmayan kullanıcı: kod imajda salt okunur kalır; yazılan her şey
 # docker-compose'un bağladığı klasörlerdedir. Giriş betiği
 # bu klasörleri sahiplendirip süreci uid 1000'e düşürür (otomasyon/konteyner_giris.sh).

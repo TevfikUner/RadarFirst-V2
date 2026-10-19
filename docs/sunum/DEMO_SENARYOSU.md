@@ -35,7 +35,8 @@ en az bir kez söylenmelidir.
 4. Prova: aşağıdaki komut demo adımlarını tarayıcıda gerçekten tıklar ve ekran
    görüntülerini üretir. `--agsiz` localhost dışındaki her isteği keser ve denenen dış
    adresleri listeler; listede yalnız `server.arcgisonline.com` (Esri karoları)
-   görünmelidir. Hata verirse sunumdan önce düzeltilecek bir şey vardır.
+   görünmelidir; `.env`'de `ALTLIK_KATMANI=dogal` ise liste boştur (altlık yalnız Natural
+   Earth). Hata verirse sunumdan önce düzeltilecek bir şey vardır.
 
    ```bash
    TURBULANS_API_ANAHTARI=demo-yerel-yonetici turbulans-demo-ekranlari --agsiz --klasor /tmp/prova

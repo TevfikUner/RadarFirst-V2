@@ -27,6 +27,17 @@ _SAY = text(
     RETURNING sayi
     """
 )
+# Tek kullanımlık jeton (WS bileti, P1-7): pencere başlangıcı jetonun bitişidir; aynı
+# jeton her süreçte aynı satıra düşer, ilk kullanımda sayi 1 olur.
+_TEK_KULLANIM = text(
+    """
+    INSERT INTO hiz_siniri_sayaclari (anahtar, pencere_baslangic, sayi)
+    VALUES (:anahtar, to_timestamp(:bitis), 1)
+    ON CONFLICT (anahtar, pencere_baslangic)
+    DO UPDATE SET sayi = hiz_siniri_sayaclari.sayi + 1
+    RETURNING sayi
+    """
+)
 _TEMIZLE = text("DELETE FROM hiz_siniri_sayaclari WHERE pencere_baslangic < now() - interval '1 day'")
 
 
@@ -38,6 +49,15 @@ async def istegi_say(anahtar: str, pencere_saniye: int) -> int:
             await oturum.execute(_TEMIZLE)
         await oturum.commit()
     return sayi
+
+
+def ilk_kullanim_mi(anahtar: str, bitis_epoch: int, motor=None) -> bool:
+    """`anahtar` bitişi `bitis_epoch` olan jeton için ilk kez mi kullanılıyor (tüm süreçlerde).
+    Senkron motorla: olay döngüsüne bağlı değil (WebSocket bağlanırken thread'de çağrılır)."""
+    from turbulans_radar.depo.veritabani import motor_al
+
+    with (motor or motor_al()).begin() as baglanti:
+        return baglanti.execute(_TEK_KULLANIM, {"anahtar": anahtar[:200], "bitis": bitis_epoch}).scalar_one() == 1
 
 
 async def sayaclari_sifirla():

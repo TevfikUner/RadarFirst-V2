@@ -28,6 +28,9 @@ x-uygulama-db: &uygulama_db
   MCP_POSTGRES_PASSWORD: ""
 
 # Konteyner günlükleri sınırsız büyümesin (P1-1): servis başına en fazla 5 x 10 MB.
+# Bellek/CPU sınırları (P1-1) 19 Ekim yük ölçümünden (docs/PERFORMANS_RAPORU.md §5): API tek
+# süreçte tepe 440 MiB / %112 CPU, db 121 MiB. API sınırı 4 süreci (WEB_CONCURRENCY=4) karşılar.
+# worker'a sınır konmadı: ML gece işinin tepe belleği ölçülmedi, yanlış sınır işi OOM ile öldürür.
 x-gunluk: &gunluk
   driver: json-file
   options:
@@ -57,7 +60,8 @@ x-ortak-volumeler: &ortak_volumeler
 
 services:
   db:
-    image: postgres:16
+    image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    mem_limit: ${DB_BELLEK_SINIRI:-1g}
     logging: *gunluk
     restart: unless-stopped
     environment:
@@ -78,13 +82,60 @@ services:
       timeout: 5s
       retries: 10
 
-  api:
-    build: .
+  # P1-2: şema değişikliği API açılışından ayrıldı. Her açılışta önce doğrulanmış bir yedek
+  # (db_yedekleri/migration_oncesi/, en yeni 5), sonra tek seferlik `alembic upgrade head`;
+  # API ancak ikisi başarıyla bitince başlar. Güncel şemada upgrade bir şey yapmaz.
+  migrate_yedegi:
+    image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    mem_limit: 512m
     logging: *gunluk
-    restart: unless-stopped
+    restart: "no"
     depends_on:
       db:
         condition: service_healthy
+    environment:
+      PGHOST: db
+      PGUSER: ${POSTGRES_USER:-postgres}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      PGDATABASE: ${POSTGRES_DB:-Turbulence-db}
+      MIGRATION_YEDEK_SAKLA: ${MIGRATION_YEDEK_SAKLA:-5}
+    volumes:
+      - ./db_yedekleri:/yedekler
+      - ./otomasyon/migration_oncesi_yedek.sh:/migration_oncesi_yedek.sh:ro
+    entrypoint: ["sh", "/migration_oncesi_yedek.sh"]
+
+  migrate:
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-}
+    logging: *gunluk
+    restart: "no"
+    command: ["alembic", "upgrade", "head"]
+    mem_limit: 512m
+    depends_on:
+      migrate_yedegi:
+        condition: service_completed_successfully
+    env_file:
+      - .env
+    environment:
+      <<: [*uygulama_db, *anahtarsiz]
+
+  api:
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-}
+    logging: *gunluk
+    restart: unless-stopped
+    command: ["uvicorn", "turbulans_radar.api.api_servisi:app", "--host", "0.0.0.0", "--port", "8000", "--no-server-header"]
+    mem_limit: ${API_BELLEK_SINIRI:-2g}
+    cpus: ${API_CPU_SINIRI:-4}
+    depends_on:
+      db:
+        condition: service_healthy
+      migrate:
+        condition: service_completed_successfully
     env_file:
       - .env
     environment:
@@ -128,7 +179,10 @@ services:
       retries: 12
 
   worker:
-    build: .
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-}
     logging: *gunluk
     restart: unless-stopped
     command: ["python", "-m", "turbulans_radar.isci.gorev_iscisi"]
@@ -136,7 +190,7 @@ services:
     # varsayılan 10 sn'si süren CDS indirmesini SIGKILL ile yarıda kesiyordu.
     stop_grace_period: 300s
     depends_on:
-      # API açılışta şemayı (alembic upgrade head) günceller; işçi ondan sonra başlar.
+      # Şema 'migrate' servisinde güncellenir; işçi API sağlıklı olunca başlar.
       api:
         condition: service_healthy
     env_file:
@@ -159,7 +213,8 @@ services:
   # veriden üretildi, volume kaybolursa yeniden indirmek aylar sürer. Yedekler
   # ./db_yedekleri'nde (depoya konmaz); geri yükleme README "Veritabanı yedeği".
   yedek:
-    image: postgres:16
+    image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    mem_limit: 512m
     logging: *gunluk
     restart: unless-stopped
     depends_on:
@@ -191,7 +246,10 @@ services:
   # API ayağa kalkınca THY322 (2019-01-15) demo paketinden analiz edilip
   # veritabanına yazılır; 3B harita http://localhost:8000/harita/harita3d.html.
   demo:
-    build: .
+    build:
+      context: .
+      args:
+        GIT_SHA: ${GIT_SHA:-}
     logging: *gunluk
     profiles: ["demo"]
     restart: "no"
@@ -210,7 +268,7 @@ services:
   #   docker compose --profile uretim up -d
   # API host portu 127.0.0.1'de kalır; dışarıya yalnız vekil açılır.
   vekil:
-    image: caddy:2.8.4
+    image: caddy:2.8.4@sha256:226d1f059b75399fe19182893c7184591c07b97afc8dfcf44eeb80c9a77a530f
     logging: *gunluk
     profiles: ["uretim"]
     restart: unless-stopped

@@ -394,6 +394,7 @@ class UretimBilgisiYaniti(BaseModel):
     üretildiği; hesaplanmayan alanlar None'dır."""
 
     yazilim_surumu: str
+    yazilim_commit: str | None = None
     uretim_zamani: str
     hava_verisi: dict | None = None
     esikler: dict
