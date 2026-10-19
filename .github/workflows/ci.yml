@@ -52,7 +52,7 @@ jobs:
       - name: SBOM (CycloneDX)
         run: cyclonedx-py requirements requirements.lock --of JSON -o sbom.cdx.json
       - name: SBOM'u artifact olarak yükle
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: sbom-cyclonedx
           path: sbom.cdx.json
@@ -124,7 +124,7 @@ jobs:
           python -m coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY" || true
       - name: Kapsam raporunu artifact olarak yükle
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: coverage-xml-${{ matrix.python }}
           path: coverage.xml
@@ -183,7 +183,7 @@ jobs:
           fi
       - name: Ekran görüntülerini yükle
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: arayuz-ekran-goruntuleri
           path: ekran_goruntuleri/
