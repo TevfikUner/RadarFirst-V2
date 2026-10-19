@@ -66,6 +66,14 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
 
 ## Ertelenenler (19 Ekim anlık kontrolünden; `docs/denetim/2026-10-19/ANLIK_KONTROL.md`)
 
+- [ ] **Sonraki oturumun başında: yığını güncel imajlarla derle (19 Ekim'de uzun sürdüğü için yarıda bırakıldı).**
+  #114 (postgres 16 yeni özet) ve #115 (python 3.12-slim yeni özet) master'da, çalışan yığın bir önceki
+  imajlarda (sağlıklı). Görev kuyruğu boşken WSL'de: `export GIT_SHA=$(git rev-parse HEAD) && docker compose
+  pull db && docker compose build api worker migrate && docker compose up -d --wait` (~20 dk; taban imaj
+  değiştiği için bağımlılıklar yeniden kurulur). Sonra `/saglik?derin=true` "tamam" ve `migrate_yedegi` yedeği.
+- [ ] **PR #116 (CI postgres servis imajı compose ile aynı özette):** CI'ı geçince birleştir; yalnız
+  `.github/workflows/ci.yml` iki satır.
+
 - [ ] **Rota hız sınırı kararı (S-9, kullanıcı 19 Ekim'de erteledi):** aynı NAT arkasındaki 10 cihazda
   rota isteklerinin %40'ı 429 aldı; önbellekten dönen rota da sınıra takılıyor (`PERFORMANS_RAPORU.md`
   §5.5). Seçenekler: (a) önbellek isabetini sınırdan muaf tutmak, (b) sınırı cihaz/anahtar başına
