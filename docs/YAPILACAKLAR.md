@@ -59,10 +59,29 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
 - [x] (19 Ekim, `docker-compose.uretim.yml`) **Y-2:** `uretim` profilinde DB host portları (5432/5433) yayınlanmasın; compose profilleri
   port kaldıramadığı için `docker-compose.uretim.yml` override'ı gerekir (P2).
 - [ ] **P0-7 hibrit topoloji ADR'si:** yalnız B planına (sanal sunucu) geçilirse; koddan önce ONAY.
-- [ ] (19 Ekim: P1-5 ve S-7 bitti; P1-1 log rotasyonu, P1-6 sunucu başlığı, P1-9 7 gün uyarısı yapıldı, kalanı "Faz 1 durumu" tablosunda) **P1 listesi (URETIM_HAZIRLIK §P1):** P1-1 kaynak sınırı/log rotasyonu, P1-2 migration
+- [x] (19 Ekim, PR #100–#106: P1-1 (worker hariç), P1-2, P1-4, P1-5, P1-7, P1-8, P1-9 bitti; kalanlar aşağıda ayrı maddeler) **P1 listesi (URETIM_HAZIRLIK §P1):** P1-1 kaynak sınırı/log rotasyonu, P1-2 migration
   öncesi yedek, P1-3 izleme yığını, P1-4 imaj/Action sabitleme, P1-5 `.dockerignore` (MCP sunucusu
   ve belgeler imajdan çıkar), P1-6 derin sağlık anahtarsız, P1-7 WS bileti çok süreçli, P1-8 Esri
   karo kapatma bayrağı, P1-9 AIRAC (29 Ekim maddesi), P1-10 işletim kılavuzu + DB şifre rotasyonu.
+
+## Ertelenenler (19 Ekim anlık kontrolünden; `docs/denetim/2026-10-19/ANLIK_KONTROL.md`)
+
+- [ ] **Rota hız sınırı kararı (S-9, kullanıcı 19 Ekim'de erteledi):** aynı NAT arkasındaki 10 cihazda
+  rota isteklerinin %40'ı 429 aldı; önbellekten dönen rota da sınıra takılıyor (`PERFORMANS_RAPORU.md`
+  §5.5). Seçenekler: (a) önbellek isabetini sınırdan muaf tutmak, (b) sınırı cihaz/anahtar başına
+  yapmak, (c) `ROTA_HESABI_DAKIKADA_MAKS`'ı yükseltmek. Karar kullanıcıda; sonra uygulanır ve S-9 yeniden ölçülür.
+- [ ] **S-3 senaryo seçici (M):** `web/ucus_simulasyonu.html` 2019 değerleriyle sabit açılıyor;
+  `web/veri/senaryolar.json` + açılır liste, senaryo başına Playwright testi.
+- [ ] **S-4 başarısızlık durumları simülasyonda (M):** "ÖNERİ YOK", SIGMET bayat, `erisilemedi`, devre
+  kesici gösterilebilsin; demo profilinde fikstür (gerçek arşiv yoksa SENTETİK etiketli).
+- [ ] **P1-10 işletim kılavuzu (M):** `docs/ISLETIM_KILAVUZU.md` (başlatma/durdurma, yedek ve geri
+  yükleme, migration, AIRAC, gece işi, anahtar ve DB şifre rotasyonu); her prosedür bir kez denenir.
+- [ ] **P1-3 izleme yığını (ONAY: bildirim kanalı):** `izleme/prometheus.yml`, `alarmlar.yml`,
+  `--profile izleme`; bildirim kanalı (e-posta/Telegram vb.) kullanıcı seçer.
+- [ ] **P1-6 kalan kısmı:** üretimde anahtarsız `/saglik?derin=true` yalnız `{"durum"}` dönsün
+  (bugün bileşen adı + durum dönüyor, ayrıntı yok).
+- [ ] **Worker bellek sınırı (P1-1 kalan):** bir gece işi sırasında `docker stats` ile tepe bellek
+  ölçülür, sonra `docker-compose.yml`'de worker'a payla `mem_limit` yazılır (ölçümsüz sınır işi OOM ile öldürebilir).
 - [x] (19 Ekim, PR #104–#105: yalnız B-3 kaldı, 20 Ekim maddesinde) **Komite incelemesinin açık bulguları:** `docs/denetim/2026-10-17/KOMITE_INCELEMESI.md`;
   kapananlar dosya sonundaki "18 Ekim durumu" bölümünde, kalanlar (ör. B-8 çoklu karşılaştırma için
   dondurma sonrası yeni günlerde değerlendirme, T-1 üçüncü kişi yeniden üretimi) savunma öncesi gözden geçirilir.
@@ -144,6 +163,8 @@ jüri sorularına doğrudan yanıt verenler önde.
 - [ ] **5 Kasım:** E8 yedek demo videosu (3–5 dk, metin `docs/sunum/DEMO_SENARYOSU.md` §4;
   ekranlar temiz klondan).
 - [ ] Sunum konuşulmaya başlanınca: E7 kullanılabilirlik oturumları (katılımcı bulmak zaman alır).
+- [ ] **Rapor tesliminden hemen önce (komite Y-1):** `python scripts/beyan_sayimlari.py --kontrol`;
+  farklıysa `docs/rapor/ARAC_KULLANIMI_BEYANI.md` paragrafı güncel sayılarla yenilenir.
 
 ## Kullanıcı kararı bekleyenler
 

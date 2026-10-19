@@ -37,7 +37,7 @@ Yollar depo köküne görelidir; makineye özgü yollar `<DEPO>`, `<KULLANICI>` 
 | S-9 | ✅ (ölçüm) | 19 Ekim | `PERFORMANS_RAPORU.md` §5.5: tek IP'den 10 istemcide rota %40 429, önbellek isabeti de sınırdan düşüyor (karar kullanıcıda) |
 | P1-5 | ✅ | 19 Ekim | `.dockerignore`: CLAUDE.md, .mcp.json, docs/, scripts/, .githooks/, örnek ortam dosyaları; CI imajda yokluklarını denetler |
 | P1-6 | ◐ | 19 Ekim | `--no-server-header`. `--proxy-headers` uvicorn'da varsayılan, `FORWARDED_ALLOW_IPS` zaten vekile sabit; anahtarsız derin sağlık yanıtı değişmedi |
-| P1-9 | ◐ | 19 Ekim | `/saglik` `ats_agi` bitişe ≤ 7 gün kala `bitiyor` (uyarı). AIP yenilemesi 29 Ekim'de (dış indirme, ONAY) |
+| P1-9 | ✅ | 19 Ekim, #105 | `/saglik` `ats_agi` bitişe ≤ 7 gün kala `bitiyor`; AIRAC bitince otomatik yenileme (`cli/airac_yenile.py`, Windows görevi) |
 | S-7 | ✅ | 19 Ekim | "Uçuş sırasında yeniden hesapla" düğmesinde kalıcı "gösterim amaçlı · NON-OPERATIONAL" |
 
 Docker imajı CSP kodunu henüz içermiyor: 18 Ekim gecesi npm'e erişilemediği için derleme

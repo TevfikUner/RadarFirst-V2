@@ -1,16 +1,27 @@
 # P1-4: SHA/digest ile sabitlenen Actions ve imajlar için haftalık güncelleme PR'ları.
 # Python bağımlılıkları hash'li uv kilidinde (README "Bağımlılık kilidi"); açıklar CI'daki pip-audit ile yakalanır.
+# Büyük sürümler önerilmez: postgres'in büyük sürümü veri klasörünü (pg_upgrade gerekir), python
+# taban imajı kilit dosyalarını (3.12 için üretilir) bozar; bunlar bilinçli, ayrı işlerle yükseltilir.
 version: 2
 updates:
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
   - package-ecosystem: docker-compose
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      - dependency-name: "*"
+        update-types: ["version-update:semver-major"]
