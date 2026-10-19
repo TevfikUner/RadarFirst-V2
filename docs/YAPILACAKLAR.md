@@ -82,8 +82,13 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   gün olunca bir kez çalıştırılır (19 Ekim'de 16 yeni gün vardı).
 - [ ] **§10 değerlendirmesini bir kez çalıştır:** her gece işi sonrası `turbulans-ml-yeni-gun --durum`;
   `yeterli: true` olunca `turbulans-ml-yeni-gun --cikti docs/sonuclar/<tarih>`, sonuç ne çıkarsa raporlanır.
-- [ ] Türkiye ERA5 (7 seviye) ve daha fazla OpenSky uçuşu: önce CDS/OpenSky kotası ve
-  günlük 500 MB bütçe hesabı, sonra ONAY.
+- [ ] **20 Ekim, gece işinden önceki ilk oturum (ONAY alındı, komite B-3):** Türkiye ERA5 7 seviye
+  (31 CDS isteği, 15.624 alan, ≤130 MB; 19 Ekim bütçesi dolu olduğu için ertelendi; aynı UTC günü
+  gece işi bütçesinden düşer). `docker compose exec -T worker python - indir --gercekten-indir <
+  scripts/turkiye_kupu_7seviye.py`, sonra WSL'de `python scripts/turkiye_kupu_7seviye.py karsilastir`
+  (dosyayı `ciktilar/`dan köke taşır, rapor `docs/sonuclar/2026-10-20_turkiye_7seviye/`). Yeni küp ayrı
+  dosya; varsayılan `HAVA_DURUMU_DOSYASI` değişmez. Sonuç SISTEM_KARTI ve KOMITE_INCELEMESI B-3'e yazılır.
+- [ ] Daha fazla OpenSky uçuşu: önce OpenSky kotası hesabı, sonra ONAY.
 - [ ] F7 rüzgâr asimilasyonu küçük deneyi (5–10 gün, 2021 sonrası MADIS günleri + AWS GFS;
   bkz. `docs/fizibilite/RUZGAR_ASIMILASYONU.md`): gece veri bütçesine eklenmeden ONAY.
 - [ ] İsteğe bağlı: F5 backtest yakıtı için kalıcı veritabanı sütunu (migration; önce
