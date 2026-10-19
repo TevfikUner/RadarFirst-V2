@@ -60,7 +60,7 @@ x-ortak-volumeler: &ortak_volumeler
 
 services:
   db:
-    image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
     mem_limit: ${DB_BELLEK_SINIRI:-1g}
     logging: *gunluk
     restart: unless-stopped
@@ -86,7 +86,7 @@ services:
   # (db_yedekleri/migration_oncesi/, en yeni 5), sonra tek seferlik `alembic upgrade head`;
   # API ancak ikisi başarıyla bitince başlar. Güncel şemada upgrade bir şey yapmaz.
   migrate_yedegi:
-    image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
     mem_limit: 512m
     logging: *gunluk
     restart: "no"
@@ -213,7 +213,7 @@ services:
   # veriden üretildi, volume kaybolursa yeniden indirmek aylar sürer. Yedekler
   # ./db_yedekleri'nde (depoya konmaz); geri yükleme README "Veritabanı yedeği".
   yedek:
-    image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
+    image: postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
     mem_limit: 512m
     logging: *gunluk
     restart: unless-stopped
