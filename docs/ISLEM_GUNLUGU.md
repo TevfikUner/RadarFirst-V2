@@ -2,6 +2,13 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-19
+
+- ✅ 18 Ekim CI hata e-postaları: 21 kırmızı çalışmanın hepsi gitleaks yanlış pozitifi (#95 ile çözüldü), gerçek sır yok.
+- ✅ Birleşmiş 95 uzak `claude/*` dalı silindi; açık PR yoktu.
+- ✅ npm döndü, `docker compose build api worker` başarılı; api yeni imajda, iki harita sayfası 200 ve CSP başlığı var.
+- ✅ Gece işi bitti (~500 MB, eğitim: aday aktifi geçemedi, +0,001); ardından worker yeni imajla başlatıldı, sağlıklı.
+
 ## 2026-10-18 (kapanış; PR #97)
 
 - ✅ Kalan ve yarım işler YAPILACAKLAR "18 Ekim gecesinden kalanlar" bölümünde (imaj derlemesi öncelikli).
