@@ -57,7 +57,7 @@ x-ortak-volumeler: &ortak_volumeler
 
 services:
   db:
-    image: postgres:16
+    image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
     logging: *gunluk
     restart: unless-stopped
     environment:
@@ -159,7 +159,7 @@ services:
   # veriden üretildi, volume kaybolursa yeniden indirmek aylar sürer. Yedekler
   # ./db_yedekleri'nde (depoya konmaz); geri yükleme README "Veritabanı yedeği".
   yedek:
-    image: postgres:16
+    image: postgres:16@sha256:1a6ab3f5345eb6dbe04a1349529caabdb0ab09293a09590fad07b2246bfa4b54
     logging: *gunluk
     restart: unless-stopped
     depends_on:
@@ -210,7 +210,7 @@ services:
   #   docker compose --profile uretim up -d
   # API host portu 127.0.0.1'de kalır; dışarıya yalnız vekil açılır.
   vekil:
-    image: caddy:2.8.4
+    image: caddy:2.8.4@sha256:226d1f059b75399fe19182893c7184591c07b97afc8dfcf44eeb80c9a77a530f
     logging: *gunluk
     profiles: ["uretim"]
     restart: unless-stopped

@@ -1,0 +1,16 @@
+# P1-4: SHA/digest ile sabitlenen Actions ve imajlar için haftalık güncelleme PR'ları.
+# Python bağımlılıkları hash'li uv kilidinde (README "Bağımlılık kilidi"); açıklar CI'daki pip-audit ile yakalanır.
+version: 2
+updates:
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule:
+      interval: weekly
