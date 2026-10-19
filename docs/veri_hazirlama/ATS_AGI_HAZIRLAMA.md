@@ -28,6 +28,16 @@ turbulans-kisitli-saha ice-aktar ats_verisi/aip_enr51.geojson --kaynak aip_enr51
   `airac_bitis` geçince rota sonucunun `ats.uyarilar` listesine ve `/saglik`
   raporuna (`ats_agi: eski`) uyarı düşer; o zaman yukarıdaki komutlar
   yeniden çalıştırılır. Alan yoksa (elle hazırlanmış ağ) kontrol yapılmaz.
+- **Otomatik yenileme (19 Ekim 2026'dan beri):** `python -m turbulans_radar.cli.airac_yenile`
+  (WSL venv, depo kökünde) döngü bitmediyse istek atmadan çıkar. Bittiyse ENR 1.3, 4.4, 4.1 ve
+  5.1'i indirir (DHMİ'ye 4 istek, aralarında 5 sn; günde en fazla bir deneme). FRA seviye ve
+  saatlerini ENR 1.3 §5.1.1 cümlesinden okur; cümle yoksa, ENR 5.1 saha sayısı %20'den fazla
+  düşerse ya da dört belgenin hiçbiri değişmemişse (döngü bitişinden 2 gün sonrasına kadar;
+  DHMİ henüz yayımlamamış olabilir) eski veriyi korur. Eski dosyalar `ats_verisi/onceki/<gün>/`
+  altına kopyalanır. ENR 5.1 veritabanına (`--kaynak aip_enr51 --eskileri-kaldir`) yalnız günün
+  yedeği (`db_yedekleri/turbulans_<gün>.dump`) varsa aktarılır; yoksa sonraki çalışmada denenir.
+  Windows görevi: `otomasyon/airac_gorevi_kaydet.ps1` (her gün 12:00, kaçırılırsa ilk fırsatta),
+  günlük `ciktilar/airac_yenile.log`, durum `ats_verisi/.airac_durum.json`.
 - **ENR 4.4:** Tüm önemli noktalar koordinatları ve FRA rolleriyle alınır. FRA
   noktaları arasında 200 km'ye kadar doğrudan (DCT) kenarlar kurulur.
 - **ENR 4.1:** VOR/DME, NDB, VORTAC istasyonları (62, AIRAC 06/26) aynı
