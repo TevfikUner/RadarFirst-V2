@@ -5,7 +5,7 @@
 # önbelleği geçersiz olup tüm bağımlılıklar yeniden iniyordu (zayıf bağlantıda
 # derleme uzuyordu). Güvenlik güncellemesi için özet bilerek güncellenir:
 #   docker pull python:3.12-slim && docker inspect --format '{{index .RepoDigests 0}}' python:3.12-slim
-FROM python:3.12-slim@sha256:dddfd7e07f9d15aeeca61529320492139d21cac7f0070c00609243e51e4e0016
+FROM python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0bb1784edc11b1
 
 WORKDIR /app
 
