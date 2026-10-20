@@ -105,6 +105,13 @@ class TopluAnalizIstegi(BaseModel):
     ucuslar: list[UcusAnalizIstegi] = Field(max_length=500)
     bildirim_webhook_url: str | None = None
 
+    @field_validator("ucuslar")
+    @classmethod
+    def _ucus_basina_webhook_yok(cls, ucuslar):
+        if any(u.bildirim_webhook_url for u in ucuslar):
+            raise ValueError("Toplu analizde uçuş başına webhook desteklenmez; üst düzey bildirim_webhook_url kullan.")
+        return ucuslar
+
     @field_validator("bildirim_webhook_url")
     @classmethod
     def _webhook_gecerli_mi(cls, deger):
