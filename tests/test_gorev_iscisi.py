@@ -99,6 +99,32 @@ def test_analiz_hatasi_dostane_mesajla_hata_durumuna_cevrilir(monkeypatch):
     assert gi.gorevi_yurut(_gorev("bilinmeyen"))["durum"] == "hata"
 
 
+@pytest.mark.parametrize(
+    "hata",
+    [RuntimeError("postgresql://kullanici:gizli-sifre@db:5432/x"), FileNotFoundError(2, "yok", "/app/gizli-sifre.nc")],
+)
+def test_beklenmeyen_hata_metni_goreve_ham_yazilmaz(monkeypatch, caplog, hata):
+    def patla(ucus_numarasi, tarih):
+        raise hata
+
+    monkeypatch.setattr(gi, "tek_ucus_analiz_et", patla)
+    with caplog.at_level("ERROR"):
+        sonuc = gi.gorevi_yurut(_gorev("ucus"))
+    assert sonuc["durum"] == "hata"
+    assert "gizli-sifre" not in sonuc["aciklama"]
+    assert type(hata).__name__ in sonuc["aciklama"] and "g1" in sonuc["aciklama"]
+    assert "gizli-sifre" in caplog.text
+
+
+def test_baglanti_hatasi_dostane_mesaj_verir(monkeypatch):
+    def patla(ucus_numarasi, tarih):
+        raise ConnectionError("10.0.0.5:443 reddetti")
+
+    monkeypatch.setattr(gi, "tek_ucus_analiz_et", patla)
+    aciklama = gi.gorevi_yurut(_gorev("ucus"))["aciklama"]
+    assert "İnternet bağlantısında" in aciklama and "10.0.0.5" not in aciklama
+
+
 @pytest.fixture
 def kuyruk_veritabani(gorev_kuyrugunu_temizle):
     try:
