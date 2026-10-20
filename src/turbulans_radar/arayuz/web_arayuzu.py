@@ -18,6 +18,7 @@ bu sadece görsel bir ön yüz, hesaplama mantığı aynı.
 import contextlib
 import io
 import os
+import threading
 
 import httpx
 import streamlit as st
@@ -49,6 +50,11 @@ def ucusu_api_ile_sil(ucus_numarasi: str, tarih: str, anahtar: str) -> tuple[boo
     if yanit.status_code == 204:
         return True, "Silindi."
     return False, mesajlar.get(yanit.status_code, f"Silinemedi (HTTP {yanit.status_code}).")
+
+
+@st.cache_resource
+def analiz_kilidi() -> threading.Lock:
+    return threading.Lock()
 
 
 st.set_page_config(page_title="Türbülans Radar", page_icon="✈️", layout="wide")
@@ -130,7 +136,7 @@ if gonder:
             "Analiz ediliyor -- OpenSky'a bağlanılıyor ve hava durumuyla eşleştiriliyor, biraz sürebilir..."
         ):
             try:
-                with contextlib.redirect_stdout(gunluk):
+                with analiz_kilidi(), contextlib.redirect_stdout(gunluk):
                     eslesmis_df = calistir(ucus_numarasi, tarih)
             except Exception as e:
                 hata = e
