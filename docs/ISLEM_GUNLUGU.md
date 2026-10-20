@@ -4,6 +4,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-20
 
+- ✅ Denetimden kalan 3 iş YAPILACAKLAR'a yazıldı (rota akış fonksiyonunu bölme 5 Kasım sonrası, mypy genişletme, CLI testleri).
 - ✅ Denetim onayları: mypy (api/depo/fizik), görev hata metni, toplu webhook 422, Streamlit kilidi, load_dotenv (#125); rota modülü 6 dosyaya bölündü, çıktı aynı (#126).
 - ✅ Uçtan uca denetim (`docs/denetim/2026-10-20/DENETIM.md`): 1.132 test, %85,8 kapsam, 0 açık; webhook URL log maskesi + boş sayısal ortam değişkeni düzeltildi; 3 madde onay bekliyor.
 - ✅ S-9 kararı: önbellekteki rota hız sınırına sayılmıyor; P1-6 ağa açıkken anahtarsız sağlık yalnız durum.
