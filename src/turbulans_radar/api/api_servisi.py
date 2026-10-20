@@ -60,13 +60,6 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from urllib.parse import parse_qsl, urlencode
 
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    pass
-
 import asyncpg
 import pandas as pd
 from fastapi import (

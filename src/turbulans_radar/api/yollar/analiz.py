@@ -4,13 +4,6 @@ import asyncio
 import os
 from datetime import UTC, date, datetime, timedelta
 
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    pass
-
 import pandas as pd
 from fastapi import (
     APIRouter,

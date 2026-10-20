@@ -3,13 +3,6 @@
 import asyncio
 from datetime import UTC, datetime
 
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    pass
-
 from fastapi import (
     APIRouter,
     Depends,

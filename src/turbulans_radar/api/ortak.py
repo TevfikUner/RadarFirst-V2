@@ -6,13 +6,6 @@ import weakref
 from contextlib import asynccontextmanager
 from datetime import date
 
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    pass
-
 from fastapi import (
     HTTPException,
     Request,

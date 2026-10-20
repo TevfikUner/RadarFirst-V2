@@ -7,13 +7,6 @@ import os
 import secrets
 import time
 
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    pass
-
 from fastapi import (
     Depends,
     Header,
