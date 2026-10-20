@@ -1,0 +1,29 @@
+{
+  "ham_rapor": 1570530,
+  "seyir_ve_turbulans_alani_dolu": 420067,
+  "ornek": 500,
+  "avwx_ayristiramadi": 1,
+  "uyusan": 499,
+  "farkli": 0,
+  "pozitif_etiket_degisirdi": 0,
+  "capraz_tablo": {
+    "0": {
+      "-1": 1,
+      "0": 201,
+      "1": 0,
+      "2": 0
+    },
+    "1": {
+      "-1": 0,
+      "0": 0,
+      "1": 293,
+      "2": 0
+    },
+    "2": {
+      "-1": 0,
+      "0": 0,
+      "1": 0,
+      "2": 5
+    }
+  }
+}

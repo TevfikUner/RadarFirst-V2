@@ -150,8 +150,11 @@ jüri sorularına doğrudan yanıt verenler önde.
   "POD – uyarı alanı" eğrisi; TTS yalnız MADIS günlerinde. `ml/gosterge_degerlendirme.py`.
 - [ ] **Fikir 10 — Komşuluk maksimumu eşleştirmesi:** ±1 hücre / ±1 sa pencerede TI1
   maksimumu, iki sınıfa birlikte; `fizik/eslestirme.py`'de isteğe bağlı mod.
-- [ ] **Fikir 11 — PIREP ayrıştırıcı çapraz testi:** 500 ham IEM PIREP, `pirep_siddet_sinifi`
+- [x] (20 Ekim, `docs/sonuclar/2026-10-20_pirep_ayristirici/`: 500'de 499 uyuşma; çoklu /TB grubu %0,24 etiketi çevirir, aşağıdaki maddeye) **Fikir 11 — PIREP ayrıştırıcı çapraz testi:** 500 ham IEM PIREP, `pirep_siddet_sinifi`
   ile avwx-engine karşılaştırması; uyuşmazlık çıkarsa etiket değişikliği ayrıca karar.
+- [ ] **Fikir 11 devamı — çoklu /TB grubu etiketi:** IEM yalnız ilk grubu alıyor (`TB NEG 350/MOD 355` -> negatif);
+  seyir raporlarının %0,24'ünde etiket döner. En şiddetli grubu alan etiket, dondurma sonrası yeni günlerde
+  duyarlılık olarak (protokole önceden yazılarak) değerlendirilir; dondurulmuş paket değişmez.
 - [ ] **Fikir 15 — TI3 (Ellrod–Knox DVT):** TI3 = TI1 + 0,01·|div(t) − div(t−6 sa)|; ERA5
   pencere deposunda t−6 sa var mı önce kontrol; TI1'e karşı yeni günlerde.
 - [ ] **Fikir 19 — Ek teşhisler:** frontogenez, ∇T, NCSU1, negatif PV; F9 geniş özellik
