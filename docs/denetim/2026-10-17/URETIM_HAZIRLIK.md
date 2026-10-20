@@ -33,6 +33,10 @@ Yollar depo köküne görelidir; makineye özgü yollar `<DEPO>`, `<KULLANICI>` 
 | P1-7 | ✅ | 19 Ekim | WS bileti kullanılmışlığı `hiz_siniri_sayaclari`'nda (pencere = bilet bitişi), migration yok |
 | P1-8 + S-5 | ✅ | 19 Ekim | `ALTLIK_KATMANI=esri\|dogal` (varsayılan esri, üretim örneği dogal); dogal'da CSP Esri'ye izin vermez |
 | S-2 | ✅ | 19 Ekim | `uretim_bilgisi.yazilim_commit` (imajda `GIT_SHA` derleme argümanı) |
+| P1-3 | ✅ | 20 Ekim, #119 | `--profile izleme` Prometheus, 5 alarm (`izleme/alarmlar.yml`), bildirim kanalı yok; ayrı izleme anahtarı |
+| P1-10 | ✅ | 20 Ekim, #119 | `docs/ISLETIM_KILAVUZU.md`; her prosedürde denendi/denenmedi |
+| S-3 | ✅ | 20 Ekim, #119 | Senaryo seçici, 7 senaryo (demo/test vakaları) |
+| S-4 | ◐ | 20 Ekim, #119 | ÖNERİ YOK ve kapsam dışı senaryoları; SIGMET bayat/devre kesici fikstürü yok |
 | S-8 | ◐ | 19 Ekim | `scripts/sunum_paketi.sh`; yalnız sözdizimi denendi, ilk çalıştırma 25 Ekim |
 | S-9 | ✅ (ölçüm) | 19 Ekim | `PERFORMANS_RAPORU.md` §5.5: tek IP'den 10 istemcide rota %40 429, önbellek isabeti de sınırdan düşüyor (karar kullanıcıda) |
 | P1-5 | ✅ | 19 Ekim | `.dockerignore`: CLAUDE.md, .mcp.json, docs/, scripts/, .githooks/, örnek ortam dosyaları; CI imajda yokluklarını denetler |
