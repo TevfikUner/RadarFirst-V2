@@ -42,13 +42,6 @@ from sqlalchemy.orm import Session
 from turbulans_radar import config
 from turbulans_radar.depo.models import EdrOlcumu, Ucus
 
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    pass
-
 
 class VeritabaniAyarlariEksikHatasi(Exception):
     """PostgreSQL bağlantı bilgileri eksik olduğunda fırlatılır."""

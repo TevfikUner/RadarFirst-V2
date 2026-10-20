@@ -3,7 +3,7 @@ import functools
 
 from turbulans_radar import config
 
-_etkin_esik = contextvars.ContextVar("etkin_ti1_esigi", default=None)
+_etkin_esik: contextvars.ContextVar[float | None] = contextvars.ContextVar("etkin_ti1_esigi", default=None)
 
 
 def kaynak_ti1_esigi(kaynak: str | None) -> float:

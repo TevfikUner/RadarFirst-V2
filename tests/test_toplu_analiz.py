@@ -1,4 +1,5 @@
 import pandas as pd
+import pytest
 
 from turbulans_radar.analiz import toplu_analiz
 
@@ -115,3 +116,14 @@ def test_rotasi_onbellekte_olan_ucus_icin_opensky_beklemesi_atlanir(monkeypatch)
     toplu_analiz.toplu_analiz_calistir(ucus_listesi_df)
 
     assert beklemeler == [5]
+
+
+def test_toplu_istekte_ucus_basina_webhook_reddedilir():
+    from pydantic import ValidationError
+
+    from turbulans_radar.api.yollar.analiz import TopluAnalizIstegi
+
+    ucus = {"ucus_numarasi": "THY1", "tarih": "2019-01-15"}
+    assert TopluAnalizIstegi(ucuslar=[ucus], bildirim_webhook_url="https://n8n.ornek.com/h").ucuslar
+    with pytest.raises(ValidationError, match="üst düzey bildirim_webhook_url"):
+        TopluAnalizIstegi(ucuslar=[{**ucus, "bildirim_webhook_url": "https://n8n.ornek.com/h"}])

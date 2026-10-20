@@ -84,6 +84,12 @@ ignore = [
 [tool.ruff.lint.isort]
 known-first-party = ["turbulans_radar"]
 
+[tool.mypy]
+python_version = "3.12"
+files = ["src/turbulans_radar/api", "src/turbulans_radar/depo", "src/turbulans_radar/fizik"]
+ignore_missing_imports = true
+follow_imports = "silent"
+
 [tool.coverage.run]
 # Sadece proje kodu -- migrations/ (Alembic'in kendi ürettiği kod) ve
 # tests/'in kendisi kapsam yüzdesine dahil edilmez (aksi halde "testin

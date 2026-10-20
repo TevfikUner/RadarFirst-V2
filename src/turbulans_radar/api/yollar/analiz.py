@@ -4,13 +4,6 @@ import asyncio
 import os
 from datetime import UTC, date, datetime, timedelta
 
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    pass
-
 import pandas as pd
 from fastapi import (
     APIRouter,
@@ -104,6 +97,13 @@ class SanalPirepIzIstegi(BaseModel):
 class TopluAnalizIstegi(BaseModel):
     ucuslar: list[UcusAnalizIstegi] = Field(max_length=500)
     bildirim_webhook_url: str | None = None
+
+    @field_validator("ucuslar")
+    @classmethod
+    def _ucus_basina_webhook_yok(cls, ucuslar):
+        if any(u.bildirim_webhook_url for u in ucuslar):
+            raise ValueError("Toplu analizde uçuş başına webhook desteklenmez; üst düzey bildirim_webhook_url kullan.")
+        return ucuslar
 
     @field_validator("bildirim_webhook_url")
     @classmethod

@@ -142,7 +142,7 @@ def olaylari_kaydet(olaylar: pd.DataFrame, kaynak: str, motor=None) -> list[dict
             yeni_id = oturum.execute(ifade).scalar()
             if yeni_id is None:
                 continue
-            kayit = oturum.get(SanalPirep, yeni_id)
+            kayit = oturum.get_one(SanalPirep, yeni_id)
             oturum.flush()
             kayit.ucak_sayisi = _cevredeki_ucak_sayisi(oturum, kayit)
             yeniler.append(kayit)

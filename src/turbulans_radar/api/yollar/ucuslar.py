@@ -4,13 +4,6 @@ import asyncio
 import json
 from datetime import date
 
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    pass
-
 from fastapi import (
     APIRouter,
     Depends,

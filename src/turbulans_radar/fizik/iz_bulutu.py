@@ -81,7 +81,7 @@ def iz_bulutu_duyarli(sicaklik_k, buz_bagil_nem_yuzde, basinc_hpa=None) -> np.nd
     t = np.asarray(sicaklik_k, dtype=float)
     rh = np.asarray(buz_bagil_nem_yuzde, dtype=float)
     if basinc_hpa is not None and config.IZ_BULUTU_OLCUTU == "sac":
-        esik = np.broadcast_to(sac_esik_sicakligi_k(basinc_hpa), t.shape)
+        esik: np.ndarray | float = np.broadcast_to(sac_esik_sicakligi_k(basinc_hpa), t.shape)
     else:
         esik = ESIK_SICAKLIK_K
     with np.errstate(invalid="ignore"):

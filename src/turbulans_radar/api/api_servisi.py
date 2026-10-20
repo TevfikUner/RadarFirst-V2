@@ -60,13 +60,6 @@ from contextlib import asynccontextmanager
 from datetime import UTC, datetime, timedelta
 from urllib.parse import parse_qsl, urlencode
 
-try:
-    from dotenv import load_dotenv
-
-    load_dotenv()
-except ImportError:
-    pass
-
 import asyncpg
 import pandas as pd
 from fastapi import (
@@ -349,8 +342,8 @@ async def _gfs_isitma_zamanlayicisi(aralik_saniye, kontrol_saniye=600.0):
 
 
 def _gece_isi_saati(deger: str) -> tuple[int, int]:
-    saat, _, dakika = deger.partition(":")
-    saat, dakika = int(saat), int(dakika or 0)
+    saat_metni, _, dakika_metni = deger.partition(":")
+    saat, dakika = int(saat_metni), int(dakika_metni or 0)
     if not (0 <= saat < 24 and 0 <= dakika < 60):
         raise ValueError(f"'{deger}' SS:DD biçiminde olmalı")
     return saat, dakika
@@ -735,7 +728,7 @@ class _BaglantiYoneticisi:
 
     async def baglan(self, websocket: WebSocket):
         await websocket.accept()
-        kuyruk = asyncio.Queue(maxsize=config.WS_ISTEMCI_KUYRUK_BOYUTU)
+        kuyruk: asyncio.Queue = asyncio.Queue(maxsize=config.WS_ISTEMCI_KUYRUK_BOYUTU)
         self._kuyruklar[websocket] = kuyruk
         self._gondericiler[websocket] = asyncio.create_task(self._gonder(websocket, kuyruk))
 

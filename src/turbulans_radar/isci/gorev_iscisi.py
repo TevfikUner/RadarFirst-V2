@@ -44,9 +44,10 @@ from turbulans_radar.depo.gorev_deposu import (
     siradaki_gorevi_al,
 )
 from turbulans_radar.depo.kup_katalogu import kup_meta_verisi
-from turbulans_radar.depo.veritabani import motor_al
+from turbulans_radar.depo.veritabani import VeritabaniKayitHatasi, motor_al
 from turbulans_radar.dogrulama.rota_backtest import toplu_backtest
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
+from turbulans_radar.veri.kimlik_dogrulama import KimlikBilgisiEksikHatasi
 from turbulans_radar.veri.veri_saglayicilari import Kutu, canli_kup_hazirla
 from turbulans_radar.veri.veri_yukleme import veri_kupu_adi
 from turbulans_radar.webhook import log_icin_maskele, webhook_gonder
@@ -247,7 +248,13 @@ def gorevi_yurut(gorev: dict) -> dict:
         return isleyici(gorev)
     except Exception as hata:
         _logger.error("Görev başarısız (%s / %s)", gorev["tur"], gorev["id"], exc_info=hata)
-        return {"durum": "hata", "aciklama": dostane_hata_mesaji(hata)}
+        return {"durum": "hata", "aciklama": gorev_hata_mesaji(hata, gorev["id"])}
+
+
+def gorev_hata_mesaji(hata: Exception, gorev_id: str) -> str:
+    if isinstance(hata, (KimlikBilgisiEksikHatasi, VeritabaniKayitHatasi, ConnectionError, TimeoutError)):
+        return dostane_hata_mesaji(hata)
+    return f"Görev beklenmeyen bir hatayla bitti ({type(hata).__name__}); ayrıntı sunucu logunda (görev {gorev_id})."
 
 
 def webhooku_bildir(webhook_url, govde) -> None:
