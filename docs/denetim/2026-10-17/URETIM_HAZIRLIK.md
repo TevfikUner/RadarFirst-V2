@@ -27,7 +27,7 @@ Yollar depo köküne görelidir; makineye özgü yollar `<DEPO>`, `<KULLANICI>` 
 | Y-5 | ✅ | bu PR | `harita3d.html` lejantına "sertifikalı EDR değildir / karar destek aracıdır" |
 | Y-2 | ✅ | 19 Ekim | `docker-compose.uretim.yml` (`ports: !reset []`); host araçları bu katmanda `docker compose exec` ile |
 | Y-6, Y-7 | ⏸ | — | Y-6 `docker builder prune`: imaj 19 Ekim'de derlendi, 25 Ekim `docker save` yedeğinden sonra (ONAY); Y-7 yalnız dizüstü |
-| P1-1 | ◐ | 19 Ekim | Log rotasyonu (`json-file` 10 MB × 5). Yük ölçümüyle sınırlar: api 2g/4 CPU, db 1g, yedek/migrate 512m. worker sınırsız: gece işi tepe belleği ölçülmedi |
+| P1-1 | ◐ | 19 Ekim | Log rotasyonu (`json-file` 10 MB × 5). Yük ölçümüyle sınırlar: api 2g/4 CPU, db 1g, yedek/migrate 512m; worker 2g (20 Ekim gece işi tepe 687 MiB) |
 | P1-2 | ✅ | 19 Ekim | `migrate_yedegi` (doğrulanmış dump, en yeni 5) → `migrate` (`alembic upgrade head`) → api |
 | P1-4 | ✅ | 19 Ekim | Actions commit SHA'sı, postgres/caddy digest; `.github/dependabot.yml` (Actions, Docker, compose) |
 | P1-7 | ✅ | 19 Ekim | WS bileti kullanılmışlığı `hiz_siniri_sayaclari`'nda (pencere = bilet bitişi), migration yok |

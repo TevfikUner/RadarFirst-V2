@@ -90,7 +90,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   `--profile izleme`; bildirim kanalı (e-posta/Telegram vb.) kullanıcı seçer.
 - [x] (20 Ekim: ağa açıkken anahtarsız derin yanıt yalnız `durum`; yerelde ayrıntılı kalır) **P1-6 kalan kısmı:** üretimde anahtarsız `/saglik?derin=true` yalnız `{"durum"}` dönsün
   (bugün bileşen adı + durum dönüyor, ayrıntı yok).
-- [ ] **Worker bellek sınırı (P1-1 kalan):** bir gece işi sırasında `docker stats` ile tepe bellek
+- [x] (20 Ekim: gece işi tepe 687 MiB, sınır 2g) **Worker bellek sınırı (P1-1 kalan):** bir gece işi sırasında `docker stats` ile tepe bellek
   ölçülür, sonra `docker-compose.yml`'de worker'a payla `mem_limit` yazılır (ölçümsüz sınır işi OOM ile öldürebilir).
 - [x] (19 Ekim, PR #104–#105: yalnız B-3 kaldı, 20 Ekim maddesinde) **Komite incelemesinin açık bulguları:** `docs/denetim/2026-10-17/KOMITE_INCELEMESI.md`;
   kapananlar dosya sonundaki "18 Ekim durumu" bölümünde, kalanlar (ör. B-8 çoklu karşılaştırma için

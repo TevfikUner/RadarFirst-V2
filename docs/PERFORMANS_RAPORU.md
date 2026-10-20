@@ -170,6 +170,9 @@ iki kez de yeniden kuyruğa aldı).
    - Nokta tahmini p95 1,7 sn (H4 hedefi 1 sn), rota p95 7,4 sn (H5 hedefi 5 sn): tek süreç
      ve daha büyük küp; H4/H5 ölçümü 4 süreç ve demo verisiyleydi, doğrudan karşılaştırılamaz.
      Hata (5xx, zaman aşımı) yok.
+6. **Bellek tepeleri ve konteyner sınırları (P1-1).** API tek süreçte 10 eşzamanlı yükte 440 MiB
+   (19 Ekim), veritabanı 121 MiB; worker 20 Ekim gece işinde (493 MB indirme + eğitim) 687 MiB,
+   tepe eğitim sırasında. Sınırlar: api 2g / 4 CPU, db 1g, worker 2g, yedek ve migrate 512m.
 
 ## 6. Tekrar üretim
 

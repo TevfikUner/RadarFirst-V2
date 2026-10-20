@@ -30,7 +30,7 @@ x-uygulama-db: &uygulama_db
 # Konteyner günlükleri sınırsız büyümesin (P1-1): servis başına en fazla 5 x 10 MB.
 # Bellek/CPU sınırları (P1-1) 19 Ekim yük ölçümünden (docs/PERFORMANS_RAPORU.md §5): API tek
 # süreçte tepe 440 MiB / %112 CPU, db 121 MiB. API sınırı 4 süreci (WEB_CONCURRENCY=4) karşılar.
-# worker'a sınır konmadı: ML gece işinin tepe belleği ölçülmedi, yanlış sınır işi OOM ile öldürür.
+# worker: 20 Ekim gece işinde (veri + eğitim, 290 örnek, 10 sn arayla) tepe 687 MiB; sınır ~3 kat pay.
 x-gunluk: &gunluk
   driver: json-file
   options:
@@ -186,6 +186,7 @@ services:
     logging: *gunluk
     restart: unless-stopped
     command: ["python", "-m", "turbulans_radar.isci.gorev_iscisi"]
+    mem_limit: ${WORKER_BELLEK_SINIRI:-2g}
     # İşçi çalışan görevi GOREV_DURDURMA_BEKLEME_SANIYE (240) bekler; Docker'ın
     # varsayılan 10 sn'si süren CDS indirmesini SIGKILL ile yarıda kesiyordu.
     stop_grace_period: 300s
