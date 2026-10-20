@@ -111,7 +111,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   gün olunca bir kez çalıştırılır (19 Ekim'de 16 yeni gün vardı).
 - [ ] **§10 değerlendirmesini bir kez çalıştır:** her gece işi sonrası `turbulans-ml-yeni-gun --durum`;
   `yeterli: true` olunca `turbulans-ml-yeni-gun --cikti docs/sonuclar/<tarih>`, sonuç ne çıkarsa raporlanır.
-- [ ] **20 Ekim, gece işinden önceki ilk oturum (ONAY alındı, komite B-3):** Türkiye ERA5 7 seviye
+- [x] (20 Ekim: 57,6 MB indirildi; Spearman 0,81, eşdeğer eşik 6,5e-7; `docs/sonuclar/2026-10-20_turkiye_7seviye/`) **20 Ekim, gece işinden önceki ilk oturum (ONAY alındı, komite B-3):** Türkiye ERA5 7 seviye
   (31 CDS isteği, 15.624 alan, ≤130 MB; 19 Ekim bütçesi dolu olduğu için ertelendi; aynı UTC günü
   gece işi bütçesinden düşer). `docker compose exec -T worker python - indir --gercekten-indir <
   scripts/turkiye_kupu_7seviye.py`, sonra WSL'de `python scripts/turkiye_kupu_7seviye.py karsilastir`

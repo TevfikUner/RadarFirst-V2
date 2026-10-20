@@ -217,7 +217,12 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   katmandan hesaplanır (ERA5 varsayılanı 350–150 hPa, 7 seviye; jet çevresinde
   25 hPa ≈ 700 m); katman kalınlığı hipsometrik denklemle, deformasyon ve
   diverjans küresel metrik terimleriyle hesaplanır. Canlı GFS küpü 3 seviyeyle
-  indirildiği için orada katman 50 hPa'dır.
+  indirildiği için orada katman 50 hPa'dır. Türkiye küpü (`ocak_2019_turbulans.nc`) de 3 seviyelidir;
+  aynı ayın 7 seviyeli ERA5'iyle karşılaştırıldı (komite B-3, 20 Ekim,
+  `docs/sonuclar/2026-10-20_turkiye_7seviye/`): sıra uyumu Spearman 0,81; 7e-7 eşiğinde riskli oranı
+  3 seviyede %15,3, 7 seviyede %17,3 (eşdeğer eşik 6,5e-7). Fark seviyeye bağlı: FL340–360'ta 3 seviye
+  riski az (%13 ↔ %18–19), FL300'de fazla gösterir. Demo ve Türkiye ekranları 3 seviyeli küple kalır;
+  7 seviyeli küp `ocak_2019_turbulans_7seviye.nc` olarak ayrıca durur. Türkiye'de beceri ölçülmedi (B-4).
 - Hava verisi zaman ve konumda en yakın ızgara noktasından okunur,
   enterpolasyon yapılmaz: GFS'in 3 saatlik adımında 1,5 saate, 0,25°
   ızgarada ~0,125°'ye kadar kayma olabilir.

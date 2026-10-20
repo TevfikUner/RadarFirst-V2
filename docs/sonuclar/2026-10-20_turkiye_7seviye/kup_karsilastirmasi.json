@@ -1,0 +1,88 @@
+{
+  "genel": {
+    "n": 2387000,
+    "era5_esik": 7e-07,
+    "yuzdelik": 0.8273782991202346,
+    "gfs_esdeger_esik": 6.496928594998595e-07,
+    "era5_riskli_orani": 0.1726217008797654,
+    "gfs_riskli_orani_ayni_esikte": 0.15277209886887305,
+    "era5_medyan": 2.7466321311716155e-07,
+    "gfs_medyan": 2.670405036851192e-07,
+    "spearman": 0.8139138232561427,
+    "gfs_esdeger_esik_ga95": [
+      6.408104247034759e-07,
+      6.596637532517612e-07
+    ]
+  },
+  "seviyeler": {
+    "FL300": {
+      "n": 477400,
+      "era5_esik": 7e-07,
+      "yuzdelik": 0.8168768328445748,
+      "gfs_esdeger_esik": 7.819112522309677e-07,
+      "era5_riskli_orani": 0.18312316715542523,
+      "gfs_riskli_orani_ayni_esikte": 0.2107017176372015,
+      "era5_medyan": 2.400376244783263e-07,
+      "gfs_medyan": 2.8936216721773534e-07,
+      "spearman": 0.6642493113067139
+    },
+    "FL320": {
+      "n": 477400,
+      "era5_esik": 7e-07,
+      "yuzdelik": 0.794329702555509,
+      "gfs_esdeger_esik": 6.999939985385569e-07,
+      "era5_riskli_orani": 0.205670297444491,
+      "gfs_riskli_orani_ayni_esikte": 0.205670297444491,
+      "era5_medyan": 2.822026523820612e-07,
+      "gfs_medyan": 2.822026523820612e-07,
+      "spearman": 0.9999999999999998
+    },
+    "FL340": {
+      "n": 477400,
+      "era5_esik": 7e-07,
+      "yuzdelik": 0.8078445747800587,
+      "gfs_esdeger_esik": 5.753936945871431e-07,
+      "era5_riskli_orani": 0.19215542521994136,
+      "gfs_riskli_orani_ayni_esikte": 0.1306954335986594,
+      "era5_medyan": 3.120443418227805e-07,
+      "gfs_medyan": 2.714002853657515e-07,
+      "spearman": 0.8630503989375761
+    },
+    "FL360": {
+      "n": 477400,
+      "era5_esik": 7e-07,
+      "yuzdelik": 0.8243967322999581,
+      "gfs_esdeger_esik": 6.044248815281994e-07,
+      "era5_riskli_orani": 0.1756032677000419,
+      "gfs_riskli_orani_ayni_esikte": 0.1306954335986594,
+      "era5_medyan": 2.946940505293914e-07,
+      "gfs_medyan": 2.714002853657515e-07,
+      "spearman": 0.7227560369413211
+    },
+    "FL380": {
+      "n": 477400,
+      "era5_esik": 7e-07,
+      "yuzdelik": 0.8934436531210724,
+      "gfs_esdeger_esik": 6.397899376917945e-07,
+      "era5_riskli_orani": 0.10655634687892752,
+      "gfs_riskli_orani_ayni_esikte": 0.086097612065354,
+      "era5_medyan": 2.4911222465443603e-07,
+      "gfs_medyan": 2.3064473491778924e-07,
+      "spearman": 0.8539734440068214
+    }
+  },
+  "zaman_sayisi": 248,
+  "ayarlar": {
+    "kutu": [
+      36.0,
+      42.0,
+      26.0,
+      45.0
+    ],
+    "adim_derece": 0.25,
+    "saat_adimi": 3,
+    "referans": "ocak_2019_turbulans_7seviye.nc (350, 300, 250, 225, 200, 175, 150 hPa)",
+    "karsilastirilan": "ocak_2019_turbulans.nc (300, 250, 200 hPa)",
+    "esik": 7e-07
+  }
+}
