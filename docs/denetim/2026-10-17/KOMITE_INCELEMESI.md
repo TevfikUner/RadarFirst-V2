@@ -198,4 +198,9 @@ Ayrıntı ve kanıt [`URETIM_HAZIRLIK.md`](URETIM_HAZIRLIK.md)'de. Komite için 
   Döngü bitince DHMİ'den ENR 1.3/4.1/4.4/5.1 alınır, FRA kuralları ENR 1.3'ten okunur, ENR 5.1
   yalnız günün yedeği varken veritabanına aktarılır. Savunmada veri güncel döngüde olur.
   Suriye/Irak örnek sahaları resmî değildir ve arayüzde "örnek" diye işaretlidir (değişmedi).
-- Açık kalan: B-3 (20 Ekim indirmesi).
+- **B-3 kapandı (20 Ekim):** 7 seviyeli Türkiye küpü indirildi (31 gün, 57,6 MB). 3 seviyeyle
+  karşılaştırma: Spearman 0,81; riskli oranı %15,3 ↔ %17,3, 3 seviyede eşdeğer eşik 6,5e-7; FL340–360'ta
+  3 seviye riski az gösteriyor. Varsayılan küp değişmedi (kullanıcı kararı); sonuç SISTEM_KARTI'nda.
+  Jüri cevabı: "Fark ölçüldü; 3 seviyeli düzen FL340–360'ta riskli noktaları %26–32 az gösteriyor,
+  eşik o düzene aktarıldığında 6,5e-7'ye denk geliyor. Türkiye'de beceri ise hâlâ ölçülmedi."
+- Açık kalan: yok (B-4 doğası gereği sınırlama olarak kalır).
