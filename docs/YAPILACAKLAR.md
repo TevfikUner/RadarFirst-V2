@@ -78,10 +78,12 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   rota isteklerinin %40'ı 429 aldı; önbellekten dönen rota da sınıra takılıyor (`PERFORMANS_RAPORU.md`
   §5.5). Seçenekler: (a) önbellek isabetini sınırdan muaf tutmak, (b) sınırı cihaz/anahtar başına
   yapmak, (c) `ROTA_HESABI_DAKIKADA_MAKS`'ı yükseltmek. Karar kullanıcıda; sonra uygulanır ve S-9 yeniden ölçülür.
-- [ ] **S-3 senaryo seçici (M):** `web/ucus_simulasyonu.html` 2019 değerleriyle sabit açılıyor;
+- [x] (20 Ekim: `web/veri/senaryolar.json`, 7 senaryo, yalnız demo/test vakaları; Playwright) **S-3 senaryo seçici (M):** `web/ucus_simulasyonu.html` 2019 değerleriyle sabit açılıyor;
   `web/veri/senaryolar.json` + açılır liste, senaryo başına Playwright testi.
 - [ ] **S-4 başarısızlık durumları simülasyonda (M):** "ÖNERİ YOK", SIGMET bayat, `erisilemedi`, devre
   kesici gösterilebilsin; demo profilinde fikstür (gerçek arşiv yoksa SENTETİK etiketli).
+  20 Ekim: "ÖNERİ YOK" (Beyrut → Bağdat, örnek Suriye sahası) ve kapsam dışı senaryoları seçicide, Playwright
+  testli. Kalan: SIGMET bayat/`erisilemedi` ve devre kesici için demo fikstürü (sunucu durumu taklidi gerekir).
 - [ ] **P1-10 işletim kılavuzu (M):** `docs/ISLETIM_KILAVUZU.md` (başlatma/durdurma, yedek ve geri
   yükleme, migration, AIRAC, gece işi, anahtar ve DB şifre rotasyonu); her prosedür bir kez denenir.
 - [ ] **P1-3 izleme yığını (ONAY: bildirim kanalı):** `izleme/prometheus.yml`, `alarmlar.yml`,

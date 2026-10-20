@@ -514,6 +514,34 @@ async function ucusSirasindaYenidenHesapla() {
   }
 }
 
+let senaryolar = [];
+
+async function senaryolariYukle() {
+  try {
+    const yanit = await fetch(new URL("veri/senaryolar.json", location.href).href);
+    if (!yanit.ok) return;
+    senaryolar = await yanit.json();
+  } catch (e) {
+    return;
+  }
+  const secim = document.getElementById("senaryo");
+  for (const s of senaryolar) {
+    const secenek = document.createElement("option");
+    secenek.value = s.kimlik;
+    secenek.textContent = s.ad;
+    secim.appendChild(secenek);
+  }
+}
+
+function senaryoyuUygula() {
+  const s = senaryolar.find(x => x.kimlik === document.getElementById("senaryo").value);
+  document.getElementById("senaryo-aciklamasi").textContent = s ? s.aciklama : "";
+  if (!s) return;
+  for (const [kimlik, deger] of Object.entries(s.alanlar)) document.getElementById(kimlik).value = deger;
+}
+
+document.getElementById("senaryo").addEventListener("change", senaryoyuUygula);
+senaryolariYukle();
 document.getElementById("giris-anahtar").value = sessionStorage.getItem("tr_api_anahtari") || "";
 document.getElementById("giris-anahtar").addEventListener("change", ucakProfilleriniYukle);
 document.getElementById("simule-et-buton").addEventListener("click", simulasyonuCalistir);
