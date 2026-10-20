@@ -139,6 +139,7 @@ from turbulans_radar.ml.turbulans_ml_modeli import (
     ozellikleri_cikar,
     risk_durumlarini_hesapla,
 )
+from turbulans_radar.rota.czml import simulasyonu_czml_e_cevir
 from turbulans_radar.rota.hava_yolu_agi import AtsAgiHatasi, agi_yukle
 from turbulans_radar.rota.kalkis_penceresi import kalkis_penceresi
 from turbulans_radar.rota.rota_optimizasyonu import (
@@ -147,7 +148,6 @@ from turbulans_radar.rota.rota_optimizasyonu import (
     AntimeridyenHatasi,
     AtsAgiKullanilamazHatasi,
     rota_simulasyonu_olustur,
-    simulasyonu_czml_e_cevir,
     veri_kupune_eris,
 )
 from turbulans_radar.uretim_bilgisi import uretim_bilgisi

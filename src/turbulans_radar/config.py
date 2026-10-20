@@ -377,7 +377,7 @@ HARITA_MAKS_ANIMASYON_NOKTASI = _ortam_sayi("HARITA_MAKS_ANIMASYON_NOKTASI", 200
 # için bir ERA5 okuması) yavaşlatır.
 ROTA_SIMULASYONU_NOKTA_SAYISI = _ortam_sayi("ROTA_SIMULASYONU_NOKTA_SAYISI", 41, int)
 
-# A*'ın yanal ızgarası (bkz. rota_optimizasyonu._YanalIzgara): her bacağın
+# A*'ın yanal ızgarası (bkz. a_yildiz._YanalIzgara): her bacağın
 # büyük daire yönüne göre azami açısı, toplam azami yanal sapma ve azami ızgara
 # aralığı. Açı sınırı, kısa rotada keskin zikzakları, uzun rotada gereksiz dar
 # koridoru önler (sınır adım sayısıyla değil mesafeyle ölçeklenir).

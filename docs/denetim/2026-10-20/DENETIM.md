@@ -93,3 +93,20 @@ sunucu verisi), SIGMET ayrıştırmada kayıt başına hata izolasyonu, TI1/defo
 2. D-6 (dar kapsamlı mypy) — en ucuz kalıcı kazanç.
 3. 5 Kasım sonrası D-5 bölme.
 4. D-3 ve D-8 kullanıcı kararına göre.
+
+## 8. Uygulama durumu (20 Ekim akşamı, kullanıcı tüm maddeleri onayladı)
+
+| No | Yapılan | PR |
+|---|---|---|
+| D-1, D-2 | Webhook log maskesi; boş sayısal ortam değişkeni | #124 |
+| D-6 | mypy `api/`, `depo/`, `fizik/` için açık (`pyproject` `[tool.mypy]`, CI 3.12 adımı, `tam_denetim.sh`); 19 tip hatası giderildi | #125 |
+| D-3 | Görev hatası `/analiz/durum` ve webhook'a ham istisna metni yazmaz: hata türü + görev kimliği, ayrıntı logda; kimlik/kayıt/bağlantı hataları dostane mesajla | #125 |
+| D-8 | Toplu analizde uçuş başına webhook 422 ile reddedilir | #125 |
+| D-4 | Streamlit analizleri süreç geneli kilitle sıraya girer; AppTest testleri, arayüz kapsamı %46 → %75 | #125 |
+| D-7 | `load_dotenv` yalnız `config.py`'de (8 tekrar kaldırıldı; her modülde `.env` yüklendiği doğrulandı) | #125 |
+| D-5 | `rota_optimizasyonu.py` 2.333 → 1.170 satır: `a_yildiz`, `geometri`, `ruzgar`, `brifing`, `bulgular`, `czml`. Testlerin yamaladığı adlar ana modülde; 4 senaryoda (ATS dahil) master ile çıktı bayt bayt aynı | #126 |
+
+`rota_simulasyonu_olustur` (~460 satır, iç içe kapanışlar) bölünmedi: kapanışlar ortak yerel durumu
+paylaşıyor; ayırmak davranış riski taşır, ayrı ve testle desteklenen bir iş olarak bırakıldı.
+Kapsamı düşük kalan araştırma CLI'ları (`demo_ekranlari`, `performans_olcumu`) karar destek yolu
+olmadığı için test eklenmedi.

@@ -160,6 +160,8 @@ turbulans_radar/
               edr_esleme.py, ti1_esigi.py, kalibrasyon.py -> birleşik gösterge, kaynağa göre eşik, görsel ölçek
               birim_donusumleri.py, cografya.py, iz_bulutu.py, sanal_pirep.py
   rota/       rota_optimizasyonu.py, risk_katmanlari.py -> A* (yanal + irtifa), SIGMET/kısıtlı saha sert, TI1 yumuşak kısıt
+              a_yildiz.py, geometri.py, ruzgar.py -> yanal ızgara/ATS A*, büyük daire, rüzgâr üçgeni
+              brifing.py, bulgular.py, czml.py -> riskli bölüm/kabin/brifing, dispeç bulguları, CesiumJS çıktısı
               hava_yolu_agi.py, ucus_seviyeleri.py, fpl.py -> ATS/FRA ağı, yarım daire kuralı, FPL Madde 15
               performans_modeli.py, dikey_kesit.py, kalkis_penceresi.py -> OpenAP yakıt, kesit, kalkış penceresi
   dogrulama/  rota_backtest.py, bagimsiz_kanit.py, sigmet_dogrulama.py -> backtest ve SIGMET/PIREP bağımsız kanıt
@@ -578,7 +580,7 @@ doğrudan constructor'ın `projection` seçeneğine taşındı, `harita.on("load
 
 ## Canlı SIGMET kısıtı ve modüler risk katmanları
 
-`rota_optimizasyonu.py`'deki A* araması, maliyetini takılabilir **risk
+`rota/a_yildiz.py`'deki A* araması (`rota_optimizasyonu.py` çağırır), maliyetini takılabilir **risk
 katmanlarından** (`risk_katmanlari.py`) alır. Her katman aynı düğüm/kenar
 grafı için yasak düğüm/kenarlar (SERT kısıt) ve saniye cinsinden cezalar
 (YUMUŞAK kısıt) üretir; yeni bir risk kaynağı eklemek A*'ı değiştirmez:

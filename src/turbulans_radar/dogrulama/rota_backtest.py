@@ -47,12 +47,8 @@ from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.loglama import logger_al
 from turbulans_radar.rota import performans_modeli
 from turbulans_radar.rota.risk_katmanlari import SigmetKisitKatmani, rota_ti1_degerleri
-from turbulans_radar.rota.rota_optimizasyonu import (
-    UCAK_PROFILLERI,
-    buyuk_daire_mesafesi_km,
-    rota_simulasyonu_olustur,
-    ruzgar_bilesenlerini_toplu_al,
-)
+from turbulans_radar.rota.rota_optimizasyonu import UCAK_PROFILLERI, buyuk_daire_mesafesi_km, rota_simulasyonu_olustur
+from turbulans_radar.rota.ruzgar import ruzgar_bilesenlerini_toplu_al
 from turbulans_radar.veri.sigmet_saglayici import gecerli_sigmetleri_getir, kacinilacak_tehlikeler
 from turbulans_radar.veri.veri_saglayicilari import veri_kupu_kaynagi, veri_kupunu_sec
 

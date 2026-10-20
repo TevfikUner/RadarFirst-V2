@@ -18,12 +18,13 @@ import pandas as pd
 import pytest
 
 from turbulans_radar import config
+from turbulans_radar.rota import a_yildiz
+from turbulans_radar.rota.czml import simulasyonu_czml_e_cevir
 from turbulans_radar.rota.rota_optimizasyonu import (
     CO2_KG_PER_KG_YAKIT,
     buyuk_daire_mesafesi_km,
     buyuk_daire_rotasi_olustur,
     rota_simulasyonu_olustur,
-    simulasyonu_czml_e_cevir,
     yanal_sapma_yonu,
 )
 
@@ -474,12 +475,12 @@ def test_izgaradaki_hicbir_bacak_sapma_acisi_sinirini_asmaz(rota):
     from turbulans_radar.rota import rota_optimizasyonu as ro
 
     enlemler, boylamlar = buyuk_daire_rotasi_olustur(*rota, config.ROTA_SIMULASYONU_NOKTA_SAYISI)
-    izgara = ro._yanal_izgara_olustur(enlemler, boylamlar)
-    konumlar = ro._yanal_izgara_dugum_konumlari(enlemler, boylamlar, izgara)
+    izgara = a_yildiz._yanal_izgara_olustur(enlemler, boylamlar)
+    konumlar = a_yildiz._yanal_izgara_dugum_konumlari(enlemler, boylamlar, izgara)
     en_dik = 0.0
     for dugum in konumlar:
         i = dugum[0]
-        for komsu in ro._komsu_dugumler(dugum, izgara):
+        for komsu in a_yildiz._komsu_dugumler(dugum, izgara):
             rota_yonu = ro._ilk_yon_derece(enlemler[i], boylamlar[i], enlemler[i + 1], boylamlar[i + 1])
             bacak_yonu = ro._ilk_yon_derece(*konumlar[dugum], *konumlar[komsu])
             en_dik = max(en_dik, abs((bacak_yonu - rota_yonu + 180.0) % 360.0 - 180.0))
@@ -487,10 +488,9 @@ def test_izgaradaki_hicbir_bacak_sapma_acisi_sinirini_asmaz(rota):
 
 
 def test_uzun_rotada_sapma_koridoru_mesafeyle_olceklenir_ve_sigmet_zincirinden_kacilir():
-    from turbulans_radar.rota import rota_optimizasyonu as ro
 
     enlemler, boylamlar = buyuk_daire_rotasi_olustur(41.0, 28.9, 40.7, -74.0, config.ROTA_SIMULASYONU_NOKTA_SAYISI)
-    izgara = ro._yanal_izgara_olustur(enlemler, boylamlar)
+    izgara = a_yildiz._yanal_izgara_olustur(enlemler, boylamlar)
     # Eski sabit 20 km/adım ızgarada kalkıştan ~600 km sonra (i=3) en fazla 60 km sapılabiliyordu.
     assert izgara.zarf(3) * izgara.aralik_km >= 300.0
     sigmetler = [
@@ -529,11 +529,8 @@ def test_km_boylam_derecesine_cevir_yuksek_enlemde_daralmiyor():
     """Düz bir derece tamponu (km / 111.2) yüksek enlemde gerçek km'yi
     olduğundan dar gösterirdi (60°K'de "100 km" tamponu doğu-batı yönünde
     gerçekte sadece ~50 km'ye karşılık gelirdi, cos(enlem) küçüldüğü için)."""
-    from turbulans_radar.rota.rota_optimizasyonu import (
-        _KM_PER_DERECE_ENLEM,
-        _km_boylam_derecesine_cevir,
-        buyuk_daire_mesafesi_km,
-    )
+    from turbulans_radar.rota.geometri import _KM_PER_DERECE_ENLEM
+    from turbulans_radar.rota.rota_optimizasyonu import _km_boylam_derecesine_cevir, buyuk_daire_mesafesi_km
 
     for enlem in (0.0, 38.0, 60.0, -60.0, 74.0):
         derece = _km_boylam_derecesine_cevir(100.0, [enlem])
