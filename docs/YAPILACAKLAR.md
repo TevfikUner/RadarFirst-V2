@@ -66,7 +66,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
 
 ## Ertelenenler (19 Ekim anlık kontrolünden; `docs/denetim/2026-10-19/ANLIK_KONTROL.md`)
 
-- [ ] **Sonraki oturumun başında: yığını güncel imajlarla derle (19 Ekim'de uzun sürdüğü için yarıda bırakıldı).**
+- [x] (20 Ekim: derlendi, `GIT_SHA` = master, Prometheus profili açık, tüm sağlık kontrolleri tamam) **Sonraki oturumun başında: yığını güncel imajlarla derle (19 Ekim'de uzun sürdüğü için yarıda bırakıldı).**
   #114 (postgres 16 yeni özet) ve #115 (python 3.12-slim yeni özet) master'da, çalışan yığın bir önceki
   imajlarda (sağlıklı). Görev kuyruğu boşken WSL'de: `export GIT_SHA=$(git rev-parse HEAD) && docker compose
   pull db && docker compose build api worker migrate && docker compose up -d --wait` (~20 dk; taban imaj
@@ -109,7 +109,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
 - [x] (19 Ekim: `turbulans-ml-yeni-gun`; 19 Ekim'de 16 yeni gün / 1.509 örnek, skor yok) **§10 değerlendirme kodu:** test günü filtresi (`dondurma_gunleri.json` dışı), iki özellik seti,
   Fikir 4/8 tabloları ve ±1 gün duyarlılığı; test günlerine bakmadan commit'lenir, sonra ≥30 yeni
   gün olunca bir kez çalıştırılır (19 Ekim'de 16 yeni gün vardı).
-- [ ] **§10 değerlendirmesini bir kez çalıştır:** her gece işi sonrası `turbulans-ml-yeni-gun --durum`;
+- [ ] (20 Ekim: 25 yeni gün / 2.338 örnek, eşik 30) **§10 değerlendirmesini bir kez çalıştır:** her gece işi sonrası `turbulans-ml-yeni-gun --durum`;
   `yeterli: true` olunca `turbulans-ml-yeni-gun --cikti docs/sonuclar/<tarih>`, sonuç ne çıkarsa raporlanır.
 - [x] (20 Ekim: 57,6 MB indirildi; Spearman 0,81, eşdeğer eşik 6,5e-7; `docs/sonuclar/2026-10-20_turkiye_7seviye/`) **20 Ekim, gece işinden önceki ilk oturum (ONAY alındı, komite B-3):** Türkiye ERA5 7 seviye
   (31 CDS isteği, 15.624 alan, ≤130 MB; 19 Ekim bütçesi dolu olduğu için ertelendi; aynı UTC günü
