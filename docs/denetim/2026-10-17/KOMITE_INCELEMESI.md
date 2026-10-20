@@ -201,6 +201,6 @@ Ayrıntı ve kanıt [`URETIM_HAZIRLIK.md`](URETIM_HAZIRLIK.md)'de. Komite için 
 - **B-3 kapandı (20 Ekim):** 7 seviyeli Türkiye küpü indirildi (31 gün, 57,6 MB). 3 seviyeyle
   karşılaştırma: Spearman 0,81; riskli oranı %15,3 ↔ %17,3, 3 seviyede eşdeğer eşik 6,5e-7; FL340–360'ta
   3 seviye riski az gösteriyor. Varsayılan küp değişmedi (kullanıcı kararı); sonuç SISTEM_KARTI'nda.
-  Jüri cevabı: "Fark ölçüldü; 3 seviyeli düzen FL340–360'ta riski yaklaşık üçte bir az gösteriyor,
+  Jüri cevabı: "Fark ölçüldü; 3 seviyeli düzen FL340–360'ta riskli noktaları %26–32 az gösteriyor,
   eşik o düzene aktarıldığında 6,5e-7'ye denk geliyor. Türkiye'de beceri ise hâlâ ölçülmedi."
 - Açık kalan: yok (B-4 doğası gereği sınırlama olarak kalır).
