@@ -86,7 +86,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   testli. Kalan: SIGMET bayat/`erisilemedi` ve devre kesici için demo fikstürü (sunucu durumu taklidi gerekir).
 - [x] (20 Ekim: `docs/ISLETIM_KILAVUZU.md`; tatbikat ve sağlık denendi, şifre rotasyonu ve canlı geri yükleme denenmedi diye işaretli) **P1-10 işletim kılavuzu (M):** `docs/ISLETIM_KILAVUZU.md` (başlatma/durdurma, yedek ve geri
   yükleme, migration, AIRAC, gece işi, anahtar ve DB şifre rotasyonu); her prosedür bir kez denenir.
-- [ ] **P1-3 izleme yığını (ONAY: bildirim kanalı):** `izleme/prometheus.yml`, `alarmlar.yml`,
+- [x] (20 Ekim: `--profile izleme` Prometheus + 5 alarm, bildirim kanalı yok (önerilen); ayrı izleme anahtarı) **P1-3 izleme yığını (ONAY: bildirim kanalı):** `izleme/prometheus.yml`, `alarmlar.yml`,
   `--profile izleme`; bildirim kanalı (e-posta/Telegram vb.) kullanıcı seçer.
 - [x] (20 Ekim: ağa açıkken anahtarsız derin yanıt yalnız `durum`; yerelde ayrıntılı kalır) **P1-6 kalan kısmı:** üretimde anahtarsız `/saglik?derin=true` yalnız `{"durum"}` dönsün
   (bugün bileşen adı + durum dönüyor, ayrıntı yok).

@@ -84,6 +84,14 @@ Denendi: 19 Ekim ("güncel", istek yok); ilk gerçek yenileme 29 Ekim.
   Sırlar dosyadan da verilebilir (`*_FILE`, Docker secret). Yeni şifre koda ve sohbete yazılmaz.
 - Denenmedi (şifre değişikliği canlı bağlantıları keser; sunum sonrası bir kez denenir).
 
+## 9. İzleme (Prometheus)
+
+- Başlat: `docker compose --profile izleme up -d prometheus`; arayüz `http://127.0.0.1:9090`
+  ("Alerts" sekmesi; bildirim kanalı yok). Hedef durumu: "Status > Targets", `turbulans_api` UP olmalı.
+- Anahtar: `.env` `API_ANAHTARLARI` içindeki `prometheus:yonetici:...` ve aynı anahtarı tutan
+  `PROMETHEUS_ANAHTAR_DOSYASI` (depo dışı). Rotasyon §7'deki API anahtarı adımlarıyla; ikisi birlikte değişir.
+- Alarm eşikleri `izleme/alarmlar.yml`; değişince `docker compose restart prometheus`.
+
 ## 8. Sık sorunlar
 
 | Belirti | Neden | Çözüm |
