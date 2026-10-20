@@ -46,6 +46,18 @@ def _genel_mi(adres: str) -> bool:
     return ip.is_global
 
 
+def log_icin_maskele(url: str) -> str:
+    try:
+        parcalar = urlsplit(url)
+        host, port = parcalar.hostname, parcalar.port
+    except ValueError:
+        return "***"
+    if not parcalar.scheme or not host:
+        return "***"
+    host = f"[{host}]" if ":" in host else host
+    return f"{parcalar.scheme}://{host}{f':{port}' if port else ''}/***"
+
+
 def webhook_url_dogrula(deger: str | None) -> str | None:
     """API isteğinde: biçim, izin listesi ve (yazıyla verilmişse) IP kontrolü."""
     if deger is None:
