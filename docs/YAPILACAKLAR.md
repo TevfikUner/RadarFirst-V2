@@ -86,7 +86,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   yükleme, migration, AIRAC, gece işi, anahtar ve DB şifre rotasyonu); her prosedür bir kez denenir.
 - [ ] **P1-3 izleme yığını (ONAY: bildirim kanalı):** `izleme/prometheus.yml`, `alarmlar.yml`,
   `--profile izleme`; bildirim kanalı (e-posta/Telegram vb.) kullanıcı seçer.
-- [ ] **P1-6 kalan kısmı:** üretimde anahtarsız `/saglik?derin=true` yalnız `{"durum"}` dönsün
+- [x] (20 Ekim: ağa açıkken anahtarsız derin yanıt yalnız `durum`; yerelde ayrıntılı kalır) **P1-6 kalan kısmı:** üretimde anahtarsız `/saglik?derin=true` yalnız `{"durum"}` dönsün
   (bugün bileşen adı + durum dönüyor, ayrıntı yok).
 - [ ] **Worker bellek sınırı (P1-1 kalan):** bir gece işi sırasında `docker stats` ile tepe bellek
   ölçülür, sonra `docker-compose.yml`'de worker'a payla `mem_limit` yazılır (ölçümsüz sınır işi OOM ile öldürebilir).

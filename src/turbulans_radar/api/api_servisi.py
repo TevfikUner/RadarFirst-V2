@@ -1284,10 +1284,14 @@ async def saglik_kontrolu(
     dengeleyici probunda PostgreSQL'e gitmez. `?derin=true`: PostgreSQL
     (erişilemezse 503) + SIGMET tazeliği, canlı GFS, görev kuyruğu,
     kısıtlı sahalar, küp önbelleği ve yerel kütüphaneler; operasyonel bir
-    sorun varsa durum 'bozulmus' olur (HTTP 200, monitoring gövdeye bakar)."""
+    sorun varsa durum 'bozulmus' olur (HTTP 200, monitoring gövdeye bakar).
+    Ağa açık kurulumda (API_YAYIN_ADRESI yerel değil ya da AG_ACILISI) anahtarsız
+    yanıt yalnız durumu taşır (P1-6); ayrıntı yönetici anahtarıyla /api/v1/sistem/durum'da."""
     if not derin:
         return {"durum": "ayakta"}
     kod, govde = await _derin_saglik_onbellekli()
+    if ag_acik_mi():
+        govde = {"durum": govde["durum"]}
     return JSONResponse(status_code=kod, content=govde) if kod != 200 else govde
 
 

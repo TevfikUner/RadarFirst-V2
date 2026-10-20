@@ -756,6 +756,13 @@ async def test_saglik_derin_gercek_db_ile_basarili(istemci):
     assert yanit.json()["veritabani"] == "erisilebilir"
 
 
+async def test_saglik_derin_ag_acikken_yalniz_durum_doner(istemci, monkeypatch):
+    monkeypatch.setenv("AG_ACILISI", "true")
+    yanit = await istemci.get("/saglik?derin=true")
+    assert yanit.status_code == 200
+    assert {k for k, v in yanit.json().items() if v is not None} == {"durum"}
+
+
 async def test_saglik_derin_db_erisilemezse_503(istemci, monkeypatch):
     from sqlalchemy.ext.asyncio import create_async_engine
 
