@@ -71,7 +71,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   imajlarda (sağlıklı). Görev kuyruğu boşken WSL'de: `export GIT_SHA=$(git rev-parse HEAD) && docker compose
   pull db && docker compose build api worker migrate && docker compose up -d --wait` (~20 dk; taban imaj
   değiştiği için bağımlılıklar yeniden kurulur). Sonra `/saglik?derin=true` "tamam" ve `migrate_yedegi` yedeği.
-- [ ] **PR #116 (CI postgres servis imajı compose ile aynı özette):** CI'ı geçince birleştir; yalnız
+- [x] (20 Ekim, birleşti) **PR #116 (CI postgres servis imajı compose ile aynı özette):** CI'ı geçince birleştir; yalnız
   `.github/workflows/ci.yml` iki satır.
 
 - [x] (20 Ekim: önerilen (a) uygulandı, önbellek isabeti sınırdan muaf) **Rota hız sınırı kararı (S-9, kullanıcı 19 Ekim'de erteledi):** aynı NAT arkasındaki 10 cihazda
