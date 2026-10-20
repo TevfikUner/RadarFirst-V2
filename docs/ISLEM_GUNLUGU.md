@@ -2,6 +2,14 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-20
+
+- ✅ S-9 kararı: önbellekteki rota hız sınırına sayılmıyor; P1-6 ağa açıkken anahtarsız sağlık yalnız durum.
+- ✅ S-3 senaryo seçici; S-4 kısmen (ÖNERİ YOK, kapsam dışı); P1-10 işletim kılavuzu; tatbikat GEÇTİ (4 sn).
+- ✅ P1-3 Prometheus izleme profili + 5 alarm (promtool geçti); ayrı izleme anahtarı `.env`'de.
+- ⚠️ Fikir 11: avwx ile 499/500 uyuşma; IEM ikinci /TB grubunu atıyor, seyir raporlarının %0,24'ünde etiket döner (dondurulmuş veri değişmedi).
+- ⏳ B-3 7 seviyeli küp indiriliyor (CDS yavaş); gece işi sürüyor, worker bellek tepesi ölçülüyor.
+
 ## 2026-10-19 (gece; anlık kontrol, `docs/denetim/2026-10-19/ANLIK_KONTROL.md`)
 
 - ✅ YAPILACAKLAR "Ertelenenler": rota sınırı kararı, S-3, S-4, P1-3, P1-6, P1-10, worker sınırı (#113).
