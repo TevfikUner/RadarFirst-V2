@@ -165,7 +165,8 @@ iki kez de yeniden kuyruğa aldı).
      (%40 ret, sonrasında önbellekteki rota da reddedilir). Önbellekten dönen yanıt hesap
      yapmadığı halde sınırdan düşüyor. Seçenekler (karar kullanıcıda): önbellek isabetini
      sınırdan muaf tutmak, sınırı cihaz/anahtar başına yapmak ya da NAT'lı kurulumda
-     `ROTA_HESABI_DAKIKADA_MAKS`'ı yükseltmek.
+     `ROTA_HESABI_DAKIKADA_MAKS`'ı yükseltmek. **20 Ekim kararı:** önbellek isabeti sınırdan
+     muaf (yalnız hesap yapan istek sayılır); sınır IP başına ve 20/dk kaldı.
    - Nokta tahmini p95 1,7 sn (H4 hedefi 1 sn), rota p95 7,4 sn (H5 hedefi 5 sn): tek süreç
      ve daha büyük küp; H4/H5 ölçümü 4 süreç ve demo verisiyleydi, doğrudan karşılaştırılamaz.
      Hata (5xx, zaman aşımı) yok.
