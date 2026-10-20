@@ -756,6 +756,13 @@ async def test_saglik_derin_gercek_db_ile_basarili(istemci):
     assert yanit.json()["veritabani"] == "erisilebilir"
 
 
+async def test_saglik_derin_ag_acikken_yalniz_durum_doner(istemci, monkeypatch):
+    monkeypatch.setenv("AG_ACILISI", "true")
+    yanit = await istemci.get("/saglik?derin=true")
+    assert yanit.status_code == 200
+    assert {k for k, v in yanit.json().items() if v is not None} == {"durum"}
+
+
 async def test_saglik_derin_db_erisilemezse_503(istemci, monkeypatch):
     from sqlalchemy.ext.asyncio import create_async_engine
 
@@ -1263,6 +1270,29 @@ async def test_pilot_rota_hesabi_istemci_basina_sinirlanir(istemci, api_anahtari
     }
     yanit = await istemci.post("/api/v1/simulasyon/rota", json=govde, headers={"X-API-Key": api_anahtari})
     assert yanit.status_code == 429 and "Retry-After" in yanit.headers
+
+
+async def test_onbellekteki_rota_hiz_sinirindan_dusmez(api_anahtari, monkeypatch):
+    istek = api_servisi.RotaSimulasyonuIstegi(
+        baslangic_enlem=41.0,
+        baslangic_boylam=28.9,
+        bitis_enlem=39.9,
+        bitis_boylam=32.8,
+        irtifa_ft=34000,
+        zaman="2019-01-15T10:00:00",
+        ucak_modeli="A320",
+    )
+    hazir = {"onbellekten": True}
+
+    async def onbellekte(anahtar):
+        return hazir, 0
+
+    async def sinir(*a, **k):
+        raise AssertionError("önbellek isabeti sınırdan düşmemeli")
+
+    monkeypatch.setattr(ortak, "_rota_onbellekten_al", onbellekte)
+    monkeypatch.setattr(ortak, "_hiz_sinirini_kontrol_et", sinir)
+    assert await api_servisi.rota_simulasyonu(istek, request=None, rol="pilot") is hazir
 
 
 async def test_hiz_siniri_sayacina_ulasilamazsa_surec_ici_sayac_kullanilir(monkeypatch):

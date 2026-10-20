@@ -264,6 +264,29 @@ services:
     volumes:
       - ./ciktilar:/app/ciktilar
 
+  # İzleme (P1-3): docker compose --profile izleme up -d prometheus -> http://127.0.0.1:9090
+  # Alarmlar izleme/alarmlar.yml; bildirim kanalı yok (Alerts sekmesinde görünür).
+  prometheus:
+    image: prom/prometheus:v3.5.0@sha256:63805ebb8d2b3920190daf1cb14a60871b16fd38bed42b857a3182bc621f4996
+    profiles: ["izleme"]
+    logging: *gunluk
+    restart: unless-stopped
+    mem_limit: 512m
+    depends_on:
+      api:
+        condition: service_healthy
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    ports:
+      - "127.0.0.1:9090:9090"
+    volumes:
+      - ./izleme/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./izleme/alarmlar.yml:/etc/prometheus/alarmlar.yml:ro
+      - prometheus_veri:/prometheus
+    secrets: [prometheus_anahtari]
+
   # TLS sonlandıran ters vekil (P0-1, bkz. otomasyon/Caddyfile, README "TLS vekili").
   #   docker compose --profile uretim up -d
   # API host portu 127.0.0.1'de kalır; dışarıya yalnız vekil açılır.
@@ -300,7 +323,10 @@ secrets:
     file: ${CDSAPI_RC_DOSYASI:-/dev/null}
   yedek_parolasi:
     file: ${YEDEK_PAROLA_DOSYASI:-/dev/null}
+  prometheus_anahtari:
+    file: ${PROMETHEUS_ANAHTAR_DOSYASI:-/dev/null}
 
 volumes:
   turbulans_pgdata:
   vekil_veri:
+  prometheus_veri:

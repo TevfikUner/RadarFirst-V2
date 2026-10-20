@@ -166,7 +166,7 @@
           "Simülasyon"
         ],
         "summary": "Rota Simulasyonu",
-        "description": "Verilen başlangıç/bitiş/irtifa/tarih/uçak için iki rota üretir: büyük\ndaire (\"normal\") ve ERA5 rüzgarına göre yanal kaydırılmış en hızlı aday\n(\"optimize\") -- bkz. rota_optimizasyonu.py (kapsam dışı bölge/tarih için\ndürüst geri düşüş davranışı dahil). A* CPU ağır olduğu ve pilot anahtarı\nda çağırabildiği için istemci başına hız sınırı (ROTA_HESABI_DAKIKADA_MAKS)\nve süreç başına eşzamanlılık tavanı uygulanır; hesap ayrı thread'dedir.",
+        "description": "Verilen başlangıç/bitiş/irtifa/tarih/uçak için iki rota üretir: büyük\ndaire (\"normal\") ve ERA5 rüzgarına göre yanal kaydırılmış en hızlı aday\n(\"optimize\") -- bkz. rota_optimizasyonu.py (kapsam dışı bölge/tarih için\ndürüst geri düşüş davranışı dahil). A* CPU ağır olduğu ve pilot anahtarı\nda çağırabildiği için istemci başına hız sınırı (ROTA_HESABI_DAKIKADA_MAKS)\nve süreç başına eşzamanlılık tavanı uygulanır; hesap ayrı thread'dedir.\nÖnbellekten dönen yanıt hesap yapmadığı için sınırdan düşmez (S-9: aynı NAT'taki\ntabletler aynı rotayı ister).",
         "operationId": "rota_simulasyonu_api_v1_simulasyon_rota_post",
         "parameters": [
           {
@@ -2669,7 +2669,7 @@
           "Sistem"
         ],
         "summary": "Saglik Kontrolu",
-        "description": "Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği).\nVarsayılan (sığ) davranış sadece süreç ayakta mı diye bakar, her yük\ndengeleyici probunda PostgreSQL'e gitmez. `?derin=true`: PostgreSQL\n(erişilemezse 503) + SIGMET tazeliği, canlı GFS, görev kuyruğu,\nkısıtlı sahalar, küp önbelleği ve yerel kütüphaneler; operasyonel bir\nsorun varsa durum 'bozulmus' olur (HTTP 200, monitoring gövdeye bakar).",
+        "description": "Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği).\nVarsayılan (sığ) davranış sadece süreç ayakta mı diye bakar, her yük\ndengeleyici probunda PostgreSQL'e gitmez. `?derin=true`: PostgreSQL\n(erişilemezse 503) + SIGMET tazeliği, canlı GFS, görev kuyruğu,\nkısıtlı sahalar, küp önbelleği ve yerel kütüphaneler; operasyonel bir\nsorun varsa durum 'bozulmus' olur (HTTP 200, monitoring gövdeye bakar).\nAğa açık kurulumda (API_YAYIN_ADRESI yerel değil ya da AG_ACILISI) anahtarsız\nyanıt yalnız durumu taşır (P1-6); ayrıntı yönetici anahtarıyla /api/v1/sistem/durum'da.",
         "operationId": "saglik_kontrolu_saglik_get",
         "parameters": [
           {

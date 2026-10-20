@@ -132,3 +132,31 @@ def test_kalan_riskte_bolumler_ve_kabin_onerisi_dispecer_dilinde(canli_sunucu, t
     assert sayfa.locator("#riskli-bolumler-tablosu tr").count() > 1
     assert "FL310" in sayfa.inner_text("#s-optimize-irtifa")
     assert ":" in sayfa.inner_text("#s-optimize-sure")
+
+
+def _senaryoyla_simule_et(canli_sunucu, sayfa, kimlik):
+    sayfa.goto(f"{canli_sunucu['taban_url']}/harita/ucus_simulasyonu.html")
+    sayfa.wait_for_selector("#kontrol-paneli")
+    sayfa.fill("#giris-anahtar", canli_sunucu["api_anahtari"])
+    sayfa.locator("#giris-anahtar").press("Tab")
+    sayfa.wait_for_function("document.querySelectorAll('#ucak-modeli option[value=\"A320\"]').length > 0")
+    sayfa.select_option("#ucak-modeli", "A320")
+    sayfa.wait_for_function(f"document.querySelectorAll('#senaryo option[value=\"{kimlik}\"]').length > 0")
+    sayfa.select_option("#senaryo", kimlik)
+    sayfa.click("#simule-et-buton")
+    sayfa.wait_for_selector("#s-normal-turbulans:not(:empty)", timeout=60000)
+
+
+def test_senaryo_secici_alanlari_doldurur_ve_aciklama_gosterir(canli_sunucu, tarayici_sayfasi):
+    sayfa = tarayici_sayfasi["sayfa"]
+    sayfa.goto(f"{canli_sunucu['taban_url']}/harita/ucus_simulasyonu.html")
+    sayfa.wait_for_function("document.querySelectorAll('#senaryo option[value=\"risk_yok\"]').length > 0")
+    sayfa.select_option("#senaryo", "risk_yok")
+    assert sayfa.input_value("#baslangic-boylam") == "27.10" and sayfa.input_value("#zaman") == "2019-01-31T00:00"
+    assert "Risk yoksa" in sayfa.inner_text("#senaryo-aciklamasi")
+
+
+def test_guvenli_rota_yok_senaryosunda_oneri_yok_yazar(canli_sunucu, tarayici_sayfasi):
+    sayfa = tarayici_sayfasi["sayfa"]
+    _senaryoyla_simule_et(canli_sunucu, sayfa, "guvenli_rota_yok")
+    assert "öneri yok" in sayfa.inner_text("#tasarruf-satiri")

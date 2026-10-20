@@ -36,7 +36,7 @@ Yollar depo köküne görelidir; makineye özgü yollar `<DEPO>`, `<KULLANICI>` 
 | S-8 | ◐ | 19 Ekim | `scripts/sunum_paketi.sh`; yalnız sözdizimi denendi, ilk çalıştırma 25 Ekim |
 | S-9 | ✅ (ölçüm) | 19 Ekim | `PERFORMANS_RAPORU.md` §5.5: tek IP'den 10 istemcide rota %40 429, önbellek isabeti de sınırdan düşüyor (karar kullanıcıda) |
 | P1-5 | ✅ | 19 Ekim | `.dockerignore`: CLAUDE.md, .mcp.json, docs/, scripts/, .githooks/, örnek ortam dosyaları; CI imajda yokluklarını denetler |
-| P1-6 | ◐ | 19 Ekim | `--no-server-header`. `--proxy-headers` uvicorn'da varsayılan, `FORWARDED_ALLOW_IPS` zaten vekile sabit; anahtarsız derin sağlık yanıtı değişmedi |
+| P1-6 | ✅ | 19–20 Ekim | `--no-server-header`. `--proxy-headers` uvicorn'da varsayılan, `FORWARDED_ALLOW_IPS` zaten vekile sabit; 20 Ekim: ağa açıkken anahtarsız derin sağlık yalnız `durum` döner, ayrıntı `/api/v1/sistem/durum` (yönetici) |
 | P1-9 | ✅ | 19 Ekim, #105 | `/saglik` `ats_agi` bitişe ≤ 7 gün kala `bitiyor`; AIRAC bitince otomatik yenileme (`cli/airac_yenile.py`, Windows görevi) |
 | S-7 | ✅ | 19 Ekim | "Uçuş sırasında yeniden hesapla" düğmesinde kalıcı "gösterim amaçlı · NON-OPERATIONAL" |
 

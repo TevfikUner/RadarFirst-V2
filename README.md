@@ -1410,6 +1410,12 @@ yeniden kodlar (`veri/iwxxm.py`; yapı WMO'nun resmi örneği wmo-im/iwxxm
   `turbulans_gorev_kuyrugu{durum}`, `turbulans_gorev_kuyrugu_en_eski_bekleme_saniye`,
   `turbulans_sigmet_yas_saniye`, `turbulans_ws_baglanti_sayisi`. Örnek alarmlar:
   SIGMET yaşı > 1800 sn, A* p95 > 5 sn, en eski bekleme > 120 sn.
+- **Hazır izleme yığını (P1-3):** `docker compose --profile izleme up -d prometheus` ->
+  `http://127.0.0.1:9090`. Ayar `izleme/prometheus.yml`, alarmlar `izleme/alarmlar.yml`
+  (API erişilemiyor, SIGMET bayat, kuyruk birikiyor, rota p95 > 5 sn, 429 artışı). Bildirim
+  kanalı yok; alarmlar "Alerts" sekmesinde görünür. Prometheus `/metrics`'i kendi yönetici
+  anahtarıyla okur: `.env`'de `API_ANAHTARLARI=prometheus:yonetici:<anahtar>` ve aynı anahtarı
+  içeren depo dışı dosya `PROMETHEUS_ANAHTAR_DOSYASI` (Docker secret).
 - **Yapılandırılmış log:** `LOG_BICIMI=json` ile satır başına bir JSON
   nesnesi (`zaman` UTC, `seviye`, `kaynak`, `mesaj`, `hata`) -- Loki/ELK
   alanları ayrıştırmadan sorgular.

@@ -1,0 +1,44 @@
+[
+  {
+    "kimlik": "varsayilan",
+    "ad": "İstanbul → Antalya (5 Ocak 2019)",
+    "aciklama": "Sayfanın varsayılan değerleri.",
+    "alanlar": {"baslangic-enlem": "41.00", "baslangic-boylam": "28.90", "bitis-enlem": "36.90", "bitis-boylam": "30.70", "irtifa-ft": "29000", "zaman": "2019-01-05T12:00"}
+  },
+  {
+    "kimlik": "yanal_kacinma",
+    "ad": "Doğu yönü, riskli bölümden yanal kaçınma",
+    "aciklama": "Demo adım 4: büyük dairede FL350'de riskli bölüm, en ucuz tam güvenli seçenek yanal sapma.",
+    "alanlar": {"baslangic-enlem": "41.00", "baslangic-boylam": "29.00", "bitis-enlem": "40.50", "bitis-boylam": "43.50", "irtifa-ft": "35000", "zaman": "2019-01-15T20:00"}
+  },
+  {
+    "kimlik": "kalan_risk",
+    "ad": "Kalan risk ve kabin önerisi (FL310)",
+    "aciklama": "Önerilen rotada risk kalırsa riskli bölümler ve dispeçer dilinde kabin önerisi.",
+    "alanlar": {"baslangic-enlem": "41.00", "baslangic-boylam": "28.90", "bitis-enlem": "36.90", "bitis-boylam": "30.70", "irtifa-ft": "31000", "zaman": "2019-01-01T06:00"}
+  },
+  {
+    "kimlik": "risk_yok",
+    "ad": "İzmir → Van, kalan risk yok",
+    "aciklama": "Risk yoksa rota değişmez, kabin bildirimi çıkmaz.",
+    "alanlar": {"baslangic-enlem": "38.40", "baslangic-boylam": "27.10", "bitis-enlem": "38.50", "bitis-boylam": "43.40", "irtifa-ft": "35000", "zaman": "2019-01-31T00:00"}
+  },
+  {
+    "kimlik": "kisitli_saha",
+    "ad": "Malatya → Musul, kısıtlı sahadan kaçınma",
+    "aciklama": "Demo adım 5: sert kısıt. ÖRNEK kısıtlı saha verisiyle (resmî değil).",
+    "alanlar": {"baslangic-enlem": "38.35", "baslangic-boylam": "38.31", "bitis-enlem": "36.34", "bitis-boylam": "43.13", "irtifa-ft": "36000", "zaman": "2019-01-05T12:00"}
+  },
+  {
+    "kimlik": "guvenli_rota_yok",
+    "ad": "Beyrut → Bağdat, güvenli rota yok (ÖNERİ YOK)",
+    "aciklama": "Fail-safe: koridor ÖRNEK Suriye sahasını tamamen kesiyor; sistem rota önermez. Bölge veri kapsamı dışında, risk hesaplanmaz.",
+    "alanlar": {"baslangic-enlem": "33.90", "baslangic-boylam": "35.60", "bitis-enlem": "33.30", "bitis-boylam": "44.30", "irtifa-ft": "35000", "zaman": "2019-01-15T20:00"}
+  },
+  {
+    "kimlik": "kapsam_disi",
+    "ad": "İstanbul → New York, veri kapsamı dışı",
+    "aciklama": "Fail-safe: veri yokken risk '0' değil 'hesaplanmadı' yazılır.",
+    "alanlar": {"baslangic-enlem": "41.00", "baslangic-boylam": "28.90", "bitis-enlem": "40.70", "bitis-boylam": "-74.00", "irtifa-ft": "34000", "zaman": "2019-01-05T12:00"}
+  }
+]

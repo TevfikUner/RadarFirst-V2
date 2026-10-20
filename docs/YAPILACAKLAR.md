@@ -71,22 +71,24 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   imajlarda (sağlıklı). Görev kuyruğu boşken WSL'de: `export GIT_SHA=$(git rev-parse HEAD) && docker compose
   pull db && docker compose build api worker migrate && docker compose up -d --wait` (~20 dk; taban imaj
   değiştiği için bağımlılıklar yeniden kurulur). Sonra `/saglik?derin=true` "tamam" ve `migrate_yedegi` yedeği.
-- [ ] **PR #116 (CI postgres servis imajı compose ile aynı özette):** CI'ı geçince birleştir; yalnız
+- [x] (20 Ekim, birleşti) **PR #116 (CI postgres servis imajı compose ile aynı özette):** CI'ı geçince birleştir; yalnız
   `.github/workflows/ci.yml` iki satır.
 
-- [ ] **Rota hız sınırı kararı (S-9, kullanıcı 19 Ekim'de erteledi):** aynı NAT arkasındaki 10 cihazda
+- [x] (20 Ekim: önerilen (a) uygulandı, önbellek isabeti sınırdan muaf) **Rota hız sınırı kararı (S-9, kullanıcı 19 Ekim'de erteledi):** aynı NAT arkasındaki 10 cihazda
   rota isteklerinin %40'ı 429 aldı; önbellekten dönen rota da sınıra takılıyor (`PERFORMANS_RAPORU.md`
   §5.5). Seçenekler: (a) önbellek isabetini sınırdan muaf tutmak, (b) sınırı cihaz/anahtar başına
   yapmak, (c) `ROTA_HESABI_DAKIKADA_MAKS`'ı yükseltmek. Karar kullanıcıda; sonra uygulanır ve S-9 yeniden ölçülür.
-- [ ] **S-3 senaryo seçici (M):** `web/ucus_simulasyonu.html` 2019 değerleriyle sabit açılıyor;
+- [x] (20 Ekim: `web/veri/senaryolar.json`, 7 senaryo, yalnız demo/test vakaları; Playwright) **S-3 senaryo seçici (M):** `web/ucus_simulasyonu.html` 2019 değerleriyle sabit açılıyor;
   `web/veri/senaryolar.json` + açılır liste, senaryo başına Playwright testi.
 - [ ] **S-4 başarısızlık durumları simülasyonda (M):** "ÖNERİ YOK", SIGMET bayat, `erisilemedi`, devre
   kesici gösterilebilsin; demo profilinde fikstür (gerçek arşiv yoksa SENTETİK etiketli).
-- [ ] **P1-10 işletim kılavuzu (M):** `docs/ISLETIM_KILAVUZU.md` (başlatma/durdurma, yedek ve geri
+  20 Ekim: "ÖNERİ YOK" (Beyrut → Bağdat, örnek Suriye sahası) ve kapsam dışı senaryoları seçicide, Playwright
+  testli. Kalan: SIGMET bayat/`erisilemedi` ve devre kesici için demo fikstürü (sunucu durumu taklidi gerekir).
+- [x] (20 Ekim: `docs/ISLETIM_KILAVUZU.md`; tatbikat ve sağlık denendi, şifre rotasyonu ve canlı geri yükleme denenmedi diye işaretli) **P1-10 işletim kılavuzu (M):** `docs/ISLETIM_KILAVUZU.md` (başlatma/durdurma, yedek ve geri
   yükleme, migration, AIRAC, gece işi, anahtar ve DB şifre rotasyonu); her prosedür bir kez denenir.
-- [ ] **P1-3 izleme yığını (ONAY: bildirim kanalı):** `izleme/prometheus.yml`, `alarmlar.yml`,
+- [x] (20 Ekim: `--profile izleme` Prometheus + 5 alarm, bildirim kanalı yok (önerilen); ayrı izleme anahtarı) **P1-3 izleme yığını (ONAY: bildirim kanalı):** `izleme/prometheus.yml`, `alarmlar.yml`,
   `--profile izleme`; bildirim kanalı (e-posta/Telegram vb.) kullanıcı seçer.
-- [ ] **P1-6 kalan kısmı:** üretimde anahtarsız `/saglik?derin=true` yalnız `{"durum"}` dönsün
+- [x] (20 Ekim: ağa açıkken anahtarsız derin yanıt yalnız `durum`; yerelde ayrıntılı kalır) **P1-6 kalan kısmı:** üretimde anahtarsız `/saglik?derin=true` yalnız `{"durum"}` dönsün
   (bugün bileşen adı + durum dönüyor, ayrıntı yok).
 - [ ] **Worker bellek sınırı (P1-1 kalan):** bir gece işi sırasında `docker stats` ile tepe bellek
   ölçülür, sonra `docker-compose.yml`'de worker'a payla `mem_limit` yazılır (ölçümsüz sınır işi OOM ile öldürebilir).

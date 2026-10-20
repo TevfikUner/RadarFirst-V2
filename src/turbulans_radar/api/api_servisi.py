@@ -844,15 +844,17 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
     dürüst geri düşüş davranışı dahil). A* CPU ağır olduğu ve pilot anahtarı
     da çağırabildiği için istemci başına hız sınırı (ROTA_HESABI_DAKIKADA_MAKS)
     ve süreç başına eşzamanlılık tavanı uygulanır; hesap ayrı thread'dedir.
+    Önbellekten dönen yanıt hesap yapmadığı için sınırdan düşmez (S-9: aynı NAT'taki
+    tabletler aynı rotayı ister).
     """
-    await ortak._hiz_sinirini_kontrol_et(
-        f"rota_hesabi:{ortak._istemci_kimligi(request, rol)}", maks=config.ROTA_HESABI_DAKIKADA_MAKS, pencere_saniye=60
-    )
     onbellek_anahtari = istek.model_dump_json()
     onceki, damga = await ortak._rota_onbellekten_al(onbellek_anahtari)
     if onceki is not None:
         metrikler.ROTA_ONBELLEGI.labels("isabet").inc()
         return onceki
+    await ortak._hiz_sinirini_kontrol_et(
+        f"rota_hesabi:{ortak._istemci_kimligi(request, rol)}", maks=config.ROTA_HESABI_DAKIKADA_MAKS, pencere_saniye=60
+    )
     metrikler.ROTA_ONBELLEGI.labels("iska").inc()
     async with ortak._agir_hesap_yuvasi():
         hesap_baslangici = time.monotonic()
@@ -1282,10 +1284,14 @@ async def saglik_kontrolu(
     dengeleyici probunda PostgreSQL'e gitmez. `?derin=true`: PostgreSQL
     (erişilemezse 503) + SIGMET tazeliği, canlı GFS, görev kuyruğu,
     kısıtlı sahalar, küp önbelleği ve yerel kütüphaneler; operasyonel bir
-    sorun varsa durum 'bozulmus' olur (HTTP 200, monitoring gövdeye bakar)."""
+    sorun varsa durum 'bozulmus' olur (HTTP 200, monitoring gövdeye bakar).
+    Ağa açık kurulumda (API_YAYIN_ADRESI yerel değil ya da AG_ACILISI) anahtarsız
+    yanıt yalnız durumu taşır (P1-6); ayrıntı yönetici anahtarıyla /api/v1/sistem/durum'da."""
     if not derin:
         return {"durum": "ayakta"}
     kod, govde = await _derin_saglik_onbellekli()
+    if ag_acik_mi():
+        govde = {"durum": govde["durum"]}
     return JSONResponse(status_code=kod, content=govde) if kod != 200 else govde
 
 
