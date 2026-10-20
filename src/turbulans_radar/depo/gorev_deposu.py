@@ -16,8 +16,9 @@ altyapısı gerektirmez:
 
 import uuid
 from datetime import UTC, datetime, timedelta
+from typing import cast
 
-from sqlalchemy import case, delete, func, select, update
+from sqlalchemy import CursorResult, case, delete, func, select, update
 from sqlalchemy.orm import Session
 
 from turbulans_radar.depo.models import AnalizGorevi
@@ -42,6 +43,10 @@ _DISARI_VERILEN_ALANLAR = (
     "baslama_zamani",
     "bitis_zamani",
 )
+
+
+def _etkilenen(sonuc) -> int:
+    return cast(CursorResult, sonuc).rowcount
 
 
 def _disari_ver(gorev: AnalizGorevi) -> dict:
@@ -235,7 +240,7 @@ def kalp_atisi_gonder(gorev_idleri, isci: str, motor=None) -> int:
             .values(kalp_atisi=datetime.now(UTC))
         )
         oturum.commit()
-        return sonuc.rowcount
+        return _etkilenen(sonuc)
 
 
 def gorevi_bitir(gorev_id: str, isci: str, durum: str, aciklama=None, ozet=None, motor=None) -> bool:
@@ -249,7 +254,7 @@ def gorevi_bitir(gorev_id: str, isci: str, durum: str, aciklama=None, ozet=None,
             .values(durum=durum, aciklama=aciklama, ozet=ozet, bitis_zamani=datetime.now(UTC))
         )
         oturum.commit()
-        return sonuc.rowcount == 1
+        return _etkilenen(sonuc) == 1
 
 
 def bayat_gorevleri_kurtar(bayat_sure: timedelta, maks_deneme: int, motor=None) -> dict:
@@ -262,20 +267,24 @@ def bayat_gorevleri_kurtar(bayat_sure: timedelta, maks_deneme: int, motor=None) 
         func.coalesce(AnalizGorevi.kalp_atisi, AnalizGorevi.olusturulma_zamani) < sinir
     )
     with Session(motor) as oturum:
-        yeniden = oturum.execute(
-            update(AnalizGorevi)
-            .where(bayat, AnalizGorevi.deneme_sayisi < maks_deneme)
-            .values(durum="kuyrukta", isci=None, kalp_atisi=None)
-        ).rowcount
-        yarida = oturum.execute(
-            update(AnalizGorevi)
-            .where(bayat)
-            .values(
-                durum="yarida_kaldi",
-                aciklama="Görevi çalıştıran işçi durdu (yeniden başlatma/çökme) ve deneme hakkı doldu; tekrar tetikle.",
-                bitis_zamani=datetime.now(UTC),
+        yeniden = _etkilenen(
+            oturum.execute(
+                update(AnalizGorevi)
+                .where(bayat, AnalizGorevi.deneme_sayisi < maks_deneme)
+                .values(durum="kuyrukta", isci=None, kalp_atisi=None)
             )
-        ).rowcount
+        )
+        yarida = _etkilenen(
+            oturum.execute(
+                update(AnalizGorevi)
+                .where(bayat)
+                .values(
+                    durum="yarida_kaldi",
+                    aciklama="Görevi çalıştıran işçi durdu (yeniden başlatma/çökme) ve deneme hakkı doldu; tekrar tetikle.",
+                    bitis_zamani=datetime.now(UTC),
+                )
+            )
+        )
         oturum.commit()
     return {"yeniden_kuyruga": yeniden, "yarida_kaldi": yarida}
 

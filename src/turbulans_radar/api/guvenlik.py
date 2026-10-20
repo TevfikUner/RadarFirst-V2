@@ -35,7 +35,9 @@ def _anahtar_eslesiyor(verilen: str | None, beklenen: str | None) -> bool:
     # anahtarın ilk kaç karakterinin tutturulduğu sızabilir (timing attack).
     # bytes: str ile compare_digest ASCII dışı karakterde TypeError atar
     # (başlık latin-1 çözülür, örn. 'é') -- 401 yerine 500 dönerdi.
-    return bool(verilen and beklenen) and secrets.compare_digest(verilen.encode(), beklenen.encode())
+    if not verilen or not beklenen:
+        return False
+    return secrets.compare_digest(verilen.encode(), beklenen.encode())
 
 
 def _tanimli_anahtarlar() -> list[tuple[str, str, str]]:
@@ -48,7 +50,8 @@ def _tanimli_anahtarlar() -> list[tuple[str, str, str]]:
         anahtarlar.append(("pilot", "pilot", pilot))
     for girdi in os.environ.get("API_ANAHTARLARI", "").split(","):
         if _gecerli_anahtar_girdisi(girdi):
-            anahtarlar.append(tuple(p.strip() for p in girdi.split(":", 2)))
+            kimlik, rol, anahtar = (p.strip() for p in girdi.split(":", 2))
+            anahtarlar.append((kimlik, rol, anahtar))
     return anahtarlar
 
 
@@ -143,7 +146,7 @@ def ws_bileti_gecerli_mi(bilet: str | None) -> bool:
 async def ws_biletini_kullan(bilet: str | None) -> bool:
     """Geçerli ve daha önce kullanılmamışsa bileti tüketir. Kullanılmışlık PostgreSQL'de
     tutulur (P1-7): WEB_CONCURRENCY>1 iken de bilet yalnız bir kez kullanılır."""
-    if not ws_bileti_gecerli_mi(bilet):
+    if bilet is None or not ws_bileti_gecerli_mi(bilet):
         return False
     from turbulans_radar.depo.hiz_siniri import ilk_kullanim_mi
 

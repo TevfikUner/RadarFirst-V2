@@ -8,6 +8,7 @@ da akışı çözümlenemediğinde başka bir kaynağın taze kayıtları onu ö
 """
 
 from datetime import UTC, datetime
+from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
@@ -32,7 +33,10 @@ def kaynak_durumunu_kaydet(kaynak: str, basarili: bool, hata: str | None = None,
         "son_ozet": ozet,
     }
     ifade = insert(VeriKaynagiDurumu).values(satir)
-    guncellenecek = {"son_deneme_zamani": ifade.excluded.son_deneme_zamani, "son_ozet": ifade.excluded.son_ozet}
+    guncellenecek: dict[str, Any] = {
+        "son_deneme_zamani": ifade.excluded.son_deneme_zamani,
+        "son_ozet": ifade.excluded.son_ozet,
+    }
     if basarili:
         guncellenecek.update(son_basari_zamani=simdi, ardisik_hata_sayisi=0, son_hata=None)
     else:

@@ -6,3 +6,4 @@ pre-commit==4.6.2
 pypdf==6.19.0
 matplotlib==3.11.2
 metpy==1.7.1
+mypy==1.18.2

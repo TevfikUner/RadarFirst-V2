@@ -58,6 +58,7 @@ kaydet "Envanter" "✅" "$R/envanter.txt"
 adim "Faz 1 - Statik kontroller"
 "$VENV/bin/ruff" check . > "$R/statik/ruff_check.txt" 2>&1 && kaydet "ruff check" "✅" "temiz" || kaydet "ruff check" "❌" "$R/statik/ruff_check.txt"
 "$VENV/bin/ruff" format --check . > "$R/statik/ruff_format.txt" 2>&1 && kaydet "ruff format" "✅" "$(tail -1 "$R/statik/ruff_format.txt")" || kaydet "ruff format" "❌" "$R/statik/ruff_format.txt"
+"$VENV/bin/mypy" > "$R/statik/mypy.txt" 2>&1 && kaydet "mypy" "✅" "$(tail -1 "$R/statik/mypy.txt")" || kaydet "mypy" "❌" "$R/statik/mypy.txt"
 timeout 600 "$PY" -m pytest tests/test_bagimlilik_kilidi.py -q -p no:cacheprovider > "$R/statik/bagimlilik_kilidi.txt" 2>&1 \
   && kaydet "bağımlılık kilidi" "✅" "$(tail -1 "$R/statik/bagimlilik_kilidi.txt")" || kaydet "bağımlılık kilidi" "❌" "$R/statik/bagimlilik_kilidi.txt"
 { echo "heads:"; timeout 120 "$VENV/bin/alembic" heads; echo "current:"; timeout 120 "$VENV/bin/alembic" current 2>&1 | grep -v INFO; } > "$R/statik/alembic.txt" 2>&1

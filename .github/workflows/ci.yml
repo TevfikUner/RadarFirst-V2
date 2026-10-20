@@ -104,6 +104,9 @@ jobs:
             pip install -r requirements.txt
           fi
           pip install -r requirements-dev.txt
+      - name: Tip denetimi (mypy; api, depo, fizik -- pyproject [tool.mypy])
+        if: matrix.python == '3.12'
+        run: mypy
       - name: Veritabanı şemasını kur (alembic upgrade head)
         run: alembic upgrade head
       - name: Testleri çalıştır (kapsam raporuyla)
