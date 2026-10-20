@@ -144,3 +144,28 @@ def test_herhangi_bir_adres_ic_agdaysa_hic_gonderilmez(monkeypatch):
     monkeypatch.setattr(wh.socket, "getaddrinfo", karisik)
     monkeypatch.setattr(wh.httpx, "Client", lambda **k: pytest.fail("iç ağ içeren hedefe istemci açıldı"))
     assert wh.webhook_gonder("https://n8n.ornek.com/h", {}) is False
+
+
+@pytest.mark.parametrize("hata_atar", [False, True])
+def test_isci_loglari_webhook_yolunu_ve_sorgusunu_yazmaz(monkeypatch, caplog, hata_atar):
+    from turbulans_radar.isci import gorev_iscisi as gi
+
+    gizli = "gizli-belirtec-123"
+    if hata_atar:
+
+        def patlat(*args, **kwargs):
+            raise OSError("bağlantı yok")
+
+        monkeypatch.setattr(gi, "webhook_gonder", patlat)
+    else:
+        monkeypatch.setattr(wh.socket, "getaddrinfo", _cozumle("127.0.0.1"))
+    with caplog.at_level("WARNING"):
+        gi.webhooku_bildir(f"https://n8n.ornek.com:8443/webhook/{gizli}?t={gizli}", {"gorev_id": "g"})
+    assert "https://n8n.ornek.com:8443/***" in caplog.text
+    assert gizli not in caplog.text
+
+
+def test_log_icin_maskeli_url():
+    assert wh.log_icin_maskele("https://kul:sifre@n8n.ornek.com/webhook/abc?x=1") == "https://n8n.ornek.com/***"
+    assert wh.log_icin_maskele("http://[2001:db8::1]:5678/h") == "http://[2001:db8::1]:5678/***"
+    assert wh.log_icin_maskele("bozuk") == "***"

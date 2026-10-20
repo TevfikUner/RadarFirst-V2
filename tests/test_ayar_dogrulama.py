@@ -55,6 +55,19 @@ def test_ortam_bool_tanimadigi_degerde_hata_verir(monkeypatch):
         config._ortam_bool("DENEME_BAYRAGI", False)
 
 
+@pytest.mark.parametrize("deger", ["", "  "])
+def test_ortam_sayi_bos_degerde_varsayilani_kullanir(monkeypatch, deger):
+    monkeypatch.setenv("DENEME_SAYISI", deger)
+    assert config._ortam_sayi("DENEME_SAYISI", None) is None
+    assert config._ortam_sayi("DENEME_SAYISI", 5, int) == 5
+
+
+def test_ortam_sayi_gecersiz_degerde_adiyla_hata_verir(monkeypatch):
+    monkeypatch.setenv("DENEME_SAYISI", "on")
+    with pytest.raises(ValueError, match="DENEME_SAYISI"):
+        config._ortam_sayi("DENEME_SAYISI", 5, int)
+
+
 _GUCLU = "g" * 40
 
 

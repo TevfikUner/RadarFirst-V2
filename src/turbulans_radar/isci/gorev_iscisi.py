@@ -49,7 +49,7 @@ from turbulans_radar.dogrulama.rota_backtest import toplu_backtest
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.veri.veri_saglayicilari import Kutu, canli_kup_hazirla
 from turbulans_radar.veri.veri_yukleme import veri_kupu_adi
-from turbulans_radar.webhook import webhook_gonder
+from turbulans_radar.webhook import log_icin_maskele, webhook_gonder
 
 _logger = loglama.logger_al(__name__)
 
@@ -256,11 +256,14 @@ def webhooku_bildir(webhook_url, govde) -> None:
     try:
         gonderildi = webhook_gonder(webhook_url, json.loads(json.dumps(govde, default=str)))
     except Exception as hata:
-        _logger.warning("Webhook bildirimi gönderilemedi (%s): %s", webhook_url, dostane_hata_mesaji(hata))
+        _logger.warning(
+            "Webhook bildirimi gönderilemedi (%s): %s", log_icin_maskele(webhook_url), dostane_hata_mesaji(hata)
+        )
         return
     if not gonderildi:
         _logger.warning(
-            "Webhook gönderilmedi: %s iç ağ/çözümlenemeyen bir adrese işaret ediyor (SSRF koruması).", webhook_url
+            "Webhook gönderilmedi: %s iç ağ/çözümlenemeyen bir adrese işaret ediyor (SSRF koruması).",
+            log_icin_maskele(webhook_url),
         )
 
 
