@@ -164,6 +164,18 @@ jüri sorularına doğrudan yanıt verenler önde.
 - [ ] **Fikir 29 — Uçak tipine duyarlı risk:** OpenAP `prop` ile kanat yükü (BADA lisanslı,
   kullanılmaz); F9 adayı. Beklenen kazanç küçük (Gökdeniz ve Ülkü 2026: katkı %3,2).
 
+## 20 Ekim denetiminden ertelenenler (`docs/denetim/2026-10-20/DENETIM.md` §8)
+
+- [ ] **5 Kasım sunumundan sonra:** `rota_simulasyonu_olustur` (~460 satır, iç içe kapanışlar ortak
+  yerel durumu paylaşıyor) adım fonksiyonlarına bölünür. Önce master'dan altın çıktı alınır
+  (koridor + ATS, 4 senaryo, rota + CZML JSON); bölmeden sonra çıktı bayt bayt aynı olmalı
+  (D-5'te #126 böyle doğrulandı).
+- [ ] **mypy'yi kademeli genişlet:** şu an `api/`, `depo/`, `fizik/` (`pyproject` `[tool.mypy]`
+  `files`). Sırada `rota/`, `isci/`, `veri/`; kalan ~125 bulgunun çoğu tip çıkarımı kaynaklı yanlış
+  alarm, her paket temizlendikçe listeye eklenir (CI adımı otomatik kapsar).
+- [ ] **Düşük öncelik:** araştırma CLI'larına test (`cli/demo_ekranlari` %27,
+  `cli/performans_olcumu` %51); karar destek yolunda değiller.
+
 ## Tarihli hatırlatmalar
 
 - [ ] **25 Ekim:** sunum için Docker imajı yedeği: WSL'de `bash scripts/sunum_paketi.sh` (S-8; temiz klon,
