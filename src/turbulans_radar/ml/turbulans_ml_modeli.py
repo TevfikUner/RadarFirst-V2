@@ -43,7 +43,7 @@ import pandas as pd
 from turbulans_radar import config, loglama
 from turbulans_radar.fizik.birim_donusumleri import irtifa_metre_to_basinc_hpa
 from turbulans_radar.fizik.eslestirme import rotayi_hava_durumuyla_eslestir
-from turbulans_radar.rota.rota_optimizasyonu import ruzgar_bilesenlerini_toplu_al
+from turbulans_radar.rota.ruzgar import ruzgar_bilesenlerini_toplu_al
 
 OZELLIK_SUTUNLARI = ["ti1_indeksi", "richardson_sayisi", "ruzgar_hizi_ms", "basinc_hpa"]
 EK_OZELLIK_SUTUNLARI = ["dusey_ruzgar_kaymasi", "yatay_deformasyon", "yatay_diverjans", "ti2_indeksi"]
