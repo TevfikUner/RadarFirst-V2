@@ -844,15 +844,17 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
     dürüst geri düşüş davranışı dahil). A* CPU ağır olduğu ve pilot anahtarı
     da çağırabildiği için istemci başına hız sınırı (ROTA_HESABI_DAKIKADA_MAKS)
     ve süreç başına eşzamanlılık tavanı uygulanır; hesap ayrı thread'dedir.
+    Önbellekten dönen yanıt hesap yapmadığı için sınırdan düşmez (S-9: aynı NAT'taki
+    tabletler aynı rotayı ister).
     """
-    await ortak._hiz_sinirini_kontrol_et(
-        f"rota_hesabi:{ortak._istemci_kimligi(request, rol)}", maks=config.ROTA_HESABI_DAKIKADA_MAKS, pencere_saniye=60
-    )
     onbellek_anahtari = istek.model_dump_json()
     onceki, damga = await ortak._rota_onbellekten_al(onbellek_anahtari)
     if onceki is not None:
         metrikler.ROTA_ONBELLEGI.labels("isabet").inc()
         return onceki
+    await ortak._hiz_sinirini_kontrol_et(
+        f"rota_hesabi:{ortak._istemci_kimligi(request, rol)}", maks=config.ROTA_HESABI_DAKIKADA_MAKS, pencere_saniye=60
+    )
     metrikler.ROTA_ONBELLEGI.labels("iska").inc()
     async with ortak._agir_hesap_yuvasi():
         hesap_baslangici = time.monotonic()
