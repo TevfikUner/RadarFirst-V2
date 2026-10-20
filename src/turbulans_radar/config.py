@@ -65,8 +65,13 @@ def _ortam_str(isim, varsayilan):
 
 
 def _ortam_sayi(isim, varsayilan, tip=float):
-    deger = os.environ.get(isim)
-    return tip(deger) if deger is not None else varsayilan
+    deger = (os.environ.get(isim) or "").strip()
+    if not deger:
+        return varsayilan
+    try:
+        return tip(deger)
+    except ValueError:
+        raise ValueError(f"{isim}={deger!r} sayı değil.") from None
 
 
 _DOGRU = ("1", "true", "evet", "yes", "on")
