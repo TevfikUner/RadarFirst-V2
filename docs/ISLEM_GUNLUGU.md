@@ -8,7 +8,9 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ✅ S-3 senaryo seçici; S-4 kısmen (ÖNERİ YOK, kapsam dışı); P1-10 işletim kılavuzu; tatbikat GEÇTİ (4 sn).
 - ✅ P1-3 Prometheus izleme profili + 5 alarm (promtool geçti); ayrı izleme anahtarı `.env`'de.
 - ⚠️ Fikir 11: avwx ile 499/500 uyuşma; IEM ikinci /TB grubunu atıyor, seyir raporlarının %0,24'ünde etiket döner (dondurulmuş veri değişmedi).
-- ⏳ B-3 7 seviyeli küp indiriliyor (CDS yavaş); gece işi sürüyor, worker bellek tepesi ölçülüyor.
+- ✅ B-3: 7 seviyeli küp (57,6 MB); 3 seviyeyle Spearman 0,81, eşdeğer eşik 6,5e-7, FL340–360'ta 3 seviye riski %26–32 az.
+- ✅ Gece işi: 493 MB, 188 gün; aday aktifi geçemedi (+0,002). Worker tepe 687 MiB → sınır 2g. §10: 25/30 gün.
+- ✅ Yığın yeni imajlarla (postgres/python yamaları), Prometheus açık (hedef UP, 5 alarm inaktif).
 
 ## 2026-10-19 (gece; anlık kontrol, `docs/denetim/2026-10-19/ANLIK_KONTROL.md`)
 
