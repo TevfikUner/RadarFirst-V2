@@ -4,6 +4,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-20
 
+- ✅ Uçtan uca denetim (`docs/denetim/2026-10-20/DENETIM.md`): 1.132 test, %85,8 kapsam, 0 açık; webhook URL log maskesi + boş sayısal ortam değişkeni düzeltildi; 3 madde onay bekliyor.
 - ✅ S-9 kararı: önbellekteki rota hız sınırına sayılmıyor; P1-6 ağa açıkken anahtarsız sağlık yalnız durum.
 - ✅ S-3 senaryo seçici; S-4 kısmen (ÖNERİ YOK, kapsam dışı); P1-10 işletim kılavuzu; tatbikat GEÇTİ (4 sn).
 - ✅ P1-3 Prometheus izleme profili + 5 alarm (promtool geçti); ayrı izleme anahtarı `.env`'de.
