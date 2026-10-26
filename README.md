@@ -1663,12 +1663,12 @@ ruff format .              # biçimlendir
 pre-commit install         # her commit'te otomatik çalıştır
 ```
 
-`.github/workflows/ci.yml`, her push/PR'da lint ve testleri (gerçek bir
+`.github/workflows/ci.yml`, master'a push'ta ve her PR'da lint ve testleri (gerçek bir
 PostgreSQL servis konteyneriyle) Python 3.12 (üretim, kilit dosyasıyla) ve
 3.14 (geliştirme) için çalıştırır. `guvenlik` işi tüm git geçmişini
 `gitleaks` ile (Türkçe değişken adlarını da tanıyan `.gitleaks.toml`) tarar,
-sahte bir sırrın yakalandığını doğrular, kilit dosyalarını `pip-audit` ile
-denetler ve CycloneDX SBOM üretir. Commit, dal ve sır kuralları:
+sahte bir sırrın yakalandığını doğrular ve CycloneDX SBOM üretir. Kilit dosyaları
+`bagimlilik-taramasi.yml` ile haftalık (Pazartesi) ve kilit değişince `pip-audit`'ten geçer. Commit, dal ve sır kuralları:
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ### Bağımlılık kilidi

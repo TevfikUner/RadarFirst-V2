@@ -15,6 +15,9 @@ Açık maddelerin önem sırası; ayrıntı aşağıdaki bölümlerde. Durum: 21
 3. **Haftalık ilerleme raporu Hafta 5:** 23 Ekim teslimi yapılmadı; sonraki teslim 29 Ekim Perşembe 23:55
    (hafta aralığı kullanıcıya sorulur).
 4. **29–30 Ekim AIRAC kontrolü:** `ciktilar/airac_yenile.log` "yenilendi", `/saglik` `ats_agi` "tamam".
+4a. **Dependabot imaj PR'ları #128 (python), #129 (postgres), #130 (prometheus 3.15):** PR'a `@dependabot rebase`
+   yazıp yeni CI ile geçir, birleştir; #129 için `ci.yml` postgres servis özeti de aynı yapılır (#116 kuralı).
+   Sonra görev kuyruğu boşken yığını yeniden derle (~20 dk, YAPILACAKLAR "Ertelenenler" 20 Ekim komutu).
 
 **Sunuma kadar (5 Kasım)**
 5. E8 yedek demo videosu (5 Kasım).
