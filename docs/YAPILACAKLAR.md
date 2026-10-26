@@ -3,6 +3,43 @@
 İleri bir tarihe ertelenen tüm işler burada tek listede tutulur. Biten madde silinmez,
 `[x]` ile işaretlenir ve yanına PR/tarih yazılır. Yeni ertelenen iş buraya eklenir.
 
+## Öncelik sırası (26 Ekim 2026)
+
+Açık maddelerin önem sırası; ayrıntı aşağıdaki bölümlerde. Durum: 21–26 Ekim gece işi 6/6 tamamlandı
+(346–397 MB/gün), aday aktif RF'yi geçemedi, aktif model değişmedi; AIRAC her gün "güncel".
+
+**Acil (bu hafta)**
+1. **§10 değerlendirmesi (ONAY bekliyor):** 26 Ekim `--durum` 70 yeni gün / 6.830 örnek, `yeterli: true`.
+   Bir kez çalıştırılır (Fikir 4/8 tabloları dahil), sonuç ne çıkarsa raporlanır.
+2. **Sunum paketi (25 Ekim'den gecikti):** `bash scripts/sunum_paketi.sh` + OneDrive kopyası.
+3. **Haftalık ilerleme raporu Hafta 5:** 23 Ekim teslimi yapılmadı; sonraki teslim 29 Ekim Perşembe 23:55
+   (hafta aralığı kullanıcıya sorulur).
+4. **29–30 Ekim AIRAC kontrolü:** `ciktilar/airac_yenile.log` "yenilendi", `/saglik` `ats_agi` "tamam".
+
+**Sunuma kadar (5 Kasım)**
+5. E8 yedek demo videosu (5 Kasım).
+6. E7 kullanılabilirlik oturumları (katılımcı bulmak zaman alır).
+7. S-4 kalanı: SIGMET bayat / `erisilemedi` / devre kesici demo fikstürü.
+8. GitHub Destek talebi P0-9 (kullanıcı; depo herkese açılmadan önce şart).
+
+**Teslim ve sunum sonrası**
+9. Rapor tesliminden hemen önce `scripts/beyan_sayimlari.py --kontrol`.
+10. `rota_simulasyonu_olustur` bölme (altın çıktı ile bayt bayt aynı).
+11. `Turbulence-db-dondurma` DROP ve `docker builder prune` (~50 GB) — ikisi de geri alınamaz, ONAY.
+
+**Araştırma (yeni günlerde, önce protokole yazılarak)**
+12. Fikir 11 devamı (çoklu /TB grubu), Fikir 9, 10, 15, 19, 24, 29.
+13. GFS topluluk oranı, Fikir 18 devamı, Fikir 20, Fikir 23, F7 rüzgâr asimilasyonu (veri bütçesi, ONAY).
+14. Daha fazla OpenSky uçuşu (önce kota hesabı, ONAY); F5 yakıt sütunu (migration, ONAY).
+
+**Kod kalitesi (düşük)**
+15. mypy'yi `rota/`, `isci/`, `veri/` paketlerine genişlet; araştırma CLI'larına test.
+
+**Dış iletişim / koşullu**
+16. MGM ve IATA Turbulence Aware başvurusu (kullanıcı).
+17. P0-7 hibrit topoloji ADR'si (yalnız B planına geçilirse).
+18. Eski commit imzalarının temizliği (force-push; önerilen: yapılmaması).
+
 ## 18 Ekim 2026 — ML veri dondurma
 
 - [x] (18 Ekim, commit `5ddcd40`, sıralı sorgu; RF +0,033, kapı geçildi; dondurmada aday aktif RF'yi geçemedi)
@@ -109,7 +146,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
 - [x] (19 Ekim: `turbulans-ml-yeni-gun`; 19 Ekim'de 16 yeni gün / 1.509 örnek, skor yok) **§10 değerlendirme kodu:** test günü filtresi (`dondurma_gunleri.json` dışı), iki özellik seti,
   Fikir 4/8 tabloları ve ±1 gün duyarlılığı; test günlerine bakmadan commit'lenir, sonra ≥30 yeni
   gün olunca bir kez çalıştırılır (19 Ekim'de 16 yeni gün vardı).
-- [ ] (20 Ekim: 25 yeni gün / 2.338 örnek, eşik 30) **§10 değerlendirmesini bir kez çalıştır:** her gece işi sonrası `turbulans-ml-yeni-gun --durum`;
+- [ ] (20 Ekim: 25 yeni gün / 2.338 örnek, eşik 30; 26 Ekim: 70 yeni gün / 6.830 örnek, `yeterli: true`, ONAY bekliyor) **§10 değerlendirmesini bir kez çalıştır:** her gece işi sonrası `turbulans-ml-yeni-gun --durum`;
   `yeterli: true` olunca `turbulans-ml-yeni-gun --cikti docs/sonuclar/<tarih>`, sonuç ne çıkarsa raporlanır.
 - [x] (20 Ekim: 57,6 MB indirildi; Spearman 0,81, eşdeğer eşik 6,5e-7; `docs/sonuclar/2026-10-20_turkiye_7seviye/`) **20 Ekim, gece işinden önceki ilk oturum (ONAY alındı, komite B-3):** Türkiye ERA5 7 seviye
   (31 CDS isteği, 15.624 alan, ≤130 MB; 19 Ekim bütçesi dolu olduğu için ertelendi; aynı UTC günü
@@ -178,13 +215,15 @@ jüri sorularına doğrudan yanıt verenler önde.
 
 ## Tarihli hatırlatmalar
 
-- [ ] **25 Ekim:** sunum için Docker imajı yedeği: WSL'de `bash scripts/sunum_paketi.sh` (S-8; temiz klon,
+- [ ] (26 Ekim: yapılmadı, gecikti) **25 Ekim:** sunum için Docker imajı yedeği: WSL'de `bash scripts/sunum_paketi.sh` (S-8; temiz klon,
   demo, ağsız ekran provası, `docker save`, SHA256SUMS). Çıktıyı OneDrive'a kopyala. Betik 19 Ekim'de
   yalnız sözdizimi ve compose ayarıyla denendi; ilk gerçek çalıştırma bu gün.
 - [ ] **29–30 Ekim (AIRAC bitişi, otomatik; ONAY 19 Ekim, komite O-3):** "TurbulansRadar AIRAC
   yenileme" Windows görevi (her gün 12:00) yeniler; yalnız kontrol: `ciktilar/airac_yenile.log`
   "yenilendi" ve `db_aktarildi: true` diyor mu, `/saglik` `ats_agi` "tamam" mı. Görev ENR 1.3 FRA
   cümlesini bulamazsa (ör. H24'e geçiş) eski ağı korur ve BAŞARISIZ yazar; o zaman ENR 1.3 elle okunur.
+- [ ] **29 Ekim Perşembe 23:55:** haftalık ilerleme raporu Hafta 5 (23 Ekim teslimi yapılmadı;
+  `docs/rapor/ILERLEME_RAPORU.md` + `scripts/ilerleme_raporu_pdf.py`, PDF'ler masaüstüne).
 - [ ] **5 Kasım:** E8 yedek demo videosu (3–5 dk, metin `docs/sunum/DEMO_SENARYOSU.md` §4;
   ekranlar temiz klondan).
 - [ ] Sunum konuşulmaya başlanınca: E7 kullanılabilirlik oturumları (katılımcı bulmak zaman alır).

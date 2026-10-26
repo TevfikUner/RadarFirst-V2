@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-26
+
+- ✅ Gece işi 21–26 Ekim 6/6 tamamlandı (346–397 MB/gün); aday aktif RF'yi geçemedi. §10: 70 yeni gün, yeterli.
+- ✅ YAPILACAKLAR'a önem sırası bölümü eklendi; 25 Ekim sunum paketi ve 23 Ekim haftalık rapor gecikti.
+
 ## 2026-10-20
 
 - ✅ Denetimden kalan 3 iş YAPILACAKLAR'a yazıldı (rota akış fonksiyonunu bölme 5 Kasım sonrası, mypy genişletme, CLI testleri).
