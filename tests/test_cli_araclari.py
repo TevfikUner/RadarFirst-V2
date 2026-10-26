@@ -1,6 +1,8 @@
 """Kapsamı sıfır olan küçük CLI/arayüz modülleri (denetim 2026-10-06): ağa ve
 veritabanına çıkmadan, sahte bağımlılıklarla."""
 
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -88,7 +90,9 @@ def test_streamlit_arayuzu_acilir_ve_gecersiz_ucus_numarasini_analiz_etmez(monke
 
     monkeypatch.setattr(ucus_analizi, "calistir", analiz_cagrilmamali)
 
-    uygulama = AppTest.from_file("src/turbulans_radar/arayuz/web_arayuzu.py", default_timeout=60).run()
+    uygulama = AppTest.from_file(
+        str(Path(__file__).resolve().parents[1] / "src/turbulans_radar/arayuz/web_arayuzu.py"), default_timeout=60
+    ).run()
     assert not uygulama.exception
     girdiler = {g.label: g for g in uygulama.text_input}
     assert girdiler["Uçuş numarası (callsign)"].value == "THY322"
