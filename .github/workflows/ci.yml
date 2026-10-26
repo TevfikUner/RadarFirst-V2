@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: ["**"]
+    branches: [master]
   pull_request:
 
 jobs:
@@ -44,11 +44,7 @@ jobs:
         with:
           python-version: "3.12"
       - name: Araçları kur
-        run: pip install pip-audit==2.9.0 cyclonedx-bom==7.5.0
-      - name: Bağımlılık açığı taraması (pip-audit)
-        run: |
-          pip-audit -r requirements.lock --no-deps --disable-pip --progress-spinner off
-          pip-audit -r requirements-era5.lock --no-deps --disable-pip --progress-spinner off
+        run: pip install cyclonedx-bom==7.5.0
       - name: SBOM (CycloneDX)
         run: cyclonedx-py requirements requirements.lock --of JSON -o sbom.cdx.json
       - name: SBOM'u artifact olarak yükle

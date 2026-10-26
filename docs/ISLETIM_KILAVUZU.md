@@ -101,4 +101,4 @@ Denendi: 19 Ekim ("güncel", istek yok); ilk gerçek yenileme 29 Ekim.
 | Gece işi `yarida_kaldi` | Bilgisayar uykuya geçti | Aynı gün en çok 3 kez kendiliğinden yeniden dener |
 | Rota 429 | IP başına 20 hesap/dk | Önbellekteki rota sayılmaz; NAT'lı kurulumda `ROTA_HESABI_DAKIKADA_MAKS` |
 | `migrate_yedegi` başarısız | DB erişilemiyor ya da disk dolu | `docker compose logs migrate_yedegi`; yer aç, §1 başlat |
-| CI `guvenlik` kırmızı | Yeni yayımlanan bağımlılık açığı | `pip-audit` çıktısındaki paketi README "Bağımlılık kilidi"ndeki `uv pip compile --upgrade-package` ile yükselt |
+| "Bağımlılık taraması" kırmızı | Yeni yayımlanan bağımlılık açığı | `pip-audit` çıktısındaki paketi README "Bağımlılık kilidi"ndeki `uv pip compile --upgrade-package` ile yükselt |
