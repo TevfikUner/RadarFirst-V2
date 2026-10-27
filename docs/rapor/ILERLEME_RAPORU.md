@@ -2,7 +2,7 @@
 
 **Hazırlayan:** Tevfik ÜNER  
 **Danışman:** Fatih TİTREK  
-**Son güncelleme:** 16 Ekim 2026
+**Son güncelleme:** 27 Ekim 2026
 
 **Proje kısaca.** Uçaklar yüksek irtifada, bulutsuz açık havada da türbülansa girebilir ve
 bu türbülans radarda görünmez. Bu projede herkese açık verileri (uçuş kayıtları, hava durumu
@@ -135,3 +135,50 @@ ortaya çıktı.
   anlamlı sonuç vermedi; bu sonuç "karşılaştırılamaz" olarak işaretlendi.
 - Yöntemi Avrupa'da denemek için yeterli ölçüm bulunamadı; bu durum bir sınırlama olarak
   not edildi.
+
+---
+
+## Hafta 5 — 17–29 Ekim 2026
+
+**Yapılanlar**
+- 18 Ekim'de veri donduruldu ve nihai sonuçlar bu veriyle bir kez üretildi. Aynı yedekten
+  yeniden çalıştırıldığında sonuçlar birebir aynı çıkıyor.
+- Proje jüri gözüyle incelendi; olası sorular ve yanıtları hazırlandı, çelişkilerin çoğu giderildi.
+- Sistem başka bilgisayarlara açılabilecek hâle getirildi: zayıf şifreyle başlamıyor, bağlantı
+  şifreli, veritabanı yedeğinden geri yükleme her hafta kendiliğinden deneniyor, bir sorun olursa
+  uyarı veren izleme ekranı ve kullanım kılavuzu yazıldı.
+- Türkiye'nin resmî havacılık yayını her 28 günde bir yenilendiği için sistem bu bilgiyi her gün
+  kendiliğinden kontrol edip güncelliyor.
+- Demo ekranında hazır uçuş örnekleri arasından seçim yapılabiliyor; "güvenli rota bulunamadı"
+  durumu da gösterilebiliyor.
+- Yazılımın tamamı yeniden denetlendi: 1.100'den fazla otomatik test, kodun yaklaşık %85'i
+  test ediliyor; kullanılan hazır yazılımlarda çıkan güvenlik açıkları kapatıldı.
+- Kısa denemeler:
+  - Uçuş sırasında rotayı güncel hava verisiyle yeniden planlamak, riskli bölgede geçen süreyi
+    yaklaşık 27 dakikadan 15 dakikaya indirdi; uçuş süresi neredeyse değişmedi. Karşılaştırma
+    gerçek gözleme değil daha yeni bir tahmine göre yapıldığı için sonuç iyimser olabilir.
+  - Türkiye için daha fazla yükseklik katmanı içeren hava verisiyle karşılaştırma yapıldı.
+    Sonuçlar büyük ölçüde benzer, ancak az katmanlı veri yüksek irtifada riski bir miktar az
+    gösteriyor; bu bir sınırlama olarak not edildi.
+  - Pilot raporlarını okuyan bölüm başka bir hazır programla karşılaştırıldı; 500 raporun
+    499'unda aynı sonucu verdi.
+
+**Sonuçlar**
+- Nihai sonuçlar (163 gün): yapay zekâ modeli türbülanslı ve sakin durumları ayırt etmede klasik
+  hesaptan daha başarılı (başarı puanı 0,71'e karşı 0,68). Fark, önceden belirlenen "açıkça daha
+  iyi" şartını karşıladı.
+- Bu sonuç, modelin hiç görmediği 79 yeni günde (27 Ekim, yaklaşık 7.800 rapor) bir kez daha
+  denendi: model yine klasik hesaptan açıkça daha iyi (0,69'a karşı 0,66). Modele ek hava bilgisi
+  vermek çok küçük bir iyileşme sağladı; bu iyileşme ardışık günler çıkarılınca belirsizleşiyor.
+- Gece çalışan veri toplama işi her gün düzenli tamamlandı; 236 güne ait yaklaşık 23.000 örnek
+  var. Her gece eğitilen yeni modeller mevcut modelden açıkça daha iyi olmadığı için devreye
+  alınmadı.
+
+**Önceki çalışmalarda yapılan değişiklikler**
+- Nihai sonuçların ilk üretiminde, aynı veriyle tekrar çalıştırınca farklı model seçilebildiği
+  fark edildi; hesap sabit sıraya bağlandı ve sayılar buna göre güncellendi.
+- Bazı belgeler "yapay zekâ modeli devrede değil" diyordu; gerçekte 9 Ekim modeli kullanılıyordu.
+  Belgeler çalışan sistemle aynı anlatıya getirildi.
+- Pilot raporu çok nadiren (yaklaşık 400 raporda 1) iki ayrı türbülans bilgisi içerdiğinde
+  yalnız ilkinin okunduğu görüldü. Dondurulan sonuçlar değiştirilmedi; etkisi yeni günlerde ayrıca
+  ölçülecek.
