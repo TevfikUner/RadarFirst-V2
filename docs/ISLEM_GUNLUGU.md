@@ -2,6 +2,12 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-27
+
+- ✅ Gece işi 494,7 MB; aday aktif RF'yi geçemedi (+0,006). Dependabot: #129 postgres, #130 prometheus 3.15.1 (promtool geçti), CI özeti #134; #128 gereksiz.
+- ✅ §10 tek seferlik (79 gün / 7.769 örnek): H1 geniş − temel +0,008 [+0,002; +0,014]; komşu günsüz anlamlı değil. TI1 kapısı iki sette geçti.
+- ✅ §10 yedeği `db_yedekleri/kalici/turbulans_20261027_yeni_gun.dump`; paket `docs/sonuclar/2026-10-27_yeni_gun/`, SONUCLAR §2.5.
+
 ## 2026-10-26
 
 - ✅ Gece işi 21–26 Ekim 6/6 tamamlandı (346–397 MB/gün); aday aktif RF'yi geçemedi. §10: 70 yeni gün, yeterli.

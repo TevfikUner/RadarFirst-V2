@@ -361,6 +361,19 @@ yeni model, 18 Ekim'den sonra önceden yazılmış bir protokolle ve dondurmadan
 toplanan yeni günlerde değerlendirilecek. Aynı 16 altın günde değerlendirmek, bu
 deneye bakıldıktan sonra seçim yapmak olurdu.
 
+### 2.5 Dondurma sonrası yeni günler (§10, 27 Ekim; tek seferlik)
+
+Protokol `deney_protokolu.md` §10, paket [`docs/sonuclar/2026-10-27_yeni_gun/`](../sonuclar/2026-10-27_yeni_gun/README.md).
+Eğitim 163 dondurma günü, test modelin görmediği 79 gün (7.769 örnek). ROC-AUC: TI1 0,658,
+temel set (RF) 0,685, geniş set (LR) 0,693.
+
+- **H1 (geniş − temel):** +0,008 [+0,002; +0,014], desteklendi; dondurma gününe komşu 24 gün
+  çıkarılınca +0,005 [−0,002; +0,012], anlamlı değil. Destek zayıf ve kırılgan.
+- **TI1'e karşı:** temel +0,027 [+0,018; +0,035], geniş +0,035 [+0,026; +0,043]; ikisi de kapıyı
+  geçti. 18 Ekim altın gün farkı (+0,033) modelin görmediği günlerde de korunuyor.
+- Hafif raporlar negatiften çıkarılınca (Fikir 8) üç skor da belirgin yükseliyor (TI1 0,730,
+  geniş 0,774), sıralama değişmiyor. Geniş setin üretime alınması ayrı karar (ONAY).
+
 ## 3. Nesnel değerlendirme: MADIS ölçülen EDR (M1) — tarihçe, 5 Ekim (güncel: §0.4)
 
 Etiket: MADIS maxEDR ≥ 0,1 (hafif ve üstü). 12.232 ölçüm, 372 pozitif (%3,0), 4 gün.

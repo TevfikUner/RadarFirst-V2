@@ -9,15 +9,12 @@ Açık maddelerin önem sırası; ayrıntı aşağıdaki bölümlerde. Durum: 21
 (346–397 MB/gün), aday aktif RF'yi geçemedi, aktif model değişmedi; AIRAC her gün "güncel".
 
 **Acil (bu hafta)**
-1. **§10 değerlendirmesi (ONAY bekliyor):** 26 Ekim `--durum` 70 yeni gün / 6.830 örnek, `yeterli: true`.
-   Bir kez çalıştırılır (Fikir 4/8 tabloları dahil), sonuç ne çıkarsa raporlanır.
+1. ~~§10 değerlendirmesi~~ (27 Ekim yapıldı, SONUCLAR §2.5). Geniş setin üretime alınması ayrı karar (ONAY).
 2. **Sunum paketi (25 Ekim'den gecikti):** `bash scripts/sunum_paketi.sh` + OneDrive kopyası.
 3. **Haftalık ilerleme raporu Hafta 5:** 23 Ekim teslimi yapılmadı; sonraki teslim 29 Ekim Perşembe 23:55
    (hafta aralığı kullanıcıya sorulur).
 4. **29–30 Ekim AIRAC kontrolü:** `ciktilar/airac_yenile.log` "yenilendi", `/saglik` `ats_agi` "tamam".
-4a. **Dependabot imaj PR'ları #128 (python), #129 (postgres), #130 (prometheus 3.15):** PR'a `@dependabot rebase`
-   yazıp yeni CI ile geçir, birleştir; #129 için `ci.yml` postgres servis özeti de aynı yapılır (#116 kuralı).
-   Sonra görev kuyruğu boşken yığını yeniden derle (~20 dk, YAPILACAKLAR "Ertelenenler" 20 Ekim komutu).
+4a. ~~Dependabot imaj PR'ları~~ (27 Ekim: #129, #130, CI özeti #134 birleşti; #128 gereksiz kaldı). Yığın derlemesi aşağıda.
 
 **Sunuma kadar (5 Kasım)**
 5. E8 yedek demo videosu (5 Kasım).
@@ -149,7 +146,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
 - [x] (19 Ekim: `turbulans-ml-yeni-gun`; 19 Ekim'de 16 yeni gün / 1.509 örnek, skor yok) **§10 değerlendirme kodu:** test günü filtresi (`dondurma_gunleri.json` dışı), iki özellik seti,
   Fikir 4/8 tabloları ve ±1 gün duyarlılığı; test günlerine bakmadan commit'lenir, sonra ≥30 yeni
   gün olunca bir kez çalıştırılır (19 Ekim'de 16 yeni gün vardı).
-- [ ] (20 Ekim: 25 yeni gün / 2.338 örnek, eşik 30; 26 Ekim: 70 yeni gün / 6.830 örnek, `yeterli: true`, ONAY bekliyor) **§10 değerlendirmesini bir kez çalıştır:** her gece işi sonrası `turbulans-ml-yeni-gun --durum`;
+- [x] (27 Ekim, `docs/sonuclar/2026-10-27_yeni_gun/`: 79 gün; H1 +0,008 [+0,002; +0,014], komşu günsüz anlamlı değil; iki set TI1 kapısını geçti) **§10 değerlendirmesini bir kez çalıştır:** her gece işi sonrası `turbulans-ml-yeni-gun --durum`;
   `yeterli: true` olunca `turbulans-ml-yeni-gun --cikti docs/sonuclar/<tarih>`, sonuç ne çıkarsa raporlanır.
 - [x] (20 Ekim: 57,6 MB indirildi; Spearman 0,81, eşdeğer eşik 6,5e-7; `docs/sonuclar/2026-10-20_turkiye_7seviye/`) **20 Ekim, gece işinden önceki ilk oturum (ONAY alındı, komite B-3):** Türkiye ERA5 7 seviye
   (31 CDS isteği, 15.624 alan, ≤130 MB; 19 Ekim bütçesi dolu olduğu için ertelendi; aynı UTC günü
