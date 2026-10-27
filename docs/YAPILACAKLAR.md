@@ -10,11 +10,11 @@ Açık maddelerin önem sırası; ayrıntı aşağıdaki bölümlerde. Durum: 21
 
 **Acil (bu hafta)**
 1. ~~§10 değerlendirmesi~~ (27 Ekim yapıldı, SONUCLAR §2.5). Geniş setin üretime alınması ayrı karar (ONAY).
-2. **Sunum paketi (25 Ekim'den gecikti):** `bash scripts/sunum_paketi.sh` + OneDrive kopyası.
-3. **Haftalık ilerleme raporu Hafta 5:** 23 Ekim teslimi yapılmadı; sonraki teslim 29 Ekim Perşembe 23:55
-   (hafta aralığı kullanıcıya sorulur).
+2. ~~Sunum paketi~~ (27 Ekim: 477 MB, OneDrive'da, SHA256 doğrulandı).
+3. **Haftalık ilerleme raporu Hafta 5 (17–29 Ekim):** 27 Ekim hazırlandı (#136), PDF'ler masaüstünde; 29 Ekim
+   23:55'e kadar e-postayla gönderim kullanıcıda (28–29 Ekim gelişmeleri eklenebilir).
 4. **29–30 Ekim AIRAC kontrolü:** `ciktilar/airac_yenile.log` "yenilendi", `/saglik` `ats_agi` "tamam".
-4a. ~~Dependabot imaj PR'ları~~ (27 Ekim: #129, #130, CI özeti #134 birleşti; #128 gereksiz kaldı). Yığın derlemesi aşağıda.
+4a. ~~Dependabot imaj PR'ları~~ (27 Ekim: #129, #130, CI özeti #134 birleşti; #128 gereksiz kaldı). Yığın 27 Ekim'de yeni imajlarla derlendi, derin sağlık tamam.
 
 **Sunuma kadar (5 Kasım)**
 5. E8 yedek demo videosu (5 Kasım).
@@ -215,7 +215,7 @@ jüri sorularına doğrudan yanıt verenler önde.
 
 ## Tarihli hatırlatmalar
 
-- [ ] (26 Ekim: yapılmadı, gecikti) **25 Ekim:** sunum için Docker imajı yedeği: WSL'de `bash scripts/sunum_paketi.sh` (S-8; temiz klon,
+- [x] (27 Ekim: `~/sunum_paketi_20261027`, 477 MB, OneDrive `TurbulansRadar_Yedekleri/sunum_paketi_20261027`, SHA256 OK; `compose wait` hatası düzeltildi) **25 Ekim:** sunum için Docker imajı yedeği: WSL'de `bash scripts/sunum_paketi.sh` (S-8; temiz klon,
   demo, ağsız ekran provası, `docker save`, SHA256SUMS). Çıktıyı OneDrive'a kopyala. Betik 19 Ekim'de
   yalnız sözdizimi ve compose ayarıyla denendi; ilk gerçek çalıştırma bu gün.
 - [ ] **29–30 Ekim (AIRAC bitişi, otomatik; ONAY 19 Ekim, komite O-3):** "TurbulansRadar AIRAC

@@ -41,7 +41,8 @@ GIT_SHA="$(git -C "$KLON" rev-parse HEAD)"
 export GIT_SHA
 mkdir -p "$CIKTI/ekranlar"
 compose up -d --build --wait --wait-timeout 600
-compose wait demo
+DEMO_CIKISI="$(docker wait "$(compose ps -a -q demo)")"
+[ "$DEMO_CIKISI" = 0 ] || { echo "demo çıkış kodu $DEMO_CIKISI" >&2; exit 1; }
 compose logs --no-color demo > "$CIKTI/demo_ozeti.log"
 grep -q "ÖZET:" "$CIKTI/demo_ozeti.log" || { echo "demo özeti yok, $CIKTI/demo_ozeti.log" >&2; exit 1; }
 
