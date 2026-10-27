@@ -62,8 +62,8 @@ st.set_page_config(page_title="Türbülans Radar", page_icon="✈️", layout="w
 st.title("✈️ Türbülans Radar")
 st.caption(
     "Gerçek bir uçuşun rotasını, hava durumu verisiyle eşleştirerek türbülans şiddeti tahmini (Ellrod TI1) "
-    "ve dinamik kararsızlık göstergesi (Richardson sayısı) hesaplar. Sertifikalı EDR değeri DEĞİLDİR -- "
-    "araştırma/görselleştirme amaçlıdır."
+    "ve dinamik kararsızlık göstergesi (Richardson sayısı) hesaplar. Çıktılar sertifikalı EDR değildir; "
+    "sistem operasyonel karar aracı değil, karar destek aracıdır."
 )
 
 with st.sidebar:
