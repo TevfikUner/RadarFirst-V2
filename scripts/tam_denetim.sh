@@ -21,7 +21,7 @@ for arguman in "$@"; do
   esac
 done
 
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 KOK="$(pwd)"
 TARIH="$(date +%F)"
 R="${RAPOR_KLASORU:-test_raporu/$TARIH}"
