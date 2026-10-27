@@ -7,7 +7,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ✅ Gece işi 494,7 MB; aday aktif RF'yi geçemedi (+0,006). Dependabot: #129 postgres, #130 prometheus 3.15.1 (promtool geçti), CI özeti #134; #128 gereksiz.
 - ✅ §10 tek seferlik (79 gün / 7.769 örnek): H1 geniş − temel +0,008 [+0,002; +0,014]; komşu günsüz anlamlı değil. TI1 kapısı iki sette geçti.
 - ✅ §10 yedeği `db_yedekleri/kalici/turbulans_20261027_yeni_gun.dump`; paket `docs/sonuclar/2026-10-27_yeni_gun/`, SONUCLAR §2.5.
-- ✅ Yığın yeni imajlarla (`3bcab30` öncesi `e73fdd8`), derin sağlık tamam; `ats_agi` "bitiyor" (AIRAC 29–30 Ekim, beklenen).
+- ✅ Yığın yeni imajlarla (commit `e73fdd8`), derin sağlık tamam; `ats_agi` "bitiyor" (AIRAC 29–30 Ekim, beklenen).
 - ✅ Hafta 5 raporu 17–29 Ekim (#136; Hafta 4 16 Ekim'de bittiği için), son hafta PDF tek sayfa, masaüstünde.
 - ✅ Sunum paketi 477 MB, OneDrive'da SHA256 OK; betikte `compose wait` çıkmış demo konteynerini görmüyordu → `docker wait`.
 
