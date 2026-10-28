@@ -203,3 +203,22 @@ olarak raporlanır.
 - Bağlam özellikleri `rf_deneyi.baglam_ozelliklerini_hesapla` ile ERA5 pencere
   deposundan sonradan hesaplanır; penceresi olmayan örnekler iki setten de çıkarılır ki
   iki model aynı örneklerde karşılaştırılsın.
+
+### 10.6 Sonradan eklenen ikincil karşılaştırma: model − birleşik EDR (28 Ekim 2026, §10 sonucundan sonra)
+
+**Not:** Bu alt madde §10 değerlendirmesi (27 Ekim) yapılıp sonuçları görüldükten sonra, kurul
+incelemesinin VER-04 bulgusu üzerine eklendi; ön kayıtlı değildir ve yalnız "sonradan eklenen
+ikincil" olarak raporlanır. Birleşik EDR'nin bu test günlerindeki skoru eklenme anında
+hesaplanmamıştı; TI1 ve modellerin skorları biliniyordu.
+
+- **Soru:** Protokol modeli, eğitimsiz fizik birleşimi olan birleşik EDR'yi (`fizik/edr_esleme.py`,
+  sabit katsayılar) geçiyor mu?
+- **Veri:** §10 ile aynı: eğitim `ml/dondurma_gunleri.json` (163 gün), test
+  `docs/sonuclar/2026-10-27_yeni_gun/yeni_gun_degerlendirmesi.json`'daki sabit 79 günlük liste
+  (o tarihten sonra eşleşen günler girmez). Altın test günleri ayrıca kullanılmaz.
+- **Modeller:** §10.2 ile aynı temel ve geniş set protokol modelleri, aynı seçim kuralıyla yeniden
+  eğitilir; yeniden üretilen temel set ROC-AUC'si §10 değeriyle (0,685) yan yana verilir.
+- **Ölçüt:** temel − birleşik EDR ROC-AUC farkı, gün bloklu eşleştirilmiş bootstrap (§5). %95 GA alt
+  sınırı > 0 ise "model birleşik EDR'yi geçiyor" denir; değilse "geçtiği gösterilemedi". Geniş − birleşik
+  EDR ve birleşik EDR − TI1 de verilir. Birleşik EDR'si hesaplanamayan örnekler tüm skorlardan çıkarılır.
+- **Çıktı:** `birlesik_kiyasi.json`, bir kez; dosya varsa üzerine yazılmaz. Sonuç ne çıkarsa raporlanır.
