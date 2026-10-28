@@ -31,6 +31,7 @@ TEST_ORANI = 0.3
 TEKRAR = 20
 BOLMELER = ("gun_gruplu", "rastgele")
 ETIKETLER = ("mevcut", "hafif_cikarilmis")
+DERIN_RF = {"n_estimators": 200, "max_depth": None, "min_samples_leaf": 1}
 
 
 def _test_indeksleri(veri: pd.DataFrame, bolme: str, tohum: int) -> tuple[np.ndarray, np.ndarray]:
@@ -48,13 +49,14 @@ def _ozet(degerler) -> dict:
     return {"ortalama": float(d.mean()), "alt": float(np.percentile(d, 2.5)), "ust": float(np.percentile(d, 97.5))}
 
 
-def kosul_olc(veri: pd.DataFrame, bolme: str, tekrar=TEKRAR, sutunlar=None) -> dict:
+def kosul_olc(veri: pd.DataFrame, bolme: str, tekrar=TEKRAR, sutunlar=None, rf_parametreleri=None) -> dict:
     sutunlar = list(sutunlar or MODEL_OZELLIK_SUTUNLARI)
+    rf_parametreleri = rf_parametreleri or TEMEL_RF
     rf, ti1, fark, test_gun_ortak = [], [], [], []
     for tohum in range(tekrar):
         egitim, test = _test_indeksleri(veri, bolme, tohum)
         e, t = veri.iloc[egitim], veri.iloc[test]
-        olasilik = _rf(**TEMEL_RF).fit(e[sutunlar], e["y"]).predict_proba(t[sutunlar])[:, 1]
+        olasilik = _rf(**rf_parametreleri).fit(e[sutunlar], e["y"]).predict_proba(t[sutunlar])[:, 1]
         a_rf = roc_auc_score(t["y"], olasilik)
         a_ti1 = roc_auc_score(t["y"], t["ti1_indeksi"].to_numpy(dtype=float))
         rf.append(a_rf)
@@ -72,13 +74,13 @@ def kosul_olc(veri: pd.DataFrame, bolme: str, tekrar=TEKRAR, sutunlar=None) -> d
     }
 
 
-def deney(veri: pd.DataFrame, hafif: pd.Series, tekrar=TEKRAR, sutunlar=None) -> dict:
+def deney(veri: pd.DataFrame, hafif: pd.Series, tekrar=TEKRAR, sutunlar=None, rf_parametreleri=None) -> dict:
     """hafif: örnek başına True (hafif yazan negatif), False ya da NaN (metin yok)."""
     hafif = pd.Series(hafif, index=veri.index)
     hafifsiz = hafif.eq(False) | (hafif.notna() & veri["y"].eq(1))
     veriler = {"mevcut": veri, "hafif_cikarilmis": veri[hafifsiz]}
     kosullar = {
-        f"{bolme}|{etiket}": kosul_olc(veriler[etiket].reset_index(drop=True), bolme, tekrar, sutunlar)
+        f"{bolme}|{etiket}": kosul_olc(veriler[etiket].reset_index(drop=True), bolme, tekrar, sutunlar, rf_parametreleri)
         for etiket in ETIKETLER
         for bolme in BOLMELER
     }
@@ -116,6 +118,8 @@ def markdown_ozeti(rapor) -> str:
     satirlar = [
         "# Bölme ve etiket tanımının ROC-AUC'ye etkisi (§10.7, keşifsel)",
         "",
+        f"Protokol: {rapor['meta'].get('protokol', 'docs/deney_protokolu.md §10.7 (keşifsel)')}.",
+        "",
         f"Üretim: {rapor['meta']['uretim_zamani']} · commit `{rapor['meta'].get('commit') or '—'}` · "
         f"{rapor['veri']['egitim_gun']} eğitim günü (altın test ve §10 günleri hariç) · sabit RF "
         f"({rapor['meta']['model']}), temel 8 özellik · her koşulda {rapor['meta']['tekrar']} bölme.",
@@ -144,7 +148,7 @@ def markdown_ozeti(rapor) -> str:
     return "\n".join(satirlar) + "\n"
 
 
-def calistir(cikti: str, motor=None, arsiv_klasoru=None, tekrar=TEKRAR) -> dict:
+def calistir(cikti: str, motor=None, arsiv_klasoru=None, tekrar=TEKRAR, rf_parametreleri=None) -> dict:
     from turbulans_radar.ml.duyarlilik_analizi import arsiv_metinleri
     from turbulans_radar.ml.ml_otomatik_egitim import _atomik_yaz_json, _json_guvenli
     from turbulans_radar.ml.sonuc_disa_aktarimi import git_bilgisi
@@ -153,6 +157,7 @@ def calistir(cikti: str, motor=None, arsiv_klasoru=None, tekrar=TEKRAR) -> dict:
     yol = os.path.join(cikti, CIKTI_ADI)
     if os.path.exists(yol):
         raise SystemExit(f"{yol} var: §10.7 deneyi bir kez yapılır, üzerine yazılmaz.")
+    rf_parametreleri = rf_parametreleri or TEMEL_RF
     with open(ALTIN_DOSYASI, encoding="utf-8") as dosya:
         altin = set(json.load(dosya)["gunler"])
     gunler = dondurma_gunleri() - altin
@@ -162,15 +167,16 @@ def calistir(cikti: str, motor=None, arsiv_klasoru=None, tekrar=TEKRAR) -> dict:
     hafif = veri["anahtar"].map(metinler.map(hafif_mi))
     rapor = {
         "meta": {
-            "protokol": "docs/deney_protokolu.md §10.7 (keşifsel)",
+            "protokol": "docs/deney_protokolu.md §10.7 (keşifsel)"
+            + ("" if rf_parametreleri == TEMEL_RF else "; derin RF sonradan eklendi (§10.7 sonucu görüldükten sonra)"),
             "uretim_zamani": datetime.now(UTC).isoformat(timespec="seconds"),
             **git_bilgisi(),
-            "model": f"RandomForest {TEMEL_RF}, class_weight=balanced",
+            "model": f"RandomForest {rf_parametreleri}, class_weight=balanced",
             "tekrar": tekrar,
             "uyari": "Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır.",
         },
         "veri": {"egitim_gun": int(veri["gun"].nunique()), "ornek": int(len(veri)), "pozitif": int(veri["y"].sum())},
-        **deney(veri, hafif, tekrar),
+        **deney(veri, hafif, tekrar, rf_parametreleri=rf_parametreleri),
     }
     rapor = _json_guvenli(rapor)
     os.makedirs(cikti, exist_ok=True)
@@ -183,8 +189,9 @@ def calistir(cikti: str, motor=None, arsiv_klasoru=None, tekrar=TEKRAR) -> dict:
 def ana(argv=None):
     ayrac = argparse.ArgumentParser(description="§10.7: bölme ve etiket tanımının ROC-AUC'ye etkisi (keşifsel).")
     ayrac.add_argument("--cikti", required=True)
+    ayrac.add_argument("--derin", action="store_true", help="Sonradan eklenen derin RF (max_depth=None, yaprak 1)")
     arg = ayrac.parse_args(argv)
-    print(markdown_ozeti(calistir(arg.cikti)))
+    print(markdown_ozeti(calistir(arg.cikti, rf_parametreleri=DERIN_RF if arg.derin else None)))
 
 
 if __name__ == "__main__":

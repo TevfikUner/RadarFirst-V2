@@ -245,3 +245,8 @@ değerleriyle (ILGILI_CALISMALAR §9) farkın ne kadarının bölme ve etiket ta
   yorumu yapılmaz (veri, bölge ve özellikler farklı).
 - **Çıktı:** `docs/sonuclar/2026-10-28_protokol_farki/protokol_farki.json` + README; bir kez, üzerine
   yazılmaz. Sonuç ne çıkarsa raporlanır.
+- **Sonradan ek (28 Ekim 2026, §10.7 sonucu görüldükten sonra):** sabit RF'nin derinliği 5 olduğu için
+  aynı günün örneklerini ezberleme kapasitesi düşüktür; literatürdeki modeller (XGBoost, KNN) daha
+  esnektir. Aynı 2 × 2 tasarım, aynı 20 bölmeyle bir kez de derin RF'yle (`max_depth=None`,
+  `min_samples_leaf=1`) çalıştırılır; çıktı `docs/sonuclar/2026-10-28_protokol_farki/derin/`. Ön kayıtlı
+  değildir, "sonradan eklenen keşifsel" diye raporlanır.
