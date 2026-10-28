@@ -608,6 +608,7 @@ class ModelBilgisiYaniti(BaseModel):
     kullanimda: bool | None = None
     uyari: str | None = None
     konformal: dict | None = None
+    altin_gun_ozeti: dict | None = None
 
 
 class HavaDurumuKupuYaniti(BaseModel):

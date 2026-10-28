@@ -66,7 +66,31 @@ async def turbulans_model_bilgisi():
     if bilgi is None:
         return {"egitildi_mi": False}
     kullanimda, uyari = model_kullanilabilir_mi(bilgi, model_var_mi=True)
-    return {"egitildi_mi": True, **bilgi, "kullanimda": kullanimda, "uyari": uyari}
+    return {
+        "egitildi_mi": True,
+        **bilgi,
+        "kullanimda": kullanimda,
+        "uyari": uyari,
+        "altin_gun_ozeti": altin_gun_ozeti(bilgi),
+    }
+
+
+def altin_gun_ozeti(bilgi: dict) -> dict | None:
+    """Kapı kararının dayandığı test günlerindeki (holdout) model ve TI1 ROC-AUC'si ile eşleştirilmiş fark.
+    PIREP verilmiş noktalara göredir; mutlak türbülans sıklığı değildir."""
+    holdout = bilgi.get("holdout") or {}
+    ga = holdout.get("guven_araliklari") or {}
+    if "model_roc_auc" not in ga or "ti1_roc_auc" not in ga:
+        return None
+    fark = ga.get("model_eksi_ti1_roc_auc") or {}
+    return {
+        "yontem": holdout.get("yontem"),
+        "gun": len(holdout.get("gunler") or []),
+        "ornek": (holdout.get("aday") or {}).get("ornek"),
+        "model_roc_auc": [ga["model_roc_auc"][k] for k in ("deger", "alt", "ust")],
+        "ti1_roc_auc": [ga["ti1_roc_auc"][k] for k in ("deger", "alt", "ust")],
+        "model_eksi_ti1": [fark.get(k) for k in ("fark", "alt", "ust")] if fark else None,
+    }
 
 
 @router.get("/turbulans/model-versiyonlari", response_model=list[ModelVersiyonuOzetiYaniti], tags=["Türbülans Tahmini"])

@@ -563,6 +563,7 @@ async def test_model_bilgisi_egitilmemisse_durustce_false_doner(istemci, api_ana
         "kullanimda": None,
         "uyari": None,
         "konformal": None,
+        "altin_gun_ozeti": None,
     }
 
 
@@ -586,6 +587,29 @@ async def test_model_bilgisi_egitilmisse_metadata_doner(istemci, api_anahtari, m
     monkeypatch.setattr(ml_yollari, "model_bilgisini_yukle", lambda: {**sahte_bilgi, "veri_kaynagi": "ml_ornekleri"})
     govde = (await istemci.get("/api/v1/turbulans/model-bilgisi", headers={"X-API-Key": api_anahtari})).json()
     assert govde["kullanimda"] is True and govde["uyari"] is None
+    assert govde["altin_gun_ozeti"] is None
+
+    holdout = {
+        "yontem": "altın test günleri",
+        "gunler": ["2018-01-16", "2018-01-24"],
+        "aday": {"ornek": 120},
+        "guven_araliklari": {
+            "model_roc_auc": {"deger": 0.71, "alt": 0.68, "ust": 0.74},
+            "ti1_roc_auc": {"deger": 0.67, "alt": 0.64, "ust": 0.70},
+            "model_eksi_ti1_roc_auc": {"fark": 0.03, "alt": 0.02, "ust": 0.05},
+        },
+    }
+    bilgi = {**sahte_bilgi, "veri_kaynagi": "ml_ornekleri", "holdout": holdout}
+    monkeypatch.setattr(ml_yollari, "model_bilgisini_yukle", lambda: bilgi)
+    govde = (await istemci.get("/api/v1/turbulans/model-bilgisi", headers={"X-API-Key": api_anahtari})).json()
+    assert govde["altin_gun_ozeti"] == {
+        "yontem": "altın test günleri",
+        "gun": 2,
+        "ornek": 120,
+        "model_roc_auc": [0.71, 0.68, 0.74],
+        "ti1_roc_auc": [0.67, 0.64, 0.70],
+        "model_eksi_ti1": [0.03, 0.02, 0.05],
+    }
 
 
 async def test_model_versiyonlari_listesi_doner(istemci, api_anahtari, monkeypatch):
