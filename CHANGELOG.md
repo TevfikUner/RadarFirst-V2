@@ -4,7 +4,15 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
-## Kurul incelemesi A grubu (28 Ekim 2026)
+## Kurul incelemesi B grubu, kısa işler (28 Ekim 2026)
+
+- `turbulans-turkiye-kaymasi`: Türkiye girdileri ABD aralığında (destek dışı %3,0) ama dağılım belirgin farklı (PSI Ri 1,04).
+- README 1.762 → 115 satır; ayrıntılar `docs/KILAVUZ.md` (git geçmişi korunarak taşındı); sayı tutarlılığı testi kılavuzu da denetler.
+- Sonuç paketlerinin `SAYILAR.md` ve güvenilirlik SVG'si için altın çıktı testleri.
+- Görev başına zaman aşımı `GOREV_MAKS_SURE_SANIYE` (4 sa; ML ve canlı ADS-B hariç), yerine yeni iş parçacığı.
+- mypy kapsamı `rota/`, `isci/`, `analiz/`, `dogrulama/` ile 70 dosyaya genişledi.
+
+
 
 - §10.6 (sonradan eklenen ikincil): temel model − birleşik EDR +0,016 [+0,010; +0,021] (`--birlesik-kiyas`).
 - Rota yanıtına `katman_cevrelenmiyor` uyarısı (seviye küpün basınç seviyelerinin dışında).

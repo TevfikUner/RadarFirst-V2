@@ -1,7 +1,7 @@
 # İşletim kılavuzu (P1-10)
 
 Tek makinelik yığının (WSL2 + Docker: db, migrate_yedegi, migrate, api, worker, yedek) günlük
-işletimi. Komutlar WSL'de depo kökünde çalışır. Ayrıntılı açıklamalar README'dedir; burada yalnız
+işletimi. Komutlar WSL'de depo kökünde çalışır. Ayrıntılı açıklamalar [Kılavuz](KILAVUZ.md)'dadır; burada yalnız
 adımlar var. **Denendi** sütunu prosedürün bu makinede en son ne zaman uçtan uca çalıştırıldığını
 gösterir.
 

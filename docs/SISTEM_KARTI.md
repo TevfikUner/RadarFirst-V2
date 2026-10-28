@@ -297,7 +297,12 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   gün gruplu CV ROC-AUC'siyle 1-SE kuralıyla seçilir (fark küçükse Lojistik
   Regresyon); özellikler TI1, Richardson, rüzgar hızı, basınç, düşey kayma,
   deformasyon, diverjans ve TI2'dir.
-- Yalnızca ABD verisiyle doğrulanmıştır. Yerel MADIS EDR deposunda (11 gün, 2018–2019,
+- Yalnızca ABD verisiyle doğrulanmıştır. Türkiye girdileri (7 seviyeli Ocak 2019 küpü, 20.000 rastgele seyir
+  noktası) ABD eğitim verisinin aralığı içinde kalıyor (%0,5–%99,5 dışı %3,0; ABD içi kontrol %4,0) ama dağılımı
+  belirgin farklı (PSI: Richardson 1,04, TI2 0,42, TI1 0,41; kontrol ≤ 0,11): Türkiye noktaları daha sakin (medyan
+  TI1 2,5e-7 / ABD 5e-7). Fark kısmen ABD örneklerinin PIREP konumu olmasından gelir. Model dışdeğerleme yapmıyor,
+  ama ABD'de ölçülen beceri ve olasılık kalibrasyonu Türkiye'ye taşınamaz (28 Ekim,
+  `docs/sonuclar/2026-10-28_turkiye_kaymasi/`; girdi örtüşmesi ölçümü, beceri ölçümü değil). Yerel MADIS EDR deposunda (11 gün, 2018–2019,
   FL280 üstü) Avrupa kutusunda (35–60°K, 10°B–30°D) 21.167 gözlem, ama yalnızca 28'i
   hafif+ (EDR ≥ 0,1); Türkiye/Doğu Akdeniz kutusunda (34–43°K, 25–45°D) 0 gözlem
   vardır. Bu, bölgesel bir doğrulama için yetersizdir (pozitif sayısı güven aralığını
@@ -408,8 +413,11 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   Gece işi ve yedek tazeliği uyarı düzeyinde raporlanır.
 - İşçi durdurulunca çalışan görevi 240 sn bekler; ML gece işi süren CDS
   isteğini bitirip `yarida_kaldi` olarak durur.
-- Görev başına azami süre yoktur: takılan bir görevin kalp atışı sürdüğü için
-  başka işçiye geçmez; işçi yeniden başlatılana kadar o yuvayı tutar.
+- Görev başına azami süre `GOREV_MAKS_SURE_SANIYE`'dir (varsayılan 4 sa; 0 = sınırsız; kendi süresini
+  yöneten `ml_veri`, `ml_egitim`, `canli_adsb` hariç, `GOREV_SURE_SINIRSIZ_TURLER`). Aşan görev `yarida_kaldi`
+  ("Zaman aşımı") olur, kalp atışı kesilir ve yerine yeni iş parçacığı açılır; kapasite düşmez. Python iş
+  parçacığı dışarıdan durdurulamaz: durdurma işaretine bakan görev kendiliğinden durur, bakmayanın sonucu
+  sonradan yazılmaz ama işini bitirene kadar CPU/belleği kullanmayı sürdürür.
 - Görev kuyruğu PostgreSQL'dedir; işçiler 1 sn aralıkla yoklar (kuyruğa
   giriş ile başlama arasında ~1 sn gecikme).
 - API/kuyruk üzerinden tetiklenen analizler (`/analiz/ucus`, `/analiz/rota`,
@@ -419,8 +427,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 1.162 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
-  tarayıcı ve dış ağ katmanı dışındaki 1.150 testin tamamı geçti, 0 hata; tarayıcı ve ağ
+- **Otomatik testler:** 1.171 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
+  tarayıcı ve dış ağ katmanı dışındaki 1.159 testin tamamı geçti, 0 hata; tarayıcı ve ağ
   katmanı 12 test ayrıca çalışır), kod kapsamı %86,3. Önceki CI ölçümü: 18 Ekim, PR #93, 1.066
   test, kapsam %85. Kapsamı: birim testleri, gerçek PostgreSQL
   üzerinde API, depo ve görev kuyruğu testleri (eşzamanlı işçiler, ölen işçi

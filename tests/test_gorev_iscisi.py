@@ -212,3 +212,60 @@ def test_bakim_dongusu_saglik_dosyasini_yalniz_veritabanina_ulasinca_tazeler(mon
     os.utime(dosya, (0, 0))
     _bakimi_kisa_calistir(isci)
     assert dosya.stat().st_mtime == 0
+
+
+def test_zaman_asimi_yalniz_suresi_sinirli_turlerde_ve_bir_kez(monkeypatch):
+    monkeypatch.setattr(config, "GOREV_MAKS_SURE_SANIYE", 10.0)
+    monkeypatch.setattr(config, "GOREV_SURE_SINIRSIZ_TURLER", ("ml_veri",))
+    bitirilen = []
+    monkeypatch.setattr(gi, "gorevi_bitir", lambda gorev_id, isci, **alanlar: bitirilen.append((gorev_id, alanlar)))
+    isci = gi.GorevIscisi(turler=("yok",))
+    isci._dur.set()
+    isci._baslangiclar = {"eski": ("ucus", 0.0), "ml": ("ml_veri", 0.0), "yeni": ("ucus", 95.0)}
+    isci._calisanlar = {"eski", "ml", "yeni"}
+
+    assert isci.zaman_asimlarini_denetle(simdi=100.0) == ["eski"]
+    assert isci._calisanlar == {"ml", "yeni"} and isci._zaman_asimi == {"eski"}
+    assert bitirilen[0][0] == "eski" and bitirilen[0][1]["durum"] == "yarida_kaldi"
+    assert "Zaman aşımı" in bitirilen[0][1]["aciklama"]
+    assert isci.zaman_asimlarini_denetle(simdi=200.0) == ["yeni"]
+
+    monkeypatch.setattr(config, "GOREV_MAKS_SURE_SANIYE", 0)
+    isci._baslangiclar["baska"] = ("ucus", 0.0)
+    assert isci.zaman_asimlarini_denetle(simdi=1e6) == []
+
+
+async def test_takilan_gorev_zaman_asimina_duser_yerine_acilan_is_parcacigi_kuyrugu_isler(
+    monkeypatch, kuyruk_veritabani
+):
+    monkeypatch.setattr(config, "GOREV_MAKS_SURE_SANIYE", 0.3)
+    monkeypatch.setattr(config, "GOREV_KALP_ATISI_SANIYE", 0.05)
+    durdurma_goruldu = []
+
+    def takilan(gorev):
+        while not gorev["_durdur"]():
+            time.sleep(0.02)
+        durdurma_goruldu.append(gorev["id"])
+        return {"durum": "tamamlandi"}
+
+    monkeypatch.setitem(gi.ISLEYICILER, "test_takilan", takilan)
+    monkeypatch.setitem(gi.ISLEYICILER, "test_hizli", lambda gorev: {"durum": "tamamlandi"})
+    takilan_id = await gorev_deposu.gorev_olustur("test_takilan")
+    isci = gi.GorevIscisi(isci_sayisi=1, bekleme_saniye=0.05, turler=("test_takilan", "test_hizli")).baslat()
+    try:
+        for _ in range(100):
+            if (await gorev_deposu.gorev_getir(takilan_id))["durum"] == "yarida_kaldi":
+                break
+            time.sleep(0.05)
+        hizli_id = await gorev_deposu.gorev_olustur("test_hizli")
+        for _ in range(100):
+            if (await gorev_deposu.gorev_getir(hizli_id))["durum"] == "tamamlandi":
+                break
+            time.sleep(0.05)
+    finally:
+        isci.durdur(zaman_asimi=5.0)
+
+    takilan_gorev = await gorev_deposu.gorev_getir(takilan_id)
+    assert takilan_gorev["durum"] == "yarida_kaldi" and "Zaman aşımı" in takilan_gorev["aciklama"]
+    assert durdurma_goruldu == [takilan_id]
+    assert (await gorev_deposu.gorev_getir(hizli_id))["durum"] == "tamamlandi"

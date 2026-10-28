@@ -33,7 +33,7 @@ Açık maddelerin önem sırası; ayrıntı aşağıdaki bölümlerde. Durum: 21
 14. Daha fazla OpenSky uçuşu (önce kota hesabı, ONAY); F5 yakıt sütunu (migration, ONAY).
 
 **Kod kalitesi (düşük)**
-15. mypy'yi `rota/`, `isci/`, `veri/` paketlerine genişlet; araştırma CLI'larına test.
+15. mypy'yi `veri/` ve `ml/` paketlerine genişlet (rota/isci/analiz/dogrulama 28 Ekim'de eklendi); araştırma CLI'larına test.
 
 **Dış iletişim / koşullu**
 16. MGM ve IATA Turbulence Aware başvurusu (kullanıcı).
@@ -208,9 +208,9 @@ jüri sorularına doğrudan yanıt verenler önde.
   yerel durumu paylaşıyor) adım fonksiyonlarına bölünür. Önce master'dan altın çıktı alınır
   (koridor + ATS, 4 senaryo, rota + CZML JSON); bölmeden sonra çıktı bayt bayt aynı olmalı
   (D-5'te #126 böyle doğrulandı).
-- [ ] **mypy'yi kademeli genişlet:** şu an `api/`, `depo/`, `fizik/` (`pyproject` `[tool.mypy]`
-  `files`). Sırada `rota/`, `isci/`, `veri/`; kalan ~125 bulgunun çoğu tip çıkarımı kaynaklı yanlış
-  alarm, her paket temizlendikçe listeye eklenir (CI adımı otomatik kapsar).
+- [ ] **mypy'yi kademeli genişlet:** 28 Ekim'de `rota/`, `isci/`, `analiz/`, `dogrulama/` eklendi (70 dosya
+  temiz; 28 bulgu: tip ek açıklaması ve açık tuple açılımı, davranış değişmedi). Kalan `veri/` (36) ve `ml/` (64)
+  bulgu; her paket temizlendikçe `pyproject` `[tool.mypy] files` listesine eklenir (CI adımı otomatik kapsar).
 - [ ] **Düşük öncelik:** araştırma CLI'larına test (`cli/demo_ekranlari` %27,
   `cli/performans_olcumu` %51); karar destek yolunda değiller.
 

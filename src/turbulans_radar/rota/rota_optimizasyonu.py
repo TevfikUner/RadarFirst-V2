@@ -70,6 +70,8 @@ bölüm/brifing brifing.py, dispeç bulguları bulgular.py, CZML czml.py'dedir.
 
 from __future__ import annotations
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 import shapely
@@ -142,7 +144,7 @@ from turbulans_radar.veri.veri_yukleme import hava_durumu_onbellekli_yukle, veri
 # doğru, karşılaştırma amaçlı kaba tahminlerdir.
 # azami_fl: halka açık azami işletme irtifası (A320 39.800 ft, 737-800 41.000 ft,
 # 777-300ER ve A350-900 43.100 ft); kütleye bağlı fiili tavan modellenmez.
-UCAK_PROFILLERI = {
+UCAK_PROFILLERI: dict[str, dict[str, Any]] = {
     "A320": {
         "etiket": "Airbus A320 (dar gövde, kısa/orta menzil)",
         "tas_ms": 230.0,

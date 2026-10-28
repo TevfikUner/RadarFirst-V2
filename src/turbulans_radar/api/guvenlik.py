@@ -59,7 +59,7 @@ def _anahtar_ayarlarini_denetle():
     if not _yalnizca_yerel_yayin_mi():
         _logger.warning(
             "API ağa açık (API_YAYIN_ADRESI=%s): TLS yok, anahtarlar düz HTTP'den gider -- "
-            "güvenilmeyen ağda TLS sonlandıran bir ters vekil kullan (README 'Güvenlik').",
+            "güvenilmeyen ağda TLS sonlandıran bir ters vekil kullan (docs/KILAVUZ.md 'Güvenlik ve sağlamlık').",
             os.environ["API_YAYIN_ADRESI"],
         )
 

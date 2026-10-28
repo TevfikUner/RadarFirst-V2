@@ -174,7 +174,7 @@ def ag_acilis_sorunlari(ortam=None, kaynak=config, anahtarlari_denetle=True) -> 
         sorunlar.append("POSTGRES_PASSWORD: varsayılan ya da demo şifresi")
     if ortam.get("POSTGRES_USER", "postgres") in {"postgres", ortam.get("DB_SUPER_KULLANICI", "postgres")}:
         sorunlar.append(
-            "POSTGRES_USER: süper kullanıcı; UYGULAMA_POSTGRES_USER/PASSWORD tanımlayın (README 'Uygulama veritabanı rolü')"
+            "POSTGRES_USER: süper kullanıcı; UYGULAMA_POSTGRES_USER/PASSWORD tanımlayın (docs/KILAVUZ.md 'Uygulama veritabanı rolü')"
         )
     if getattr(kaynak, "KISITLI_SAHA_ORNEK_VERI_YUKLE", getattr(config, "KISITLI_SAHA_ORNEK_VERI_YUKLE")):
         sorunlar.append("KISITLI_SAHA_ORNEK_VERI_YUKLE: örnek kısıtlı sahalar açık; false yapın")

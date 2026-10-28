@@ -18,6 +18,7 @@ def guncel_belgeler() -> list[Path]:
     return sorted(
         {
             KOK / "README.md",
+            KOK / "docs/KILAVUZ.md",
             KOK / "docs/SISTEM_KARTI.md",
             KOK / "docs/sonuclar/README.md",
             *(KOK / "docs/rapor").glob("*.md"),

@@ -287,6 +287,8 @@ class GorevIscisi:
         self._bakim_dur = threading.Event()
         self._kilit = threading.Lock()
         self._calisanlar: set[str] = set()
+        self._baslangiclar: dict[str, tuple[str, float]] = {}
+        self._zaman_asimi: set[str] = set()
         self._is_parcaciklari: list[threading.Thread] = []
 
     def baslat(self):
@@ -322,27 +324,79 @@ class GorevIscisi:
             if gorev is None:
                 self._dur.wait(self.bekleme_saniye)
                 continue
-            self.calistir(gorev)
+            if self.calistir(gorev):
+                return
 
-    def calistir(self, gorev: dict) -> None:
+    def calistir(self, gorev: dict) -> bool:
+        """Görevi yürütüp sonucunu yazar. Görev bu sırada zaman aşımına düştüyse (bkz.
+        zaman_asimlarini_denetle) sonuç yazılmaz ve True döner: bu iş parçacığının yerine
+        zaten yenisi açılmıştır, döngüden çıkar."""
+        gorev_id = gorev["id"]
         with self._kilit:
-            self._calisanlar.add(gorev["id"])
+            self._calisanlar.add(gorev_id)
+            self._baslangiclar[gorev_id] = (gorev["tur"], time.monotonic())
         try:
-            alanlar = gorevi_yurut({**gorev, "_durdur": self._dur.is_set})
+            alanlar = gorevi_yurut({**gorev, "_durdur": lambda: self._dur.is_set() or gorev_id in self._zaman_asimi})
         finally:
             with self._kilit:
-                self._calisanlar.discard(gorev["id"])
+                self._calisanlar.discard(gorev_id)
+                self._baslangiclar.pop(gorev_id, None)
+                zaman_asimina_dustu = gorev_id in self._zaman_asimi
+                self._zaman_asimi.discard(gorev_id)
+        if zaman_asimina_dustu:
+            _logger.warning("Zaman aşımına düşen görev sonunda bitti, sonucu yazılmadı (%s)", gorev_id)
+            return True
         try:
             if gorevi_bitir(gorev["id"], self.ad, **alanlar):
                 webhooku_bildir(
-                    gorev["bildirim_webhook_url"], {"gorev_id": gorev["id"], **gorev_getir_senkron(gorev["id"])}
+                    gorev["bildirim_webhook_url"], {"gorev_id": gorev["id"], **(gorev_getir_senkron(gorev["id"]) or {})}
                 )
         except Exception as hata:
             _logger.error("Görev sonucu kaydedilemedi (%s)", gorev["id"], exc_info=hata)
+        return False
+
+    def zaman_asimlarini_denetle(self, simdi=None) -> list[str]:
+        """GOREV_MAKS_SURE_SANIYE'yi aşan (süresi sınırsız türler hariç) görevleri 'yarida_kaldi' yapar,
+        kalp atışını keser ve yerine yeni bir iş parçacığı açar. Python iş parçacığı dışarıdan
+        durdurulamaz: '_durdur'a bakan görevler kendiliğinden durur, bakmayanın sonucu yazılmaz."""
+        sinir = config.GOREV_MAKS_SURE_SANIYE
+        if not sinir or sinir <= 0:
+            return []
+        simdi = time.monotonic() if simdi is None else simdi
+        with self._kilit:
+            asanlar = [
+                gorev_id
+                for gorev_id, (tur, baslangic) in self._baslangiclar.items()
+                if gorev_id not in self._zaman_asimi
+                and tur not in config.GOREV_SURE_SINIRSIZ_TURLER
+                and simdi - baslangic > sinir
+            ]
+            for gorev_id in asanlar:
+                self._zaman_asimi.add(gorev_id)
+                self._calisanlar.discard(gorev_id)
+        for gorev_id in asanlar:
+            _logger.error(
+                "Görev zaman aşımına düştü (%s, > %.0f sn); yerine yeni iş parçacığı açılıyor.", gorev_id, sinir
+            )
+            try:
+                gorevi_bitir(
+                    gorev_id,
+                    self.ad,
+                    durum="yarida_kaldi",
+                    aciklama=f"Zaman aşımı: görev {sinir:.0f} sn içinde bitmedi (GOREV_MAKS_SURE_SANIYE); yeniden deneyin.",
+                )
+            except Exception as hata:
+                _logger.warning("Zaman aşımı kaydedilemedi (%s): %s", gorev_id, dostane_hata_mesaji(hata))
+            if not self._dur.is_set():
+                yedek = threading.Thread(target=self._dongu, name=f"gorev-iscisi-yedek-{gorev_id[:8]}", daemon=True)
+                self._is_parcaciklari.append(yedek)
+                yedek.start()
+        return asanlar
 
     def _bakim_dongusu(self):
         bayat_sure = timedelta(seconds=config.GOREV_BAYAT_SANIYE)
         while not self._bakim_dur.wait(config.GOREV_KALP_ATISI_SANIYE):
+            self.zaman_asimlarini_denetle()
             with self._kilit:
                 calisanlar = list(self._calisanlar)
             try:

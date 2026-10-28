@@ -151,8 +151,16 @@ def kanitlari_topla(
     kanit = BagimsizKanit()
     arsiv = arsiv_baslangici(motor=motor)
     if arsiv is not None and arsiv <= baslangic <= pd.Timestamp.now(tz="UTC"):
+        enlem_min, enlem_maks, boylam_min, boylam_maks = kutu
         kanit.turb_sigmetleri = gecerli_sigmetleri_getir(
-            baslangic.to_pydatetime(), bitis.to_pydatetime(), *kutu, tehlikeler=TURBULANS_TEHLIKELERI, motor=motor
+            baslangic.to_pydatetime(),
+            bitis.to_pydatetime(),
+            enlem_min,
+            enlem_maks,
+            boylam_min,
+            boylam_maks,
+            tehlikeler=TURBULANS_TEHLIKELERI,
+            motor=motor,
         )
         kanit.kaynaklar.append("sigmet_arsivi")
     if not _iem_kapsaminda_mi(kutu):
@@ -213,7 +221,7 @@ def rota_maruziyeti(kanit: BagimsizKanit, enlemler, boylamlar, zamanlar, irtifa_
     """turb_sigmet: aktif türbülans SIGMET'ine giren nokta + bacak sayısı;
     pirep_raporu: tüpteki türbülans raporu sayısı; mog_pirep: bunların orta ve
     üstü olanları. Kaynak kapsamıyorsa (ya da tüpte hiç rapor yoksa mog_pirep) None."""
-    sonuc = {"turb_sigmet": None, "pirep_raporu": None, "mog_pirep": None}
+    sonuc: dict[str, int | None] = {"turb_sigmet": None, "pirep_raporu": None, "mog_pirep": None}
     zamanlar = list(zamanlar)
     if kanit.turb_sigmetleri is not None:
         katman = SigmetKisitKatmani(kanit.turb_sigmetleri, tehlikeler=TURBULANS_TEHLIKELERI, tamponlu=False)

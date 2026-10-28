@@ -50,6 +50,7 @@ turbulans-kacinma-baslangici = "turbulans_radar.analiz.kacinma_baslangici:ana"
 turbulans-uyari-orani = "turbulans_radar.analiz.uyari_orani:ana"
 turbulans-zaman-ornekleme = "turbulans_radar.analiz.zaman_ornekleme:ana"
 turbulans-birlesik-klimatoloji = "turbulans_radar.ml.birlesik_klimatoloji_duyarliligi:ana"
+turbulans-turkiye-kaymasi = "turbulans_radar.ml.turkiye_kaymasi:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
@@ -89,7 +90,15 @@ known-first-party = ["turbulans_radar"]
 
 [tool.mypy]
 python_version = "3.12"
-files = ["src/turbulans_radar/api", "src/turbulans_radar/depo", "src/turbulans_radar/fizik"]
+files = [
+    "src/turbulans_radar/api",
+    "src/turbulans_radar/depo",
+    "src/turbulans_radar/fizik",
+    "src/turbulans_radar/rota",
+    "src/turbulans_radar/isci",
+    "src/turbulans_radar/analiz",
+    "src/turbulans_radar/dogrulama",
+]
 ignore_missing_imports = true
 follow_imports = "silent"
 

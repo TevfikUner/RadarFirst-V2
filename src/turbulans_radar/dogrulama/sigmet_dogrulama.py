@@ -143,7 +143,7 @@ def ucus_sigmet_ile_karsilastir(eslesmis_df: pd.DataFrame, tampon: timedelta = t
     ti1_indeksi sütunları). Sadece config.TI1_ESIK_ORTA_SIDDETLI üzerindeki
     noktalar gerçek, resmi türbülans SIGMET'leriyle karşılaştırılır.
     """
-    bos_sonuc = {
+    bos_sonuc: dict = {
         "toplam_turbulans_sigmeti": 0,
         "orta_siddetli_nokta_sayisi": 0,
         "sigmetle_ortusen_nokta_sayisi": 0,

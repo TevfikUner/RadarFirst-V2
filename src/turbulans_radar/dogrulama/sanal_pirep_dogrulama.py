@@ -160,7 +160,7 @@ def pirepleri_sec(pozitif: int, negatif: int, motor=None) -> list[dict]:
     """Belirlenimci örneklem (anahtarın md5'ine göre sıralı): her çalıştırma
     aynı PIREP'leri seçer, önbellek yeniden kullanılır."""
     motor = motor or motor_al()
-    secilen = []
+    secilen: list = []
     with Session(motor) as oturum:
         for kosul, adet in ((MlOrnegi.sinif >= 1, pozitif), (MlOrnegi.sinif == 0, negatif)):
             if adet <= 0:

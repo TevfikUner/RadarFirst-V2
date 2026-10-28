@@ -20,7 +20,7 @@ isteğe bağlı) ve POSTGRES_* yerine bunlar kullanılır. Eksikse, uygulama
 kullanıcısıyla aynıysa ya da rol süper kullanıcıysa sunucu çalışmaz. Windows'ta yerel bir PostgreSQL 5432'yi tutuyorsa
 Docker veritabanı 127.0.0.1:5433'ten okunur (MCP_POSTGRES_PORT=5433); salt
 okunur rol (MCP_POSTGRES_USER) yazmayı veritabanı düzeyinde de engeller
-(README "Claude Code'dan veritabanına MCP ile bağlanmak").
+(docs/KILAVUZ.md "Claude Code'dan veritabanına MCP ile bağlanmak").
 
 Elle çalıştırmak/test etmek için:
     turbulans-mcp
@@ -172,7 +172,7 @@ def ana():
     try:
         mcp_baglanti_ayarlarini_uygula()
     except ValueError as hata:
-        sys.exit(f"turbulans-mcp başlatılmadı: {hata} (README: MCP ile bağlanmak)")
+        sys.exit(f"turbulans-mcp başlatılmadı: {hata} (docs/KILAVUZ.md: MCP ile bağlanmak)")
     sunucu.run()
 
 
