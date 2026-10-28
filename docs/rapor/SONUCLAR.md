@@ -374,6 +374,23 @@ temel set (RF) 0,685, geniş set (LR) 0,693.
 - Hafif raporlar negatiften çıkarılınca (Fikir 8) üç skor da belirgin yükseliyor (TI1 0,730,
   geniş 0,774), sıralama değişmiyor. Geniş setin üretime alınması ayrı karar (ONAY).
 
+### 2.6 Model − birleşik EDR (§10.6, 28 Ekim; sonradan eklenen ikincil)
+
+Kurul incelemesi (VER-04) üzerine §10 sonucundan sonra protokole eklendi (`docs/deney_protokolu.md`
+§10.6, commit `87e54fd`, skordan önce). Aynı 163 eğitim günü ve §10'un 79 test günü (7.772 örnek;
+§10'da 7.769, 28 Ekim'de yarıda kalan gece işi bu günlerde 3 örnek daha eşleştirmiş). Yeniden
+üretilen temel model ROC-AUC'si 0,685 (§10 ile aynı). Birleşik EDR 0,669 [0,656; 0,683].
+
+| Karşılaştırma (gün bloklu eşleştirilmiş bootstrap) | Fark [%95 GA] |
+|---|---|
+| Temel (RF) − birleşik EDR | +0,016 [+0,010; +0,021], p < 0,001 |
+| Geniş (LR) − birleşik EDR | +0,024 [+0,017; +0,031] |
+| Birleşik EDR − TI1 | +0,011 [+0,007; +0,015] |
+
+Model, eğitimsiz fizik birleşimini (Sharman–Pearson eşlemesi) de küçük ama anlamlı farkla geçiyor;
+birleşik EDR de TI1'i geçiyor (18 Ekim altın günlerdeki +0,013 ile tutarlı). Ön kayıtlı değildir,
+"sonradan eklenen ikincil" olarak okunmalıdır. Paket `docs/sonuclar/2026-10-28_birlesik_kiyas/`.
+
 ## 3. Nesnel değerlendirme: MADIS ölçülen EDR (M1) — tarihçe, 5 Ekim (güncel: §0.4)
 
 Etiket: MADIS maxEDR ≥ 0,1 (hafif ve üstü). 12.232 ölçüm, 372 pozitif (%3,0), 4 gün.
