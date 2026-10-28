@@ -257,7 +257,8 @@ sapması olay sayılır; en az iki farklı uçak doğrularsa canlı uyarı olur.
 İlk ölçümde POD 1/8, POFD 0/8 (örneklem küçük).
 
 **Ana bulgu:** TI1'in ayırt ediciliği orta düzey; tek başına güvenliğe yetmez. Bu yüzden
-güvenlik SIGMET sert kısıtından gelir, TI1 yalnız yumuşak kısıttır. Gerçek bir uçuşta (PUE502)
+güvenlik SIGMET sert kısıtından gelir. TI1 yumuşak kısıttır: yasaklamaz, ama adaylar arasında
+seçimde yakıttan önce gelir (bkz. SISTEM_KARTI §3, seçim kuralı). Gerçek bir uçuşta (PUE502)
 aktif TURB SIGMET'in gösterdiği bölgede TI1 hiç risk görmedi.
 
 ---

@@ -14,7 +14,8 @@ test günlerinde risk eşiğinde (7e-7) yakalama 0,50, yanlış alarm 0,25. Birl
 TI1'i az ama anlamlı geçiyor (+0,013 [+0,007; +0,020]). ML modeli altın günlerde TI1'i
 geçiyor (protokol modeli Random Forest +0,033 [+0,018; +0,049]; canlıdaki 9 Ekim Random
 Forest da +0,033), ama ROC-AUC 0,71'de kalıyor. Bu yüzden güvenlik SIGMET'e (sert kısıt)
-dayanır, TI1 A* rotasında yalnız yumuşak kısıttır.
+dayanır. TI1 yumuşak kısıttır: yasaklamaz (riskten kaçınan aday yoksa riskli rota yine önerilir),
+ama adaylar arasında seçimde yakıttan önce gelir (en az riskli noktalı aday, eşitlikte en az yakıt).
 
 **Demo.** Kimlik bilgisiz, çalışırken ağsız: [Beş dakikada çalıştır](#beş-dakikada-çalıştır).
 Kapsam yalnız CAT ve seyir safhası, doğrulama ABD verisiyle; çıktılar sertifikalı EDR

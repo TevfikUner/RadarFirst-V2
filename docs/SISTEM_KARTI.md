@@ -108,6 +108,12 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
      (örn. varış ülkesi) muaf tutulur ve raporlanır.
   2. Riskli TI1 noktalarından kaçınmak (yumuşak kısıt, 6 saatlik sanal ceza).
   3. En düşük yakıt/süre.
+
+  **Seçim kuralı (`rota_optimizasyonu.py`, aday seçimi):** A* ve seviye adayları üretildikten sonra
+  sert kısıtlara uyanlar arasında önce riskli TI1 nokta sayısı en az olan, eşitlikte en az yakıtlı aday
+  seçilir. "Yumuşak" yasaklamaz demektir: riskten kaçınan aday yoksa riskli rota yine önerilir (SIGMET'te
+  öneri yapılmaz). Ama riskli nokta sayısı yakıtla takas edilmez; daha az riskli bir aday, yakıtı ne kadar
+  fazla olursa olsun seçilir. Daha ucuz ama riskli seçenekler `secenekler`'de kalır, karar dispeçerindir.
 - Kaçınılacak bir risk yoksa önerilen rota büyük daireyle birebir aynıdır;
   uydurma bir "iyileşme" gösterilmez.
 - **Üretim bilgisi:** Rota ve nokta tahmini yanıtları `uretim_bilgisi` taşır: yazılım sürümü,
