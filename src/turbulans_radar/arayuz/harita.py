@@ -165,7 +165,7 @@ def zaman_kaydiricili_harita_olustur(
         richardson_degeri = satir.get("richardson_sayisi", float("nan"))
         if not pd_isna(richardson_degeri):
             kararsiz_mi = bool(satir.get("dinamik_kararsizlik"))
-            etiket = " (dinamik kararsız!)" if kararsiz_mi else ""
+            etiket = " (Ri &lt; 0,25: dinamik kararsız)" if kararsiz_mi else " (Ri &lt; 0,25 ERA5'te nadiren aşılır)"
             aciklama_parcalari.append(f"<b>Richardson Sayısı:</b> {richardson_degeri:.2f}{etiket}")
 
         ozellikler.append(

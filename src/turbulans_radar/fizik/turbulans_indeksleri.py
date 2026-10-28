@@ -44,6 +44,12 @@ YERCEKIMI_IVMESI = 9.80665
 # gösterge olarak kabul edilir (bkz. Miles-Howard kararsızlık kriteri).
 DINAMIK_KARARSIZLIK_ESIGI = 0.25
 
+RI_ESIGI_NOTU = (
+    "Ri < 0,25 (Miles-Howard) sınırı ~25-30 km çözünürlüklü ERA5/GFS'te nadiren aşılır; bu sayının 0 olması "
+    "kararsızlık olmadığı anlamına gelmez. Veriden seçilen ayırma eşiği Ri < 2,27'dir (SONUCLAR §0.2); "
+    "Richardson değerinin kendisine bakın."
+)
+
 
 def _metre_per_derece_boylam(enlem_derece):
     return METRE_PER_DERECE_ENLEM * np.cos(np.deg2rad(enlem_derece))

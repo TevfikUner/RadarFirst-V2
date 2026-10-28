@@ -27,6 +27,7 @@ import streamlit.components.v1 as components
 from turbulans_radar import config
 from turbulans_radar.analiz.ucus_analizi import calistir
 from turbulans_radar.depo import veritabani as vt
+from turbulans_radar.fizik.turbulans_indeksleri import RI_ESIGI_NOTU
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
 from turbulans_radar.ml.turbulans_ml_modeli import model_bilgisini_yukle, model_kullanilabilir_mi
@@ -158,7 +159,7 @@ if gonder:
                 sutun2.metric("Maksimum TI1", f"{ti1_gecerli.max():.2e} s^-2")
                 if "dinamik_kararsizlik" in eslesmis_df.columns:
                     kararsiz_sayisi = int(eslesmis_df["dinamik_kararsizlik"].fillna(False).astype(bool).sum())
-                    sutun3.metric("Dinamik kararsız nokta", kararsiz_sayisi)
+                    sutun3.metric("Ri < 0,25 nokta", kararsiz_sayisi, help=RI_ESIGI_NOTU)
 
             harita_dosyasi = os.path.join(config.CIKTI_KLASORU, f"turbulans_haritasi_{ucus_numarasi}_{tarih}.html")
             try:
