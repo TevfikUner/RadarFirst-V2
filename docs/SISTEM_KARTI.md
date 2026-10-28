@@ -223,7 +223,12 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Düşey rüzgar kayması ve Richardson sayısı uçağın basıncını çevreleyen tek
   katmandan hesaplanır (ERA5 varsayılanı 350–150 hPa, 7 seviye; jet çevresinde
   25 hPa ≈ 700 m); katman kalınlığı hipsometrik denklemle, deformasyon ve
-  diverjans küresel metrik terimleriyle hesaplanır. Canlı GFS küpü 3 seviyeyle
+  diverjans küresel metrik terimleriyle hesaplanır. Deformasyon ve diverjans uçağa en yakın
+  tek seviyede, kayma çevreleyen katmanda alınır; bu Ellrod ve Knapp'ın (1992, s. 154) NMC
+  uygulamasıyla aynıdır (DEF 300 mb seviyesinde, VWS 300–400 mb katmanında; TI2'nin CVG terimi
+  DEF ile aynı seviyede). Aynı makalenin Tablo 1 eşikleri modele göre 2–3 kat değişir
+  (×10⁻⁷ s⁻²: NGM MDT 4 / MDT-SVR 8, AVN 2 / 4, AFGWC MDT 8 / MDT-SVR 12); veriden seçilen
+  7e-7 bu aralıktadır. Canlı GFS küpü 3 seviyeyle
   indirildiği için orada katman 50 hPa'dır. Rota seviyesi küpün basınç seviyelerinin dışındaysa (3 seviyeli küpte
   ~FL300 altı ya da ~FL390 üstü) katman çevrelenmez, kayma en yakın iki seviyeden dışdeğerlenir; rota yanıtı
   bu durumda `katman_cevrelenmiyor` uyarısı verir. Türkiye küpü (`ocak_2019_turbulans.nc`) de 3 seviyelidir;
