@@ -90,15 +90,13 @@ def sekil_ciz(paket: dict, tabanlar: dict, yol: str) -> None:
     for eksen, (taban_adi, taban) in zip(eksenler[0], tabanlar.items(), strict=True):
         for (ad, noktalar), renk, cizgi in zip(seriler(paket).items(), RENKLER, CIZGILER, strict=True):
             egri = zarf(noktalar, taban)
-            eksen.plot(ALFALAR, np.clip(egri, -0.2, None), color=renk, linestyle=cizgi, linewidth=2, label=ad)
-            i = int(np.argmax(egri))
-            eksen.annotate(
-                f"{egri[i]:.2f}",
-                (ALFALAR[i], egri[i]),
-                textcoords="offset points",
-                xytext=(4, 4),
-                fontsize=8,
-                color="#52514e",
+            eksen.plot(
+                ALFALAR,
+                np.where(egri >= -0.2, egri, np.nan),
+                color=renk,
+                linestyle=cizgi,
+                linewidth=2,
+                label=f"{ad}, en yüksek {np.max(egri):.2f}",
             )
         eksen.axhline(0, color="#52514e", linewidth=0.8)
         eksen.axvline(taban, color="#e1e0d9", linewidth=1)
@@ -110,7 +108,8 @@ def sekil_ciz(paket: dict, tabanlar: dict, yol: str) -> None:
         for kenar in ("top", "right"):
             eksen.spines[kenar].set_visible(False)
     eksenler[0][0].set_ylabel("Göreli ekonomik değer (REV)")
-    eksenler[0][0].legend(frameon=False, fontsize=8, loc="upper right")
+    for eksen in eksenler[0]:
+        eksen.legend(frameon=False, fontsize=8, loc="upper left")
     fig.suptitle("REV: altın test günleri POD/POFD (18 Ekim paketi); sertifikalı EDR değildir", fontsize=10)
     fig.tight_layout()
     fig.savefig(yol, dpi=150, metadata={"Software": None})

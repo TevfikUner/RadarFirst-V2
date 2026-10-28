@@ -410,6 +410,18 @@ OOB bulgusuyla tutarlı). Hafif raporları çıkarmak 0,083 (TI1'de 0,063) artı
 kısmı etiket tanımından gelir; kalan ~0,08–0,12 bölge, özellik (koordinat, BADA) ve modelle ilgilidir,
 ölçülmedi. Paket `docs/sonuclar/2026-10-28_protokol_farki/`.
 
+### 2.8 Göreli ekonomik değer (REV; 28 Ekim, ek analiz)
+
+Altın test günlerinin POD/POFD'si (yeniden puanlama yok) Richardson (2000) maliyet/kayıp modeline
+kondu (kurul #16). PIREP örnek taban oranında (s = 0,476) en yüksek REV: TI1 eşik zarfı 0,26, TI1 risk
+eşiği (7e-7) 0,25, model (olasılık ≥ 0,5) 0,30; değer yalnız α = C/L ≈ 0,3–0,8 bandında pozitif.
+Kaçınma bedeli medyanı (%2,2 sefer yakıtı, §uyarı oranı) C alınırsa TI1 risk eşiği, bir orta-üstü
+karşılaşmanın kaybı sefer yakıtının %3,4–5,8'i arasındaysa "hep sap / hiç sapma"dan ucuzdur. Aynı
+POD/POFD'nin MADIS EDR ≥ 0,1 oranına (s = 0,029; farklı olay, aktarılabilirlik varsayımı) uygulandığı
+gösterimde bu aralık %39–114'e çıkar. POD/POFD nokta başınadır, rota başına değildir; PIREP taban oranı
+operasyonel sıklık değildir; kaybın gerçek değeri bilinmiyor. Sonuç sıralama ve mertebe içindir, eşik ya
+da seçim ağırlığı önerisi değildir. Paket `docs/sonuclar/2026-10-28_ekonomik_deger/` (şekil `rev_egrileri.png`).
+
 ## 3. Nesnel değerlendirme: MADIS ölçülen EDR (M1) — tarihçe, 5 Ekim (güncel: §0.4)
 
 Etiket: MADIS maxEDR ≥ 0,1 (hafif ve üstü). 12.232 ölçüm, 372 pozitif (%3,0), 4 gün.

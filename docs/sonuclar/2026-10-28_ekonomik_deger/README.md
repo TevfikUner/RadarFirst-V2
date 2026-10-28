@@ -1,6 +1,6 @@
 # Göreli ekonomik değer (REV)
 
-Üretim: 2026-10-28T16:30:06+00:00 · girdi `docs/sonuclar/2026-10-18/sonuc_paketi.json` (altın test günleri POD/POFD) · yöntem Richardson (2000) maliyet/kayıp modeli. Kaçınma bedeli medyanı %2.2 sefer yakıtı (`2026-10-28_uyari_orani`, rüzgâr-optimum rotaya göre).
+Üretim: 2026-10-28T16:31:20+00:00 · girdi `docs/sonuclar/2026-10-18/sonuc_paketi.json` (altın test günleri POD/POFD) · yöntem Richardson (2000) maliyet/kayıp modeli. Kaçınma bedeli medyanı %2.2 sefer yakıtı (`2026-10-28_uyari_orani`, rüzgâr-optimum rotaya göre).
 
 | Taban oran | Gösterge | En yüksek REV (α) | Değer kattığı α aralığı | Değer kattığı kayıp aralığı (sefer yakıtı) |
 |---|---|---|---|---|
