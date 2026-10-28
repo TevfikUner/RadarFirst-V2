@@ -4,6 +4,15 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Kurul incelemesi hızlı kazanımları (28 Ekim 2026)
+
+- `turbulans-uyari-orani` (`analiz/uyari_orani.py`): toplu, ağsız rota simülasyonuyla uyarı/sapma oranı ve sapmanın
+  yakıt bedeli; sonuç `docs/sonuclar/2026-10-28_uyari_orani/`.
+- Rota seçim kuralı (önce riskli nokta sayısı, sonra yakıt) README, SISTEM_KARTI §3, PROJE_ISLEYISI ve demo metninde
+  kodla aynı anlatılıyor; KATKILAR K4 kapı kuralı koddan yazıldı; test sayıları güncellendi.
+- Görünen metinlerde "güvenli rota" yerine "kısıtlara uyan / riskli nokta içermeyen"; TI1 görsel ölçeği docstring'i
+  "PIREP sınıfına uyduruldu" oldu; Streamlit ve Folium'da Ri < 0,25 göstergesine çözünürlük notu.
+
 ## Veri dondurma ve nihai sonuç paketi (18 Ekim 2026)
 
 - Nihai paket `docs/sonuclar/2026-10-18/` (163 gün, 15.940 PIREP): protokol modeli Random

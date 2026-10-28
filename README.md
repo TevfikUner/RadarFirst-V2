@@ -175,7 +175,7 @@ turbulans_radar/
               yeni_gun_degerlendirmesi.py -> dondurma sonrası yeni günlerde tek değerlendirme (protokol §10)
   analiz/     ucus_analizi.py, toplu_analiz.py -> uçtan uca uçuş analizi
               esik_esleme.py, gfs_toplulugu.py, kacinma_baslangici.py, ayriklastirma.py,
-              dedektor_duyarliligi.py, sanal_pirep_hatti.py -> ek analizler
+              dedektor_duyarliligi.py, sanal_pirep_hatti.py, uyari_orani.py -> ek analizler
   api/        api_servisi.py, semalar.py, guvenlik.py, ortak.py -> FastAPI REST + WebSocket, şemalar, anahtar/rol, CSP
               metrikler.py, rota_onbellegi.py
               yollar/ analiz.py, ucuslar.py, ml.py, hava_sahasi.py, geri_bildirim.py

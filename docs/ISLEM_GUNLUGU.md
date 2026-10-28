@@ -4,6 +4,8 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-28
 
+- ✅ Kurul incelemesi hızlı kazanımları (rapor depo dışında): rota seçim kuralı belgelerde kodla aynı; kapı kuralı/test sayısı/TI1 ölçeği docstring'i/"güvenli" ifadeleri düzeltildi; Ri < 0,25 sayacına çözünürlük notu.
+- ✅ Uyarı oranı ölçümü (`turbulans-uyari-orani`, `docs/sonuclar/2026-10-28_uyari_orani/`): 1.488 rotanın %46,3'ünde sapma, ek yakıt medyanı %2,2 (p90 %8,8). 1.153 test, 1.141 geçti.
 - ⚠️ Gece işi kullanıcı yeni emir verene kadar durduruldu (mobil kota): `.env` `ML_GECE_ISI_SAATI=` boş; bugünkü iş 44,8 MB'ta kesildi, veri korundu.
 - ✅ "TurbulansRadar AIRAC yenileme" görevi artık `conhost --headless` ile gizli çalışıyor (siyah pencere yok); deneme sonucu 0.
 

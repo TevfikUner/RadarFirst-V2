@@ -47,6 +47,7 @@ turbulans-veri-kontrol = "turbulans_radar.cli.veri_kontrol:ana"
 turbulans-esik-esleme = "turbulans_radar.analiz.esik_esleme:ana"
 turbulans-ayriklastirma = "turbulans_radar.analiz.ayriklastirma:ana"
 turbulans-kacinma-baslangici = "turbulans_radar.analiz.kacinma_baslangici:ana"
+turbulans-uyari-orani = "turbulans_radar.analiz.uyari_orani:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }

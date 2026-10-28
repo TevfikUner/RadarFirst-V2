@@ -404,8 +404,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 1.150 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
-  tarayıcı ve dış ağ katmanı dışındaki 1.138 testin tamamı geçti, 0 hata; tarayıcı ve ağ
+- **Otomatik testler:** 1.153 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
+  tarayıcı ve dış ağ katmanı dışındaki 1.141 testin tamamı geçti, 0 hata; tarayıcı ve ağ
   katmanı 12 test ayrıca çalışır), kod kapsamı %86,3. Önceki CI ölçümü: 18 Ekim, PR #93, 1.066
   test, kapsam %85. Kapsamı: birim testleri, gerçek PostgreSQL
   üzerinde API, depo ve görev kuyruğu testleri (eşzamanlı işçiler, ölen işçi
@@ -438,6 +438,14 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
     CDN'den ~55 KB/s bağlantıda 106 sn sürüyordu); altlık harita yerel.
   - Küp belleği: İzmir-Van için pencereli okuma 1.2 MB (tüm küp 69 MB); eski
     davranış ilk istekte 16 küpü (92 MB) belleğe alıyordu.
+- **Uyarı oranı (28 Ekim 2026, `turbulans-uyari-orani`, `docs/sonuclar/2026-10-28_uyari_orani/`):**
+  Ocak 2019 Türkiye küpünde (3 seviye) 6 doğu yönlü şehir çifti × 31 gün × 4 saat × FL350/370 = 1.488
+  rota, SIGMET ve kısıtlı saha kapalı. Rotaların %46,3'ünde büyük dairede 7e-7'yi aşan nokta var ve
+  sistem bunların hepsinde sapma öneriyor (FL350 %52,2, FL370 %40,5). Sapmada ek yakıt medyanı %2,2,
+  p90 %8,8 (büyük daireye göre); sapmaların 314/689'unda risk tamamen atlatılamıyor. Sapmaların %74,7'sinde
+  seçeneklerde daha ucuz ama daha çok riskli nokta bırakan bir aday var (medyan 6,2 puan daha az yakıt,
+  medyan 8 riskli nokta); seçim kuralı bunu önermez (§3). Rotalar aynı günlerin hava sistemlerini paylaşır,
+  oranlar betimleyicidir; tek bölge, tek ay.
 - **Sonuç paketi (Madde 8):** Doğruluk sayılarının tek kaynağı
   `docs/sonuclar/<kesme>/` paketidir: commit hash'li JSON, `SAYILAR.md`, ROC,
   güvenilirlik ve backtest şekilleri (`turbulans-ml-degerlendirme --cikti`). Geçerli
