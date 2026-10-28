@@ -18,6 +18,7 @@ import contextlib
 import io
 import json
 import os
+from typing import Any
 
 import numpy as np
 
@@ -33,12 +34,17 @@ from turbulans_radar.ml.degerlendirme import (
 GA_MIN_GUN = 5
 
 
-def _skor_karsilastirmasi(y, skorlar: dict, gunler, tekrar=None) -> dict:
+def _skor_karsilastirmasi(y, skorlar: dict, gunler, tekrar=None) -> tuple[dict, np.ndarray, dict, np.ndarray]:
     y, gunler = np.asarray(y, dtype=int), np.asarray(gunler)
     gecerli = np.all([np.isfinite(np.asarray(s, dtype=float)) for s in skorlar.values()], axis=0)
     y, gunler = y[gecerli], gunler[gecerli]
     skorlar = {ad: np.asarray(s, dtype=float)[gecerli] for ad, s in skorlar.items()}
-    sonuc = {"ornek": int(len(y)), "pozitif": int(y.sum()), "taban_oran": float(y.mean()), "gun": len(set(gunler))}
+    sonuc: dict[str, Any] = {
+        "ornek": int(len(y)),
+        "pozitif": int(y.sum()),
+        "taban_oran": float(y.mean()),
+        "gun": len(set(gunler)),
+    }
     ga_var = sonuc["gun"] >= GA_MIN_GUN
     if not ga_var:
         sonuc["not"] = f"Gün bazlı GA için en az {GA_MIN_GUN} gün gerekli; yalnız nokta değerler (ön sonuç)."

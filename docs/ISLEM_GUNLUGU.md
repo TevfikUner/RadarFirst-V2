@@ -4,6 +4,10 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-28
 
+- ✅ B grubu kalanlar: `ROTA_SECIM_KURALI` bayrağı (varsayılan değişmedi; `maliyet` 5 dk ile 1.488 rotada 28'i değişti).
+- ✅ §10.7 protokol farkı: rastgele bölme AUC'yi değiştirmedi (−0,001), hafif çıkarmak +0,083 (0,702 → 0,785).
+- ✅ REV (`turbulans-ekonomik-deger`): en yüksek REV TI1 0,26, model 0,30; yalnız α ≈ 0,3–0,8'de pozitif.
+- ✅ mypy 70 → 109 dosya (`veri/`, `ml/` eklendi); 1.180 test, 1.168 geçti.
 - ✅ B grubu bitti: mypy 35 → 70 dosya (rota/isci/analiz/dogrulama); 1.171 test, 1.159 geçti.
 - ✅ B grubu: README 1.762 → 115 satır (ayrıntı `docs/KILAVUZ.md`); sonuç paketi altın çıktı testleri; görev başına zaman aşımı (`GOREV_MAKS_SURE_SANIYE`, 4 sa).
 - ✅ B grubu: Türkiye kovaryat kayması (`turbulans-turkiye-kaymasi`): girdiler ABD aralığında (destek dışı %3,0) ama dağılım belirgin farklı (PSI Ri 1,04, TI1 0,41).

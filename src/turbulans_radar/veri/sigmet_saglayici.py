@@ -34,10 +34,11 @@ import itertools
 import json
 import re
 from datetime import UTC, datetime, timedelta
+from typing import Any, cast
 
 import httpx
 import shapely
-from sqlalchemy import delete, func, select, true, update
+from sqlalchemy import CursorResult, delete, func, select, true, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -187,7 +188,7 @@ def _hareket(ham: dict) -> tuple[float | None, float | None]:
         gelis, hiz = _sayi(ham.get("movementDir")), _sayi(ham.get("movementSpd"))
         if gelis is None or "MOV LTL" in metin or "STNR" in metin:
             return None, None
-        yon = (gelis + 180.0) % 360.0
+        yon: float | None = (gelis + 180.0) % 360.0
     else:
         yon = _PUSULA.get(str(ham.get("dir") or "").strip().upper())
         if yon is None:
@@ -325,7 +326,7 @@ def akista_olmayanlari_sonlandir(kaynak: str, akistaki_kimlikler: set[str], moto
             .values(gecerlilik_bitis=simdi)
         )
         oturum.commit()
-        return sonuc.rowcount
+        return cast(CursorResult, sonuc).rowcount
 
 
 def eski_sigmetleri_temizle(saklama_suresi: timedelta | None = None, motor=None) -> int:
@@ -334,12 +335,12 @@ def eski_sigmetleri_temizle(saklama_suresi: timedelta | None = None, motor=None)
     with Session(motor) as oturum:
         sonuc = oturum.execute(delete(Sigmet).where(Sigmet.gecerlilik_bitis < datetime.now(UTC) - saklama_suresi))
         oturum.commit()
-        return sonuc.rowcount
+        return cast(CursorResult, sonuc).rowcount
 
 
 def _akisi_cozumle(kaynak: str, ham_liste: list) -> tuple[dict, dict]:
-    kayitlar = {}
-    sayim = {
+    kayitlar: dict[str, dict] = {}
+    sayim: dict[str, Any] = {
         "ham": len(ham_liste),
         "sigmet": 0,
         "cozumlenen": 0,
@@ -370,6 +371,8 @@ def _akis_sagligini_denetle(ham_liste, sayim: dict | None) -> str | None:
         return None
     if not ham_liste:
         return "boş akış"
+    if sayim is None:
+        return "çözümleme sayımı yok"
     # FIR'a genişletilen (koordinatsız) kayıtlar da sayılır: koordinatlar
     # toptan kaybolursa FIR yedeği şema değişikliğini örtmesin.
     sorunlu = sayim["cozumlenemeyen"] + sayim.get("fir_poligonu", 0)
@@ -387,14 +390,14 @@ def sigmetleri_guncelle(motor=None, getirici=_awc_listesini_getir, kaynaklar=_KA
     yine işlenir; o kaynağın mevcut kayıtları SONLANDIRILMAZ. AWC 'veri yok'
     (204) derse kaynak başarılı sayılır ama mevcut kayıtlar yine erken
     sonlandırılmaz, kendi geçerlilikleriyle biter (muhafazakâr)."""
-    ozet = {"kaydedilen": 0, "sonlandirilan": 0, "silinen": 0, "kaynak_hatalari": {}, "kaynaklar": {}}
+    ozet: dict[str, Any] = {"kaydedilen": 0, "sonlandirilan": 0, "silinen": 0, "kaynak_hatalari": {}, "kaynaklar": {}}
     for kaynak in kaynaklar:
         try:
             ham_liste = getirici(kaynak)
-        except Exception as hata:
-            _logger.warning("AWC '%s' çekilemedi: %s", kaynak, hata)
-            ozet["kaynak_hatalari"][kaynak] = type(hata).__name__
-            kaynak_durumunu_kaydet(durum_anahtari(kaynak), False, f"{type(hata).__name__}: {hata}", motor=motor)
+        except Exception as istisna:
+            _logger.warning("AWC '%s' çekilemedi: %s", kaynak, istisna)
+            ozet["kaynak_hatalari"][kaynak] = type(istisna).__name__
+            kaynak_durumunu_kaydet(durum_anahtari(kaynak), False, f"{type(istisna).__name__}: {istisna}", motor=motor)
             continue
         kayitlar, sayim = _akisi_cozumle(kaynak, ham_liste) if isinstance(ham_liste, list) else ({}, None)
         hata = _akis_sagligini_denetle(ham_liste, sayim)

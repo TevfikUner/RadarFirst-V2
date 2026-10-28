@@ -20,6 +20,7 @@ import io
 import os
 import subprocess
 from datetime import UTC, datetime
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -151,7 +152,7 @@ def skor_ozeti(y, skorlar: dict, gunler, tekrar=None) -> dict:
     gecerli = np.all([np.isfinite(s) for s in skorlar.values()], axis=0) if skorlar else np.ones(len(y), bool)
     y, gunler = y[gecerli], gunler[gecerli]
     skorlar = {ad: np.asarray(s)[gecerli] for ad, s in skorlar.items()}
-    ozet = {
+    ozet: dict[str, Any] = {
         "ornek": int(len(y)),
         "pozitif": int(y.sum()),
         "taban_oran": float(y.mean()) if len(y) else float("nan"),
@@ -194,7 +195,7 @@ def esik_taramasi(egitim: pd.DataFrame, test: pd.DataFrame, tekrar=None) -> dict
     test_metrik = ikili_metrikler(test["y"], test["ti1"], esik)
     if test["gun"].nunique() >= GA_MIN_GUN:
         test_metrik["peirce_ga"] = _peirce_ga(test["y"], test["ti1"], esik, test["gun"], tekrar)
-    sonuc = {
+    sonuc: dict[str, Any] = {
         "yontem": "eğitim günlerinde Peirce (POD - POFD) maksimum; altın test günlerine aynen uygulanır",
         "peirce_esigi": esik,
         "egitim": ikili_metrikler(egitim["y"], egitim["ti1"], esik),
@@ -231,7 +232,7 @@ def esik_taramasi(egitim: pd.DataFrame, test: pd.DataFrame, tekrar=None) -> dict
     seviyeler = []
     for seviye in sorted(set(egitim["seviye"]) | set(test["seviye"])):
         e, t = egitim[egitim["seviye"] == seviye], test[test["seviye"] == seviye]
-        kayit = {"seviye_hpa": float(seviye), "egitim_ornek": len(e), "test_ornek": len(t)}
+        kayit: dict[str, Any] = {"seviye_hpa": float(seviye), "egitim_ornek": len(e), "test_ornek": len(t)}
         yeterli = min(e["y"].sum(), (1 - e["y"]).sum()) >= SEVIYE_MIN_SINIF and t["y"].nunique() == 2
         if yeterli:
             seviye_esigi = peirce_esigi(e["y"], e["ti1"])
@@ -370,7 +371,7 @@ def sekilleri_ciz(klasor, test_y, test_skorlar, esikler, guvenilirlik: dict, bac
     fig, eksen = plt.subplots(figsize=(7, 4.5))
     if backtest:
         etiketler = [f"{k['ucus']}\n{k['tarih']}" for k in backtest]
-        x = np.arange(len(backtest))
+        konumlar = np.arange(len(backtest))
         for i, (rota, ad, renk) in enumerate(
             (
                 ("gercek", "Gerçek iz", "#7a7a7a"),
@@ -379,9 +380,9 @@ def sekilleri_ciz(klasor, test_y, test_skorlar, esikler, guvenilirlik: dict, bac
             )
         ):
             degerler = [k[f"{rota}_riskli_oran"] or 0.0 for k in backtest]
-            cubuklar = eksen.bar(x + (i - 1) * 0.27, degerler, 0.27, color=renk, label=ad)
+            cubuklar = eksen.bar(konumlar + (i - 1) * 0.27, degerler, 0.27, color=renk, label=ad)
             eksen.bar_label(cubuklar, fmt="%.2f", fontsize=7)
-        eksen.set_xticks(x, etiketler, fontsize=8)
+        eksen.set_xticks(konumlar, etiketler, fontsize=8)
         eksen.legend(fontsize=8)
     else:
         eksen.text(0.5, 0.5, "Backtest kaydı yok", ha="center", va="center")
@@ -609,7 +610,7 @@ def disa_aktar(cikti: str, kesme=None, motor=None, tekrar=None, arsiv_klasoru=No
         else {"durum": "veri_yok"}
     )
     git = git_bilgisi()
-    paket = {
+    paket: dict[str, Any] = {
         "meta": {
             "kesme": None if kesme is None else str(kesme),
             "uretim_zamani": datetime.now(UTC).isoformat(timespec="seconds"),

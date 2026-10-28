@@ -433,8 +433,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 1.171 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
-  tarayıcı ve dış ağ katmanı dışındaki 1.159 testin tamamı geçti, 0 hata; tarayıcı ve ağ
+- **Otomatik testler:** 1.180 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
+  tarayıcı ve dış ağ katmanı dışındaki 1.168 testin tamamı geçti, 0 hata; tarayıcı ve ağ
   katmanı 12 test ayrıca çalışır), kod kapsamı %86,3. Önceki CI ölçümü: 18 Ekim, PR #93, 1.066
   test, kapsam %85. Kapsamı: birim testleri, gerçek PostgreSQL
   üzerinde API, depo ve görev kuyruğu testleri (eşzamanlı işçiler, ölen işçi

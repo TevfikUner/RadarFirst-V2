@@ -20,10 +20,12 @@ import hashlib
 import json
 import os
 import uuid
+from typing import cast
 
 import numpy as np
 import pandas as pd
 import xarray as xr
+from sqlalchemy import CursorResult
 
 from turbulans_radar import config
 from turbulans_radar.loglama import logger_al
@@ -276,7 +278,7 @@ def eksikleri_kuyruga_al(motor=None) -> int:
             .values(durum="bekliyor", deneme_sayisi=0, son_hata=None)
         )
         oturum.commit()
-    return int(sonuc.rowcount or 0)
+    return int(cast(CursorResult, sonuc).rowcount or 0)
 
 
 def _sozluk(satir, sutunlar) -> dict:

@@ -27,6 +27,7 @@ import os
 import re
 from datetime import UTC, date, datetime, timedelta
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -135,7 +136,10 @@ def _hafif_duyarliligi(test: pd.DataFrame, skorlar: dict, esikler: dict, metinle
     hafif = test["anahtar"].map(metinler.drop_duplicates("anahtar").set_index("anahtar")["metin"].map(hafif_mi))
     metinli = hafif.notna().to_numpy()
     cikarilmis = metinli & ~((test["y"].to_numpy() == 0) & hafif.eq(True).to_numpy())
-    sonuc = {"metinli_ornek": int(metinli.sum()), "hafif_negatif": int(metinli.sum() - cikarilmis.sum())}
+    sonuc: dict[str, Any] = {
+        "metinli_ornek": int(metinli.sum()),
+        "hafif_negatif": int(metinli.sum() - cikarilmis.sum()),
+    }
     for ad, maske in (("metinli", metinli), ("hafif_cikarilmis", cikarilmis)):
         y, gunler = test["y"].to_numpy()[maske], test["gun"].to_numpy()[maske]
         alt = {k: s[maske] for k, s in skorlar.items()}

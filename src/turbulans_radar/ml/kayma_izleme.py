@@ -13,6 +13,8 @@ yeniden eğitmez (gece işi zaten her gece eğitir). Kayma, modelin kötüleşti
 değil, girdinin eğitim verisinden farklılaştığını söyler.
 """
 
+from typing import Any
+
 import numpy as np
 import pandas as pd
 from scipy.stats import ks_2samp
@@ -48,7 +50,7 @@ def kayma_raporu(referans: pd.DataFrame, guncel: pd.DataFrame, sutunlar=None) ->
     ozet = {"referans_ornek": int(len(referans)), "guncel_ornek": int(len(guncel))}
     if len(referans) < MIN_ORNEK or len(guncel) < MIN_ORNEK:
         return {**ozet, "durum": "yetersiz_ornek", "ozellikler": {}}
-    ozellikler = {}
+    ozellikler: dict[str, dict[str, Any]] = {}
     for sutun in sutunlar:
         deger = psi(referans[sutun], guncel[sutun])
         ozellikler[sutun] = {

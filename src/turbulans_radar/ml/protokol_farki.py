@@ -80,7 +80,9 @@ def deney(veri: pd.DataFrame, hafif: pd.Series, tekrar=TEKRAR, sutunlar=None, rf
     hafifsiz = hafif.eq(False) | (hafif.notna() & veri["y"].eq(1))
     veriler = {"mevcut": veri, "hafif_cikarilmis": veri[hafifsiz]}
     kosullar = {
-        f"{bolme}|{etiket}": kosul_olc(veriler[etiket].reset_index(drop=True), bolme, tekrar, sutunlar, rf_parametreleri)
+        f"{bolme}|{etiket}": kosul_olc(
+            veriler[etiket].reset_index(drop=True), bolme, tekrar, sutunlar, rf_parametreleri
+        )
         for etiket in ETIKETLER
         for bolme in BOLMELER
     }

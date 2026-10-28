@@ -42,7 +42,7 @@ class IwxxmEslemeHatasi(ValueError):
     pass
 
 
-def olgu_kodu(tehlike: str, niteleyici: str | None) -> str:
+def olgu_kodu(tehlike: str | None, niteleyici: str | None) -> str:
     tehlike = (tehlike or "").upper()
     niteleyici = (niteleyici or "").upper()
     if tehlike in _SABIT_OLGULAR:

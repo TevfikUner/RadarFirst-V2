@@ -18,6 +18,7 @@ import contextlib
 import io
 import json
 import os
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -46,7 +47,7 @@ def skorlari_degerlendir(y, skorlar: pd.DataFrame, gunler, tekrar=None) -> dict:
 
     gecerli = skorlar.notna().all(axis=1).to_numpy()
     y, gunler, skorlar = np.asarray(y)[gecerli], np.asarray(gunler)[gecerli], skorlar[gecerli]
-    sonuc = {"ornek": int(len(y)), "pozitif": int(y.sum()), "gun": int(len(set(gunler))), "skorlar": {}}
+    sonuc: dict[str, Any] = {"ornek": int(len(y)), "pozitif": int(y.sum()), "gun": int(len(set(gunler))), "skorlar": {}}
     if len(set(y.tolist())) < 2 or sonuc["gun"] < 2:
         sonuc["durum"] = "yetersiz_veri"
         return sonuc
@@ -127,7 +128,7 @@ def calistir(motor=None, tekrar=None, onceki_dosyasi=None) -> dict:
     )
 
     edr = edr.set_index("id").loc[edr_oz.index] if not edr_oz.empty else edr.set_index("id")
-    rapor = {
+    rapor: dict[str, Any] = {
         "yontem": "Özellikler pencere deposundan güncel fizikle; GA gün bazlı blok bootstrap (%95).",
         "acilamayan_pencere_dosyasi": len(acilamayan),
         "pirep_orta_ve_ustu": {

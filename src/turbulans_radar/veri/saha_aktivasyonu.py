@@ -36,8 +36,8 @@ def _iso(deger, alan):
 
 def _dakika(deger, alan) -> int:
     try:
-        saat, dakika = str(deger).split(":")
-        saat, dakika = int(saat), int(dakika)
+        saat_metni, dakika_metni = str(deger).split(":")
+        saat, dakika = int(saat_metni), int(dakika_metni)
     except ValueError:
         raise ValueError(f"'{alan}' SS:DD (UTC) olmalı") from None
     if not (0 <= saat <= 24 and 0 <= dakika < 60) or saat * 60 + dakika > 1440:
@@ -59,7 +59,7 @@ def aktivasyonu_ayristir(araliklar, haftalik) -> dict | None:
     (saha geçerlilik zarfı içinde her zaman aktif). Geçersizde ValueError."""
     if araliklar in (None, []) and haftalik in (None, []):
         return None
-    sonuc = {"araliklar": [], "haftalik": []}
+    sonuc: dict[str, list] = {"araliklar": [], "haftalik": []}
     if araliklar not in (None, []):
         if not isinstance(araliklar, list) or len(araliklar) > MAKS_ARALIK:
             raise ValueError(f"'aktif_araliklar' en fazla {MAKS_ARALIK} öğelik bir liste olmalı")

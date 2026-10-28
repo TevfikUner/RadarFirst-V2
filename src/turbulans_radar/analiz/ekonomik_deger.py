@@ -21,6 +21,7 @@ import json
 import os
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 
@@ -168,7 +169,7 @@ def calistir(cikti: str, paket_yolu=PAKET, uyari_orani_yolu=UYARI_ORANI) -> dict
         with open(uyari_orani_yolu, encoding="utf-8") as dosya:
             bedel = json.load(dosya)["ozet"]["genel"].get("kacinma_bedeli_yuzde_medyan")
     madis = paket.get("madis", {}).get("taban_oran")
-    rapor = {
+    rapor: dict[str, Any] = {
         "meta": {
             "uretim_zamani": datetime.now(UTC).isoformat(timespec="seconds"),
             "yontem": "Richardson (2000) maliyet/kayıp REV; eşik zarfı",

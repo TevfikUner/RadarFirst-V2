@@ -11,6 +11,7 @@ import tempfile
 import threading
 import time
 import uuid
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -55,7 +56,7 @@ class CdsKotaAsildiHatasi(RuntimeError):
 
 
 CDS_KOTA_ANAHTARI = f"{KOTA_ONEKI}cds_gunluk_istek"
-_yerel_kota = {"gun": None, "sayi": 0}
+_yerel_kota: dict[str, Any] = {"gun": None, "sayi": 0}
 _yerel_kota_kilidi = threading.Lock()
 
 

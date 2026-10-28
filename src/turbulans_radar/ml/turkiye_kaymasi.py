@@ -44,7 +44,7 @@ def turkiye_noktalari(veri_kupu, nokta_sayisi=VARSAYILAN_NOKTA, fl_araligi=FL_AR
             "zaman": pd.to_datetime(rng.uniform(zamanlar[0].value, zamanlar[-1].value, nokta_sayisi).astype("int64")),
             "enlem": rng.uniform(enlem.min() + 0.5, enlem.max() - 0.5, nokta_sayisi),
             "boylam": rng.uniform(boylam.min() + 0.5, boylam.max() - 0.5, nokta_sayisi),
-            "irtifa_m": rng.uniform(*fl_araligi, nokta_sayisi) * 100 * 0.3048,
+            "irtifa_m": rng.uniform(fl_araligi[0], fl_araligi[1], nokta_sayisi) * 100 * 0.3048,
         }
     )
 

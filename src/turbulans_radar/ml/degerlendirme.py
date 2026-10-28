@@ -12,6 +12,7 @@ sistem operasyonel değil, karar destek aracıdır.
 
 import argparse
 import json
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -231,7 +232,7 @@ def ti1_referansi(y, ti1, esik=None) -> dict:
 
 
 def degerlendirme_raporu(y, ti1, olasilik=None, gunler=None) -> dict:
-    rapor = {"ti1_referansi": ti1_referansi(y, ti1)}
+    rapor: dict[str, Any] = {"ti1_referansi": ti1_referansi(y, ti1)}
     if olasilik is not None:
         rapor["model"] = olasilik_metrikleri(y, olasilik)
         rapor["guvenilirlik"] = guvenilirlik_tablosu(y, olasilik)

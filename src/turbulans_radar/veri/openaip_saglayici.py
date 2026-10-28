@@ -116,7 +116,8 @@ def _sayfa_getir(ulke: str, sayfa: int, api_anahtari: str) -> dict:
 
 
 def openaip_sahalarini_getir(ulke: str, api_anahtari: str, getirici=_sayfa_getir) -> list[dict]:
-    kayitlar, sayfa = [], 1
+    kayitlar: list[dict] = []
+    sayfa = 1
     while sayfa:
         yanit = getirici(ulke, sayfa, api_anahtari)
         kayitlar += yanit.get("items") or []

@@ -4,6 +4,13 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Kurul incelemesi B grubu, kalan işler (28 Ekim 2026)
+
+- `ROTA_SECIM_KURALI` (`sozluksel` varsayılan / `maliyet`) ve `ROTA_RISKLI_DAKIKA_BEDELI_DK`; `en_iyi_adayi_sec`; kural `uretim_bilgisi`'ne yazılır; `turbulans-uyari-orani --secim-kurali`.
+- `turbulans-protokol-farki` (§10.7): bölme × etiket 2 × 2 deneyi; rastgele bölme etkisi yok, hafif çıkarmak +0,083.
+- `turbulans-ekonomik-deger`: göreli ekonomik değer (REV) eğrileri ve şekli.
+- mypy kapsamı `veri/` ve `ml/` ile 109 dosya.
+
 ## Kurul incelemesi B grubu, kısa işler (28 Ekim 2026)
 
 - `turbulans-turkiye-kaymasi`: Türkiye girdileri ABD aralığında (destek dışı %3,0) ama dağılım belirgin farklı (PSI Ri 1,04).
