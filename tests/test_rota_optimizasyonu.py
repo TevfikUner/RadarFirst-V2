@@ -812,3 +812,58 @@ def test_katman_cevrelenmiyor_bulgusu_yalniz_kup_seviyeleri_disinda():
     assert bulgu["kod"] == "katman_cevrelenmiyor" and bulgu["seviye"] == "uyari"
     assert bulgu["parametreler"]["fl"] == [280, 410]
     assert "200–300 hPa" in bulgu["metin"]
+
+
+def _secim_adayi(strateji, saniye, ti1, sigmet=0):
+    aday = _sentetik_aday(ti1)
+    riskli = sum(1 for t in ti1 if t >= 1e-5)
+    return {
+        **aday,
+        "strateji": strateji,
+        "saniye": saniye,
+        "ekstra_saniye": 0.0,
+        "riskli_sayisi": riskli,
+        "sigmet_ihlali": sigmet,
+        "kisitli_saha_ihlali": 0,
+    }
+
+
+def test_sozluksel_secim_once_riskli_noktayi_sonra_yakiti_kullanir():
+    from turbulans_radar.rota.rota_optimizasyonu import en_iyi_adayi_sec
+
+    normal = _secim_adayi("yok", 3600, [1e-8, 1e-4, 1e-8])
+    ucuz_riskli = _secim_adayi("yanal_ceza_0", 3500, [1e-8, 1e-4, 1e-8])
+    pahali_temiz = _secim_adayi("yanal", 5000, [1e-8, 1e-8, 1e-8])
+    sigmetli = _secim_adayi("irtifa_asagi", 3000, [1e-8, 1e-8, 1e-8], sigmet=2)
+    yakit = lambda a: a["saniye"]  # noqa: E731
+    adaylar = [ucuz_riskli, pahali_temiz, sigmetli]
+    assert en_iyi_adayi_sec(adaylar, normal, yakit) is pahali_temiz
+    assert en_iyi_adayi_sec([sigmetli], normal, yakit) is None
+
+
+def test_maliyet_secimi_riskli_dakikayi_yakitla_tartar_ve_buyuk_daireyi_de_sayar():
+    from turbulans_radar.rota.rota_optimizasyonu import en_iyi_adayi_sec
+
+    normal = _secim_adayi("yok", 3600, [1e-8, 1e-4, 1e-8])
+    ucuz_riskli = _secim_adayi("yanal_ceza_0", 3500, [1e-8, 1e-4, 1e-8])
+    pahali_temiz = _secim_adayi("yanal", 5000, [1e-8, 1e-8, 1e-8])
+    yakit = lambda a: a["saniye"]  # noqa: E731
+    adaylar = [ucuz_riskli, pahali_temiz]
+    assert en_iyi_adayi_sec(adaylar, normal, yakit, "maliyet", riskli_dakika_bedeli_dk=0.0) is ucuz_riskli
+    assert en_iyi_adayi_sec(adaylar, normal, yakit, "maliyet", riskli_dakika_bedeli_dk=1000.0) is pahali_temiz
+    assert en_iyi_adayi_sec([pahali_temiz], normal, yakit, "maliyet", riskli_dakika_bedeli_dk=0.0) is normal
+    with pytest.raises(ValueError):
+        en_iyi_adayi_sec(adaylar, normal, yakit, "yanlis")
+
+
+def test_secim_kurali_varsayilani_degismez_ve_yanita_yazilir(gercek_senaryo, monkeypatch):
+    varsayilan = rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320")
+    assert config.ROTA_SECIM_KURALI == "sozluksel"
+    assert varsayilan["uretim_bilgisi"]["parametreler"]["secim_kurali"] == "sozluksel"
+    monkeypatch.setattr(config, "ROTA_RISKLI_DAKIKA_BEDELI_DK", 0.0)
+    maliyet = rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320", secim_kurali="maliyet")
+    assert maliyet["uretim_bilgisi"]["parametreler"]["secim_kurali"] == "maliyet"
+    assert maliyet["uretim_bilgisi"]["parametreler"]["riskli_dakika_bedeli_dk"] == 0.0
+    assert maliyet["optimize_rota"]["tahmini_yakit_kg"] <= varsayilan["optimize_rota"]["tahmini_yakit_kg"] + 1e-6
+    with pytest.raises(ValueError):
+        rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320", secim_kurali="yanlis")

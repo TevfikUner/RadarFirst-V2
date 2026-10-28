@@ -193,14 +193,25 @@ def markdown_ozeti(rapor) -> str:
     o = rapor["ozet"]
     g = o["genel"]
     p = rapor["parametreler"]
+    kural = p.get("secim_kurali", "sozluksel")
+    kural_metni = (
+        "varsayılan seçim kuralı (önce riskli nokta sayısı, sonra yakıt)"
+        if kural == "sozluksel"
+        else f"maliyet seçim kuralı (yakıt + riskli dakika × {p['riskli_dakika_bedeli_dk']:g} dk × dakikalık yakıt; "
+        "bedel kalibre edilmedi)"
+    )
+    takas_metni = (
+        "seçim kuralı riskli nokta sayısını yakıtla takas etmediği için önerilmez (SISTEM_KARTI §3)"
+        if kural == "sozluksel"
+        else "maliyet kuralı bu seçeneği riskli dakika bedeli yakıt avantajından büyük olduğu için önermedi"
+    )
     satirlar = [
         "# Uyarı oranı / alarm yorgunluğu ölçümü",
         "",
         f"Üretim: {rapor['uretim_zamani']} · commit `{rapor['commit'] or '—'}` · TI1 risk eşiği {p['ti1_esigi']:.1e} · "
         f"{p['gun_sayisi']} gün ({p['baslangic']}'ten) × saatler {p['saatler']} × {len(p['ciftler'])} şehir çifti × "
         f"FL {p['fl']}. Veri yerel ERA5 küpü (3 seviye, Türkiye, Ocak 2019); canlı veri, otomatik indirme, SIGMET ve "
-        "kısıtlı saha kapalı (yalnız TI1 etkisi ölçülür). A320, koridor modu, varsayılan seçim kuralı (önce riskli "
-        "nokta sayısı, sonra yakıt).",
+        f"kısıtlı saha kapalı (yalnız TI1 etkisi ölçülür). A320, koridor modu, {kural_metni}.",
         "",
         "| Grup | Rota | Normal rotada riskli nokta olan | Sapma önerilen | Riskli süre medyanı (dk, riskli rotalarda) | "
         "Sapmada ek yakıt medyanı (%) | Sapmada ek yakıt p90 (%) | Sapmalarda daha ucuz riskli seçenek bulunan | "
@@ -217,8 +228,8 @@ def markdown_ozeti(rapor) -> str:
         "",
         '**Okuma.** "Ek yakıt" önerilen rotanın büyük daireye göre yakıt farkıdır (rüzgâr kazancını da içerir); '
         'kaçınmanın saf bedeli "kaçınma bedeli"dir. "Daha ucuz riskli seçenek": seçenekler listesinde önerilenden '
-        "daha az yakıt yakan ama daha çok riskli nokta bırakan Pareto seçeneği; seçim kuralı riskli nokta sayısını "
-        "yakıtla takas etmediği için önerilmez (SISTEM_KARTI §3). Rotalar aynı günlerin hava sistemlerini paylaşır, "
+        f"daha az yakıt yakan ama daha çok riskli nokta bırakan Pareto seçeneği; {takas_metni}. "
+        "Rotalar aynı günlerin hava sistemlerini paylaşır, "
         "bağımsız örnek değildir; oranlar betimleyicidir, güven aralığı verilmedi. Tek bölge, tek ay, 3 seviyeli "
         "küp (FL340–360'ta riski 7 seviyeye göre az gösterir, SISTEM_KARTI §5).",
         "",
@@ -233,11 +244,17 @@ def ana(argv=None):
     ayrac.add_argument("--gun", type=int, default=VARSAYILAN_GUN_SAYISI)
     ayrac.add_argument("--saatler", default=",".join(str(s) for s in VARSAYILAN_SAATLER))
     ayrac.add_argument("--fl", default=",".join(str(s // 100) for s in VARSAYILAN_SEVIYELER_FT))
+    ayrac.add_argument("--secim-kurali", choices=("sozluksel", "maliyet"), default=None)
+    ayrac.add_argument("--riskli-dakika-bedeli", type=float, default=None, help="dk; maliyet kuralı için")
     ayrac.add_argument("--cikti", required=True, help="Rapor klasörü (örn. docs/sonuclar/2026-10-28_uyari_orani)")
     arg = ayrac.parse_args(argv)
     from turbulans_radar.fizik.ti1_esigi import etkin_ti1_esigi
     from turbulans_radar.uretim_bilgisi import yazilim_commit
 
+    if arg.secim_kurali:
+        config.ROTA_SECIM_KURALI = arg.secim_kurali
+    if arg.riskli_dakika_bedeli is not None:
+        config.ROTA_RISKLI_DAKIKA_BEDELI_DK = arg.riskli_dakika_bedeli
     saatler = tuple(int(s) for s in arg.saatler.split(","))
     seviyeler = tuple(int(s) * 100 for s in arg.fl.split(","))
     kayitlar = olcum_yap(senaryolari_uret(arg.baslangic, arg.gun, saatler, seviyeler))
@@ -250,6 +267,12 @@ def ana(argv=None):
             "ciftler": [list(c) for c in SEHIR_CIFTLERI],
             "ti1_esigi": etkin_ti1_esigi(),
             "ucak": "A320",
+            "secim_kurali": config.ROTA_SECIM_KURALI,
+            **(
+                {"riskli_dakika_bedeli_dk": config.ROTA_RISKLI_DAKIKA_BEDELI_DK}
+                if config.ROTA_SECIM_KURALI == "maliyet"
+                else {}
+            ),
         },
         "commit": yazilim_commit(),
         "uretim_zamani": datetime.now(UTC).isoformat(),

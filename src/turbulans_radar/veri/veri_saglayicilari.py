@@ -97,7 +97,7 @@ _GFS_DEGISKENLERI = {
 
 def gfs_kupunu_normalize_et(ham: xr.Dataset) -> xr.Dataset:
     """THREDDS GFS alt kümesini ortak şemaya çevirir."""
-    zaman_boyutu = next(b for b in ham["u-component_of_wind_isobaric"].dims if b.startswith("time"))
+    zaman_boyutu = next(b for b in ham["u-component_of_wind_isobaric"].dims if str(b).startswith("time"))
     calisma_zamani = None
     referans = next((ad for ad in ham.variables if str(ad).startswith("reftime")), None)
     if referans is not None:

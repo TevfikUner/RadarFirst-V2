@@ -222,3 +222,31 @@ hesaplanmamıştı; TI1 ve modellerin skorları biliniyordu.
   sınırı > 0 ise "model birleşik EDR'yi geçiyor" denir; değilse "geçtiği gösterilemedi". Geniş − birleşik
   EDR ve birleşik EDR − TI1 de verilir. Birleşik EDR'si hesaplanamayan örnekler tüm skorlardan çıkarılır.
 - **Çıktı:** `birlesik_kiyasi.json`, bir kez; dosya varsa üzerine yazılmaz. Sonuç ne çıkarsa raporlanır.
+
+### 10.7 Keşifsel: bölme ve etiket tanımının ROC-AUC'ye etkisi (28 Ekim 2026, skor hesaplanmadan yazıldı)
+
+**Not:** Kurul incelemesinin #7 maddesi üzerine eklendi; hipotez değil, metodolojik gösterimdir.
+Ön kayıtlı birincil sonucu (§10.2) ya da model aktivasyonunu değiştirmez. Literatürdeki 0,86–0,90
+değerleriyle (ILGILI_CALISMALAR §9) farkın ne kadarının bölme ve etiket tanımından geldiğini ölçer.
+
+- **Veri:** Yalnız 147 eğitim günü: `ml/dondurma_gunleri.json` (163 gün) eksi
+  `ml/altin_test_gunleri.json` (16 gün). §10 test günleri ve altın günler kullanılmaz.
+- **Model:** sabit Random Forest (`rf_deneyi.TEMEL_RF`: 200 ağaç, derinlik 5, `class_weight="balanced"`),
+  temel 8 özellik; hiperparametre araması yok (koşullar arasında yalnız bölme ve etiket değişir).
+  Referans olarak TI1 (eğitimsiz) aynı test parçalarında puanlanır.
+- **Koşullar (2 × 2):** bölme ∈ {gün gruplu 70/30 (günlerin %30'u test), rastgele örnek 70/30
+  (katmanlı)} × etiket ∈ {mevcut (hafif = negatif), hafif negatifler çıkarılmış (yalnız NEG ve orta-üstü)}.
+  Hafif tanımı §10.3 ile aynı (`hafif_mi`, IEM arşiv metni); metni bulunamayan örnekler yalnız
+  "hafif çıkarılmış" koşullarından düşer.
+- **Tekrar:** her koşulda 20 bölme (tohum 0–19); her bölmede RF ve TI1 test ROC-AUC'si. Rapor:
+  ortalama ve 2,5–97,5 yüzdelik aralığı; RF − TI1 farkı da aynı biçimde.
+- **Okuma:** "rastgele − gün gruplu" farkı bölmenin şişirmesini, "hafif çıkarılmış − mevcut" farkı
+  etiket tanımının etkisini gösterir. Literatür değerleriyle aynı eksende "daha iyi / daha kötü"
+  yorumu yapılmaz (veri, bölge ve özellikler farklı).
+- **Çıktı:** `docs/sonuclar/2026-10-28_protokol_farki/protokol_farki.json` + README; bir kez, üzerine
+  yazılmaz. Sonuç ne çıkarsa raporlanır.
+- **Sonradan ek (28 Ekim 2026, §10.7 sonucu görüldükten sonra):** sabit RF'nin derinliği 5 olduğu için
+  aynı günün örneklerini ezberleme kapasitesi düşüktür; literatürdeki modeller (XGBoost, KNN) daha
+  esnektir. Aynı 2 × 2 tasarım, aynı 20 bölmeyle bir kez de derin RF'yle (`max_depth=None`,
+  `min_samples_leaf=1`) çalıştırılır; çıktı `docs/sonuclar/2026-10-28_protokol_farki/derin/`. Ön kayıtlı
+  değildir, "sonradan eklenen keşifsel" diye raporlanır.

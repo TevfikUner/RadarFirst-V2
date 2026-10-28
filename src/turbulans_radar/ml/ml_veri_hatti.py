@@ -12,6 +12,8 @@ import hashlib
 import os
 import tempfile
 import time
+from datetime import datetime
+from typing import Any, cast
 
 import httpx
 import numpy as np
@@ -142,7 +144,7 @@ def yeni_iem_pireplerini_cek(
     son_yayin = _son_yayin(simdi)
     imlec = pd.Timestamp(_durum_ozeti(durum_anahtari, motor).get("imlec", config.ML_IEM_BASLANGIC))
     imlec = imlec.tz_localize("UTC") if imlec.tzinfo is None else imlec.tz_convert("UTC")
-    ozet = {"iem_gun": 0, "iem_eklenen": 0}
+    ozet: dict[str, Any] = {"iem_gun": 0, "iem_eklenen": 0}
     while ozet["iem_gun"] < maks_gun and imlec + pd.Timedelta(days=1) <= son_yayin:
         if ozet["iem_gun"]:
             time.sleep(config.ML_IEM_ISTEKLER_ARASI_SANIYE)
@@ -183,7 +185,8 @@ def _hucre_saat(alt: pd.DataFrame) -> int:
 
 def gunu_grupla(gunluk: pd.DataFrame, maks_hucre_saat=None) -> list[pd.Index]:
     maks_hucre_saat = maks_hucre_saat or config.ML_GRUP_MAKS_HUCRE_SAAT
-    gruplar, mevcut = [], []
+    gruplar: list[pd.Index] = []
+    mevcut: list = []
     for indeks in gunluk.sort_values("boylam").index:
         if mevcut and _hucre_saat(gunluk.loc[[*mevcut, indeks]]) > maks_hucre_saat:
             gruplar.append(pd.Index(mevcut))
@@ -318,7 +321,14 @@ def eslestirme_calistir(
     motor = motor or motor_al()
     maks_cds_istek = min(maks_cds_istek or config.ML_GECE_MAKS_CDS_ISTEK, config.ML_GECE_MAKS_CDS_ISTEK)
     saglayici = saglayici or ml_saglayicisi()
-    ozet = {"islenen_grup": 0, "cds_istek": 0, "eslesti": 0, "kapsam_disi": 0, "hata": 0, "durdurma": None}
+    ozet: dict[str, Any] = {
+        "islenen_grup": 0,
+        "cds_istek": 0,
+        "eslesti": 0,
+        "kapsam_disi": 0,
+        "hata": 0,
+        "durdurma": None,
+    }
     butce_baslangic_mb = veri_butcesi.kullanilan_mb(motor) if veri_butcesi.etkin_mi() else 0.0
     bekleyen = _bekleyenleri_oku(_son_yayin(simdi), motor, kaynaklar)
     gunler = _karisik_gun_sirasi(bekleyen["zaman"].dt.floor("D").unique()) if not bekleyen.empty else []
@@ -516,21 +526,23 @@ def gece_isi_gecmisi(motor=None) -> list[dict]:
     """Her ml_veri çalıştırması için bir satır: veri özeti ve zincirlenen eğitimin kararı
     (rapor/sunum için; kayıtlar silinmez, bkz. gorev_deposu.KALICI_GOREV_TURLERI)."""
     with Session(motor or motor_al()) as oturum:
-        gorevler = oturum.execute(
-            select(AnalizGorevi)
-            .where(AnalizGorevi.tur.in_(("ml_veri", "ml_egitim")))
-            .order_by(AnalizGorevi.olusturulma_zamani)
-        ).scalars()
-        gorevler = list(gorevler)
+        gorevler = list(
+            oturum.execute(
+                select(AnalizGorevi)
+                .where(AnalizGorevi.tur.in_(("ml_veri", "ml_egitim")))
+                .order_by(AnalizGorevi.olusturulma_zamani)
+            ).scalars()
+        )
     egitimler = {g.id: (g.ozet or [{}])[0] for g in gorevler if g.tur == "ml_egitim"}
     satirlar = []
     for g in (g for g in gorevler if g.tur == "ml_veri"):
         veri = (g.ozet or [{}])[0]
         egitim = egitimler.get(veri.get("egitim_gorev_id"), {})
-        sure = (g.bitis_zamani - g.baslama_zamani).total_seconds() / 60 if g.bitis_zamani and g.baslama_zamani else None
+        bitis, baslama = cast(datetime | None, g.bitis_zamani), cast(datetime | None, g.baslama_zamani)
+        sure = (bitis - baslama).total_seconds() / 60 if bitis and baslama else None
         satirlar.append(
             {
-                "baslangic_utc": g.olusturulma_zamani.strftime("%Y-%m-%d %H:%M"),
+                "baslangic_utc": cast(datetime, g.olusturulma_zamani).strftime("%Y-%m-%d %H:%M"),
                 "durum": g.durum,
                 "sure_dk": round(sure, 1) if sure is not None else None,
                 **{a: veri.get(a) for a in ("cds_istek", "veri_mb", "eslesti", "kapsam_disi", "hata", "durdurma")},

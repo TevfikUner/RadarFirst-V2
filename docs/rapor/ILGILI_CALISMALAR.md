@@ -106,7 +106,7 @@ alan rastgele orman ve gradyan artırımlı regresyon ağaçlarını yerinde EDR
 eğitti. Rastgele orman, EDR < 0,1 bölgesinde hataları belirgin biçimde azalttı;
 boş ve hafif türbülansın ayırt edilmesini iyileştirip yanlış alarmları düşürdü.
 Bu tür çalışmalarda değerlendirmenin nasıl bölündüğü belirleyicidir: aynı günün
-gözlemleri birbirine bağımlıdır ve rastgele bölme becerisini şişirir. Roberts vd.
+gözlemleri birbirine bağımlıdır ve rastgele bölme becerisini şişirebilir. Roberts vd.
 (2017), zamansal ve uzamsal yapılı verilerde blok/gruplu çapraz doğrulamayı
 gerekçelendirir.
 
@@ -117,10 +117,16 @@ Colorado'da sekiz teşhisli ağırlıklı KNN ile AUC 0,86 elde etti. İki çal�
 rastgele bölündü (70/30 ve 80/20). Gu ve Wang ayrıca hafif raporları dışarıda bırakıp
 yalnız türbülanssız ve orta-üstü olayları kullandı. Rastgele bölmede aynı günün, hatta
 aynı hava sisteminin örnekleri hem eğitim hem test kümesinde yer alır. Bu yüzden bu
-değerler gün gruplu doğrulamayla elde edilen değerlerle doğrudan kıyaslanamaz. Fark
-modelin başarımından değil, değerlendirme tasarımından ve etiket tanımından gelir.
+değerler gün gruplu doğrulamayla elde edilen değerlerle doğrudan kıyaslanamaz. Kendi
+147 eğitim günümüzde ölçtük (deney protokolü §10.7, `docs/sonuclar/2026-10-28_protokol_farki/`):
+rastgele örnek 70/30 bölme ROC-AUC'yi gün gruplu bölmeye göre değiştirmedi (−0,001; derin
+RF'de +0,001), hafif raporları çıkarmak ise 0,083 artırdı (0,702 → 0,785; TI1'de +0,063).
+Yani bizim özelliklerimizle (koordinat yok) farkın ölçülebilen kısmı etiket tanımından
+gelir; 0,785 ile 0,86–0,90 arasındaki kalan fark bölge, özellik ve modelle ilgilidir ve
+ölçülmedi.
 Gökdeniz ve Ülkü'de en önemli özellik coğrafi koordinatlardır (%17,5). Yazarlar bunu
-topografyaya bağlıyor, ama konuma bağlı bir ezberle de açıklanabilir.
+topografyaya bağlıyor, ama konuma bağlı bir ezberle de açıklanabilir; koordinatlı bir
+modelde rastgele bölmenin etkisini ölçmedik.
 
 **Projeyle bağ.** Modelimiz açık veriyle (ERA5 + IEM PIREP) eğitilir, gün gruplu çapraz
 doğrulama ve zamansal holdout kullanır, TI1'i geçmeyen aday aktifleşmez (K4). Hafif

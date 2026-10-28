@@ -28,8 +28,9 @@ import hashlib
 import json
 from datetime import UTC, datetime
 from pathlib import Path
+from typing import cast
 
-from sqlalchemy import delete, select
+from sqlalchemy import CursorResult, delete, select
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.orm import Session
 
@@ -181,11 +182,14 @@ def geojson_ice_aktar(geojson: dict, kaynak: str, eskileri_kaldir=False, motor=N
         )
         kaldirilan = 0
         if eskileri_kaldir:
-            kaldirilan = oturum.execute(
-                delete(KisitliHavaSahasi).where(
-                    KisitliHavaSahasi.kaynak == kaynak,
-                    KisitliHavaSahasi.dis_kimlik.not_in([k["dis_kimlik"] for k in kayitlar]),
-                )
+            kaldirilan = cast(
+                CursorResult,
+                oturum.execute(
+                    delete(KisitliHavaSahasi).where(
+                        KisitliHavaSahasi.kaynak == kaynak,
+                        KisitliHavaSahasi.dis_kimlik.not_in([k["dis_kimlik"] for k in kayitlar]),
+                    )
+                ),
             ).rowcount
         oturum.commit()
     return {"kaydedilen": len(kayitlar), "kaldirilan": kaldirilan}
@@ -251,7 +255,10 @@ def gecerli_kisitli_sahalari_getir(
 def kisitli_sahayi_sil(dis_kimlik: str, motor=None) -> bool:
     motor = motor or motor_al()
     with Session(motor) as oturum:
-        silinen = oturum.execute(delete(KisitliHavaSahasi).where(KisitliHavaSahasi.dis_kimlik == dis_kimlik)).rowcount
+        silinen = cast(
+            CursorResult,
+            oturum.execute(delete(KisitliHavaSahasi).where(KisitliHavaSahasi.dis_kimlik == dis_kimlik)),
+        ).rowcount
         oturum.commit()
     return bool(silinen)
 

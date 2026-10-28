@@ -100,7 +100,7 @@ POD 1/8, POFD 0/8.
 - Uzun işler için PostgreSQL kuyruğu (`FOR UPDATE SKIP LOCKED`) ve dağıtık kilit.
 - Sağlayıcı yasaklarına karşı korumalar: tek eşzamanlı OpenSky sorgusu, günlük
   tavanlar, istek aralıkları, zamanlayıcı lider kilidi.
-- Ağsız demo paketi; 1.171 otomatik test (28 Ekim 2026) ve 6 işli CI (sır taraması, SBOM, tarayıcı
+- Ağsız demo paketi; 1.180 otomatik test (28 Ekim 2026) ve 6 işli CI (sır taraması, SBOM, tarayıcı
   testleri, ağsız demo dahil); ölçülmüş performans raporu.
 - Kanıt: ADR 0006–0009, `docs/PERFORMANS_RAPORU.md`, `docs/VERI_KAYNAKLARI_VE_LISANSLAR.md`.
 - En yakın çalışmadan farkı: İncelenen açık kaynak türbülans projeleri (İlgili Çalışmalar §8) doğrulama ve işletim altyapısı içermez; bizde kuyruk, kilit, yedek, sağlayıcı yasak korumaları ve otomatik testler ölçülmüş performansla birlikte gelir.

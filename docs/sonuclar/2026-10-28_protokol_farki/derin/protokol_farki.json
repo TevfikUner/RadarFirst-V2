@@ -1,0 +1,110 @@
+{
+  "meta": {
+    "protokol": "docs/deney_protokolu.md §10.7 (keşifsel); derin RF sonradan eklendi (§10.7 sonucu görüldükten sonra)",
+    "uretim_zamani": "2026-10-28T16:25:38+00:00",
+    "commit": "bc3665cf5c3c979eff5e67fc8a2be85ad9002480",
+    "kirli": false,
+    "model": "RandomForest {'n_estimators': 200, 'max_depth': None, 'min_samples_leaf': 1}, class_weight=balanced",
+    "tekrar": 20,
+    "uyari": "Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır."
+  },
+  "veri": {
+    "egitim_gun": 147,
+    "ornek": 14450,
+    "pozitif": 7785
+  },
+  "kosullar": {
+    "gun_gruplu|mevcut": {
+      "ornek": 14450,
+      "pozitif": 7785,
+      "gun": 147,
+      "rf_roc_auc": {
+        "ortalama": 0.683276383079891,
+        "alt": 0.6716549792487375,
+        "ust": 0.6951775247642823
+      },
+      "ti1_roc_auc": {
+        "ortalama": 0.6744893175982245,
+        "alt": 0.6617010156756717,
+        "ust": 0.6936470142774992
+      },
+      "rf_eksi_ti1": {
+        "ortalama": 0.008787065481666434,
+        "alt": -0.0035206058351141293,
+        "ust": 0.01825936922377291
+      },
+      "test_gunlerinin_egitimde_de_olan_orani": 0.0
+    },
+    "rastgele|mevcut": {
+      "ornek": 14450,
+      "pozitif": 7785,
+      "gun": 147,
+      "rf_roc_auc": {
+        "ortalama": 0.6844326097265323,
+        "alt": 0.6729125291455659,
+        "ust": 0.6931407138598156
+      },
+      "ti1_roc_auc": {
+        "ortalama": 0.6724801957860328,
+        "alt": 0.6639175297194831,
+        "ust": 0.6823893160872881
+      },
+      "rf_eksi_ti1": {
+        "ortalama": 0.011952413940499612,
+        "alt": 0.0035662401816044663,
+        "ust": 0.020717115636299157
+      },
+      "test_gunlerinin_egitimde_de_olan_orani": 1.0
+    },
+    "gun_gruplu|hafif_cikarilmis": {
+      "ornek": 9014,
+      "pozitif": 7146,
+      "gun": 132,
+      "rf_roc_auc": {
+        "ortalama": 0.7711827375998281,
+        "alt": 0.7527147468695278,
+        "ust": 0.7845469561009705
+      },
+      "ti1_roc_auc": {
+        "ortalama": 0.7378198474371391,
+        "alt": 0.7146353629984381,
+        "ust": 0.757129340880187
+      },
+      "rf_eksi_ti1": {
+        "ortalama": 0.03336289016268891,
+        "alt": 0.01963057301317536,
+        "ust": 0.04625375955233554
+      },
+      "test_gunlerinin_egitimde_de_olan_orani": 0.0
+    },
+    "rastgele|hafif_cikarilmis": {
+      "ornek": 9014,
+      "pozitif": 7146,
+      "gun": 132,
+      "rf_roc_auc": {
+        "ortalama": 0.7726553146699657,
+        "alt": 0.7581712926011653,
+        "ust": 0.7933457711442785
+      },
+      "ti1_roc_auc": {
+        "ortalama": 0.7396783212945965,
+        "alt": 0.7263035590762764,
+        "ust": 0.7631951580666189
+      },
+      "rf_eksi_ti1": {
+        "ortalama": 0.032976993375369114,
+        "alt": 0.018810879592678197,
+        "ust": 0.043846983332003084
+      },
+      "test_gunlerinin_egitimde_de_olan_orani": 1.0
+    }
+  },
+  "etkiler": {
+    "bolme (rastgele - gun gruplu), mevcut etiket": 0.0011562266466412785,
+    "etiket (hafif cikarilmis - mevcut), gun gruplu": 0.08790635451993711,
+    "ikisi birlikte": 0.0893789315900747,
+    "TI1: etiket etkisi, gun gruplu": 0.06333052983891463
+  },
+  "hafif_negatif_cikarilan": 4174,
+  "metinsiz_cikarilan": 1262
+}

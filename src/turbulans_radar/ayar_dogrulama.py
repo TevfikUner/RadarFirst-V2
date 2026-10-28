@@ -65,6 +65,8 @@ class AyarSemasi(BaseModel):
     ROTA_ZAMAN_BELIRSIZLIK_ORANI: KapaliOran
     KABIN_PENCERE_PAYI_DK: NegatifOlmayan
     ROTA_YAKIT_MODELI: Literal["openap", "sabit"]
+    ROTA_SECIM_KURALI: Literal["sozluksel", "maliyet"]
+    ROTA_RISKLI_DAKIKA_BEDELI_DK: NegatifOlmayan
     ROTA_SEYIR_KUTLE_ORANI: Annotated[float, Field(gt=0, le=1)]
     ROTA_KUTLE_BANDI: tuple[Annotated[float, Field(gt=0, le=1)], ...]
     ROTA_DIKEY_KESIT_FL: tuple[Annotated[int, Field(ge=50, le=600)], ...]

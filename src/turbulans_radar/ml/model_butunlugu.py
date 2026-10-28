@@ -16,6 +16,7 @@ biri ikisini birden değiştirebilir; bu önlem bozulmayı, yarım yazımı ve y
 import hashlib
 import json
 import os
+from typing import Any
 
 from turbulans_radar import config, loglama
 
@@ -69,7 +70,7 @@ def muhurle() -> dict:
     Özeti olup uyuşmayan dosyaya dokunmaz, hata olarak raporlar."""
     from turbulans_radar.ml import turbulans_ml_modeli as tm
 
-    sonuc = {"aktif": None, "surumler_muhurlendi": 0, "hatalar": []}
+    sonuc: dict[str, Any] = {"aktif": None, "surumler_muhurlendi": 0, "hatalar": []}
     bilgi = tm.model_bilgisini_yukle()
     if bilgi is not None and os.path.isfile(tm.MODEL_DOSYA_YOLU):
         gercek = dosya_ozeti(tm.MODEL_DOSYA_YOLU)

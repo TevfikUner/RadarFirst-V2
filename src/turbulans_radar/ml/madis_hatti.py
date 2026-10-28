@@ -19,10 +19,11 @@ import argparse
 import json
 import math
 import os
+from typing import Any, cast
 
 import numpy as np
 import pandas as pd
-from sqlalchemy import func, select, update
+from sqlalchemy import CursorResult, func, select, update
 from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.orm import Session
 
@@ -112,7 +113,7 @@ def edr_orneklerini_kaydet(df: pd.DataFrame, motor) -> int:
                 .values(satirlar[i : i + _PARCA])
                 .on_conflict_do_nothing(constraint="uq_edr_ornekleri_gozlem_anahtari")
             )
-            eklenen += sonuc.rowcount or 0
+            eklenen += cast(CursorResult, sonuc).rowcount or 0
     return eklenen
 
 
@@ -148,8 +149,8 @@ def madis_adimi(motor=None, maks_gun=None, edr_getirici=gunluk_edr) -> dict:
     motor = motor or motor_al()
     maks_gun = config.MADIS_GECE_MAKS_GUN if maks_gun is None else maks_gun
     gunler = _pencereli_gunler(motor)
-    ozet = {"madis_eslestirilen_gun": 0, "madis_indirilen_gun": 0, "madis_eklenen": 0}
-    indirilecek = []
+    ozet: dict[str, Any] = {"madis_eslestirilen_gun": 0, "madis_indirilen_gun": 0, "madis_eklenen": 0}
+    indirilecek: list[pd.Timestamp] = []
     for gun in gunler["gun"]:
         gun = pd.Timestamp(gun).tz_localize(None) if pd.Timestamp(gun).tzinfo else pd.Timestamp(gun)
         if os.path.exists(gun_yolu(gun)):
@@ -173,7 +174,10 @@ def ozet_raporu(motor=None) -> dict:
     """Kaydedilen EDR örnekleri ve indirilmiş günlerde PIREP-EDR karşılaştırması."""
     motor = motor or motor_al()
     with Session(motor) as oturum:
-        siniflar = dict(oturum.execute(select(EdrOrnegi.edr_sinifi, func.count()).group_by(EdrOrnegi.edr_sinifi)).all())
+        siniflar = {
+            k: v
+            for k, v in oturum.execute(select(EdrOrnegi.edr_sinifi, func.count()).group_by(EdrOrnegi.edr_sinifi)).all()
+        }
     karsilastirmalar = []
     for gun in _pencereli_gunler(motor)["gun"]:
         gun = pd.Timestamp(gun).tz_localize(None) if pd.Timestamp(gun).tzinfo else pd.Timestamp(gun)
@@ -181,7 +185,7 @@ def ozet_raporu(motor=None) -> dict:
             karsilastirmalar.append(
                 pirep_edr_karsilastir(gunun_pencereli_ornekleri(gun, motor), pd.read_parquet(gun_yolu(gun)))
             )
-    rapor = {"edr_ornekleri_sinif": {int(k): int(v) for k, v in siniflar.items()}}
+    rapor: dict[str, Any] = {"edr_ornekleri_sinif": {int(k): int(v) for k, v in siniflar.items()}}
     if karsilastirmalar:
         k = pd.concat(karsilastirmalar)
         kesisen = k[k["edr_gozlem"] > 0]
@@ -234,7 +238,7 @@ def nesnel_degerlendirme(df=None, motor=None, tekrar=None) -> dict:
         return {"durum": "yetersiz_veri", "ornek": len(df)}
     y = (df["edr_sinifi"] >= 1).astype(int).to_numpy()
     ti1 = df["ti1_indeksi"].to_numpy(dtype=float)
-    rapor = {
+    rapor: dict[str, Any] = {
         "kaynak": "MADIS herkese açık ACARS maxEDR (QC 'Z': ön veri, kalite kontrolsüz)",
         "hedef": f"max EDR >= {config.EDR_ESIK_HAFIF} (hafif ve üstü)",
         "ornek": len(df),

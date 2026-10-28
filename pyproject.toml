@@ -51,6 +51,8 @@ turbulans-uyari-orani = "turbulans_radar.analiz.uyari_orani:ana"
 turbulans-zaman-ornekleme = "turbulans_radar.analiz.zaman_ornekleme:ana"
 turbulans-birlesik-klimatoloji = "turbulans_radar.ml.birlesik_klimatoloji_duyarliligi:ana"
 turbulans-turkiye-kaymasi = "turbulans_radar.ml.turkiye_kaymasi:ana"
+turbulans-protokol-farki = "turbulans_radar.ml.protokol_farki:ana"
+turbulans-ekonomik-deger = "turbulans_radar.analiz.ekonomik_deger:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
@@ -98,6 +100,8 @@ files = [
     "src/turbulans_radar/isci",
     "src/turbulans_radar/analiz",
     "src/turbulans_radar/dogrulama",
+    "src/turbulans_radar/veri",
+    "src/turbulans_radar/ml",
 ]
 ignore_missing_imports = true
 follow_imports = "silent"
