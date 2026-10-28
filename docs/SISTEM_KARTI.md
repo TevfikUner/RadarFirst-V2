@@ -235,6 +235,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Hava verisi zaman ve konumda en yakın ızgara noktasından okunur,
   enterpolasyon yapılmaz: GFS'in 3 saatlik adımında 1,5 saate, 0,25°
   ızgarada ~0,125°'ye kadar kayma olabilir.
+  Zaman örneklemesinin etkisi saatlik Ocak 2019 küpünde ölçüldü (28 Ekim, `turbulans-zaman-ornekleme`,
+  20.000 nokta, FL310–380): 3 saatlik adımda TI1 sıra uyumu Spearman 0,923, risk eşiğinde aynı karar %95,9,
+  saatlikte riskli noktaların %86,3'ü 3 saatlikte de riskli (6 saatlikte 0,816 / %92,4 / %74,7). GFS'in tahmin
+  hatasını içermez (`docs/sonuclar/2026-10-28_zaman_ornekleme/`).
 - Küp sınırının 0,125° dışına kadar (zamanda 3 saate kadar) noktalar kapsam
   içi sayılır ve kenar değerini alır.
 - Seyir irtifasındaki 15.940 PIREP'te (163 gün) TI1'in tek başına ayırt
