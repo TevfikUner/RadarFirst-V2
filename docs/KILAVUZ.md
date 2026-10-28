@@ -17,7 +17,9 @@ TI1'i az ama anlamlı geçiyor (+0,013 [+0,007; +0,020]). ML modeli altın günl
 geçiyor (protokol modeli Random Forest +0,033 [+0,018; +0,049]; canlıdaki 9 Ekim Random
 Forest da +0,033), ama ROC-AUC 0,71'de kalıyor. Bu yüzden güvenlik SIGMET'e (sert kısıt)
 dayanır. TI1 yumuşak kısıttır: yasaklamaz (riskten kaçınan aday yoksa riskli rota yine önerilir),
-ama adaylar arasında seçimde yakıttan önce gelir (en az riskli noktalı aday, eşitlikte en az yakıt).
+ama adaylar arasında seçimde yakıttan önce gelir (en az riskli noktalı aday, eşitlikte en az yakıt). İsteğe
+bağlı `ROTA_SECIM_KURALI=maliyet` riskli dakikayı yakıtla tartar (`ROTA_RISKLI_DAKIKA_BEDELI_DK`, varsayılan 5,
+kalibre edilmedi); varsayılan `sozluksel`.
 
 **Demo.** Kimlik bilgisiz, çalışırken ağsız: [Beş dakikada çalıştır](#beş-dakikada-çalıştır).
 Kapsam yalnız CAT ve seyir safhası, doğrulama ABD verisiyle; çıktılar sertifikalı EDR

@@ -114,6 +114,12 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   seçilir. "Yumuşak" yasaklamaz demektir: riskten kaçınan aday yoksa riskli rota yine önerilir (SIGMET'te
   öneri yapılmaz). Ama riskli nokta sayısı yakıtla takas edilmez; daha az riskli bir aday, yakıtı ne kadar
   fazla olursa olsun seçilir. Daha ucuz ama riskli seçenekler `secenekler`'de kalır, karar dispeçerindir.
+  Bu varsayılan (`ROTA_SECIM_KURALI=sozluksel`) korunur. İsteğe bağlı `maliyet` kuralı (`en_iyi_adayi_sec`)
+  büyük daireyi de aday sayar ve yakıt + riskli dakika × `ROTA_RISKLI_DAKIKA_BEDELI_DK` (varsayılan 5, kalibre
+  edilmedi) × dakikalık yakıtı en küçük olanı seçer; kural `uretim_bilgisi.parametreler.secim_kurali`'na yazılır.
+  Ocak 2019'daki 1.488 rotada 5 dk bedelle önerilen rota yalnız 28'inde (%1,9) değişti
+  (`docs/sonuclar/2026-10-28_secim_kurali_maliyet/`). Bedelin hangi maliyet/kayıp oranında anlamlı olduğu için
+  REV: `docs/sonuclar/2026-10-28_ekonomik_deger/`.
 - Kaçınılacak bir risk yoksa önerilen rota büyük daireyle birebir aynıdır;
   uydurma bir "iyileşme" gösterilmez.
 - **Üretim bilgisi:** Rota ve nokta tahmini yanıtları `uretim_bilgisi` taşır: yazılım sürümü,

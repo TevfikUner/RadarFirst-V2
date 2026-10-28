@@ -1,0 +1,80 @@
+{
+  "meta": {
+    "uretim_zamani": "2026-10-28T16:30:06+00:00",
+    "yontem": "Richardson (2000) maliyet/kayıp REV; eşik zarfı",
+    "uyari": "Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır."
+  },
+  "kacinma_bedeli_yuzde": 2.217719097563284,
+  "sonuc": {
+    "PIREP altın günler (ölçülen)": {
+      "taban_oran": 0.476310802274163,
+      "seriler": {
+        "TI1 (eşik zarfı)": {
+          "maks_rev": 0.2635368889405788,
+          "maks_rev_alfa": 0.47863009232263853,
+          "deger_kattigi_alfa": [
+            0.2951209226666387,
+            0.8413951416451956
+          ],
+          "en_az_kayip_yakit_yuzdesi": 2.635764087283576,
+          "en_cok_kayip_yakit_yuzdesi": 7.5146115616762446
+        },
+        "TI1 risk eşiği (7e-07)": {
+          "maks_rev": 0.250513334670685,
+          "maks_rev_alfa": 0.47863009232263853,
+          "deger_kattigi_alfa": [
+            0.38018939632056126,
+            0.6456542290346556
+          ],
+          "en_az_kayip_yakit_yuzdesi": 3.434840194385604,
+          "en_cok_kayip_yakit_yuzdesi": 5.8331955573358165
+        },
+        "Model (olasılık ≥ 0.5)": {
+          "maks_rev": 0.29930341323202253,
+          "maks_rev_alfa": 0.47863009232263853,
+          "deger_kattigi_alfa": [
+            0.32359365692962844,
+            0.6237348354824191
+          ],
+          "en_az_kayip_yakit_yuzdesi": 3.555547921013614,
+          "en_cok_kayip_yakit_yuzdesi": 6.853407197797974
+        }
+      }
+    },
+    "MADIS EDR ≥ 0,1 oranı (gösterim)": {
+      "taban_oran": 0.02906267332224071,
+      "seriler": {
+        "TI1 (eşik zarfı)": {
+          "maks_rev": 0.26493975137248404,
+          "maks_rev_alfa": 0.029174270140011675,
+          "deger_kattigi_alfa": [
+            0.013645831365889245,
+            0.15310874616820302
+          ],
+          "en_az_kayip_yakit_yuzdesi": 14.484600998083613,
+          "en_cok_kayip_yakit_yuzdesi": 162.51989623050451
+        },
+        "TI1 risk eşiği (7e-07)": {
+          "maks_rev": 0.2518512497677797,
+          "maks_rev_alfa": 0.029174270140011675,
+          "deger_kattigi_alfa": [
+            0.019498445997580455,
+            0.05688529308438416
+          ],
+          "en_az_kayip_yakit_yuzdesi": 38.98580770733657,
+          "en_cok_kayip_yakit_yuzdesi": 113.73824856803864
+        },
+        "Model (olasılık ≥ 0.5)": {
+          "maks_rev": 0.3012583280098162,
+          "maks_rev_alfa": 0.029174270140011675,
+          "deger_kattigi_alfa": [
+            0.01548816618912481,
+            0.05188000389289612
+          ],
+          "en_az_kayip_yakit_yuzdesi": 42.74708811012549,
+          "en_cok_kayip_yakit_yuzdesi": 143.18797141526542
+        }
+      }
+    }
+  }
+}
