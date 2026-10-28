@@ -413,8 +413,11 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   Gece işi ve yedek tazeliği uyarı düzeyinde raporlanır.
 - İşçi durdurulunca çalışan görevi 240 sn bekler; ML gece işi süren CDS
   isteğini bitirip `yarida_kaldi` olarak durur.
-- Görev başına azami süre yoktur: takılan bir görevin kalp atışı sürdüğü için
-  başka işçiye geçmez; işçi yeniden başlatılana kadar o yuvayı tutar.
+- Görev başına azami süre `GOREV_MAKS_SURE_SANIYE`'dir (varsayılan 4 sa; 0 = sınırsız; kendi süresini
+  yöneten `ml_veri`, `ml_egitim`, `canli_adsb` hariç, `GOREV_SURE_SINIRSIZ_TURLER`). Aşan görev `yarida_kaldi`
+  ("Zaman aşımı") olur, kalp atışı kesilir ve yerine yeni iş parçacığı açılır; kapasite düşmez. Python iş
+  parçacığı dışarıdan durdurulamaz: durdurma işaretine bakan görev kendiliğinden durur, bakmayanın sonucu
+  sonradan yazılmaz ama işini bitirene kadar CPU/belleği kullanmayı sürdürür.
 - Görev kuyruğu PostgreSQL'dedir; işçiler 1 sn aralıkla yoklar (kuyruğa
   giriş ile başlama arasında ~1 sn gecikme).
 - API/kuyruk üzerinden tetiklenen analizler (`/analiz/ucus`, `/analiz/rota`,

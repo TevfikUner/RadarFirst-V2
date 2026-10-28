@@ -445,6 +445,10 @@ GOREV_MAKS_DENEME = _ortam_sayi("GOREV_MAKS_DENEME", 2, int)
 GOREV_DURDURMA_BEKLEME_SANIYE = _ortam_sayi("GOREV_DURDURMA_BEKLEME_SANIYE", 240.0)
 # Boş değilse işçi sadece bu türlerdeki görevleri alır (virgülle: ucus,rota,toplu,backtest,canli_veri).
 GOREV_ISCI_TURLERI = tuple(t.strip() for t in _ortam_str("GOREV_ISCI_TURLERI", "").split(",") if t.strip())
+GOREV_MAKS_SURE_SANIYE = _ortam_sayi("GOREV_MAKS_SURE_SANIYE", 14400.0)
+GOREV_SURE_SINIRSIZ_TURLER = tuple(
+    t.strip() for t in _ortam_str("GOREV_SURE_SINIRSIZ_TURLER", "ml_veri,ml_egitim,canli_adsb").split(",") if t.strip()
+)
 
 # sigmet_saglayici.py / risk_katmanlari.py -- canlı AWC SIGMET'leri.
 # A*'ın SERT kısıt olarak kaçındığı tehlike türleri (AWC 'hazard' alanı):

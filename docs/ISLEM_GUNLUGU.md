@@ -4,6 +4,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-28
 
+- ✅ B grubu: README 1.762 → 115 satır (ayrıntı `docs/KILAVUZ.md`); sonuç paketi altın çıktı testleri; görev başına zaman aşımı (`GOREV_MAKS_SURE_SANIYE`, 4 sa).
 - ✅ B grubu: Türkiye kovaryat kayması (`turbulans-turkiye-kaymasi`): girdiler ABD aralığında (destek dışı %3,0) ama dağılım belirgin farklı (PSI Ri 1,04, TI1 0,41).
 - ✅ A grubu devam: zaman örneklemesi (3 sa: Spearman 0,923, aynı karar %95,9); birleşik EDR klimatolojisi altın gün etkisi yok (≤ 0,0001); TI1 katman/seviye seçimi Ellrod–Knapp 1992 ile doğrulandı.
 - ✅ A grubu: §10.6 model − birleşik EDR +0,016 [+0,010; +0,021] (`docs/sonuclar/2026-10-28_birlesik_kiyas/`); `katman_cevrelenmiyor` rota uyarısı; model paneli test günü ROC-AUC'si.
