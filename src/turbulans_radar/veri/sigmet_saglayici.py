@@ -57,10 +57,16 @@ _KAYNAKLAR = ("airsigmet", "isigmet")
 _yeniden_dene = gecici_hatada_yeniden_dene()
 
 
+class AwcVeriYok(list):
+    """AWC'nin açık 'eşleşen veri yok' yanıtı (HTTP 204): akış geçerli, o an aktif SIGMET yok."""
+
+
 @_yeniden_dene
 def _awc_listesini_getir(kaynak: str, timeout: float = 20.0) -> list[dict]:
     yanit = httpx.get(f"{_AWC_TABAN_URL}/{kaynak}", params={"format": "json"}, timeout=timeout)
     yanit.raise_for_status()
+    if yanit.status_code == 204:
+        return AwcVeriYok()
     return yanit.json() if yanit.content else []
 
 
@@ -360,6 +366,8 @@ def _akis_sagligini_denetle(ham_liste, sayim: dict | None) -> str | None:
     """Akış güvenilir değilse hata metni, güvenilirse None."""
     if not isinstance(ham_liste, list):
         return f"beklenmeyen yanıt biçimi ({type(ham_liste).__name__}, liste bekleniyordu)"
+    if isinstance(ham_liste, AwcVeriYok):
+        return None
     if not ham_liste:
         return "boş akış"
     # FIR'a genişletilen (koordinatsız) kayıtlar da sayılır: koordinatlar
@@ -376,7 +384,9 @@ def _akis_sagligini_denetle(ham_liste, sayim: dict | None) -> str | None:
 def sigmetleri_guncelle(motor=None, getirici=_awc_listesini_getir, kaynaklar=_KAYNAKLAR) -> dict:
     """AWC kaynaklarını çekip veritabanını günceller. Bir kaynak başarısız
     olursa ya da akışı güvenilir değilse (bkz. _akis_sagligini_denetle) diğeri
-    yine işlenir; o kaynağın mevcut kayıtları SONLANDIRILMAZ."""
+    yine işlenir; o kaynağın mevcut kayıtları SONLANDIRILMAZ. AWC 'veri yok'
+    (204) derse kaynak başarılı sayılır ama mevcut kayıtlar yine erken
+    sonlandırılmaz, kendi geçerlilikleriyle biter (muhafazakâr)."""
     ozet = {"kaydedilen": 0, "sonlandirilan": 0, "silinen": 0, "kaynak_hatalari": {}, "kaynaklar": {}}
     for kaynak in kaynaklar:
         try:
@@ -389,12 +399,14 @@ def sigmetleri_guncelle(motor=None, getirici=_awc_listesini_getir, kaynaklar=_KA
         kayitlar, sayim = _akisi_cozumle(kaynak, ham_liste) if isinstance(ham_liste, list) else ({}, None)
         hata = _akis_sagligini_denetle(ham_liste, sayim)
         ozet["kaydedilen"] += sigmetleri_kaydet(list(kayitlar.values()), motor)
-        if hata is None:
+        veri_yok = isinstance(ham_liste, AwcVeriYok)
+        if hata is None and not veri_yok:
             ozet["sonlandirilan"] += akista_olmayanlari_sonlandir(kaynak, set(kayitlar), motor)
-        else:
+        elif hata is not None:
             _logger.error("AWC '%s' akışı güvenilir değil, mevcut SIGMET'ler korunuyor: %s", kaynak, hata)
             ozet["kaynak_hatalari"][kaynak] = hata
-        kaynak_ozeti = {**(sayim or {}), "kaydedilen": len(kayitlar), "durum": "tamam" if hata is None else "hata"}
+        durum = "hata" if hata is not None else ("veri_yok" if veri_yok else "tamam")
+        kaynak_ozeti = {**(sayim or {}), "kaydedilen": len(kayitlar), "durum": durum}
         ozet["kaynaklar"][kaynak] = kaynak_ozeti
         kaynak_durumunu_kaydet(durum_anahtari(kaynak), hata is None, hata, kaynak_ozeti, motor)
     ozet["silinen"] = eski_sigmetleri_temizle(motor=motor)

@@ -4,6 +4,11 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## AWC 204 "veri yok" (28 Ekim 2026)
+
+- AWC uç noktası HTTP 204 dönerse akış geçerli ama boş sayılır (`AwcVeriYok`): kaynak başarılı, derin sağlık
+  sahte `bozulmus` vermez; mevcut SIGMET'ler erken sonlandırılmaz. 200 + boş gövde/`[]` hâlâ kaynak hatası.
+
 ## Kurul incelemesi hızlı kazanımları (28 Ekim 2026)
 
 - `turbulans-uyari-orani` (`analiz/uyari_orani.py`): toplu, ağsız rota simülasyonuyla uyarı/sapma oranı ve sapmanın
