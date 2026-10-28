@@ -422,6 +422,16 @@ gösterimde bu aralık %39–114'e çıkar. POD/POFD nokta başınadır, rota ba
 operasyonel sıklık değildir; kaybın gerçek değeri bilinmiyor. Sonuç sıralama ve mertebe içindir, eşik ya
 da seçim ağırlığı önerisi değildir. Paket `docs/sonuclar/2026-10-28_ekonomik_deger/` (şekil `rev_egrileri.png`).
 
+### 2.9 GFS tahmin ufku tutarlılığı (#11; 28 Ekim, ek analiz)
+
+UCAR THREDDS'in tuttuğu son ~7,5 günün koşularından, 23–28 Ekim 2026'daki 11 geçerlilik zamanı (00/12Z)
+için f000, f024 ve f048 Türkiye kutusunda (200/250/300 hPa, 14 MB) indirildi; her zamanda 5.000 rastgele
+noktada (FL310–380) TI1 karşılaştırıldı (GFS eşiği 8,3e-7). f024: Spearman medyanı 0,67 [0,61–0,77], f000'da
+riskli olanların %57'si tahminde de riskli; f048: 0,50 [0,39–0,59], %43. Riskli oran ufukla değişmiyor
+(%8,3 → %7,4) ama yeri değişiyor. 3 saatlik zaman örneklemesinin etkisinden (Spearman 0,923) çok daha büyük.
+Referans GFS'in kendi analizidir; gözlemle (ERA5) kıyas ERA5'in yayın gecikmesi yüzünden 3 Kasım'a kaldı.
+Paket `docs/sonuclar/2026-10-28_tahmin_ufku/`.
+
 ## 3. Nesnel değerlendirme: MADIS ölçülen EDR (M1) — tarihçe, 5 Ekim (güncel: §0.4)
 
 Etiket: MADIS maxEDR ≥ 0,1 (hafif ve üstü). 12.232 ölçüm, 372 pozitif (%3,0), 4 gün.

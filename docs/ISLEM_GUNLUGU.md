@@ -4,6 +4,8 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-28
 
+- ✅ A1: varsayılan seçim kuralı `sozluksel` kaldı (ADR 0013); `maliyet` isteğe bağlı bayrak.
+- ✅ #11 GFS ufku (`turbulans-tahmin-ufku`, 14 MB): f024 Spearman 0,67, f048 0,50; riskli noktaların %57 / %43'ü korunuyor. ERA5 kıyası 3 Kasım.
 - ✅ B grubu kalanlar: `ROTA_SECIM_KURALI` bayrağı (varsayılan değişmedi; `maliyet` 5 dk ile 1.488 rotada 28'i değişti).
 - ✅ §10.7 protokol farkı: rastgele bölme AUC'yi değiştirmedi (−0,001), hafif çıkarmak +0,083 (0,702 → 0,785).
 - ✅ REV (`turbulans-ekonomik-deger`): en yüksek REV TI1 0,26, model 0,30; yalnız α ≈ 0,3–0,8'de pozitif.

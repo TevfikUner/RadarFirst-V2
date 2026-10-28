@@ -37,7 +37,11 @@ trafikle varsayımsal minima karşılaştırması yalnızca gösterge olarak var
 - Kalkıştan önceki son saatlerde yeniden hesaplanmalıdır. GFS ile hesaplanan ve kalkışına
   48 saatten fazla olan rotalarda yanıt `ongoru_belirsiz` uyarısı verir: CAT'in yeri topluluk
   tahminleriyle ancak ~24–48 saat önceden tutarlı öngörülebildi (Lee, 2025, 4 vaka). Sınır
-  `GUVENILIR_ONGORU_SAAT` ile değişir; kalibre edilmedi.
+  `GUVENILIR_ONGORU_SAAT` ile değişir; kalibre edilmedi. Kendi ölçümümüz (23–28 Ekim 2026, Türkiye kutusu,
+  11 geçerlilik zamanı, `docs/sonuclar/2026-10-28_tahmin_ufku/`): GFS analizinde (f000) riskli olan noktaların
+  24 sa önceki tahminde %57'si, 48 sa öncekinde %43'ü yine riskli; Spearman 0,67 ve 0,50. Riskli alanların
+  yeri 24 saatte bile yarı yarıya kayıyor; 48 saat sınırı bu dönemde iyimser. Referans GFS'in kendi analizidir,
+  gözlem değildir; ERA5 kıyası 3 Kasım'da.
 - Hesaplama süresi, veri hazırken ve dizüstü şarjdayken rota başına 0,10–0,42 sn'dir
   (sıcak medyan; A* aramalarının toplamı 0,08–0,12 sn). Ölçüm `turbulans-performans rota`
   ile yapıldı: `docs/sonuclar/2026-10-18/rota_performansi.md` (19 Ekim). Pilde süreler 2–3 kat
@@ -114,7 +118,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   seçilir. "Yumuşak" yasaklamaz demektir: riskten kaçınan aday yoksa riskli rota yine önerilir (SIGMET'te
   öneri yapılmaz). Ama riskli nokta sayısı yakıtla takas edilmez; daha az riskli bir aday, yakıtı ne kadar
   fazla olursa olsun seçilir. Daha ucuz ama riskli seçenekler `secenekler`'de kalır, karar dispeçerindir.
-  Bu varsayılan (`ROTA_SECIM_KURALI=sozluksel`) korunur. İsteğe bağlı `maliyet` kuralı (`en_iyi_adayi_sec`)
+  Bu varsayılan (`ROTA_SECIM_KURALI=sozluksel`) korunur (ADR 0013). İsteğe bağlı `maliyet` kuralı (`en_iyi_adayi_sec`)
   büyük daireyi de aday sayar ve yakıt + riskli dakika × `ROTA_RISKLI_DAKIKA_BEDELI_DK` (varsayılan 5, kalibre
   edilmedi) × dakikalık yakıtı en küçük olanı seçer; kural `uretim_bilgisi.parametreler.secim_kurali`'na yazılır.
   Ocak 2019'daki 1.488 rotada 5 dk bedelle önerilen rota yalnız 28'inde (%1,9) değişti
@@ -433,8 +437,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 1.180 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
-  tarayıcı ve dış ağ katmanı dışındaki 1.168 testin tamamı geçti, 0 hata; tarayıcı ve ağ
+- **Otomatik testler:** 1.182 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
+  tarayıcı ve dış ağ katmanı dışındaki 1.170 testin tamamı geçti, 0 hata; tarayıcı ve ağ
   katmanı 12 test ayrıca çalışır), kod kapsamı %86,3. Önceki CI ölçümü: 18 Ekim, PR #93, 1.066
   test, kapsam %85. Kapsamı: birim testleri, gerçek PostgreSQL
   üzerinde API, depo ve görev kuyruğu testleri (eşzamanlı işçiler, ölen işçi
