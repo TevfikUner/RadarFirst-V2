@@ -48,6 +48,8 @@ turbulans-esik-esleme = "turbulans_radar.analiz.esik_esleme:ana"
 turbulans-ayriklastirma = "turbulans_radar.analiz.ayriklastirma:ana"
 turbulans-kacinma-baslangici = "turbulans_radar.analiz.kacinma_baslangici:ana"
 turbulans-uyari-orani = "turbulans_radar.analiz.uyari_orani:ana"
+turbulans-zaman-ornekleme = "turbulans_radar.analiz.zaman_ornekleme:ana"
+turbulans-birlesik-klimatoloji = "turbulans_radar.ml.birlesik_klimatoloji_duyarliligi:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
