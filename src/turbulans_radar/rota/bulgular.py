@@ -246,7 +246,7 @@ def _bulgulari_olustur(
                     "kacinma_tam_guvenli",
                     "bilgi",
                     "ÇOK FAKTÖRLÜ karşılaştırmada (yanal A* araması vs aynı yönün bir üst/alt yasal FL'sine geçiş, her "
-                    "biri yaklaşık yakıt/süre maliyetiyle) en ucuz TAM güvenli seçenek olarak "
+                    "biri yaklaşık yakıt/süre maliyetiyle) riskli TI1 noktası içermeyen en ucuz seçenek olarak "
                     f"{strateji_aciklamasi} bulundu." + _seviye_maliyet_notu(en_iyi),
                     **kacinma,
                 )
