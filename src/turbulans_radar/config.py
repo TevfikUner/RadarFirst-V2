@@ -392,6 +392,12 @@ ROTA_YANAL_IZGARA_KM = _ortam_sayi("ROTA_YANAL_IZGARA_KM", 20.0)
 ROTA_PARETO_CEZALARI_SANIYE = [
     float(d) for d in _ortam_str("ROTA_PARETO_CEZALARI_SANIYE", "300,60,0").split(",") if d.strip()
 ]
+# Sert kısıtlara uyan adaylar arasında önerilecek rota: 'sozluksel' (önce riskli
+# nokta sayısı, eşitlikte yakıt; varsayılan) ya da 'maliyet' (yakıt + riskli dakika
+# x ROTA_RISKLI_DAKIKA_BEDELI_DK x adayın dakikalık yakıtı). Bedel kullanıcı
+# tercihidir, kalibre edilmedi (5 dk, en büyük Pareto cezası 300 s ile aynı ölçek).
+ROTA_SECIM_KURALI = _ortam_str("ROTA_SECIM_KURALI", "sozluksel")
+ROTA_RISKLI_DAKIKA_BEDELI_DK = _ortam_sayi("ROTA_RISKLI_DAKIKA_BEDELI_DK", 5.0)
 # A*, sert kısıtların (SIGMET, kısıtlı saha) zamanını rüzgarsız hesaplar;
 # gerçek varış rüzgarla kayar. Düğüm zamanı, kalkıştan geçen sürenin bu oranı
 # + sabit pay kadar belirsiz sayılır (jet seviyesinde ~70 m/s rüzgar TAS'ın

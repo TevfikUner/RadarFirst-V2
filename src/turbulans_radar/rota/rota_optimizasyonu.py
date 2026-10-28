@@ -610,8 +610,11 @@ def rota_simulasyonu_olustur(
     kalkis_meydani=None,
     varis_meydani=None,
     veri_kupu=None,
+    secim_kurali=None,
 ):
     """
+    secim_kurali: 'sozluksel' | 'maliyet' (bkz. en_iyi_adayi_sec); None ise
+    config.ROTA_SECIM_KURALI.
     veri_kupu: verilirse küp seçimi/canlı indirme atlanır, bu küp kullanılır
     (deney için belirli bir GFS koşusu, bkz. analiz/kacinma_baslangici.py).
     arama_uzayi: "koridor" (büyük daire etrafında yanal ızgara) ya da "ats"
@@ -636,6 +639,9 @@ def rota_simulasyonu_olustur(
     if ucak_modeli_kodu not in UCAK_PROFILLERI:
         raise ValueError(f"Bilinmeyen uçak modeli: '{ucak_modeli_kodu}'. Geçerli seçenekler: {list(UCAK_PROFILLERI)}")
 
+    secim_kurali = secim_kurali or config.ROTA_SECIM_KURALI
+    if secim_kurali not in SECIM_KURALLARI:
+        raise ValueError(f"Bilinmeyen secim_kurali: {secim_kurali!r} ({' | '.join(SECIM_KURALLARI)})")
     profil = UCAK_PROFILLERI[ucak_modeli_kodu]
     tas_ms = profil["tas_ms"]
     yakit_modeli = "openap" if performans_modeli.kullanilabilir_mi(ucak_modeli_kodu) else "sabit"
@@ -801,6 +807,7 @@ def rota_simulasyonu_olustur(
     else:
         raise ValueError(f"Bilinmeyen arama_uzayi: {arama_uzayi!r} (koridor | ats)")
     guvenli_rota_bulundu_mu = True
+    adaylar: list[dict] = []
 
     if normal["riskli_sayisi"] == 0 and normal["sigmet_ihlali"] == 0 and normal["kisitli_saha_ihlali"] == 0:
         # Kaçınılacak risk YOK -- kullanıcıyla netleştirilen ilkeyle, uydurma
@@ -817,7 +824,6 @@ def rota_simulasyonu_olustur(
         ti1_onbellegi = {}
         risk_katmanlari = ([Ti1CezaKatmani(veri_kupu, onbellek=ti1_onbellegi)] if ruzgarli_mi else []) + sert_katmanlar
         pareto_cezalari = config.ROTA_PARETO_CEZALARI_SANIYE if ruzgarli_mi else []
-        adaylar = []
         irtifa_secenekleri = (
             _komsu_yasal_seviyeler(seviye, veri_kupu, enlemler_gc, boylamlar_gc, zaman_iso) if ruzgarli_mi else {}
         )
@@ -863,10 +869,9 @@ def rota_simulasyonu_olustur(
                     ats_yollari[strateji_adi] = yol
                     adaylar.append(_aday(strateji_adi, yol[0], yol[1], irtifa_m))
 
-        sert_kisita_uyan = [a for a in adaylar if a["sigmet_ihlali"] == 0 and a["kisitli_saha_ihlali"] == 0]
-        tam_guvenli = [a for a in sert_kisita_uyan if a["riskli_sayisi"] == 0]
-        if tam_guvenli or sert_kisita_uyan:
-            en_iyi = min(tam_guvenli or sert_kisita_uyan, key=lambda a: (a["riskli_sayisi"], _aday_toplam_yakit_kg(a)))
+        secilen = en_iyi_adayi_sec(adaylar, normal, _aday_toplam_yakit_kg, secim_kurali)
+        if secilen is not None:
+            en_iyi = secilen
         else:
             # SERT kısıt sağlanamadı: kısıtı ihlal eden bir rota "optimize"
             # diye önerilmez -- normal rota gösterilir ve açıkça işaretlenir.
@@ -877,7 +882,7 @@ def rota_simulasyonu_olustur(
         yol = _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, zaman_iso, tas_ms, veri_kupu, [])
         if yol is not None:
             ruzgar_optimum = _aday("ruzgar_optimum", yol[0], yol[1], irtifa_m, yanal_sapma_km=yol[2])
-    for a in (normal, ruzgar_optimum, en_iyi, *(adaylar if en_iyi is not normal else [])):
+    for a in (normal, ruzgar_optimum, en_iyi, *adaylar):
         a["tahmini_nox_kg"] = _aday_nox_kg(a)
     referans_karsilastirmasi = (
         _referans_karsilastirmasi(normal, ruzgar_optimum, en_iyi, _aday_toplam_yakit_kg, tas_ms, arama_uzayi)
@@ -917,9 +922,7 @@ def rota_simulasyonu_olustur(
             "aciklama": "Aynı iki rota için seyir başı kütlesi MTOW'un bu oranlarıyla yeniden hesaplandı; rota seçimi "
             "ROTA_SEYIR_KUTLE_ORANI ile yapıldı. Kütle bilinmediği için tek bir değer yerine bu aralık okunmalıdır.",
         }
-    secenekler = pareto_secenekleri(
-        [normal, *(adaylar if en_iyi is not normal else [])], en_iyi, normal, _aday_toplam_yakit_kg
-    )
+    secenekler = pareto_secenekleri([normal, *adaylar], en_iyi, normal, _aday_toplam_yakit_kg)
     bulgular = _bulgulari_olustur(
         ruzgarli_mi,
         veri_kupu,
@@ -1025,6 +1028,12 @@ def rota_simulasyonu_olustur(
                 "maks_yanal_sapma_km": config.ROTA_MAKS_YANAL_SAPMA_KM,
                 "maks_sapma_acisi_derece": config.ROTA_MAKS_SAPMA_ACISI_DERECE,
                 "ti1_ceza_saniye": TURBULANS_CEZASI_SANIYE,
+                "secim_kurali": secim_kurali,
+                **(
+                    {"riskli_dakika_bedeli_dk": config.ROTA_RISKLI_DAKIKA_BEDELI_DK}
+                    if secim_kurali == "maliyet"
+                    else {}
+                ),
             },
         ),
         "secenekler": secenekler,
@@ -1055,6 +1064,37 @@ def rota_simulasyonu_olustur(
     }
     sonuc["brifing_karti"] = brifing_karti(sonuc)
     return sonuc
+
+
+SECIM_KURALLARI = ("sozluksel", "maliyet")
+
+
+def _riskli_dakika(aday) -> float:
+    bolumler = riskli_bolumler(aday)
+    return 0.0 if not bolumler else float(sum(b["sure_dk"] for b in bolumler))
+
+
+def en_iyi_adayi_sec(adaylar, normal, yakit_fonksiyonu, kural="sozluksel", riskli_dakika_bedeli_dk=None):
+    """Sert kısıtlara (SIGMET, kısıtlı saha) uyan adaylardan önerilecek olan;
+    uyan yoksa None. 'sozluksel': önce riskli nokta sayısı, eşitlikte yakıt (TI1
+    yasaklamaz ama yakıttan önce gelir). 'maliyet': büyük daire de aday sayılır;
+    yakıt + riskli dakika x bedel (dk) x adayın dakikalık yakıtı en küçük olan.
+    Bedel kullanıcı tercihidir, kalibre edilmedi."""
+    uyan = [a for a in adaylar if a["sigmet_ihlali"] == 0 and a["kisitli_saha_ihlali"] == 0]
+    if kural == "sozluksel":
+        return min(uyan, key=lambda a: (a["riskli_sayisi"], yakit_fonksiyonu(a))) if uyan else None
+    if kural != "maliyet":
+        raise ValueError(f"Bilinmeyen secim_kurali: {kural!r} ({' | '.join(SECIM_KURALLARI)})")
+    bedel = config.ROTA_RISKLI_DAKIKA_BEDELI_DK if riskli_dakika_bedeli_dk is None else riskli_dakika_bedeli_dk
+    if normal["sigmet_ihlali"] == 0 and normal["kisitli_saha_ihlali"] == 0 and all(a is not normal for a in uyan):
+        uyan = [normal, *uyan]
+
+    def _maliyet(a):
+        yakit = yakit_fonksiyonu(a)
+        dakika = (a["saniye"] + a["ekstra_saniye"]) / 60.0
+        return (yakit + bedel * _riskli_dakika(a) * (yakit / dakika if dakika else 0.0), a["riskli_sayisi"])
+
+    return min(uyan, key=_maliyet) if uyan else None
 
 
 def pareto_secenekleri(adaylar, onerilen, normal, yakit_fonksiyonu) -> list[dict]:
