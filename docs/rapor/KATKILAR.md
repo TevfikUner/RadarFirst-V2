@@ -47,11 +47,12 @@ yeni bir özellik denemek için veri yeniden indirilmez.
 ## 2. Değerlendirme ve belirsizlik
 
 **K4. Sızıntıya dayanıklı değerlendirme protokolü ve kapılı model aktivasyonu.**
-Aynı günün raporları aynı katta kalır (gün gruplu çapraz doğrulama), en son günler
-zamansal holdout'tur; güven aralıkları gün blok bootstrap ile, TI1'e göre fark
-eşleştirilmiş AUC testiyle verilir. Aday model ancak holdout ROC-AUC'de TI1'i en az
-0,02 geçer ve aktif modelin F1'ini iyileştirirse aktif olur; aksi halde yalnızca
-sürüm olarak saklanır ve geri alınabilir.
+Aynı günün raporları aynı katta kalır (gün gruplu çapraz doğrulama); değerlendirme,
+hiçbir eğitime girmeyen dondurulmuş altın test günlerindedir; güven aralıkları gün blok
+bootstrap ile, TI1'e göre fark eşleştirilmiş AUC testiyle verilir. Aday model ancak altın
+günlerde ROC-AUC farkı TI1'e karşı en az 0,02 ve %95 GA alt sınırı 0'ın üstündeyse, aktif
+model varsa ona karşı da aynı kural (≥ 0,02, alt sınır > 0) sağlanırsa aktif olur; aksi
+halde yalnızca sürüm olarak saklanır ve geri alınabilir.
 - Kanıt: `ml/degerlendirme.py`, `ml/ml_otomatik_egitim.py`, ADR 0003, 0004,
   `docs/deney_protokolu.md`.
 - En yakın çalışmadan farkı: Roberts vd. (2017) gruplu doğrulamayı genel olarak önerir; biz onu gün gruplu CV, zamansal holdout ve TI1'e karşı eşleştirilmiş bootstrap farkının alt sınırına bağlı otomatik bir aktivasyon kapısına dönüştürdük.
@@ -72,7 +73,7 @@ yakalamadığı gösterildi. Sonuç, her rota yanıtında ve arayüzde gösteril
 güvenilirlik notuna ve güvenliğin SIGMET sert kısıtına dayandırılmasına dönüştü.
 - Kanıt: `fizik/turbulans_indeksleri.py` (`TI1_GUVENILIRLIK_NOTU`),
   `dogrulama/bagimsiz_kanit.py`, `docs/SISTEM_KARTI.md` §6.
-- En yakın çalışmadan farkı: Kim vd. (2011) ile Sharman ve Pearson (2017) teşhislerin becerisini ölçüp operasyonel birleşime ağırlık olarak kullanır; biz ölçülen sınırı (TI1 ROC-AUC 0,68) ürün davranışına taşıdık: TI1 yumuşak, SIGMET sert kısıt, her yanıtta güvenilirlik notu.
+- En yakın çalışmadan farkı: Kim vd. (2011) ile Sharman ve Pearson (2017) teşhislerin becerisini ölçüp operasyonel birleşime ağırlık olarak kullanır; biz ölçülen sınırı (TI1 ROC-AUC 0,673) ürün davranışına taşıdık: TI1 yumuşak, SIGMET sert kısıt, her yanıtta güvenilirlik notu.
 
 ## 3. Karar ve işletim
 
@@ -99,7 +100,7 @@ POD 1/8, POFD 0/8.
 - Uzun işler için PostgreSQL kuyruğu (`FOR UPDATE SKIP LOCKED`) ve dağıtık kilit.
 - Sağlayıcı yasaklarına karşı korumalar: tek eşzamanlı OpenSky sorgusu, günlük
   tavanlar, istek aralıkları, zamanlayıcı lider kilidi.
-- Ağsız demo paketi; 974 otomatik test ve 6 işli CI (sır taraması, SBOM, tarayıcı
+- Ağsız demo paketi; 1.153 otomatik test (28 Ekim 2026) ve 6 işli CI (sır taraması, SBOM, tarayıcı
   testleri, ağsız demo dahil); ölçülmüş performans raporu.
 - Kanıt: ADR 0006–0009, `docs/PERFORMANS_RAPORU.md`, `docs/VERI_KAYNAKLARI_VE_LISANSLAR.md`.
 - En yakın çalışmadan farkı: İncelenen açık kaynak türbülans projeleri (İlgili Çalışmalar §8) doğrulama ve işletim altyapısı içermez; bizde kuyruk, kilit, yedek, sağlayıcı yasak korumaları ve otomatik testler ölçülmüş performansla birlikte gelir.

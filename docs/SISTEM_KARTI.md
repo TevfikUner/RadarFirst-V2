@@ -108,6 +108,12 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
      (örn. varış ülkesi) muaf tutulur ve raporlanır.
   2. Riskli TI1 noktalarından kaçınmak (yumuşak kısıt, 6 saatlik sanal ceza).
   3. En düşük yakıt/süre.
+
+  **Seçim kuralı (`rota_optimizasyonu.py`, aday seçimi):** A* ve seviye adayları üretildikten sonra
+  sert kısıtlara uyanlar arasında önce riskli TI1 nokta sayısı en az olan, eşitlikte en az yakıtlı aday
+  seçilir. "Yumuşak" yasaklamaz demektir: riskten kaçınan aday yoksa riskli rota yine önerilir (SIGMET'te
+  öneri yapılmaz). Ama riskli nokta sayısı yakıtla takas edilmez; daha az riskli bir aday, yakıtı ne kadar
+  fazla olursa olsun seçilir. Daha ucuz ama riskli seçenekler `secenekler`'de kalır, karar dispeçerindir.
 - Kaçınılacak bir risk yoksa önerilen rota büyük daireyle birebir aynıdır;
   uydurma bir "iyileşme" gösterilmez.
 - **Üretim bilgisi:** Rota ve nokta tahmini yanıtları `uretim_bilgisi` taşır: yazılım sürümü,
@@ -398,9 +404,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 1.066 test (18 Ekim 2026, CI `test (3.12)` PR #93 birleştirmesi: 1.022
-  geçti, 42 atlandı, 2'si gerçek dış servise istek attığı için varsayılan çalıştırmada hariç;
-  tarayıcı işi 8/8), kod kapsamı %85 (CI). Kapsamı: birim testleri, gerçek PostgreSQL
+- **Otomatik testler:** 1.153 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
+  tarayıcı ve dış ağ katmanı dışındaki 1.141 testin tamamı geçti, 0 hata; tarayıcı ve ağ
+  katmanı 12 test ayrıca çalışır), kod kapsamı %86,3. Önceki CI ölçümü: 18 Ekim, PR #93, 1.066
+  test, kapsam %85. Kapsamı: birim testleri, gerçek PostgreSQL
   üzerinde API, depo ve görev kuyruğu testleri (eşzamanlı işçiler, ölen işçi
   kurtarma, LISTEN/NOTIFY), gerçek ERA5 küpüyle eşleştirme ve rota testleri,
   Playwright ile iki web önyüzünün tarayıcı testleri. Ağa çıkan bileşenler
@@ -431,6 +438,14 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
     CDN'den ~55 KB/s bağlantıda 106 sn sürüyordu); altlık harita yerel.
   - Küp belleği: İzmir-Van için pencereli okuma 1.2 MB (tüm küp 69 MB); eski
     davranış ilk istekte 16 küpü (92 MB) belleğe alıyordu.
+- **Uyarı oranı (28 Ekim 2026, `turbulans-uyari-orani`, `docs/sonuclar/2026-10-28_uyari_orani/`):**
+  Ocak 2019 Türkiye küpünde (3 seviye) 6 doğu yönlü şehir çifti × 31 gün × 4 saat × FL350/370 = 1.488
+  rota, SIGMET ve kısıtlı saha kapalı. Rotaların %46,3'ünde büyük dairede 7e-7'yi aşan nokta var ve
+  sistem bunların hepsinde sapma öneriyor (FL350 %52,2, FL370 %40,5). Sapmada ek yakıt medyanı %2,2,
+  p90 %8,8 (büyük daireye göre); sapmaların 314/689'unda risk tamamen atlatılamıyor. Sapmaların %74,7'sinde
+  seçeneklerde daha ucuz ama daha çok riskli nokta bırakan bir aday var (medyan 6,2 puan daha az yakıt,
+  medyan 8 riskli nokta); seçim kuralı bunu önermez (§3). Rotalar aynı günlerin hava sistemlerini paylaşır,
+  oranlar betimleyicidir; tek bölge, tek ay.
 - **Sonuç paketi (Madde 8):** Doğruluk sayılarının tek kaynağı
   `docs/sonuclar/<kesme>/` paketidir: commit hash'li JSON, `SAYILAR.md`, ROC,
   güvenilirlik ve backtest şekilleri (`turbulans-ml-degerlendirme --cikti`). Geçerli

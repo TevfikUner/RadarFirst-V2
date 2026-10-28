@@ -185,6 +185,7 @@ jüri sorularına doğrudan yanıt verenler önde.
   AUC/Peirce yeniden; birincil sonuç değişmez, yalnız duyarlılık tablosu.
 - [ ] **Fikir 9 — Uyarı alanı oranı:** seçili eşikte riskli ızgara/nokta oranı ve
   "POD – uyarı alanı" eğrisi; TTS yalnız MADIS günlerinde. `ml/gosterge_degerlendirme.py`.
+  Rota düzeyindeki sapma oranı 28 Ekim'de ölçüldü (`docs/sonuclar/2026-10-28_uyari_orani/`); ızgara/POD eğrisi açık.
 - [ ] **Fikir 10 — Komşuluk maksimumu eşleştirmesi:** ±1 hücre / ±1 sa pencerede TI1
   maksimumu, iki sınıfa birlikte; `fizik/eslestirme.py`'de isteğe bağlı mod.
 - [x] (20 Ekim, `docs/sonuclar/2026-10-20_pirep_ayristirici/`: 500'de 499 uyuşma; çoklu /TB grubu %0,24 etiketi çevirir, aşağıdaki maddeye) **Fikir 11 — PIREP ayrıştırıcı çapraz testi:** 500 ham IEM PIREP, `pirep_siddet_sinifi`

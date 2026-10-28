@@ -14,6 +14,7 @@ sayıların tek listesidir ve elle düzenlenmez.
 | [`2026-10-17/`](2026-10-17/README.md) | Ek analiz (ML paketi değil): kaçınma başlangıç zamanı, kalkışta ve yolda planlama (Fikir 18). | 12–16 Ekim 2026 GFS |
 | [`2026-10-18/`](2026-10-18/SAYILAR.md) | **Nihai paket.** Belgeler bu paketin sayılarını kullanır: 163 gün, protokol modeli RF, kapı geçildi (+0,033). Commit `5ddcd40`, üretim 18 Ekim 00:25 UTC; yedekten ve canlıdan birebir aynı üretildi (yedek `kalici/turbulans_20261018_dondurma.dump`). `ml_dondurma.json`: aday (GB) aktif 9 Ekim RF'yi geçemedi, saklandı. `ilk_uretim_sirasiz/`: sıralama düzeltmesinden önceki ilk üretim (GB +0,036), tarihçe. `rota_performansi`: 19 Ekim, şarjda, sıcak medyan 0,10–0,42 sn (kütle bandı hızlandırması sonrası; öncesi `rota_performansi_iyilestirme_oncesi.json`, 0,25–0,69 sn). | 18 Ekim 2026 |
 
+| [`2026-10-28_uyari_orani/`](2026-10-28_uyari_orani/README.md) | Ek analiz (ML paketi değil): toplu rota simülasyonuyla uyarı/sapma oranı; 1.488 rotanın %46,3'ünde sapma, ek yakıt medyanı %2,2 (p90 %8,8). | Ocak 2019 ERA5 |
 | [`2026-10-27_yeni_gun/`](2026-10-27_yeni_gun/README.md) | §10 tek seferlik değerlendirme: 79 yeni test günü; geniş − temel +0,008 [+0,002; +0,014] (komşu günsüz anlamlı değil), iki set de TI1 kapısını geçti. Yedek `kalici/turbulans_20261027_yeni_gun.dump`. | 27 Ekim 2026 (gece işi sonrası) |
 
 ## Paketin içeriği

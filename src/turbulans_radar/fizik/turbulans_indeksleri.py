@@ -13,8 +13,8 @@ benzer shear x deformation yaklaşımını temel alır.
 ÖNEMLİ SINIRLAMA:
 Bu, uçağın kendi ivme ölçerlerinden türetilen SERTİFİKALI/GERÇEK EDR
 DEĞİLDİR. ERA5 gibi ~25-30 km çözünürlüklü reanaliz verisinden hesaplanan
-bir türbülans OLASILIK PROXY'sidir; gerçek uçuş operasyonu kararları için
-kullanılmamalıdır — sadece araştırma/görselleştirme amaçlıdır.
+bir türbülans OLASILIK PROXY'sidir; çıktılar sertifikalı EDR değildir, sistem
+operasyonel karar aracı değil, karar destek aracıdır.
 
 Ayrıca, TI1'e EK ve ONDAN BAĞIMSIZ bir kararlılık göstergesi olarak **bulk
 Richardson sayısı** (richardson_sayisi_hesapla) hesaplanır. Ri < 0.25
@@ -43,6 +43,12 @@ YERCEKIMI_IVMESI = 9.80665
 # tipi dinamik kararsızlık (ve dolayısıyla CAT olasılığı) literatürde klasik bir
 # gösterge olarak kabul edilir (bkz. Miles-Howard kararsızlık kriteri).
 DINAMIK_KARARSIZLIK_ESIGI = 0.25
+
+RI_ESIGI_NOTU = (
+    "Ri < 0,25 (Miles-Howard) sınırı ~25-30 km çözünürlüklü ERA5/GFS'te nadiren aşılır; bu sayının 0 olması "
+    "kararsızlık olmadığı anlamına gelmez. Veriden seçilen ayırma eşiği Ri < 2,27'dir (SONUCLAR §0.2); "
+    "Richardson değerinin kendisine bakın."
+)
 
 
 def _metre_per_derece_boylam(enlem_derece):
@@ -151,9 +157,10 @@ def ti1_den_edr_proxy_olcegine_cevir(ti1_degeri, olceklendirme_katsayisi=0.27):
     aralığıyla doğrudan karşılaştırılabilir değil. Burada TI1'i, eski
     kodunla aynı yerlerde kullanılabilecek 0'a yakın-1'e yakın bir "proxy"
     ölçeğine sıkıştırıyoruz (tanh ile doygunlaştırma). Varsayılan katsayı
-    (0.27), config.EDR_OLCEKLENDIRME_KATSAYISI ile AYNIDIR -- seyir
-    irtifasındaki gerçek IEM PIREP + ERA5 verisiyle kalibre edildi (bkz.
-    ml/edr_kalibrasyonu.py). Görselleştirme ölçeğidir, sertifikalı EDR değildir.
+    (0.27), config.EDR_OLCEKLENDIRME_KATSAYISI ile AYNIDIR -- EDR ölçümüne
+    değil, seyir irtifasındaki IEM PIREP sınıf koduna uyduruldu (bkz.
+    ml/edr_kalibrasyonu.py); sabit ortalama tahmininden daha iyi tahmin etmez
+    (SISTEM_KARTI §5). Görselleştirme ölçeğidir, sertifikalı EDR değildir.
     """
     sonuc = np.tanh(np.asarray(ti1_degeri, dtype=float) * olceklendirme_katsayisi * 1e6)
     return float(sonuc) if sonuc.ndim == 0 else sonuc

@@ -14,7 +14,8 @@ test günlerinde risk eşiğinde (7e-7) yakalama 0,50, yanlış alarm 0,25. Birl
 TI1'i az ama anlamlı geçiyor (+0,013 [+0,007; +0,020]). ML modeli altın günlerde TI1'i
 geçiyor (protokol modeli Random Forest +0,033 [+0,018; +0,049]; canlıdaki 9 Ekim Random
 Forest da +0,033), ama ROC-AUC 0,71'de kalıyor. Bu yüzden güvenlik SIGMET'e (sert kısıt)
-dayanır, TI1 A* rotasında yalnız yumuşak kısıttır.
+dayanır. TI1 yumuşak kısıttır: yasaklamaz (riskten kaçınan aday yoksa riskli rota yine önerilir),
+ama adaylar arasında seçimde yakıttan önce gelir (en az riskli noktalı aday, eşitlikte en az yakıt).
 
 **Demo.** Kimlik bilgisiz, çalışırken ağsız: [Beş dakikada çalıştır](#beş-dakikada-çalıştır).
 Kapsam yalnız CAT ve seyir safhası, doğrulama ABD verisiyle; çıktılar sertifikalı EDR
@@ -174,7 +175,7 @@ turbulans_radar/
               yeni_gun_degerlendirmesi.py -> dondurma sonrası yeni günlerde tek değerlendirme (protokol §10)
   analiz/     ucus_analizi.py, toplu_analiz.py -> uçtan uca uçuş analizi
               esik_esleme.py, gfs_toplulugu.py, kacinma_baslangici.py, ayriklastirma.py,
-              dedektor_duyarliligi.py, sanal_pirep_hatti.py -> ek analizler
+              dedektor_duyarliligi.py, sanal_pirep_hatti.py, uyari_orani.py -> ek analizler
   api/        api_servisi.py, semalar.py, guvenlik.py, ortak.py -> FastAPI REST + WebSocket, şemalar, anahtar/rol, CSP
               metrikler.py, rota_onbellegi.py
               yollar/ analiz.py, ucuslar.py, ml.py, hava_sahasi.py, geri_bildirim.py
