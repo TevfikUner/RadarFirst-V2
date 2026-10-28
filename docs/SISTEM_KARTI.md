@@ -297,7 +297,12 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   gün gruplu CV ROC-AUC'siyle 1-SE kuralıyla seçilir (fark küçükse Lojistik
   Regresyon); özellikler TI1, Richardson, rüzgar hızı, basınç, düşey kayma,
   deformasyon, diverjans ve TI2'dir.
-- Yalnızca ABD verisiyle doğrulanmıştır. Yerel MADIS EDR deposunda (11 gün, 2018–2019,
+- Yalnızca ABD verisiyle doğrulanmıştır. Türkiye girdileri (7 seviyeli Ocak 2019 küpü, 20.000 rastgele seyir
+  noktası) ABD eğitim verisinin aralığı içinde kalıyor (%0,5–%99,5 dışı %3,0; ABD içi kontrol %4,0) ama dağılımı
+  belirgin farklı (PSI: Richardson 1,04, TI2 0,42, TI1 0,41; kontrol ≤ 0,11): Türkiye noktaları daha sakin (medyan
+  TI1 2,5e-7 / ABD 5e-7). Fark kısmen ABD örneklerinin PIREP konumu olmasından gelir. Model dışdeğerleme yapmıyor,
+  ama ABD'de ölçülen beceri ve olasılık kalibrasyonu Türkiye'ye taşınamaz (28 Ekim,
+  `docs/sonuclar/2026-10-28_turkiye_kaymasi/`; girdi örtüşmesi ölçümü, beceri ölçümü değil). Yerel MADIS EDR deposunda (11 gün, 2018–2019,
   FL280 üstü) Avrupa kutusunda (35–60°K, 10°B–30°D) 21.167 gözlem, ama yalnızca 28'i
   hafif+ (EDR ≥ 0,1); Türkiye/Doğu Akdeniz kutusunda (34–43°K, 25–45°D) 0 gözlem
   vardır. Bu, bölgesel bir doğrulama için yetersizdir (pozitif sayısı güven aralığını

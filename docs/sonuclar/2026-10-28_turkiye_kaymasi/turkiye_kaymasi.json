@@ -1,0 +1,480 @@
+{
+  "meta": {
+    "amac": "Kurul raporu #10 (VER-08): Türkiye girdilerinin ABD eğitim verisine göre kayması",
+    "uretim_zamani": "2026-10-28T15:43:47+00:00",
+    "commit": "efc6d51016aa3652efd445ce6f896e26d1d073bc",
+    "kirli": false,
+    "uyari": "Girdi örtüşmesi ölçümüdür, Türkiye'de beceri ölçümü değildir. Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır."
+  },
+  "veri": {
+    "kup": "ocak_2019_turbulans_7seviye.nc",
+    "istenen_nokta": 20000
+  },
+  "sonuc": {
+    "ornek": {
+      "abd": 16033,
+      "abd_kis": 4992,
+      "turkiye": 20000
+    },
+    "turkiye_abd": {
+      "referans_ornek": 16033,
+      "guncel_ornek": 20000,
+      "durum": "belirgin",
+      "maks_psi": 1.0423,
+      "maks_psi_ozelligi": "richardson_sayisi",
+      "ozellikler": {
+        "ti1_indeksi": {
+          "psi": 0.4145,
+          "ks": 0.2574,
+          "durum": "belirgin"
+        },
+        "richardson_sayisi": {
+          "psi": 1.0423,
+          "ks": 0.3928,
+          "durum": "belirgin"
+        },
+        "ruzgar_hizi_ms": {
+          "psi": 0.1173,
+          "ks": 0.0912,
+          "durum": "orta"
+        },
+        "basinc_hpa": {
+          "psi": 0.1835,
+          "ks": 0.106,
+          "durum": "orta"
+        },
+        "dusey_ruzgar_kaymasi": {
+          "psi": 0.372,
+          "ks": 0.2278,
+          "durum": "belirgin"
+        },
+        "yatay_deformasyon": {
+          "psi": 0.2994,
+          "ks": 0.2075,
+          "durum": "belirgin"
+        },
+        "yatay_diverjans": {
+          "psi": 0.2862,
+          "ks": 0.1554,
+          "durum": "belirgin"
+        },
+        "ti2_indeksi": {
+          "psi": 0.4202,
+          "ks": 0.243,
+          "durum": "belirgin"
+        }
+      },
+      "destek": {
+        "yuzdelikler": [
+          0.5,
+          99.5
+        ],
+        "ozellikler": {
+          "ti1_indeksi": {
+            "alt": 1.3670223790513776e-08,
+            "ust": 5.803726471440172e-06,
+            "disarida_orani": 0.01065
+          },
+          "richardson_sayisi": {
+            "alt": 0.13695992065540932,
+            "ust": 621.4701409330621,
+            "disarida_orani": 0.0141
+          },
+          "ruzgar_hizi_ms": {
+            "alt": 2.694410672494278,
+            "ust": 80.43340011144397,
+            "disarida_orani": 0.0019
+          },
+          "basinc_hpa": {
+            "alt": 175.0,
+            "ust": 350.0,
+            "disarida_orani": 0.0
+          },
+          "dusey_ruzgar_kaymasi": {
+            "alt": 0.0005038420943470821,
+            "ust": 0.02866239158447302,
+            "disarida_orani": 0.0067
+          },
+          "yatay_deformasyon": {
+            "alt": 5.73748839195669e-06,
+            "ust": 0.00033549825779847435,
+            "disarida_orani": 0.0087
+          },
+          "yatay_diverjans": {
+            "alt": -0.00016139176864399303,
+            "ust": 0.00013892311159157292,
+            "disarida_orani": 0.0011
+          },
+          "ti2_indeksi": {
+            "alt": -7.261900155412487e-07,
+            "ust": 7.463270717944237e-06,
+            "disarida_orani": 0.00115
+          }
+        },
+        "herhangi_disarida_orani": 0.0297
+      }
+    },
+    "turkiye_abd_kis": {
+      "referans_ornek": 4992,
+      "guncel_ornek": 20000,
+      "durum": "belirgin",
+      "maks_psi": 1.1997,
+      "maks_psi_ozelligi": "richardson_sayisi",
+      "ozellikler": {
+        "ti1_indeksi": {
+          "psi": 0.5952,
+          "ks": 0.3165,
+          "durum": "belirgin"
+        },
+        "richardson_sayisi": {
+          "psi": 1.1997,
+          "ks": 0.421,
+          "durum": "belirgin"
+        },
+        "ruzgar_hizi_ms": {
+          "psi": 0.5046,
+          "ks": 0.2604,
+          "durum": "belirgin"
+        },
+        "basinc_hpa": {
+          "psi": 0.2248,
+          "ks": 0.1335,
+          "durum": "orta"
+        },
+        "dusey_ruzgar_kaymasi": {
+          "psi": 0.7315,
+          "ks": 0.3263,
+          "durum": "belirgin"
+        },
+        "yatay_deformasyon": {
+          "psi": 0.2634,
+          "ks": 0.1965,
+          "durum": "belirgin"
+        },
+        "yatay_diverjans": {
+          "psi": 0.3554,
+          "ks": 0.1751,
+          "durum": "belirgin"
+        },
+        "ti2_indeksi": {
+          "psi": 0.5805,
+          "ks": 0.2931,
+          "durum": "belirgin"
+        }
+      },
+      "destek": {
+        "yuzdelikler": [
+          0.5,
+          99.5
+        ],
+        "ozellikler": {
+          "ti1_indeksi": {
+            "alt": 2.003392016200433e-08,
+            "ust": 6.047614820166299e-06,
+            "disarida_orani": 0.0202
+          },
+          "richardson_sayisi": {
+            "alt": 0.18097379013717696,
+            "ust": 449.93446175100115,
+            "disarida_orani": 0.0194
+          },
+          "ruzgar_hizi_ms": {
+            "alt": 7.205057278489455,
+            "ust": 85.13650525545792,
+            "disarida_orani": 0.01645
+          },
+          "basinc_hpa": {
+            "alt": 175.0,
+            "ust": 350.0,
+            "disarida_orani": 0.0
+          },
+          "dusey_ruzgar_kaymasi": {
+            "alt": 0.0006843673809600047,
+            "ust": 0.030307169998287014,
+            "disarida_orani": 0.01235
+          },
+          "yatay_deformasyon": {
+            "alt": 5.288026611661838e-06,
+            "ust": 0.00032452155203727487,
+            "disarida_orani": 0.0074
+          },
+          "yatay_diverjans": {
+            "alt": -0.00017316189712390377,
+            "ust": 0.0001339699042804567,
+            "disarida_orani": 0.0013
+          },
+          "ti2_indeksi": {
+            "alt": -7.059137786482447e-07,
+            "ust": 8.361665935444223e-06,
+            "disarida_orani": 0.00115
+          }
+        },
+        "herhangi_disarida_orani": 0.05355
+      }
+    },
+    "kontrol_abd_altin_egitim": {
+      "referans_ornek": 14450,
+      "guncel_ornek": 1583,
+      "durum": "orta",
+      "maks_psi": 0.1122,
+      "maks_psi_ozelligi": "ruzgar_hizi_ms",
+      "ozellikler": {
+        "ti1_indeksi": {
+          "psi": 0.008,
+          "ks": 0.0346,
+          "durum": "kararli"
+        },
+        "richardson_sayisi": {
+          "psi": 0.0434,
+          "ks": 0.0685,
+          "durum": "kararli"
+        },
+        "ruzgar_hizi_ms": {
+          "psi": 0.1122,
+          "ks": 0.1078,
+          "durum": "orta"
+        },
+        "basinc_hpa": {
+          "psi": 0.0081,
+          "ks": 0.0406,
+          "durum": "kararli"
+        },
+        "dusey_ruzgar_kaymasi": {
+          "psi": 0.0243,
+          "ks": 0.0458,
+          "durum": "kararli"
+        },
+        "yatay_deformasyon": {
+          "psi": 0.0061,
+          "ks": 0.0248,
+          "durum": "kararli"
+        },
+        "yatay_diverjans": {
+          "psi": 0.0213,
+          "ks": 0.0497,
+          "durum": "kararli"
+        },
+        "ti2_indeksi": {
+          "psi": 0.013,
+          "ks": 0.0276,
+          "durum": "kararli"
+        }
+      },
+      "destek": {
+        "yuzdelikler": [
+          0.5,
+          99.5
+        ],
+        "ozellikler": {
+          "ti1_indeksi": {
+            "alt": 1.3314561670914119e-08,
+            "ust": 5.904729360652246e-06,
+            "disarida_orani": 0.003158559696778269
+          },
+          "richardson_sayisi": {
+            "alt": 0.13572561239442657,
+            "ust": 653.9738748988126,
+            "disarida_orani": 0.006948831332912192
+          },
+          "ruzgar_hizi_ms": {
+            "alt": 2.686613630348095,
+            "ust": 80.68996537682186,
+            "disarida_orani": 0.00505369551484523
+          },
+          "basinc_hpa": {
+            "alt": 175.0,
+            "ust": 350.0,
+            "disarida_orani": 0.0
+          },
+          "dusey_ruzgar_kaymasi": {
+            "alt": 0.0005027136194745812,
+            "ust": 0.02876377312967877,
+            "disarida_orani": 0.007580543272267846
+          },
+          "yatay_deformasyon": {
+            "alt": 5.8249048662134265e-06,
+            "ust": 0.000337638474801363,
+            "disarida_orani": 0.01010739102969046
+          },
+          "yatay_diverjans": {
+            "alt": -0.00016128483507997903,
+            "ust": 0.00013811798544455912,
+            "disarida_orani": 0.012002526847757423
+          },
+          "ti2_indeksi": {
+            "alt": -7.647935872601761e-07,
+            "ust": 7.808580395563231e-06,
+            "disarida_orani": 0.003790271636133923
+          }
+        },
+        "herhangi_disarida_orani": 0.04042956411876184
+      }
+    },
+    "dagilimlar": {
+      "abd": {
+        "ti1_indeksi": {
+          "count": 16033.0,
+          "mean": 8.260178736276122e-07,
+          "std": 1.0055161264487085e-06,
+          "min": 4.861383738671522e-10,
+          "5%": 6.320690642201938e-08,
+          "50%": 4.996586003419875e-07,
+          "95%": 2.713764426601946e-06,
+          "max": 1.4257829927044108e-05
+        },
+        "richardson_sayisi": {
+          "count": 16033.0,
+          "mean": 39.11737265625847,
+          "std": 1422.2605481412932,
+          "min": -7.091758405344139,
+          "5%": 0.42996041605542334,
+          "50%": 2.696005573730582,
+          "95%": 52.33170683326232,
+          "max": 168847.6899067696
+        },
+        "ruzgar_hizi_ms": {
+          "count": 16033.0,
+          "mean": 34.56840067374231,
+          "std": 17.308047201247415,
+          "min": 0.008312049398183896,
+          "5%": 8.749176873808674,
+          "50%": 33.10360093871072,
+          "95%": 64.88567947325208,
+          "max": 103.0764964007119
+        },
+        "basinc_hpa": {
+          "count": 16033.0,
+          "mean": 242.3595085136905,
+          "std": 41.07447670737114,
+          "min": 175.0,
+          "5%": 175.0,
+          "50%": 250.0,
+          "95%": 300.0,
+          "max": 350.0
+        },
+        "dusey_ruzgar_kaymasi": {
+          "count": 16033.0,
+          "mean": 0.008705420788458727,
+          "std": 0.005747250251394165,
+          "min": 4.8207646261707256e-05,
+          "5%": 0.0017128238425537174,
+          "50%": 0.007512427746733918,
+          "95%": 0.0199336302266057,
+          "max": 0.03841813967744178
+        },
+        "yatay_deformasyon": {
+          "count": 16033.0,
+          "mean": 8.6107785578792e-05,
+          "std": 5.967560484464616e-05,
+          "min": 7.33867078713618e-07,
+          "5%": 1.8269551448677335e-05,
+          "50%": 7.307953709889675e-05,
+          "95%": 0.00020096936823316185,
+          "max": 0.0006283883170873062
+        },
+        "yatay_diverjans": {
+          "count": 16033.0,
+          "mean": -5.515711847317369e-06,
+          "std": 4.730496574655893e-05,
+          "min": -0.0003640453388048581,
+          "5%": -8.337082522017222e-05,
+          "50%": -4.150097045551925e-06,
+          "95%": 6.828444936939971e-05,
+          "max": 0.00036133328963615233
+        },
+        "ti2_indeksi": {
+          "count": 16033.0,
+          "mean": 8.988201492314031e-07,
+          "std": 1.296481408699027e-06,
+          "min": -2.8855689288912115e-06,
+          "5%": -8.324614264236548e-08,
+          "50%": 4.801542751197062e-07,
+          "95%": 3.331923092505966e-06,
+          "max": 2.14645633605151e-05
+        }
+      },
+      "turkiye": {
+        "ti1_indeksi": {
+          "count": 20000.0,
+          "mean": 3.970267266742822e-07,
+          "std": 4.6316535059019975e-07,
+          "min": 4.500791657403895e-10,
+          "5%": 3.738087357344275e-08,
+          "50%": 2.5028640341451784e-07,
+          "95%": 1.266731826644997e-06,
+          "max": 6.417280059431996e-06
+        },
+        "richardson_sayisi": {
+          "count": 20000.0,
+          "mean": 132.46617266604454,
+          "std": 5858.813366583003,
+          "min": -0.7216600534533322,
+          "5%": 1.536248197328288,
+          "50%": 11.033339501250435,
+          "95%": 161.8838614264501,
+          "max": 740388.0985009018
+        },
+        "ruzgar_hizi_ms": {
+          "count": 20000.0,
+          "mean": 32.286888080444804,
+          "std": 13.761688196241366,
+          "min": 0.633332105404569,
+          "5%": 11.333244805940705,
+          "50%": 31.527827497923038,
+          "95%": 55.76692564550593,
+          "max": 85.05882054972331
+        },
+        "basinc_hpa": {
+          "count": 20000.0,
+          "mean": 241.45125,
+          "std": 46.46835577941124,
+          "min": 175.0,
+          "5%": 175.0,
+          "50%": 250.0,
+          "95%": 300.0,
+          "max": 350.0
+        },
+        "dusey_ruzgar_kaymasi": {
+          "count": 20000.0,
+          "mean": 0.005926121444011339,
+          "std": 0.003641706118713251,
+          "min": 2.0046297050520724e-05,
+          "5%": 0.0013339172969518795,
+          "50%": 0.005198836236047302,
+          "95%": 0.012939338094069084,
+          "max": 0.025821695032512276
+        },
+        "yatay_deformasyon": {
+          "count": 20000.0,
+          "mean": 6.0242124606516766e-05,
+          "std": 3.734742818471868e-05,
+          "min": 3.493015196974189e-07,
+          "5%": 1.4163075107928411e-05,
+          "50%": 5.364494667602132e-05,
+          "95%": 0.00012827132015599333,
+          "max": 0.0007190659464374981
+        },
+        "yatay_diverjans": {
+          "count": 20000.0,
+          "mean": 1.7875673198135705e-06,
+          "std": 2.8379338729604784e-05,
+          "min": -0.00021993730472115352,
+          "5%": -4.321942541553426e-05,
+          "50%": 1.4353914118922858e-06,
+          "95%": 4.8207638252672245e-05,
+          "max": 0.00024055806257691035
+        },
+        "ti2_indeksi": {
+          "count": 20000.0,
+          "mean": 3.857721827853177e-07,
+          "std": 5.321110439712814e-07,
+          "min": -1.6487075441032606e-06,
+          "5%": -4.376541336594345e-08,
+          "50%": 2.303815183524543e-07,
+          "95%": 1.3608134918511505e-06,
+          "max": 8.434255462429005e-06
+        }
+      }
+    }
+  }
+}

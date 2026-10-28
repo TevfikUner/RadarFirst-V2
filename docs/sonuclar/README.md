@@ -17,6 +17,7 @@ sayıların tek listesidir ve elle düzenlenmez.
 | [`2026-10-28_birlesik_kiyas/`](2026-10-28_birlesik_kiyas/README.md) | §10.6 (sonradan eklenen ikincil): §10'un 79 gününde temel model − birleşik EDR +0,016 [+0,010; +0,021]; birleşik EDR − TI1 +0,011. | §10 günleri (27 Ekim listesi) |
 | [`2026-10-28_zaman_ornekleme/`](2026-10-28_zaman_ornekleme/README.md) | Ek analiz: 3 saatlik zaman örneklemesinin TI1'e etkisi (saatlik küpe göre Spearman 0,923, aynı karar %95,9). | Ocak 2019 ERA5 |
 | [`2026-10-28_birlesik_klimatoloji/`](2026-10-28_birlesik_klimatoloji/README.md) | Ek analiz (VER-07): birleşik EDR klimatolojisine altın günlerin girmesinin etkisi yok (altın gün ROC-AUC 0,688, fark ≤ 0,0001). | 163 dondurma günü |
+| [`2026-10-28_turkiye_kaymasi/`](2026-10-28_turkiye_kaymasi/README.md) | Ek analiz (VER-08): Türkiye girdileri ABD aralığında (destek dışı %3,0) ama dağılım belirgin farklı (PSI Ri 1,04, TI1 0,41); beceri ölçümü değil. | Ocak 2019 ERA5 (7 seviye) |
 | [`2026-10-28_uyari_orani/`](2026-10-28_uyari_orani/README.md) | Ek analiz (ML paketi değil): toplu rota simülasyonuyla uyarı/sapma oranı; 1.488 rotanın %46,3'ünde sapma, ek yakıt medyanı %2,2 (p90 %8,8). | Ocak 2019 ERA5 |
 | [`2026-10-27_yeni_gun/`](2026-10-27_yeni_gun/README.md) | §10 tek seferlik değerlendirme: 79 yeni test günü; geniş − temel +0,008 [+0,002; +0,014] (komşu günsüz anlamlı değil), iki set de TI1 kapısını geçti. Yedek `kalici/turbulans_20261027_yeni_gun.dump`. | 27 Ekim 2026 (gece işi sonrası) |
 
