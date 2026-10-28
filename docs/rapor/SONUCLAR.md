@@ -391,6 +391,25 @@ Model, eğitimsiz fizik birleşimini (Sharman–Pearson eşlemesi) de küçük a
 birleşik EDR de TI1'i geçiyor (18 Ekim altın günlerdeki +0,013 ile tutarlı). Ön kayıtlı değildir,
 "sonradan eklenen ikincil" olarak okunmalıdır. Paket `docs/sonuclar/2026-10-28_birlesik_kiyas/`.
 
+### 2.7 Bölme ve etiket tanımının etkisi (§10.7, 28 Ekim; keşifsel)
+
+Literatürdeki 0,86–0,90 ile farkın kaynağını ayırmak için (kurul #7) yalnız 147 eğitim gününde
+(14.450 örnek; altın ve §10 günleri hariç) sabit RF (200 ağaç, derinlik 5) ve TI1, 2 × 2 koşulda,
+her biri 20 bölmeyle puanlandı (protokol §10.7, commit `708ea6e`, skordan önce).
+
+| Koşul | RF ROC-AUC | TI1 ROC-AUC |
+|---|---|---|
+| Gün gruplu 70/30, hafif = negatif (bu çalışma) | 0,702 [0,691–0,714] | 0,674 |
+| Rastgele örnek 70/30, hafif = negatif | 0,701 [0,691–0,710] | 0,672 |
+| Gün gruplu 70/30, hafif çıkarılmış | 0,785 [0,763–0,802] | 0,738 |
+| Rastgele örnek 70/30, hafif çıkarılmış | 0,785 [0,772–0,805] | 0,740 |
+
+Aralıklar 20 bölmenin 2,5–97,5 yüzdelikleridir. Rastgele bölme bu veride AUC'yi şişirmedi
+(−0,001); sonuç görüldükten sonra eklenen derin RF (`max_depth=None`) varyantında da +0,001 (§2.4'teki
+OOB bulgusuyla tutarlı). Hafif raporları çıkarmak 0,083 (TI1'de 0,063) artırdı. Farkın ölçülen
+kısmı etiket tanımından gelir; kalan ~0,08–0,12 bölge, özellik (koordinat, BADA) ve modelle ilgilidir,
+ölçülmedi. Paket `docs/sonuclar/2026-10-28_protokol_farki/`.
+
 ## 3. Nesnel değerlendirme: MADIS ölçülen EDR (M1) — tarihçe, 5 Ekim (güncel: §0.4)
 
 Etiket: MADIS maxEDR ≥ 0,1 (hafif ve üstü). 12.232 ölçüm, 372 pozitif (%3,0), 4 gün.

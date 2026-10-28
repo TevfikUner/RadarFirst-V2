@@ -1,5 +1,7 @@
 # Bölme ve etiket tanımının ROC-AUC'ye etkisi (§10.7, keşifsel)
 
+Protokol: docs/deney_protokolu.md §10.7 (keşifsel).
+
 Üretim: 2026-10-28T16:24:01+00:00 · commit `0c30c14e42b65a7a696abb5f3acd0af27bbad357` · 147 eğitim günü (altın test ve §10 günleri hariç) · sabit RF (RandomForest {'n_estimators': 200, 'max_depth': 5}, class_weight=balanced), temel 8 özellik · her koşulda 20 bölme.
 
 | Koşul | Örnek (pozitif) | RF ROC-AUC | TI1 ROC-AUC | RF − TI1 | Test günlerinin eğitimde de olan oranı |
