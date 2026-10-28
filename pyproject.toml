@@ -53,6 +53,7 @@ turbulans-birlesik-klimatoloji = "turbulans_radar.ml.birlesik_klimatoloji_duyarl
 turbulans-turkiye-kaymasi = "turbulans_radar.ml.turkiye_kaymasi:ana"
 turbulans-protokol-farki = "turbulans_radar.ml.protokol_farki:ana"
 turbulans-ekonomik-deger = "turbulans_radar.analiz.ekonomik_deger:ana"
+turbulans-tahmin-ufku = "turbulans_radar.analiz.tahmin_ufku:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
