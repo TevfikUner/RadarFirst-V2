@@ -339,13 +339,22 @@ async function modelBilgisiniGetirVeGoster() {
       return;
     }
     const m = bilgi.metrikler;
-    const satirlar = [
-      ["Seçilen model", bilgi.secilen_model],
-      ["Recall", m.recall.toFixed(3)],
-      ["F1", m.f1.toFixed(3)],
-      ["ROC-AUC", m.roc_auc.toFixed(3)],
+    const altin = bilgi.altin_gun_ozeti;
+    const aralik = ([d, a, u], isaret = "") => `${isaret && d > 0 ? "+" : ""}${d.toFixed(3)} [${a.toFixed(3)}–${u.toFixed(3)}]`;
+    const satirlar = [["Seçilen model", bilgi.secilen_model]];
+    if (altin) {
+      satirlar.push(
+        [`ROC-AUC (${altin.gun} test günü)`, aralik(altin.model_roc_auc)],
+        ["TI1 ROC-AUC (aynı günler)", aralik(altin.ti1_roc_auc)],
+      );
+      if (altin.model_eksi_ti1) satirlar.push(["TI1'e göre fark", aralik(altin.model_eksi_ti1, "±")]);
+    } else {
+      satirlar.push(["ROC-AUC (çapraz doğrulama)", m.roc_auc.toFixed(3)]);
+    }
+    satirlar.push(
       ["Eğitim örneklemi", bilgi.egitim_orneklem_sayisi],
-    ];
+      ["Not", "PIREP verilmiş noktalara göre; olasılık mutlak türbülans sıklığı değildir"],
+    );
     // Konformal belirsizlik (ml/belirsizlik.py): holdout'ta ölçülen kapsama ve
     // "belirsiz" denen tahminlerin oranı.
     const konformal = bilgi.konformal && bilgi.konformal.holdout_dogrulamasi;

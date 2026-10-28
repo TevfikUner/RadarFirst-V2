@@ -223,8 +223,15 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Düşey rüzgar kayması ve Richardson sayısı uçağın basıncını çevreleyen tek
   katmandan hesaplanır (ERA5 varsayılanı 350–150 hPa, 7 seviye; jet çevresinde
   25 hPa ≈ 700 m); katman kalınlığı hipsometrik denklemle, deformasyon ve
-  diverjans küresel metrik terimleriyle hesaplanır. Canlı GFS küpü 3 seviyeyle
-  indirildiği için orada katman 50 hPa'dır. Türkiye küpü (`ocak_2019_turbulans.nc`) de 3 seviyelidir;
+  diverjans küresel metrik terimleriyle hesaplanır. Deformasyon ve diverjans uçağa en yakın
+  tek seviyede, kayma çevreleyen katmanda alınır; bu Ellrod ve Knapp'ın (1992, s. 154) NMC
+  uygulamasıyla aynıdır (DEF 300 mb seviyesinde, VWS 300–400 mb katmanında; TI2'nin CVG terimi
+  DEF ile aynı seviyede). Aynı makalenin Tablo 1 eşikleri modele göre 2–3 kat değişir
+  (×10⁻⁷ s⁻²: NGM MDT 4 / MDT-SVR 8, AVN 2 / 4, AFGWC MDT 8 / MDT-SVR 12); veriden seçilen
+  7e-7 bu aralıktadır. Canlı GFS küpü 3 seviyeyle
+  indirildiği için orada katman 50 hPa'dır. Rota seviyesi küpün basınç seviyelerinin dışındaysa (3 seviyeli küpte
+  ~FL300 altı ya da ~FL390 üstü) katman çevrelenmez, kayma en yakın iki seviyeden dışdeğerlenir; rota yanıtı
+  bu durumda `katman_cevrelenmiyor` uyarısı verir. Türkiye küpü (`ocak_2019_turbulans.nc`) de 3 seviyelidir;
   aynı ayın 7 seviyeli ERA5'iyle karşılaştırıldı (komite B-3, 20 Ekim,
   `docs/sonuclar/2026-10-20_turkiye_7seviye/`): sıra uyumu Spearman 0,81; 7e-7 eşiğinde riskli oranı
   3 seviyede %15,3, 7 seviyede %17,3 (eşdeğer eşik 6,5e-7). Fark seviyeye bağlı: FL340–360'ta 3 seviye
@@ -233,6 +240,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Hava verisi zaman ve konumda en yakın ızgara noktasından okunur,
   enterpolasyon yapılmaz: GFS'in 3 saatlik adımında 1,5 saate, 0,25°
   ızgarada ~0,125°'ye kadar kayma olabilir.
+  Zaman örneklemesinin etkisi saatlik Ocak 2019 küpünde ölçüldü (28 Ekim, `turbulans-zaman-ornekleme`,
+  20.000 nokta, FL310–380): 3 saatlik adımda TI1 sıra uyumu Spearman 0,923, risk eşiğinde aynı karar %95,9,
+  saatlikte riskli noktaların %86,3'ü 3 saatlikte de riskli (6 saatlikte 0,816 / %92,4 / %74,7). GFS'in tahmin
+  hatasını içermez (`docs/sonuclar/2026-10-28_zaman_ornekleme/`).
 - Küp sınırının 0,125° dışına kadar (zamanda 3 saate kadar) noktalar kapsam
   içi sayılır ve kenar değerini alır.
 - Seyir irtifasındaki 15.940 PIREP'te (163 gün) TI1'in tek başına ayırt
@@ -279,7 +290,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   TI1'i geçmek için ROC-AUC farkı hem `ML_TI1_AUC_USTUNLUGU`'nu aşmalı hem de
   gün bazlı eşleştirilmiş bootstrap aralığının alt sınırı 0'ın üstünde
   olmalıdır; aktif modele karşı da aynı kural geçerlidir. Değerlendirme bir kez
-  dondurulmuş altın test günlerindedir; bu günler hiçbir eğitime girmez. Aday,
+  dondurulmuş altın test günlerindedir; bu günler hiçbir eğitime girmez. (İstisna: birleşik EDR'nin
+  etiketsiz log-normal klimatolojisi altın günlerin bir kısmının pencerelerini içeriyor; etkisi ölçüldü ve
+  yok: altın günler hariç/dahil klimatolojiyle altın gün ROC-AUC'si 0,688, fark ≤ 0,0001, 28 Ekim,
+  `docs/sonuclar/2026-10-28_birlesik_klimatoloji/`.) Aday,
   gün gruplu CV ROC-AUC'siyle 1-SE kuralıyla seçilir (fark küçükse Lojistik
   Regresyon); özellikler TI1, Richardson, rüzgar hızı, basınç, düşey kayma,
   deformasyon, diverjans ve TI2'dir.
@@ -405,8 +419,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 1.157 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
-  tarayıcı ve dış ağ katmanı dışındaki 1.145 testin tamamı geçti, 0 hata; tarayıcı ve ağ
+- **Otomatik testler:** 1.162 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
+  tarayıcı ve dış ağ katmanı dışındaki 1.150 testin tamamı geçti, 0 hata; tarayıcı ve ağ
   katmanı 12 test ayrıca çalışır), kod kapsamı %86,3. Önceki CI ölçümü: 18 Ekim, PR #93, 1.066
   test, kapsam %85. Kapsamı: birim testleri, gerçek PostgreSQL
   üzerinde API, depo ve görev kuyruğu testleri (eşzamanlı işçiler, ölen işçi

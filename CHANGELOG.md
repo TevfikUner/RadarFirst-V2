@@ -4,6 +4,14 @@ Bu proje semantik sürümleme kullanmıyor (henüz tek bir sürekli geliştirile
 sürüm) -- bu yüzden değişiklikler tarih/sürüm numarası yerine tema başına
 gruplanmıştır, en yeni en üstte.
 
+## Kurul incelemesi A grubu (28 Ekim 2026)
+
+- §10.6 (sonradan eklenen ikincil): temel model − birleşik EDR +0,016 [+0,010; +0,021] (`--birlesik-kiyas`).
+- Rota yanıtına `katman_cevrelenmiyor` uyarısı (seviye küpün basınç seviyelerinin dışında).
+- Model paneli: Recall/F1 yerine test günlerinde model/TI1 ROC-AUC ve fark (`altin_gun_ozeti`).
+- `turbulans-zaman-ornekleme` ve `turbulans-birlesik-klimatoloji` analizleri, sonuç paketleriyle.
+- SISTEM_KARTI: TI1 katman/seviye seçimi ve eşikler Ellrod–Knapp (1992) ile doğrulandı.
+
 ## AWC 204 "veri yok" (28 Ekim 2026)
 
 - AWC uç noktası HTTP 204 dönerse akış geçerli ama boş sayılır (`AwcVeriYok`): kaynak başarılı, derin sağlık

@@ -1,0 +1,33 @@
+{
+  "kup": "ocak_2019_turbulans.nc",
+  "nokta_sayisi": 20000,
+  "fl": [
+    310,
+    380
+  ],
+  "commit": "698c7c8aee16ca662267b9b99521a2bdae562550",
+  "uretim_zamani": "2026-10-28T13:05:02+00:00",
+  "esik": 7e-07,
+  "adimlar": {
+    "3_saat": {
+      "nokta": 20000,
+      "spearman": 0.9233975514931914,
+      "ayni_karar_orani": 0.95855,
+      "saatlik_riskli_orani": 0.1536,
+      "seyrek_riskli_orani": 0.15295,
+      "saatlik_riskli_seyrekte_de_riskli": 0.8629557291666666,
+      "seyrek_riskli_saatlikte_de_riskli": 0.8666230794377248,
+      "medyan_mutlak_log10_fark": 0.048473504487435815
+    },
+    "6_saat": {
+      "nokta": 19946,
+      "spearman": 0.8155853748176366,
+      "ayni_karar_orani": 0.9242955981149102,
+      "saatlik_riskli_orani": 0.15346435375513887,
+      "seyrek_riskli_orani": 0.15165948059761356,
+      "saatlik_riskli_seyrekte_de_riskli": 0.747468147664162,
+      "seyrek_riskli_saatlikte_de_riskli": 0.7563636363636363,
+      "medyan_mutlak_log10_fark": 0.11304311013586688
+    }
+  }
+}

@@ -4,6 +4,8 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-28
 
+- ✅ A grubu devam: zaman örneklemesi (3 sa: Spearman 0,923, aynı karar %95,9); birleşik EDR klimatolojisi altın gün etkisi yok (≤ 0,0001); TI1 katman/seviye seçimi Ellrod–Knapp 1992 ile doğrulandı.
+- ✅ A grubu: §10.6 model − birleşik EDR +0,016 [+0,010; +0,021] (`docs/sonuclar/2026-10-28_birlesik_kiyas/`); `katman_cevrelenmiyor` rota uyarısı; model paneli test günü ROC-AUC'si.
 - ✅ AWC `airsigmet` 27 Eki 23:42'den beri HTTP 204 (veri yok) dönüyordu, derin sağlık sahte `bozulmus` veriyordu: 204 artık geçerli boş akış; mevcut SIGMET'ler erken sonlandırılmaz.
 - ✅ Kurul incelemesi hızlı kazanımları (rapor depo dışında): rota seçim kuralı belgelerde kodla aynı; kapı kuralı/test sayısı/TI1 ölçeği docstring'i/"güvenli" ifadeleri düzeltildi; Ri < 0,25 sayacına çözünürlük notu.
 - ✅ Uyarı oranı ölçümü (`turbulans-uyari-orani`, `docs/sonuclar/2026-10-28_uyari_orani/`): 1.488 rotanın %46,3'ünde sapma, ek yakıt medyanı %2,2 (p90 %8,8). 1.153 test, 1.141 geçti.

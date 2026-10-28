@@ -226,6 +226,74 @@ def calistir(cikti: str, motor=None, tekrar=None, arsiv_klasoru=None) -> dict:
     return rapor
 
 
+def birlesik_kiyasi_degerlendir(egitim: pd.DataFrame, test: pd.DataFrame, tekrar=None) -> dict:
+    """§10.6: temel ve geniş protokol modelleri ile birleşik EDR, aynı (birleşik EDR'si hesaplanabilen) örneklerde."""
+    from turbulans_radar.fizik.edr_esleme import birlesik_edr
+
+    modeller = {ad: _set_modeli(egitim, sutunlar) for ad, sutunlar in SETLER.items()}
+    skorlar = {"TI1": test["ti1_indeksi"].to_numpy(dtype=float)}
+    for ad, kayit in modeller.items():
+        skorlar[ad] = kayit["model"].predict_proba(test[SETLER[ad]])[:, 1]
+    skorlar["birlesik_edr"] = np.asarray(birlesik_edr(test), dtype=float)
+    gecerli = np.all([np.isfinite(s) for s in skorlar.values()], axis=0)
+    y, gunler = test["y"].to_numpy()[gecerli], test["gun"].to_numpy()[gecerli]
+    skorlar = {ad: s[gecerli] for ad, s in skorlar.items()}
+    farklar = {
+        "temel - birlesik_edr": eslestirilmis_auc_farki(y, skorlar["temel"], skorlar["birlesik_edr"], gunler, tekrar),
+        "genis - birlesik_edr": eslestirilmis_auc_farki(y, skorlar["genis"], skorlar["birlesik_edr"], gunler, tekrar),
+        "birlesik_edr - TI1": eslestirilmis_auc_farki(y, skorlar["birlesik_edr"], skorlar["TI1"], gunler, tekrar),
+    }
+    birincil = farklar["temel - birlesik_edr"]
+    return {
+        "modeller": {ad: {k: v for k, v in kayit.items() if k != "model"} for ad, kayit in modeller.items()},
+        "cikarilan_ornek": int((~gecerli).sum()),
+        "test": skor_ozeti(y, skorlar, gunler, tekrar),
+        "farklar": farklar,
+        "sonuc": (
+            "model birleşik EDR'yi geçiyor"
+            if np.isfinite(birincil["alt"]) and birincil["alt"] > 0
+            else "modelin birleşik EDR'yi geçtiği gösterilemedi"
+        ),
+    }
+
+
+BIRLESIK_CIKTI_ADI = "birlesik_kiyasi.json"
+BOLUM10_JSON = Path(__file__).resolve().parents[3] / "docs" / "sonuclar" / "2026-10-27_yeni_gun" / CIKTI_ADI
+
+
+def birlesik_kiyasi_calistir(cikti: str, bolum10_json=None, motor=None, tekrar=None) -> dict:
+    yol = os.path.join(cikti, BIRLESIK_CIKTI_ADI)
+    if os.path.exists(yol):
+        raise SystemExit(f"{yol} var: §10.6 karşılaştırması bir kez yapılır, üzerine yazılmaz.")
+    with open(bolum10_json or BOLUM10_JSON, encoding="utf-8") as dosya:
+        bolum10 = json.load(dosya)
+    test_gunleri = set(bolum10["veri"]["test_gunleri"])
+    donmus = dondurma_gunleri()
+    egitim, test = bol(_veriyi_hazirla(motor), donmus)
+    test = test[test["gun"].isin(test_gunleri)].reset_index(drop=True)
+    rapor = {
+        "meta": {
+            "protokol": "docs/deney_protokolu.md §10.6 (sonradan eklenen ikincil)",
+            "uretim_zamani": datetime.now(UTC).isoformat(timespec="seconds"),
+            **git_bilgisi(),
+            "uyari": "Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır.",
+        },
+        "veri": {
+            "egitim_ornek": int(len(egitim)),
+            "egitim_gun": int(egitim["gun"].nunique()),
+            "test_ornek": int(len(test)),
+            "test_gun": int(test["gun"].nunique()),
+            "bolum10_test_ornek": bolum10["veri"]["test_ornek"],
+            "bolum10_temel_roc_auc": bolum10["test"]["skorlar"]["temel"]["roc_auc"],
+        },
+        **birlesik_kiyasi_degerlendir(egitim, test, tekrar),
+    }
+    rapor = _json_guvenli(rapor)
+    os.makedirs(cikti, exist_ok=True)
+    _atomik_yaz_json(yol, rapor)
+    return rapor
+
+
 def ana(argv=None):
     ayristirici = argparse.ArgumentParser(
         description="Deney protokolü §10: dondurma sonrası yeni günlerde tek değerlendirme."
@@ -233,8 +301,12 @@ def ana(argv=None):
     grup = ayristirici.add_mutually_exclusive_group(required=True)
     grup.add_argument("--durum", action="store_true", help="Yalnız yeni gün/örnek sayısı (skor hesaplanmaz)")
     grup.add_argument("--cikti", help=f"Sonuç klasörü ({CIKTI_ADI})")
+    grup.add_argument("--birlesik-kiyas", help=f"§10.6 sonuç klasörü ({BIRLESIK_CIKTI_ADI})")
     argumanlar = ayristirici.parse_args(argv)
-    sonuc = durum() if argumanlar.durum else calistir(argumanlar.cikti)
+    if argumanlar.birlesik_kiyas:
+        sonuc = birlesik_kiyasi_calistir(argumanlar.birlesik_kiyas)
+    else:
+        sonuc = durum() if argumanlar.durum else calistir(argumanlar.cikti)
     print(json.dumps(sonuc, ensure_ascii=False, indent=2))
 
 

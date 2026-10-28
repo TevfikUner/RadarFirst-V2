@@ -117,3 +117,30 @@ def test_calistir_yetersizse_skor_hesaplamaz_ve_bir_kez_yazar(monkeypatch, tmp_p
     assert rapor["veri"]["test_yeni_gun"] == 32 and rapor["hafif_duyarliligi"] == {"durum": "metin_yok"}
     with pytest.raises(SystemExit, match="bir kez"):
         yg.calistir(str(tmp_path / "cikti"))
+
+
+def test_birlesik_kiyasi_bolum10_gunleriyle_sinirli_ve_bir_kez_yazar(monkeypatch, tmp_path):
+    _hizli_protokol(monkeypatch)
+    egitim, yeni = _veri(40), _veri(34, baslangic="2019-06-01", tohum=1)
+    dosya = tmp_path / "donmus.json"
+    dosya.write_text(json.dumps({"gunler": sorted(set(egitim["gun"]))}), encoding="utf-8")
+    monkeypatch.setattr(yg, "DONDURMA_DOSYASI", dosya)
+    monkeypatch.setattr(yg, "_veriyi_hazirla", lambda motor=None, bagli=True: pd.concat([egitim, yeni]))
+    bolum10_gunleri = sorted(set(yeni["gun"]))[:32]
+    bolum10 = tmp_path / "yeni_gun_degerlendirmesi.json"
+    bolum10.write_text(
+        json.dumps(
+            {
+                "veri": {"test_gunleri": bolum10_gunleri, "test_ornek": 640},
+                "test": {"skorlar": {"temel": {"roc_auc": 0.7}}},
+            }
+        ),
+        encoding="utf-8",
+    )
+    rapor = yg.birlesik_kiyasi_calistir(str(tmp_path / "cikti"), bolum10_json=bolum10, tekrar=10)
+    assert rapor["veri"]["test_gun"] == 32 and rapor["veri"]["test_ornek"] == 640
+    assert set(rapor["test"]["skorlar"]) == {"TI1", "temel", "genis", "birlesik_edr"}
+    assert set(rapor["farklar"]) == {"temel - birlesik_edr", "genis - birlesik_edr", "birlesik_edr - TI1"}
+    assert rapor["cikarilan_ornek"] == 0 and "birleşik EDR" in rapor["sonuc"]
+    with pytest.raises(SystemExit, match="bir kez"):
+        yg.birlesik_kiyasi_calistir(str(tmp_path / "cikti"), bolum10_json=bolum10)
