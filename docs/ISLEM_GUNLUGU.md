@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-28
+
+- ⚠️ Gece işi kullanıcı yeni emir verene kadar durduruldu (mobil kota): `.env` `ML_GECE_ISI_SAATI=` boş; bugünkü iş 44,8 MB'ta kesildi, veri korundu.
+- ✅ "TurbulansRadar AIRAC yenileme" görevi artık `conhost --headless` ile gizli çalışıyor (siyah pencere yok); deneme sonucu 0.
+
 ## 2026-10-27
 
 - ✅ Hızlı tarama (`docs/denetim/2026-10-27/TARAMA.md`): ruff/mypy/pip-audit temiz, 1.066 test; küp kataloğu testleri %48→%86, `pr_hazir_mi.sh`, 2 küçük düzeltme.
