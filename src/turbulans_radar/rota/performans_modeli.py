@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import math
 from functools import lru_cache
+from typing import cast
 
 import numpy as np
 
@@ -75,7 +76,7 @@ def seyir_yakiti(
     tas_kt, irtifa_ft = tas_ms * MS_KT, irtifa_m * METRE_FT
     adim_sayisi = max(1, math.ceil(sure_s / adim_s))
     dt = sure_s / adim_sayisi
-    kutle = baslangic_kutlesi_kg(tip, kutle_orani)
+    kutle = cast(float, baslangic_kutlesi_kg(tip, kutle_orani))
     yakit = nox = 0.0
     akislar = []
     for _ in range(adim_sayisi):

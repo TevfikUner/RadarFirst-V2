@@ -284,7 +284,7 @@ class PoligonKisitKatmani:
                 else:
                     parca = shapely.linestrings(np.stack([ilk[aday], son[aday]], axis=1))
                     yasak_dugum[aday] |= shapely.intersects(parca, poligon)
-            if not len(kenarlar):
+            if cizgiler is None:
                 continue
             koseler = np.stack([ilk[ai], son[ai], ilk[bi], son[bi]], axis=1)
             aday = np.flatnonzero(

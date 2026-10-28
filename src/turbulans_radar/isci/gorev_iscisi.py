@@ -349,7 +349,7 @@ class GorevIscisi:
         try:
             if gorevi_bitir(gorev["id"], self.ad, **alanlar):
                 webhooku_bildir(
-                    gorev["bildirim_webhook_url"], {"gorev_id": gorev["id"], **gorev_getir_senkron(gorev["id"])}
+                    gorev["bildirim_webhook_url"], {"gorev_id": gorev["id"], **(gorev_getir_senkron(gorev["id"]) or {})}
                 )
         except Exception as hata:
             _logger.error("Görev sonucu kaydedilemedi (%s)", gorev["id"], exc_info=hata)

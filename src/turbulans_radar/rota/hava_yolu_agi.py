@@ -452,18 +452,18 @@ _onbellek: dict[str, tuple[tuple, HavaYoluAgi]] = {}
 def agi_yukle(yol: str | None = None) -> HavaYoluAgi | None:
     """Dosya yoksa None (ATS modu kullanılamaz); hatalıysa AtsAgiHatasi. Kurulan
     ağ dosyanın değişme zamanı/boyutuyla önbelleğe alınır (FIR kontrolü pahalı)."""
-    yol = Path(yol or config.ATS_AGI_DOSYASI)
-    if not yol.is_file():
+    dosya = Path(yol or config.ATS_AGI_DOSYASI)
+    if not dosya.is_file():
         return None
-    durum = yol.stat()
+    durum = dosya.stat()
     imza = (durum.st_mtime_ns, durum.st_size, config.FIR_SINIRLARI_DOSYASI)
-    kayit = _onbellek.get(str(yol))
+    kayit = _onbellek.get(str(dosya))
     if kayit and kayit[0] == imza:
         return kayit[1]
     try:
-        veri = json.loads(yol.read_text(encoding="utf-8"))
+        veri = json.loads(dosya.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as hata:
-        raise AtsAgiHatasi(f"{yol} okunamadı: {hata}") from None
+        raise AtsAgiHatasi(f"{dosya} okunamadı: {hata}") from None
     ag = agi_kur(veri)
     _onbellek[str(yol)] = (imza, ag)
     return ag
@@ -493,8 +493,8 @@ def uc_baglantilari(ag: HavaYoluAgi, enlem, boylam, maks_km=None, sayi=None, rol
 
 def arama_grafi(
     ag: HavaYoluAgi,
-    bas,
-    bit,
+    bas: tuple[float, float],
+    bit: tuple[float, float],
     irtifa_ft,
     zaman=None,
     dugum_zamanlari=None,
@@ -584,7 +584,7 @@ def a_yildiz(komsular: dict, bas: str, bit: str, kenar_maliyeti, sezgisel, yasak
 def rota_ozeti(dugumler: list[str], yollar: list[str]) -> list[dict]:
     """Uçuş planı biçimine yakın özet: ara noktalar atılır, aynı yoldaki ardışık
     segmentler birleştirilir. [{"nokta": "ABCDE", "yol": "UL123" | "DCT" | None}]"""
-    ozet = []
+    ozet: list[dict] = []
     for i, dugum in enumerate(dugumler):
         if "#" in dugum:
             continue

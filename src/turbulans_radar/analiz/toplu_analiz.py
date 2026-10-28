@@ -49,7 +49,7 @@ def toplu_analiz_calistir(
     özet DataFrame'e güvenilir; disk sınırsız büyümez.
     Dönüş: her uçuş için bir özet satırı içeren DataFrame.
     """
-    sonuclar = []
+    sonuclar: list[dict] = []
     toplam = len(ucus_listesi_df)
 
     for i, satir in ucus_listesi_df.iterrows():
