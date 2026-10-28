@@ -185,6 +185,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 | Canlı bir hesapta SIGMET kaynaklarından birinin son BAŞARILI çekimi 30 dakikadan eski | `sigmet_kontrolu.bayat_mi: true`, `sorunlu_kaynaklar` doldurulur, açıklamada kaynak adıyla UYARI. |
 | AWC'nin bir uç noktası yanıt vermiyor | Diğer kaynak işlenir; yanıt vermeyen kaynağın mevcut kayıtlarına dokunulmaz. |
 | AWC akışı boş, liste değil ya da SIGMET'lerinin %25'inden fazlası çözümlenemiyor (şema değişikliği) | Kaynak hatası sayılır: mevcut SIGMET'ler sonlandırılmaz, `kaynak_hatalari` doldurulur, kaynak başarılı güncelleme almaz (bayatlık uyarısı devreye girer). |
+| AWC uç noktası HTTP 204 ("eşleşen veri yok") döndü (ör. o an aktif ABD iç SIGMET'i yok) | Geçerli ama boş akış sayılır: kaynak başarılı güncelleme alır (sahte bayatlık/`bozulmus` yok), `durum: veri_yok`. Mevcut kayıtlar erken sonlandırılmaz, kendi geçerlilik bitişiyle düşer (muhafazakâr). Sınırlama: AWC arka ucu bozulup sürekli 204 dönerse bu ayırt edilemez. 200 ile gelen boş gövde ya da `[]` hâlâ kaynak hatasıdır. |
 | Tek SIGMET'te birden fazla poligon (`geom: "AREAS"`) | Her alan ayrı kayıt olarak saklanır ve uygulanır. |
 | SIGMET koordinatsız geldi (örn. "ENTIRE FIR") | FIR sınır verisi varsa ve FIR kodu biliniyorsa alan FIR'ın TAMAMINA genişletilir (muhafazakâr); yoksa eski davranış (eleme). Bu genişletme şema-uyuşmazlığı eşiğinde çözümlenemeyen gibi sayılır. |
 | SIGMET'in geçerlilik başlangıcı geçersiz (AWC'de görülen `validTimeFrom=0`) | Başlangıç ham metindeki `VALID ddhhmm/ddhhmm` alanından, o da yoksa bitiş − 4 sa'ten türetilir; bağımsız kanıtta arşiv başlangıcı kaydın alınma zamanından en fazla 12 sa geriye gider (1970 tarihli kayıt 2019 uçuşlarını sahte biçimde 'kapsıyordu'). |
@@ -404,8 +405,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 1.153 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
-  tarayıcı ve dış ağ katmanı dışındaki 1.141 testin tamamı geçti, 0 hata; tarayıcı ve ağ
+- **Otomatik testler:** 1.157 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
+  tarayıcı ve dış ağ katmanı dışındaki 1.145 testin tamamı geçti, 0 hata; tarayıcı ve ağ
   katmanı 12 test ayrıca çalışır), kod kapsamı %86,3. Önceki CI ölçümü: 18 Ekim, PR #93, 1.066
   test, kapsam %85. Kapsamı: birim testleri, gerçek PostgreSQL
   üzerinde API, depo ve görev kuyruğu testleri (eşzamanlı işçiler, ölen işçi

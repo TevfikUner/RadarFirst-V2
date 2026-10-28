@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
+import httpx
 import pytest
 import shapely
 from sqlalchemy import text
@@ -289,6 +290,30 @@ def test_bos_ya_da_liste_olmayan_akis_mevcut_sigmetleri_sonlandirmaz(test_verita
     ozet = ss.sigmetleri_guncelle(getirici=lambda k: akis, kaynaklar=("test",))
     assert ozet["sonlandirilan"] == 0 and "test" in ozet["kaynak_hatalari"]
     assert len(_aktif_test_sigmetleri()) == 1
+
+
+def test_awc_veri_yok_basarili_sayilir_ama_mevcut_sigmetleri_erken_sonlandirmaz(test_veritabani):
+    ss.sigmetleri_guncelle(getirici=lambda k: [ULUSLARARASI_ORNEK], kaynaklar=("test",))
+    ozet = ss.sigmetleri_guncelle(getirici=lambda k: ss.AwcVeriYok(), kaynaklar=("test",))
+    assert ozet["kaynak_hatalari"] == {} and ozet["sonlandirilan"] == 0
+    assert ozet["kaynaklar"]["test"]["durum"] == "veri_yok"
+    assert len(_aktif_test_sigmetleri()) == 1
+    durum = ss.kaynak_saglik_durumlari(kaynaklar=("test",))[0]
+    assert durum["ardisik_hata_sayisi"] == 0 and durum["son_hata"] is None
+    assert ss.sorunlu_kaynaklar(kaynaklar=("test",)) == []
+
+
+@pytest.mark.parametrize(
+    "kod, govde, beklenen_tur",
+    [(204, b"", ss.AwcVeriYok), (200, b"", list), (200, b"[]", list)],
+    ids=["204_veri_yok", "200_bos_govde", "200_bos_liste"],
+)
+def test_awc_yaniti_yalniz_204te_veri_yok_sayilir(monkeypatch, kod, govde, beklenen_tur):
+    istek = httpx.Request("GET", "https://aviationweather.gov/api/data/airsigmet")
+    monkeypatch.setattr(ss.httpx, "get", lambda *a, **k: httpx.Response(kod, content=govde, request=istek))
+    sonuc = ss._awc_listesini_getir("airsigmet")
+    assert sonuc == [] and type(sonuc) is beklenen_tur
+    assert (ss._akis_sagligini_denetle(sonuc, None) is None) == (beklenen_tur is ss.AwcVeriYok)
 
 
 def test_esik_altindaki_cozumlenemeyen_kayit_guncellemeyi_durdurmaz(test_veritabani):
