@@ -4219,6 +4219,18 @@
               }
             ],
             "title": "Konformal"
+          },
+          "altin_gun_ozeti": {
+            "anyOf": [
+              {
+                "additionalProperties": true,
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Altin Gun Ozeti"
           }
         },
         "type": "object",
