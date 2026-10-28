@@ -6,6 +6,8 @@ gruplanmıştır, en yeni en üstte.
 
 ## Kurul incelemesi B grubu, kalan işler (28 Ekim 2026)
 
+- ADR 0013: rota seçim kuralının varsayılanı `sozluksel` kalır.
+- `turbulans-tahmin-ufku`: GFS f000/f024/f048 TI1 tutarlılığı (UCAR geçmiş koşuları).
 - `ROTA_SECIM_KURALI` (`sozluksel` varsayılan / `maliyet`) ve `ROTA_RISKLI_DAKIKA_BEDELI_DK`; `en_iyi_adayi_sec`; kural `uretim_bilgisi`'ne yazılır; `turbulans-uyari-orani --secim-kurali`.
 - `turbulans-protokol-farki` (§10.7): bölme × etiket 2 × 2 deneyi; rastgele bölme etkisi yok, hafif çıkarmak +0,083.
 - `turbulans-ekonomik-deger`: göreli ekonomik değer (REV) eğrileri ve şekli.

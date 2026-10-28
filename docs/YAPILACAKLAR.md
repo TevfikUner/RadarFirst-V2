@@ -226,6 +226,10 @@ jüri sorularına doğrudan yanıt verenler önde.
   cümlesini bulamazsa (ör. H24'e geçiş) eski ağı korur ve BAŞARISIZ yazar; o zaman ENR 1.3 elle okunur.
 - [ ] **29 Ekim Perşembe 23:55:** haftalık ilerleme raporu Hafta 5 (23 Ekim teslimi yapılmadı;
   `docs/rapor/ILERLEME_RAPORU.md` + `scripts/ilerleme_raporu_pdf.py`, PDF'ler masaüstüne).
+- [ ] **3 Kasım (#11 devamı; ONAY 28 Ekim):** `turbulans-tahmin-ufku --indir --baslangic 2026-10-28T12 --bitis
+  2026-11-03T00` (UCAR yalnız son ~7,5 günün koşularını tutar; ~15 MB), sonra tüm aralıkla (23 Ekim–3 Kasım)
+  yeniden rapor. Aynı gün ERA5 kıyası: ERA5'in yayınlandığı geçerlilik zamanları (~5 gün gecikme) için küçük
+  CDS kutusu, GFS f000/f024/f048 TI1'i ERA5 TI1'ine karşı (araç henüz yok, `tahmin_ufku.py`'ye eklenecek).
 - [ ] **5 Kasım:** E8 yedek demo videosu (3–5 dk, metin `docs/sunum/DEMO_SENARYOSU.md` §4;
   ekranlar temiz klondan).
 - [ ] Sunum konuşulmaya başlanınca: E7 kullanılabilirlik oturumları (katılımcı bulmak zaman alır).
@@ -233,6 +237,8 @@ jüri sorularına doğrudan yanıt verenler önde.
   farklıysa `docs/rapor/ARAC_KULLANIMI_BEYANI.md` paragrafı güncel sayılarla yenilenir.
 
 ## Kullanıcı kararı bekleyenler
+
+- [x] (28 Ekim) A1 rota seçim kuralının varsayılanı: `sozluksel` kaldı, `maliyet` bayrak (ADR 0013).
 
 - [ ] GitHub Destek talebi (P0-9): PR #1'deki eski OpenSky şifresinin temizlenmesi; ayrıntı "18 Ekim gecesinden
   kalanlar" bölümünde. Kullanıcı gönderecek (19 Ekim'de ertelendi); depo herkese açılmadan önce şart.

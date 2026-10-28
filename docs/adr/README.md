@@ -17,5 +17,6 @@ Kararlar değiştiğinde eski kayıt silinmez; durumu "yerini aldı: NNNN" olur.
 | [0010](0010-konformal-belirsizlik.md) | Risk olasılığına konformal belirsizlik durumu | Kabul edildi |
 | [0011](0011-sanal-pirep.md) | ADS-B'den sanal PIREP: canlı olay sensörü | Kabul edildi |
 | [0012](0012-madis-edr-etiketi.md) | MADIS herkese açık uçak EDR ölçümleri: nesnel türbülans etiketi | Kabul edildi |
+| [0013](0013-rota-secim-kurali-varsayilani.md) | Rota seçim kuralının varsayılanı: sözlüksel kalır | Kabul edildi |
 
 Şablon: Bağlam → Karar → Sonuçlar (kazanç ve bedel) → Değerlendirilen alternatifler.
