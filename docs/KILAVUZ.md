@@ -1,4 +1,6 @@
-# Türbülans Radar
+# Türbülans Radar — Ayrıntılı kılavuz
+
+Kısa giriş ve beş dakikada çalıştırma: [README](../README.md). Bu kılavuz kurulum, kullanım, API, rota, ML, işletim ve sınırlamaların tamamını anlatır.
 
 **Problem.** Seyir irtifasındaki açık hava türbülansı (CAT) radarda görünmez; pilot
 raporu (PIREP) gönüllü, gecikmeli ve konumu kabadır; operasyonel ürünler (GTG, WAFS)
@@ -8,7 +10,7 @@ NWP alanı üretir ve yerinde EDR ile doğrulanır.
 gerçek bir uçuş izinde seyir türbülansı riski hangi ölçülmüş beceriyle gösterilebilir
 ve bu sınır rota kararına nasıl taşınmalıdır?
 
-**Kısa cevap** (nihai paket [2026-10-18](docs/sonuclar/2026-10-18/SAYILAR.md)). Becerisi
+**Kısa cevap** (nihai paket [2026-10-18](sonuclar/2026-10-18/SAYILAR.md)). Becerisi
 sınırlı: Ellrod TI1, 163 günde 15.940 seyir PIREP'inde ROC-AUC 0,673 [0,661–0,684]; altın
 test günlerinde risk eşiğinde (7e-7) yakalama 0,50, yanlış alarm 0,25. Birleşik gösterge
 TI1'i az ama anlamlı geçiyor (+0,013 [+0,007; +0,020]). ML modeli altın günlerde TI1'i
@@ -21,7 +23,7 @@ ama adaylar arasında seçimde yakıttan önce gelir (en az riskli noktalı aday
 Kapsam yalnız CAT ve seyir safhası, doğrulama ABD verisiyle; çıktılar sertifikalı EDR
 değildir, sistem karar destek aracıdır.
 
-**Çekirdek ve ekler.** Tezin çekirdeği dört katkıdır ([Katkılar](docs/rapor/KATKILAR.md)):
+**Çekirdek ve ekler.** Tezin çekirdeği dört katkıdır ([Katkılar](rapor/KATKILAR.md)):
 K1 barometrik irtifayla iz–ERA5 eşleştirmesi (`fizik/eslestirme.py`), K2 seyir
 irtifası PIREP etiket hattı ve FL feet hatasının tespiti, K6 TI1 sınırının bağımsız
 etiketle ölçülüp ürüne yansıtılması (`fizik/turbulans_indeksleri.py`,
@@ -43,16 +45,16 @@ bağımsız, kaba bir ölçektir, sertifikalı bir EDR sensörünün yerini TUTM
 Doğruluk sayılarının tek kaynağı `docs/sonuclar/` paketidir.
 
 Sistemin kullanım sınıfı, veri kaynakları, hata durumlarındaki davranışı ve
-bilinen sınırları için bkz. **[Sistem Kartı](docs/SISTEM_KARTI.md)**. Mimari
-diyagramlar ve tasarım kararları: [docs/mimari.md](docs/mimari.md),
-[docs/adr/](docs/adr/).
+bilinen sınırları için bkz. **[Sistem Kartı](SISTEM_KARTI.md)**. Mimari
+diyagramlar ve tasarım kararları: [docs/mimari.md](mimari.md),
+[docs/adr/](adr/).
 
 ## Beş dakikada çalıştır
 
 Kimlik bilgisi (OpenSky, Copernicus) gerektirmez; ilk derleme internet ister
 (PyPI, npm, GitHub); çalışma anında dış veri kaynağı yok. Ağ yoksa Esri
 karoları gelmez; 3B harita yerel ülke sınırlarıyla çalışır.
-Depoyla gelen gerçek veri paketi ([demo/](demo/README.md)): THY322'nin
+Depoyla gelen gerçek veri paketi ([demo/](../demo/README.md)): THY322'nin
 15 Ocak 2019 rotası ve onu kapsayan ERA5 dilimi (toplam ~300 KB).
 
 **Docker ile (önerilen):**
@@ -83,7 +85,7 @@ turbulans-demo        # ciktilar/turbulans_haritasi_THY322_2019-01-15.html
 ```
 
 PostgreSQL yoksa sonuç kaydedilmez ama özet ve harita yine üretilir.
-Jüri sunumu için demo akışı, sunum planı ve poster: [docs/sunum/](docs/sunum/DEMO_SENARYOSU.md). Demo
+Jüri sunumu için demo akışı, sunum planı ve poster: [docs/sunum/](sunum/DEMO_SENARYOSU.md). Demo
 anahtarları herkesçe bilinir; bu yığını ağa açmayın. Gerçek kurulum için
 aşağıdaki [Kurulum](#kurulum) bölümüne bakın.
 
@@ -673,7 +675,7 @@ girmemek, (2) TI1 riskinden kaçınmak, (3) en ucuz yakıt/süre.
   limitleri feet'e çevrilir, zemine göre (AGL) üst limitlere arazi payı eklenir,
   NOTAM'la etkinleşen sahalar sürekli etkin sayılır. **Lisans:** openAIP verisi
   CC BY-NC 4.0 (ticari olmayan kullanım, atıf; tüm kaynaklar için bkz.
-  [docs/VERI_KAYNAKLARI_VE_LISANSLAR.md](docs/VERI_KAYNAKLARI_VE_LISANSLAR.md)). Herkese açık dışa aktarım
+  [docs/VERI_KAYNAKLARI_VE_LISANSLAR.md](VERI_KAYNAKLARI_VE_LISANSLAR.md)). Herkese açık dışa aktarım
   dosyaları artık anahtarsız indirilemiyor.
 - **Otomatik yenileme:** `OPENAIP_OTOMATIK_GUNCELLEME_SAAT` > 0 ise API bu
   aralıkla yenilemeyi işçi kuyruğuna ekler (son denemeye göre; bekleyen bir
@@ -712,7 +714,7 @@ girmemek, (2) TI1 riskinden kaçınmak, (3) en ucuz yakıt/süre.
 ## ATS yolları, kapsam ve ayırma göstergesi (hoca geri bildirimi)
 
 Doç. Dr. Fulya Aybek Çetek'in önerileri ve proje ekibinin analizi:
-[docs/hoca_geri_bildirim_analizi.md](docs/hoca_geri_bildirim_analizi.md).
+[docs/hoca_geri_bildirim_analizi.md](hoca_geri_bildirim_analizi.md).
 
 - **Kapsam ve kullanım zamanı:**
   - Her rota yanıtı `kapsam` (yalnız seyir safhası, ToC–ToD) ve `planlama_ufku`
@@ -725,7 +727,7 @@ Doç. Dr. Fulya Aybek Çetek'in önerileri ve proje ekibinin analizi:
   - Rota, `ats_verisi/ats_agi.json` ağında graf tabanlı A* ile aranır. Ağ, AIP
     Türkiye ENR 4.4 noktaları ve ENR 4.1 VOR/NDB'lerinden `turbulans-aip-ats` ile kurulur ve yalnız FRA
     DCT kenarlarından oluşur; ATS yolları (ENR 3.1/3.2) ağda yoktur. Depoya
-    konmaz: [docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md](docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md).
+    konmaz: [docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md](veri_hazirlama/ATS_AGI_HAZIRLAMA.md).
   - Ağ yoksa istek 400 döner. Varsayılan `koridor` modu değişmedi.
   - Ağ otomatik hazırlanabilir: `turbulans-aip-ats --indir` (AIP Türkiye ENR 4.4,
     FL305–FL660 FRA). Kısıtlı sahalar için `turbulans-aip-sahalar --indir` (ENR 5.1).
@@ -819,7 +821,7 @@ gerçek seyir irtifasının bu yöndeki en yakın yasal FL'sinde hesaplanır:
 | THY322 | FL300 → FL290 (doğu) | 116 km | 0.19 / 0.32 / 0.00 | yanal (+0,4 dk) |
 
 Bu satır 6 Ekim ölçümüdür (TI1 eşiği 7e-7 olmadan önce). Güncel değer 7e-7 eşiğiyle
-0,24 / 0,39 / 0,02'dir: [`docs/sonuclar/2026-10-18/SAYILAR.md`](docs/sonuclar/2026-10-18/SAYILAR.md) `backtest[1]`.
+0,24 / 0,39 / 0,02'dir: [`docs/sonuclar/2026-10-18/SAYILAR.md`](sonuclar/2026-10-18/SAYILAR.md) `backtest[1]`.
 
 Önceki tablodaki THY72C ve THY606 veritabanında artık olmadığı için
 yeniden üretilemedi; eski değerleri (basınç seviyesinden türetilen dikey
@@ -1142,7 +1144,7 @@ Eğitim verisi artık `ml_ornekleri` tablosunda tutulur (`ml/ml_veri_hatti.py`):
    değişmez, yalnızca istek boyutu büyür. Mevcut özellikler kalibrasyon
    tutarlılığı için yine 300/250/200 hPa'dan hesaplanır; yeni bir özellik
    CDS'e gitmeden depodan hesaplanabilir (bkz.
-   [ADR 0002](docs/adr/0002-era5-pencere-deposu.md)):
+   [ADR 0002](adr/0002-era5-pencere-deposu.md)):
 
    ```bash
    turbulans-ml-depo --ozet                  # dosya, boyut, pencereli/penceresiz örnek
@@ -1199,12 +1201,12 @@ IEM imleci, aktif model sürümü, son ML görevleri).
 doğrulamayla sigmoid (Platt) yöntemiyle kalibre edilir. Aday, altın test
 günlerinde (1) TI1'i ve (2) varsa aktif modeli eşleştirilmiş ROC-AUC farkıyla
 geçmelidir: nokta farkı ≥ 0,02 **ve** gün bazlı bootstrap %95 GA alt sınırı > 0
-([ADR 0004](docs/adr/0004-champion-challenger-ti1-kapisi.md)); aksi halde
+([ADR 0004](adr/0004-champion-challenger-ti1-kapisi.md)); aksi halde
 yalnızca sürüm olarak saklanır. Test raporu ROC-AUC, POD, POFD, Peirce, Brier
 ve Brier becerisini içerir (`ml/degerlendirme.py`). POD/POFD/Peirce her iki skor
 için de eğitim günlerinde Peirce'ı maksimize eden eşikle (`esikler`), Brier
 referansı tek değişkenli lojistik "kalibre TI1" ile hesaplanır. Her metrik gün
-bazlı blok bootstrap %95 güven aralığıyla raporlanır ([deney protokolü](docs/deney_protokolu.md)).
+bazlı blok bootstrap %95 güven aralığıyla raporlanır ([deney protokolü](deney_protokolu.md)).
 
 **Veri dondurma (18 Ekim 2026):** `turbulans-ml --dondurma-raporu docs/sonuclar/2026-10-18`
 o günkü `ml_ornekleri` ile bir kez eğitip değerlendirir ve sürüm kaydını klasöre
@@ -1291,7 +1293,7 @@ yüzden dönüşüm gerekmez.
 Türbülansın en doğrudan sensörü onu yaşayan uçaktır. Seyir fazındaki bir uçağın
 atanmış seviyesinden ani irtifa sapması (ADS-B barometrik irtifa + düşey hız)
 "sanal PIREP" olarak kaydedilir; aynı bölgede birden çok uçağın işareti kümelenir.
-Yöntem, eşiklerin dayanağı ve bedeli: [docs/adr/0011](docs/adr/0011-sanal-pirep.md).
+Yöntem, eşiklerin dayanağı ve bedeli: [docs/adr/0011](adr/0011-sanal-pirep.md).
 
 - **Girdi:** işçideki her uçuş/rota analizinin izi (OpenSky'a ek sorgu yok) ve
   havayolu beslemesi için `POST /api/v1/sanal-pirep/iz`.
@@ -1316,7 +1318,7 @@ Yöntem, eşiklerin dayanağı ve bedeli: [docs/adr/0011](docs/adr/0011-sanal-pi
 kural tabanlı dedektörle eşit alarm bütçesiyle kıyaslar (POD/POFD/Peirce, Wilson
 aralığı; OpenSky'a sorgu yok). İlk ölçüm (16 PIREP): kural POD 1/8, POFD 0/8;
 IF 2/8–3/8; LOF 5/8–5/8. Denetimsiz yöntemler ayırt edici çıkmadı; ön bulgu,
-ayrıntı [ADR 0011](docs/adr/0011-sanal-pirep.md).
+ayrıntı [ADR 0011](adr/0011-sanal-pirep.md).
 
 ### Canlı ADS-B oturumu (sanal PIREP için)
 
@@ -1338,7 +1340,7 @@ PIREP hattından geçer. Geçmiş analiz için değil, canlı gözlem içindir.
 
 Pilot raporuna (PIREP) ek olarak, uçakların kendi ölçtüğü türbülans (EDR)
 NOAA MADIS'in herkese açık ACARS arşivinden alınır ve ERA5 pencere deposuyla
-eşleştirilir (CDS'e ek istek yok). Ayrıntı ve kısıtlar: [ADR 0012](docs/adr/0012-madis-edr-etiketi.md).
+eşleştirilir (CDS'e ek istek yok). Ayrıntı ve kısıtlar: [ADR 0012](adr/0012-madis-edr-etiketi.md).
 
 - Gece işi, penceresi olan PIREP günlerinden gece başına en fazla birini
   indirir (24 saatlik dosya, aralarında 5 sn; günde en fazla 48 dosya).
@@ -1401,7 +1403,7 @@ yeniden kodlar (`veri/iwxxm.py`; yapı WMO'nun resmi örneği wmo-im/iwxxm
 ## İzleme ve çevrimdışı kullanım
 
 Ölçülmüş gecikme, verim ve görev hızı değerleri (hedeflerle birlikte):
-[docs/PERFORMANS_RAPORU.md](docs/PERFORMANS_RAPORU.md). Ölçüm tekrarlanabilir:
+[docs/PERFORMANS_RAPORU.md](PERFORMANS_RAPORU.md). Ölçüm tekrarlanabilir:
 `turbulans-performans hepsi` (bölümler: `analiz`, `api`, `gorev`, `gece`).
 
 - **Prometheus (`GET /metrics`):** yönetici anahtarı ister (`X-API-Key` ya
@@ -1670,7 +1672,7 @@ PostgreSQL servis konteyneriyle) Python 3.12 (üretim, kilit dosyasıyla) ve
 `gitleaks` ile (Türkçe değişken adlarını da tanıyan `.gitleaks.toml`) tarar,
 sahte bir sırrın yakalandığını doğrular ve CycloneDX SBOM üretir. Kilit dosyaları
 `bagimlilik-taramasi.yml` ile haftalık (Pazartesi) ve kilit değişince `pip-audit`'ten geçer. Commit, dal ve sır kuralları:
-[CONTRIBUTING.md](CONTRIBUTING.md).
+[CONTRIBUTING.md](../CONTRIBUTING.md).
 
 ### Bağımlılık kilidi
 
@@ -1720,13 +1722,13 @@ python -m uv pip compile requirements-era5.txt -c ana_kisit.txt --python-version
   doldurulmuş (padded) saklanır; eşleştirme bunu otomatik yapar.
 - Yatay deformasyon hesabı için veri kübünün ilgili zaman dilimindeki tüm
   enlem/boylam grid'ine ihtiyaç var (tek nokta yetmiyor).
-- `config.EDR_OLCEKLENDIRME_KATSAYISI` (0.27) seyir irtifasındaki gerçek IEM
-  PIREP'leri + saatlik ERA5 ile (`ml_ornekleri`, 6218 örnek, 64 gün, Madde 2
-  fiziği) `turbulans-edr-kalibrasyon` kullanılarak kalibre edildi: gün bazlı
+- `config.EDR_OLCEKLENDIRME_KATSAYISI` (0.27) EDR ölçümüne değil, seyir irtifasındaki
+  IEM PIREP sınıf koduna + saatlik ERA5'e (`ml_ornekleri`, 6218 örnek, 64 gün, Madde 2
+  fiziği) `turbulans-edr-kalibrasyon` ile uyduruldu: gün bazlı
   bootstrap %95 GA `[0.25, 0.28]`; son 13 günlük zamansal testte MSE 0.076
   (önceki 0.40: 0.082). Tanh ölçeği sabit ortalama tahmininden (MSE 0.067) daha iyi tahmin
   etmez: bir görselleştirme ölçeğidir, risk için ML olasılığı kullanılmalıdır.
-  ABD hava sahası verisine dayanan, bölgeden bağımsız kaba bir kalibrasyondur;
+  ABD hava sahası verisine dayanan, bölgeden bağımsız kaba bir ölçek uydurmasıdır;
   veri büyüdükçe yeniden çalıştırılmalıdır. Eski 0.23 değeri hatalı irtifa
   filtresiyle seçilmiş 300-400 feet'teki PIREP'lerle uydurulmuştu.
 - Proje gerçek bir uçuşla (OpenSky/Trino + gerçek `.nc` verisi) uçtan uca
@@ -1753,11 +1755,11 @@ python -m uv pip compile requirements-era5.txt -c ana_kisit.txt --python-version
 ## Değişiklik geçmişi
 
 Projenin geçmiş halinden bugüne kadarki tüm önemli değişiklikler için bkz.
-[CHANGELOG.md](CHANGELOG.md).
+[CHANGELOG.md](../CHANGELOG.md).
 
 ## Lisans
 
-Kaynak kodu: [MIT](LICENSE). Kullanılan dış verilerin (OpenSky, ERA5, IEM,
+Kaynak kodu: [MIT](../LICENSE). Kullanılan dış verilerin (OpenSky, ERA5, IEM,
 NOAA, openAIP, ...) lisansları, atıf metinleri ve ticari kullanım durumu:
-[docs/VERI_KAYNAKLARI_VE_LISANSLAR.md](docs/VERI_KAYNAKLARI_VE_LISANSLAR.md).
+[docs/VERI_KAYNAKLARI_VE_LISANSLAR.md](VERI_KAYNAKLARI_VE_LISANSLAR.md).
 OpenSky verisi yalnızca araştırma ve ticari olmayan kullanım içindir.

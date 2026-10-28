@@ -13,7 +13,7 @@ katsayıyı bulan bir ARAÇTIR -- gözlem CSV'sini eski `pirep_kalibrasyon_veris
 uret.py` üretiyordu (kaldırıldı; güncel EDR kalibrasyonu `turbulans-edr-kalibrasyon`;
 turbulans_ml_modeli.py'nin ML eğitimi için indirdiği AYNI
 gerçek IEM PIREP + ERA5 verisini kullanarak). Bu depodaki örnek Türkiye/
-Ocak-2019 veri kümesi için gerçek PIREP/AMDAR yok (bkz. README) -- bu
+Ocak-2019 veri kümesi için gerçek PIREP/AMDAR yok (bkz. docs/KILAVUZ.md) -- bu
 yüzden mevcut kalibrasyon ABD hava sahası verisine, bölgeden bağımsız bir
 fiziksel ilişkiye dayanıyor.
 

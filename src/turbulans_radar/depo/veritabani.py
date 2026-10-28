@@ -22,7 +22,7 @@ Aynı uçuş/tarih tekrar analiz edilirse eski kayıtlar silinip yeniden
 yazılır -- CSV'de olduğu gibi "üzerine yaz" davranışı korunur.
 
 ŞEMA YÖNETİMİ: Tablolar artık burada (kod içinde, örtük olarak) DEĞİL,
-Alembic migration'larıyla (bkz. migrations/, README) oluşturulur/güncellenir
+Alembic migration'larıyla (bkz. migrations/, docs/KILAVUZ.md) oluşturulur/güncellenir
 -- tek seferlik kurulum: `alembic upgrade head`. `tablolari_olustur()`
 fonksiyonu hâlâ burada duruyor ama sadece testler için (bkz. fonksiyonun
 kendi docstring'i).
