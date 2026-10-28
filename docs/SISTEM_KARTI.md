@@ -290,7 +290,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   TI1'i geçmek için ROC-AUC farkı hem `ML_TI1_AUC_USTUNLUGU`'nu aşmalı hem de
   gün bazlı eşleştirilmiş bootstrap aralığının alt sınırı 0'ın üstünde
   olmalıdır; aktif modele karşı da aynı kural geçerlidir. Değerlendirme bir kez
-  dondurulmuş altın test günlerindedir; bu günler hiçbir eğitime girmez. Aday,
+  dondurulmuş altın test günlerindedir; bu günler hiçbir eğitime girmez. (İstisna: birleşik EDR'nin
+  etiketsiz log-normal klimatolojisi altın günlerin bir kısmının pencerelerini içeriyor; etkisi ölçüldü ve
+  yok: altın günler hariç/dahil klimatolojiyle altın gün ROC-AUC'si 0,688, fark ≤ 0,0001, 28 Ekim,
+  `docs/sonuclar/2026-10-28_birlesik_klimatoloji/`.) Aday,
   gün gruplu CV ROC-AUC'siyle 1-SE kuralıyla seçilir (fark küçükse Lojistik
   Regresyon); özellikler TI1, Richardson, rüzgar hızı, basınç, düşey kayma,
   deformasyon, diverjans ve TI2'dir.

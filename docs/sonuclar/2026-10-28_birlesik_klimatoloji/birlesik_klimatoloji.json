@@ -1,0 +1,173 @@
+{
+  "meta": {
+    "amac": "Kurul raporu #23 (VER-07): birleşik EDR klimatolojisine altın günlerin girmesinin etkisi",
+    "uretim_zamani": "2026-10-28T13:12:43+00:00",
+    "commit": "e6f25962d2287dc25c338b7f60677d58f19bb022",
+    "kirli": false,
+    "uyari": "Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır."
+  },
+  "veri": {
+    "pencereli_gun": 163,
+    "egitim_gunu": 147,
+    "altin_gunu_pencereli": 16,
+    "altin_test_ornek": 1583,
+    "altin_test_gun": 16,
+    "mevcut_katsayi_gun_sayisi": 49
+  },
+  "klimatolojiler": {
+    "egitim": {
+      "ti1_indeksi": {
+        "ln_ortalama": -14.96791131925434,
+        "ln_ss": 1.135566655328177,
+        "ornek": 4247418
+      },
+      "ti2_indeksi": {
+        "ln_ortalama": -14.947898165632344,
+        "ln_ss": 1.3414586094567225,
+        "ornek": 3736186
+      },
+      "dusey_ruzgar_kaymasi": {
+        "ln_ortalama": -5.139913408555303,
+        "ln_ss": 0.7729937247437214,
+        "ornek": 4248006
+      },
+      "yatay_deformasyon": {
+        "ln_ortalama": -9.827984936973676,
+        "ln_ss": 0.7526545802044384,
+        "ornek": 4247418
+      },
+      "ters_richardson": {
+        "ln_ortalama": -1.6085937201888316,
+        "ln_ss": 1.575073176389969,
+        "ornek": 4248006
+      }
+    },
+    "altin_dahil": {
+      "ti1_indeksi": {
+        "ln_ortalama": -14.974639882218527,
+        "ln_ss": 1.1346726327754955,
+        "ornek": 4713072
+      },
+      "ti2_indeksi": {
+        "ln_ortalama": -14.95265539496185,
+        "ln_ss": 1.3387483103309514,
+        "ornek": 4154266
+      },
+      "dusey_ruzgar_kaymasi": {
+        "ln_ortalama": -5.147003386905278,
+        "ln_ss": 0.7709102798544717,
+        "ornek": 4713744
+      },
+      "yatay_deformasyon": {
+        "ln_ortalama": -9.827623053450676,
+        "ln_ss": 0.7535004757105142,
+        "ornek": 4713072
+      },
+      "ters_richardson": {
+        "ln_ortalama": -1.6312834541027654,
+        "ln_ss": 1.5727371255037341,
+        "ornek": 4713744
+      }
+    }
+  },
+  "mevcut_klimatoloji": {
+    "ti1_indeksi": {
+      "ln_ortalama": -15.007413508382173,
+      "ln_ss": 1.1271578867665522,
+      "ornek": 1439760
+    },
+    "ti2_indeksi": {
+      "ln_ortalama": -14.989994935010913,
+      "ln_ss": 1.3296968783313805,
+      "ornek": 1272572
+    },
+    "dusey_ruzgar_kaymasi": {
+      "ln_ortalama": -5.171890980127073,
+      "ln_ss": 0.7643451576258186,
+      "ornek": 1439928
+    },
+    "yatay_deformasyon": {
+      "ln_ortalama": -9.835482376293529,
+      "ln_ss": 0.753176561287977,
+      "ornek": 1439760
+    },
+    "ters_richardson": {
+      "ln_ortalama": -1.6913762840753053,
+      "ln_ss": 1.5597227530324536,
+      "ornek": 1439928
+    }
+  },
+  "test": {
+    "ornek": 1583,
+    "pozitif": 754,
+    "taban_oran": 0.476310802274163,
+    "gun": 16,
+    "skorlar": {
+      "mevcut": {
+        "roc_auc": 0.6879665507322428,
+        "roc_auc_ga": [
+          0.6557772661891925,
+          0.7169809152499852
+        ],
+        "pr_auc": 0.6754978686342246,
+        "pr_auc_ga": [
+          0.6339313504666159,
+          0.7088633477074217
+        ]
+      },
+      "egitim": {
+        "roc_auc": 0.688073739413118,
+        "roc_auc_ga": [
+          0.6557993408125978,
+          0.7172999399381599
+        ],
+        "pr_auc": 0.6759720787546419,
+        "pr_auc_ga": [
+          0.6346108665109083,
+          0.7091996788009184
+        ]
+      },
+      "altin_dahil": {
+        "roc_auc": 0.6880465422851346,
+        "roc_auc_ga": [
+          0.6558737829713104,
+          0.7171068296954014
+        ],
+        "pr_auc": 0.6757358830469784,
+        "pr_auc_ga": [
+          0.6342315124991299,
+          0.7092023758763804
+        ]
+      }
+    }
+  },
+  "farklar": {
+    "egitim - mevcut": {
+      "fark": 0.00010718868087522537,
+      "alt": -0.00025745826921692015,
+      "ust": 0.0004824587940115782,
+      "p_degeri": 0.594,
+      "anlamli": false,
+      "guven": 0.95,
+      "gecerli_tekrar": 1000
+    },
+    "altin_dahil - mevcut": {
+      "fark": 7.99915528918449e-05,
+      "alt": -0.00019856204113026242,
+      "ust": 0.00032925534194782333,
+      "p_degeri": 0.534,
+      "anlamli": false,
+      "guven": 0.95,
+      "gecerli_tekrar": 1000
+    },
+    "altin_dahil - egitim": {
+      "fark": -2.7197127983380476e-05,
+      "alt": -0.00020252333967780699,
+      "ust": 0.00011552675344190521,
+      "p_degeri": 0.768,
+      "anlamli": false,
+      "guven": 0.95,
+      "gecerli_tekrar": 1000
+    }
+  }
+}
