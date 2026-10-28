@@ -4,6 +4,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-28
 
+- ✅ YAPILACAKLAR öncelik sırası yeniden yazıldı (28 madde): tarihli 4, proje 10, araştırma 4, komite 6, teslim sonrası 4; yarım kalan #4 birleşik EDR sütunu ve ATM-05 eklendi.
 - ✅ A1: varsayılan seçim kuralı `sozluksel` kaldı (ADR 0013); `maliyet` isteğe bağlı bayrak.
 - ✅ #11 GFS ufku (`turbulans-tahmin-ufku`, 14 MB): f024 Spearman 0,67, f048 0,50; riskli noktaların %57 / %43'ü korunuyor. ERA5 kıyası 3 Kasım.
 - ✅ B grubu kalanlar: `ROTA_SECIM_KURALI` bayrağı (varsayılan değişmedi; `maliyet` 5 dk ile 1.488 rotada 28'i değişti).

@@ -3,42 +3,61 @@
 İleri bir tarihe ertelenen tüm işler burada tek listede tutulur. Biten madde silinmez,
 `[x]` ile işaretlenir ve yanına PR/tarih yazılır. Yeni ertelenen iş buraya eklenir.
 
-## Öncelik sırası (26 Ekim 2026)
+## Öncelik sırası (28 Ekim 2026 gece, kurul raporu sonrası)
 
-Açık maddelerin önem sırası; ayrıntı aşağıdaki bölümlerde. Durum: 21–26 Ekim gece işi 6/6 tamamlandı
-(346–397 MB/gün), aday aktif RF'yi geçemedi, aktif model değişmedi; AIRAC her gün "güncel".
+Açık maddelerin önem sırası; ayrıntı aşağıdaki bölümlerde ve depo dışındaki kurul raporunda (28 Ekim, §0).
+Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıcı kararıyla kapalı.
 
-**Acil (bu hafta)**
-1. ~~§10 değerlendirmesi~~ (27 Ekim yapıldı, SONUCLAR §2.5). Geniş setin üretime alınması ayrı karar (ONAY).
-2. ~~Sunum paketi~~ (27 Ekim: 477 MB, OneDrive'da, SHA256 doğrulandı).
-3. **Haftalık ilerleme raporu Hafta 5 (17–29 Ekim):** 27 Ekim hazırlandı (#136), PDF'ler masaüstünde; 29 Ekim
-   23:55'e kadar e-postayla gönderim kullanıcıda (28–29 Ekim gelişmeleri eklenebilir).
-4. **29–30 Ekim AIRAC kontrolü:** `ciktilar/airac_yenile.log` "yenilendi", `/saglik` `ats_agi` "tamam".
-4a. ~~Dependabot imaj PR'ları~~ (27 Ekim: #129, #130, CI özeti #134 birleşti; #128 gereksiz kaldı). Yığın 27 Ekim'de yeni imajlarla derlendi, derin sağlık tamam.
+**1. Tarihli (takvime bağlı)**
+1. **29 Ekim, ilk iş (kullanıcı):** GitHub Destek talebi P0-9 / kurul #21 (PR #1'deki eski şifre ref'i);
+   metin hazır, depo dışında. Depo herkese açık kaldıkça şart.
+2. **29 Ekim 23:55 (kullanıcı):** haftalık ilerleme raporu Hafta 5'in e-postayla gönderimi (PDF'ler
+   masaüstünde, #136); 28 Ekim gelişmeleri (kurul A/B grubu) eklenebilir.
+3. **29–30 Ekim (kurul #19):** AIRAC kontrolü: `ciktilar/airac_yenile.log` "yenilendi", `/saglik?derin=true`
+   `ats_agi` "tamam"; "eski" ise demo FRA kullanmadığı için belgeye not düşülür.
+4. **3 Kasım (kurul #11 devamı + ATM-05; ONAY 28 Ekim):** 28 Ekim–3 Kasım GFS koşuları
+   (`turbulans-tahmin-ufku --indir`, ~15 MB) ve ERA5 kıyası (ERA5'in yayınlandığı geçerlilik zamanları, küçük
+   CDS kutusu; araç `tahmin_ufku.py`'ye eklenecek). Aynı f000 ve ERA5 verisiyle ERA5 → GFS TI1 eşik eşlemesi
+   3 gün yerine ~10 günle yeniden ölçülür (ATM-05); eşik değişirse ONAY.
 
-**Sunuma kadar (5 Kasım)**
-5. E8 yedek demo videosu (5 Kasım).
-6. E7 kullanılabilirlik oturumları (katılımcı bulmak zaman alır).
-7. S-4 kalanı: SIGMET bayat / `erisilemedi` / devre kesici demo fikstürü.
-8. GitHub Destek talebi P0-9 (kullanıcı; depo herkese açılmadan önce şart).
+**2. Proje iyileştirme (önem sırasıyla)**
+5. **Kurul #3, bağımsız rota backtest'i (P0, 2–3 gün):** NE-ABD küpleri + PIREP; büyük daire ve A* rotasında
+   MOD+ / NEG PIREP tüpü sayımı, göreli maruziyet oranı, gün bloklu GA; N ≥ 100 rota. 2 günde bitmezse
+   SISTEM_KARTI:17 iddiası "doğrulama hattı gösterimi" diye yeniden yazılır. A1 kuralının (ADR 0013) yeniden
+   değerlendirilmesi için de girdi.
+6. **Kurul #4 kalanı (yarım kalan; U3 / VER-09):** uyarı oranı ölçümüne birleşik EDR eşiğiyle ikinci sütun.
+   Birleşik EDR'nin rota eşiği yok; önce eğitim günlerinde Peirce ile seçilip protokole yazılır (A2).
+7. **S-4 kalanı:** SIGMET bayat / `erisilemedi` / devre kesici demo fikstürü.
+8. **Kurul #28 (P3, VER-02):** yuvarlanan kapı; aktivasyon kararı son N yeni günde, altın günler yalnız rapor.
+9. **Kurul #29 (P3, VER-08 devamı):** Türkiye girdisinde OOD kapısı (destek dışı noktada ML/konformal "kapsam dışı").
+10. **MİM-02:** `rota_simulasyonu_olustur` bölme (altın çıktı ile bayt bayt aynı; sunum sonrası).
+11. **Kurul #25 / MİM-08:** yerel Swagger (kotasız internette; statik katman değişince Docker CesiumJS'i yeniden indirir).
+12. **A2 / VER-09 (sunum sonrası):** birleşik EDR ya da ML'in rota cezasına girmesi (eşik seçimi ve GFS doğrulaması önce).
+13. **ATM-06:** GTG referans AUC'si yalnız Sharman vd. (2006) tam metni bulunursa.
+14. Araştırma CLI'larına test (`cli/demo_ekranlari` %27 vb.); mypy'nin `arayuz/`, `cli/` ve kök modüllere,
+    `depo/models.py` zaman sütunlarının `Mapped[datetime]`'a genişletilmesi.
 
-**Teslim ve sunum sonrası**
-9. Rapor tesliminden hemen önce `scripts/beyan_sayimlari.py --kontrol`.
-10. `rota_simulasyonu_olustur` bölme (altın çıktı ile bayt bayt aynı).
-11. `Turbulence-db-dondurma` DROP ve `docker builder prune` (~50 GB) — ikisi de geri alınamaz, ONAY.
+**3. Araştırma (yeni günlerde, önce protokole yazılarak)**
+15. Fikir 11 devamı (çoklu /TB grubu), Fikir 9, 10, 15, 19, 24, 29.
+16. GFS topluluk oranı, Fikir 18 devamı, Fikir 20, Fikir 23, F7 rüzgâr asimilasyonu (veri bütçesi, ONAY).
+17. Daha fazla OpenSky uçuşu (önce kota hesabı, ONAY); F5 yakıt sütunu (migration, ONAY).
+18. Gece işinin yeniden açılması (kullanıcı emri; `ML_GECE_ISI_SAATI`).
 
-**Araştırma (yeni günlerde, önce protokole yazılarak)**
-12. Fikir 11 devamı (çoklu /TB grubu), Fikir 9, 10, 15, 19, 24, 29.
-13. GFS topluluk oranı, Fikir 18 devamı, Fikir 20, Fikir 23, F7 rüzgâr asimilasyonu (veri bütçesi, ONAY).
-14. Daha fazla OpenSky uçuşu (önce kota hesabı, ONAY); F5 yakıt sütunu (migration, ONAY).
+**4. Komite öncesi hazırlık (kullanıcı açana kadar ertelendi; kurul raporu §8)**
+19. Savunma hazırlığı (#5) ve danışmana YZ beyanı e-postası (K-1).
+20. Bütünleşik bitirme raporu (#6).
+21. Sunum: §10 birincil kanıt ve etiket gerekçesi (#14), katkı cümlesi ve konumlandırma slaytı (#15).
+22. Demo: ABD vakası + ML modeli (#17, OPS-05), iki seçim kuralının yan yana gösterimi (A1); E8 yedek video ve
+    soğuk açılış provası (#8, 5 Kasım).
+23. E7 kullanılabilirlik oturumları / pilotlarla deneme (#13, OPS-03).
+24. Rapor tesliminden hemen önce `scripts/beyan_sayimlari.py --kontrol` (K-2; 28 Ekim'de "güncel değil":
+    beyan 1.099 test / 308 commit).
 
-**Kod kalitesi (düşük)**
-15. ~~mypy'yi `veri/` ve `ml/` paketlerine genişlet~~ (28 Ekim'de yapıldı, 109 dosya); araştırma CLI'larına test.
-
-**Dış iletişim / koşullu**
-16. MGM ve IATA Turbulence Aware başvurusu (kullanıcı).
-17. P0-7 hibrit topoloji ADR'si (yalnız B planına geçilirse).
-18. Eski commit imzalarının temizliği (force-push; önerilen: yapılmaması).
+**5. Teslim sonrası / koşullu**
+25. `Turbulence-db-dondurma` DROP ve `docker builder prune` (~50 GB); ikisi de geri alınamaz, ONAY.
+26. Kurul #30: GTG/WAFS kıyası; MGM ve IATA Turbulence Aware başvurusu (kullanıcı, dış iletişim).
+27. P0-7 hibrit topoloji ADR'si (yalnız B planına geçilirse).
+28. Eski commit imzalarının temizliği (force-push; önerilen: yapılmaması).
 
 ## 18 Ekim 2026 — ML veri dondurma
 
