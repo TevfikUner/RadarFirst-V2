@@ -24,6 +24,7 @@ from turbulans_radar.rota.rota_optimizasyonu import (
     CO2_KG_PER_KG_YAKIT,
     buyuk_daire_mesafesi_km,
     buyuk_daire_rotasi_olustur,
+    katman_cevrelenmiyor_bulgusu,
     rota_simulasyonu_olustur,
     yanal_sapma_yonu,
 )
@@ -801,3 +802,13 @@ def test_gfs_rotasinda_uzun_ongoru_uyarisi(monkeypatch, saat_sonra, uyari_var_mi
     kodlar = {b["kod"]: b for b in sonuc["bulgular"]}
     assert ("ongoru_belirsiz" in kodlar) is uyari_var_mi
     assert sonuc["planlama_ufku"]["ongoru_belirsiz"] is uyari_var_mi
+
+
+def test_katman_cevrelenmiyor_bulgusu_yalniz_kup_seviyeleri_disinda():
+    kup = xr.Dataset(coords={"pressure_level": [300.0, 250.0, 200.0]})
+    fl350_m, fl410_m, fl280_m = 35000 * 0.3048, 41000 * 0.3048, 28000 * 0.3048
+    assert katman_cevrelenmiyor_bulgusu(kup, {fl350_m}) is None
+    bulgu = katman_cevrelenmiyor_bulgusu(kup, {fl350_m, fl410_m, fl280_m})
+    assert bulgu["kod"] == "katman_cevrelenmiyor" and bulgu["seviye"] == "uyari"
+    assert bulgu["parametreler"]["fl"] == [280, 410]
+    assert "200–300 hPa" in bulgu["metin"]

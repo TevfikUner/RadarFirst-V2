@@ -442,6 +442,31 @@ def sigmet_ufku(baslangic, bitis, simdi=None) -> dict:
     return {"yayin_ufku_disi": kisim, "yayin_ufku_saat": config.SIGMET_YAYIN_UFKU_SAAT}
 
 
+def katman_cevrelenmiyor_bulgusu(veri_kupu, irtifalar_m) -> dict | None:
+    """Rota seviyesi küpün basınç seviyelerinin dışındaysa (ör. 3 seviyeli GFS/Türkiye küpünde FL280–290 ya
+    da FL390+), düşey kayma çevreleyen katmandan değil en yakın iki seviyeden dışdeğerlenir (bkz.
+    eslestirme.cevreleyen_katman_seviyeleri)."""
+    seviyeler = np.sort(np.asarray(veri_kupu[config.BASINC_BOYUTU].values, dtype=float))
+    disarida = sorted(
+        {
+            int(round(float(irtifa_m) / 0.3048 / 100))
+            for irtifa_m in irtifalar_m
+            if not seviyeler[0] <= float(irtifa_metre_to_basinc_hpa(irtifa_m)) <= seviyeler[-1]
+        }
+    )
+    if not disarida:
+        return None
+    return _bulgu(
+        "katman_cevrelenmiyor",
+        "uyari",
+        f"FL{', FL'.join(f'{fl:03d}' for fl in disarida)} hava küpünün basınç seviyelerinin "
+        f"({seviyeler[0]:.0f}–{seviyeler[-1]:.0f} hPa, {len(seviyeler)} seviye) dışında; düşey kayma ve TI1 bu "
+        "seviyede çevreleyen katmandan değil en yakın iki seviyeden dışdeğerlenir, güvenilirliği daha düşüktür.",
+        seviyeler_hpa=[float(s) for s in seviyeler],
+        fl=disarida,
+    )
+
+
 def planlama_ufku(zaman_iso, simdi=None) -> dict:
     """Uçuşun şimdiye göre konumu ve kullanılabilecek veri: geçmiş tarihli
     uçuş (analiz/backtest) ya da uçuş öncesi planlama (kalkışa kalan saat)."""
@@ -906,6 +931,10 @@ def rota_simulasyonu_olustur(
         veri_durumu.get("canli_hata") or (CANLI_VERI_HAZIRLANIYOR if veri_durumu.get("canli_hazirlaniyor") else None),
         seviye,
     )
+    if ruzgarli_mi:
+        katman_bulgusu = katman_cevrelenmiyor_bulgusu(veri_kupu, {normal["irtifa_m"], en_iyi["irtifa_m"]})
+        if katman_bulgusu is not None:
+            bulgular.append(katman_bulgusu)
     ufuk = planlama_ufku(zaman_iso)
     if ruzgarli_mi and veri_kupu_kaynagi(veri_kupu) == "gfs" and ufuk["ongoru_belirsiz"]:
         bulgular.append(

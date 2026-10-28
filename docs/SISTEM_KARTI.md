@@ -224,7 +224,9 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   katmandan hesaplanır (ERA5 varsayılanı 350–150 hPa, 7 seviye; jet çevresinde
   25 hPa ≈ 700 m); katman kalınlığı hipsometrik denklemle, deformasyon ve
   diverjans küresel metrik terimleriyle hesaplanır. Canlı GFS küpü 3 seviyeyle
-  indirildiği için orada katman 50 hPa'dır. Türkiye küpü (`ocak_2019_turbulans.nc`) de 3 seviyelidir;
+  indirildiği için orada katman 50 hPa'dır. Rota seviyesi küpün basınç seviyelerinin dışındaysa (3 seviyeli küpte
+  ~FL300 altı ya da ~FL390 üstü) katman çevrelenmez, kayma en yakın iki seviyeden dışdeğerlenir; rota yanıtı
+  bu durumda `katman_cevrelenmiyor` uyarısı verir. Türkiye küpü (`ocak_2019_turbulans.nc`) de 3 seviyelidir;
   aynı ayın 7 seviyeli ERA5'iyle karşılaştırıldı (komite B-3, 20 Ekim,
   `docs/sonuclar/2026-10-20_turkiye_7seviye/`): sıra uyumu Spearman 0,81; 7e-7 eşiğinde riskli oranı
   3 seviyede %15,3, 7 seviyede %17,3 (eşdeğer eşik 6,5e-7). Fark seviyeye bağlı: FL340–360'ta 3 seviye
