@@ -1659,6 +1659,27 @@ async def test_turbulans_tahmini_konformal_risk_durumunu_doner(istemci, api_anah
     assert yanit.json()["ml_risk_durumu"] is None and yanit.json()["ml_olasilik"] == pytest.approx(0.04)
 
 
+async def test_turbulans_tahmini_destek_disinda_ml_ciktisi_vermez(istemci, api_anahtari, monkeypatch):
+    govde = {"enlem": 40.8, "boylam": 34.0, "irtifa_ft": 36000, "zaman": "2019-01-15T20:00:00"}
+    monkeypatch.setattr(api_servisi, "model_kullanilabilir_mi", lambda *a, **k: (True, None))
+    monkeypatch.setattr(api_servisi, "ozelliklerden_risk_tahmin_et", lambda X: [0.93])
+
+    def bilgi_ile(alt, ust):
+        destek = {"yuzdelikler": [0.5, 99.5], "ornek_sayisi": 10, "ozellikler": {"basinc_hpa": [alt, ust]}}
+        bilgi = {"konformal": {"alfa": 0.1, "esik": 0.2}, "destek_araligi": destek}
+        monkeypatch.setattr(api_servisi, "model_bilgisini_yukle", lambda: bilgi)
+
+    bilgi_ile(100.0, 400.0)
+    icinde = (await istemci.post("/api/v1/turbulans/tahmin", json=govde, headers={"X-API-Key": api_anahtari})).json()
+    assert icinde["ml_destek_durumu"] == "icinde" and icinde["ml_olasilik"] == pytest.approx(0.93)
+
+    bilgi_ile(500.0, 600.0)
+    disinda = (await istemci.post("/api/v1/turbulans/tahmin", json=govde, headers={"X-API-Key": api_anahtari})).json()
+    assert disinda["ml_destek_durumu"] == "disinda" and disinda["ml_destek_disi_ozellikler"] == ["basinc_hpa"]
+    assert disinda["ml_olasilik"] is None and disinda["ml_risk_durumu"] is None and disinda["ml_riski_var_mi"] is None
+    assert "kapsam dışı" in disinda["aciklama"] and disinda["ti1_indeksi"] is not None
+
+
 async def test_ml_gece_zamanlayicisi_gunde_bir_kez_ve_planli_saatten_sonra_kuyruga_alir(monkeypatch):
     from datetime import UTC, datetime
 

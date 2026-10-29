@@ -4,6 +4,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-29
 
+- ✅ Kurul #29 OOD kapısı: destek dışı girdide ML/konformal "kapsam dışı"; Türkiye %2,9, ABD kontrol %4,2 kapanıyor (marjinal kapı Türkiye'yi ayırmıyor).
 - ✅ S-4 kalanı: demo arıza tatbikatı (`ariza_taklidi`: SIGMET bayat/erişilemedi, devre kesici), yalnız `ARIZA_TAKLIDI_ETKIN` açıkken; SENTETİK etiketli, Playwright testli.
 - ✅ AIRAC kontrolü (#19): 11/26 yenilendi (bitiş 26 Kas), `/saglik` ats_agi "tamam".
 - ✅ Kurul #4 kalanı: birleşik EDR rota eşiği 0,0757 (TI1 ile aynı kural; kontrol 7,39e-7 birebir); uyarı oranı birleşik EDR %36,1, TI1 %46,3.

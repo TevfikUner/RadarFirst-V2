@@ -132,6 +132,7 @@ from turbulans_radar.fizik.ti1_esigi import kaynak_ti1_esigi
 from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 from turbulans_radar.hata_yardimcisi import dostane_hata_mesaji
 from turbulans_radar.isci.gorev_iscisi import BILDIRIM_KANALI, GorevIscisi
+from turbulans_radar.ml.destek_kapisi import aktif_destek_araligi, destek_disi_ozellikler
 from turbulans_radar.ml.turbulans_ml_modeli import (
     ml_karar_esigi,
     model_bilgisini_yukle,
@@ -959,6 +960,17 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi, request: Request, rol:
         ml_olasilik = float(ml_sonuc[0]) if ml_sonuc is not None and not pd.isna(ml_sonuc[0]) else None
         _, ml_notu = model_kullanilabilir_mi()
         bilgi = model_bilgisini_yukle() if ml_olasilik is not None else None
+        destek_durumu, destek_disi = None, []
+        if ml_olasilik is not None:
+            destek = aktif_destek_araligi(bilgi)
+            destek_disi = destek_disi_ozellikler(ozellikler, destek)[0] if destek is not None else []
+            destek_durumu = "bilinmiyor" if destek is None else "disinda" if destek_disi else "icinde"
+        if destek_disi:
+            ml_olasilik = None
+            ml_notu = (
+                "ML çıktısı verilmedi: girdi modelin eğitim verisinin destek aralığı dışında "
+                f"({', '.join(destek_disi)}), kapsam dışı."
+            )
         durumlar = risk_durumlarini_hesapla([ml_olasilik], bilgi) if ml_olasilik is not None else None
         konformal = (bilgi or {}).get("konformal") if durumlar is not None else None
         kaynak = veri_kupu_kaynagi(veri_kupu)
@@ -977,6 +989,8 @@ async def turbulans_tahmini(istek: TurbulansTahminIstegi, request: Request, rol:
             "ml_risk_durumu": durumlar[0] if durumlar is not None else None,
             "ml_konformal_hedef_kapsama": (1 - konformal["alfa"]) if konformal else None,
             "ml_konformal_notu": konformal_notu,
+            "ml_destek_durumu": destek_durumu,
+            "ml_destek_disi_ozellikler": destek_disi,
             "uretim_bilgisi": uretim_bilgisi(veri_kupu, bilgi),
             "aciklama": (
                 "Fizik (Ellrod TI1) ve ML tahminleri hesaplandı."

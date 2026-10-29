@@ -6966,6 +6966,30 @@
             ],
             "title": "Ml Konformal Notu"
           },
+          "ml_destek_durumu": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "icinde",
+                  "disinda",
+                  "bilinmiyor"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ml Destek Durumu"
+          },
+          "ml_destek_disi_ozellikler": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Ml Destek Disi Ozellikler",
+            "default": []
+          },
           "uretim_bilgisi": {
             "anyOf": [
               {
