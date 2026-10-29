@@ -75,12 +75,29 @@ def _daha_ucuz_riskli_secenek(sonuc):
     }
 
 
-def kaydi_cikar(ad, girdi, sonuc, hesap_ms) -> dict:
+def birlesik_riskli_nokta(rota, esik) -> int | None:
+    """Birleşik EDR ≥ eşik nokta sayısı; rotada hiç birleşik EDR değeri yoksa None."""
+    degerler = [n.get("birlesik_edr") for n in rota.get("noktalar") or []]
+    if all(d is None for d in degerler):
+        return None
+    return sum(1 for d in degerler if d is not None and d >= esik)
+
+
+def kaydi_cikar(ad, girdi, sonuc, hesap_ms, birlesik_esik=None) -> dict:
     normal, optimize = sonuc["normal_rota"], sonuc["optimize_rota"]
     onerilen = _onerilen_secenek(sonuc)
     bedel = (sonuc.get("referans_karsilastirmasi") or {}).get("kacinma_bedeli") or {}
     strateji = sonuc["kacinma_stratejisi"]
+    birlesik = (
+        {}
+        if birlesik_esik is None
+        else {
+            "normal_birlesik_riskli_nokta": birlesik_riskli_nokta(normal, birlesik_esik),
+            "optimize_birlesik_riskli_nokta": birlesik_riskli_nokta(optimize, birlesik_esik),
+        }
+    )
     return {
+        **birlesik,
         "cift": ad,
         "fl": int(girdi[4] // 100),
         "kalkis": girdi[5],
@@ -99,7 +116,7 @@ def kaydi_cikar(ad, girdi, sonuc, hesap_ms) -> dict:
     }
 
 
-def olcum_yap(senaryolar, rota_fonksiyonu=None, saat=time.perf_counter) -> list[dict]:
+def olcum_yap(senaryolar, rota_fonksiyonu=None, saat=time.perf_counter, birlesik_esik=None) -> list[dict]:
     if rota_fonksiyonu is None:
         from turbulans_radar.rota.rota_optimizasyonu import rota_simulasyonu_olustur as rota_fonksiyonu
     eski = (config.ERA5_OTOMATIK_INDIRME, config.CANLI_HAVA_VERISI_ETKIN)
@@ -113,7 +130,7 @@ def olcum_yap(senaryolar, rota_fonksiyonu=None, saat=time.perf_counter) -> list[
             except Exception as hata:
                 kayitlar.append({"cift": ad, "fl": int(girdi[4] // 100), "kalkis": girdi[5], "hata": str(hata)})
                 continue
-            kayitlar.append(kaydi_cikar(ad, girdi, sonuc, (saat() - baslangic) * 1000.0))
+            kayitlar.append(kaydi_cikar(ad, girdi, sonuc, (saat() - baslangic) * 1000.0, birlesik_esik))
     finally:
         config.ERA5_OTOMATIK_INDIRME, config.CANLI_HAVA_VERISI_ETKIN = eski
     return kayitlar
@@ -158,8 +175,57 @@ def _grup_ozeti(kayitlar) -> dict:
     }
 
 
-def ozetle(kayitlar) -> dict:
+def _birlesik_ozeti(kayitlar) -> dict:
+    gecerli = [
+        k
+        for k in kayitlar
+        if "hata" not in k
+        and k["veri"] == "era5_gercek"
+        and k["normal_riskli_nokta"] is not None
+        and k.get("normal_birlesik_riskli_nokta") is not None
+    ]
+    ti1 = [k["normal_riskli_nokta"] > 0 for k in gecerli]
+    birlesik = [k["normal_birlesik_riskli_nokta"] > 0 for k in gecerli]
+    sapma = [k for k in gecerli if k["sapma"] and k.get("optimize_birlesik_riskli_nokta") is not None]
+    n = len(gecerli)
+
+    def oran(sayi, payda=n):
+        return sayi / payda if payda else None
+
     return {
+        "rota": n,
+        "ti1_uyari_orani": oran(sum(ti1)),
+        "birlesik_uyari_orani": oran(sum(birlesik)),
+        "ikisi_de": oran(sum(a and b for a, b in zip(ti1, birlesik, strict=True))),
+        "yalniz_ti1": oran(sum(a and not b for a, b in zip(ti1, birlesik, strict=True))),
+        "yalniz_birlesik": oran(sum(b and not a for a, b in zip(ti1, birlesik, strict=True))),
+        "hicbiri": oran(sum(not a and not b for a, b in zip(ti1, birlesik, strict=True))),
+        "ti1_sapmasi": len(sapma),
+        "sapmadan_once_birlesik_riskli_orani": oran(
+            sum(1 for k in sapma if k["normal_birlesik_riskli_nokta"] > 0), len(sapma)
+        ),
+        "sapmadan_sonra_birlesik_riskli_orani": oran(
+            sum(1 for k in sapma if k["optimize_birlesik_riskli_nokta"] > 0), len(sapma)
+        ),
+    }
+
+
+def ozetle(kayitlar) -> dict:
+    birlesik = (
+        {
+            "birlesik": {
+                "genel": _birlesik_ozeti(kayitlar),
+                "fl": {
+                    str(fl): _birlesik_ozeti([k for k in kayitlar if k["fl"] == fl])
+                    for fl in sorted({k["fl"] for k in kayitlar})
+                },
+            }
+        }
+        if any("normal_birlesik_riskli_nokta" in k for k in kayitlar)
+        else {}
+    )
+    return {
+        **birlesik,
         "genel": _grup_ozeti(kayitlar),
         "fl": {
             str(fl): _grup_ozeti([k for k in kayitlar if k["fl"] == fl]) for fl in sorted({k["fl"] for k in kayitlar})
@@ -235,7 +301,36 @@ def markdown_ozeti(rapor) -> str:
         "",
         "Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır.",
     ]
+    if "birlesik" in o:
+        satirlar[-1:-1] = _birlesik_bolumu(o["birlesik"], p["birlesik_esik"])
     return "\n".join(satirlar) + "\n"
+
+
+def _birlesik_satiri(ad, b) -> str:
+    return (
+        f"| {ad} | {b['rota']} | {_oran(b['ti1_uyari_orani'])} | {_oran(b['birlesik_uyari_orani'])} | "
+        f"{_oran(b['ikisi_de'])} | {_oran(b['yalniz_ti1'])} | {_oran(b['yalniz_birlesik'])} | {_oran(b['hicbiri'])} | "
+        f"{_oran(b['sapmadan_once_birlesik_riskli_orani'])} → {_oran(b['sapmadan_sonra_birlesik_riskli_orani'])} |"
+    )
+
+
+def _birlesik_bolumu(birlesik, esik) -> list[str]:
+    return [
+        f"## İkinci sütun: birleşik EDR ≥ {esik:.4f} (protokol §12)",
+        "",
+        "Uyarı = büyük daire rotasında eşiği aşan en az bir nokta. Sapma kararı TI1'le kalır; son sütun TI1 "
+        "sapmalarında büyük daire → A* rotasında birleşik EDR uyarısı olan rota oranıdır.",
+        "",
+        "| Grup | Rota | TI1 uyarısı | Birleşik EDR uyarısı | İkisi de | Yalnız TI1 | Yalnız birleşik | Hiçbiri | "
+        "TI1 sapmasında birleşik uyarı (BD → A*) |",
+        "|---|---|---|---|---|---|---|---|---|",
+        _birlesik_satiri("**Tümü**", birlesik["genel"]),
+        *(_birlesik_satiri(f"FL{fl}", v) for fl, v in birlesik["fl"].items()),
+        "",
+        "Eşik ABD ERA5 eğitim günlerinde TI1 7e-7 ile aynı kuralla seçildi (`2026-10-29_birlesik_esik`); Türkiye'de "
+        "beceri ölçülmedi. Birleşik EDR TI1'i de içerir, iki sütun bağımsız değildir.",
+        "",
+    ]
 
 
 def ana(argv=None):
@@ -246,6 +341,7 @@ def ana(argv=None):
     ayrac.add_argument("--fl", default=",".join(str(s // 100) for s in VARSAYILAN_SEVIYELER_FT))
     ayrac.add_argument("--secim-kurali", choices=("sozluksel", "maliyet"), default=None)
     ayrac.add_argument("--riskli-dakika-bedeli", type=float, default=None, help="dk; maliyet kuralı için")
+    ayrac.add_argument("--birlesik-esik", type=float, default=None, help="Birleşik EDR uyarı eşiği (ikinci sütun)")
     ayrac.add_argument("--cikti", required=True, help="Rapor klasörü (örn. docs/sonuclar/2026-10-28_uyari_orani)")
     arg = ayrac.parse_args(argv)
     from turbulans_radar.fizik.ti1_esigi import etkin_ti1_esigi
@@ -257,7 +353,7 @@ def ana(argv=None):
         config.ROTA_RISKLI_DAKIKA_BEDELI_DK = arg.riskli_dakika_bedeli
     saatler = tuple(int(s) for s in arg.saatler.split(","))
     seviyeler = tuple(int(s) * 100 for s in arg.fl.split(","))
-    kayitlar = olcum_yap(senaryolari_uret(arg.baslangic, arg.gun, saatler, seviyeler))
+    kayitlar = olcum_yap(senaryolari_uret(arg.baslangic, arg.gun, saatler, seviyeler), birlesik_esik=arg.birlesik_esik)
     rapor = {
         "parametreler": {
             "baslangic": arg.baslangic,
@@ -268,6 +364,7 @@ def ana(argv=None):
             "ti1_esigi": etkin_ti1_esigi(),
             "ucak": "A320",
             "secim_kurali": config.ROTA_SECIM_KURALI,
+            **({"birlesik_esik": arg.birlesik_esik} if arg.birlesik_esik is not None else {}),
             **(
                 {"riskli_dakika_bedeli_dk": config.ROTA_RISKLI_DAKIKA_BEDELI_DK}
                 if config.ROTA_SECIM_KURALI == "maliyet"

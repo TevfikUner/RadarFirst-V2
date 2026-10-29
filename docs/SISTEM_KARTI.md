@@ -481,6 +481,12 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   seçeneklerde daha ucuz ama daha çok riskli nokta bırakan bir aday var (medyan 6,2 puan daha az yakıt,
   medyan 8 riskli nokta); seçim kuralı bunu önermez (§3). Rotalar aynı günlerin hava sistemlerini paylaşır,
   oranlar betimleyicidir; tek bölge, tek ay.
+  **İkinci sütun (29 Ekim, protokol §12):** birleşik EDR'nin rota eşiği TI1 7e-7 ile aynı kuralla aynı
+  147 eğitim gününde seçildi: 0,0757 (aynı kural TI1 için nihai paketteki 7,39e-7'yi birebir verdi;
+  altın günlerde POD 0,545, POFD 0,264; TI1 7e-7: 0,501 / 0,248). Aynı 1.488 rotada birleşik EDR uyarısı
+  %36,1 (TI1 %46,3); uyarıların neredeyse tamamı TI1'le ortak (yalnız birleşik %0,1). TI1 sapmalarında
+  birleşik EDR uyarısı büyük dairede %77,6, A* rotasında %39,5. Sapma kararı TI1'le kalır
+  (`docs/sonuclar/2026-10-29_uyari_orani_birlesik/`).
 - **Sonuç paketi (Madde 8):** Doğruluk sayılarının tek kaynağı
   `docs/sonuclar/<kesme>/` paketidir: commit hash'li JSON, `SAYILAR.md`, ROC,
   güvenilirlik ve backtest şekilleri (`turbulans-ml-degerlendirme --cikti`). Geçerli

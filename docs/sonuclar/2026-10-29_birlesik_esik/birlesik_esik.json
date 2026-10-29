@@ -1,0 +1,95 @@
+{
+  "meta": {
+    "protokol": "docs/deney_protokolu.md §12",
+    "veritabani": "Turbulence-db-dondurma",
+    "kesme": "2026-10-18",
+    "altin_yontemi": "altın test günleri",
+    "uretim_zamani": "2026-10-29T12:02:47+00:00",
+    "commit": "14949700875a1ac23affbf3bd75a6eda790bf658",
+    "kirli": false,
+    "uyari": "Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır."
+  },
+  "veri": {
+    "egitim_ornek": 14357,
+    "egitim_gun": 147,
+    "birlesik_gecerli_egitim_ornek": 14357,
+    "altin_ornek": 1583,
+    "altin_gun": 16
+  },
+  "ti1_kontrol": {
+    "peirce_max": 0.25614802729884306,
+    "peirce_max_esigi": 4.962529976609618e-07,
+    "se": 0.0110392633780592,
+    "esik": 7.389375280838206e-07
+  },
+  "birlesik_edr": {
+    "peirce_max": 0.2805081435666321,
+    "peirce_max_esigi": 0.06675001877208252,
+    "se": 0.010812486619167692,
+    "esik": 0.0756584863798617
+  },
+  "altin_gunler": {
+    "birlesik_edr": {
+      "ornek": 1583,
+      "pozitif": 754,
+      "esik": 0.0756584863798617,
+      "roc_auc": 0.6879665507322428,
+      "pod": 0.5450928381962865,
+      "pofd": 0.26417370325693607,
+      "far": 0.3476190476190476,
+      "csi": 0.4224049331963001,
+      "peirce": 0.28091913493935045,
+      "dogru_pozitif": 411,
+      "yanlis_pozitif": 219,
+      "yanlis_negatif": 343,
+      "dogru_negatif": 610
+    },
+    "ti1_7e-7": {
+      "ornek": 1583,
+      "pozitif": 754,
+      "esik": 7e-07,
+      "roc_auc": 0.6745615662985989,
+      "pod": 0.5013262599469496,
+      "pofd": 0.24849215922798554,
+      "far": 0.3527397260273973,
+      "csi": 0.39375,
+      "peirce": 0.25283410071896406,
+      "dogru_pozitif": 378,
+      "yanlis_pozitif": 206,
+      "yanlis_negatif": 376,
+      "dogru_negatif": 623
+    }
+  },
+  "egitim_gunleri": {
+    "birlesik_edr": {
+      "ornek": 14357,
+      "pozitif": 7727,
+      "esik": 0.0756584863798617,
+      "roc_auc": 0.6872439806277609,
+      "pod": 0.5401837711919244,
+      "pofd": 0.27043740573152336,
+      "far": 0.3004860063683593,
+      "csi": 0.4384453781512605,
+      "peirce": 0.26974636546040104,
+      "dogru_pozitif": 4174,
+      "yanlis_pozitif": 1793,
+      "yanlis_negatif": 3553,
+      "dogru_negatif": 4837
+    },
+    "ti1_7e-7": {
+      "ornek": 14357,
+      "pozitif": 7727,
+      "esik": 7e-07,
+      "roc_auc": 0.673098111829375,
+      "pod": 0.49475863854018376,
+      "pofd": 0.2469079939668175,
+      "far": 0.2998168498168498,
+      "csi": 0.40826569841947885,
+      "peirce": 0.24785064457336625,
+      "dogru_pozitif": 3823,
+      "yanlis_pozitif": 1637,
+      "yanlis_negatif": 3904,
+      "dogru_negatif": 4993
+    }
+  }
+}

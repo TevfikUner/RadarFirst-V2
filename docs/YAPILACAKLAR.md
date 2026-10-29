@@ -26,8 +26,8 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
    bağımsız günlerde sapmalı 908 rotada göreli maruziyet oranı 0,71 [0,58; 0,90]; 48 günün tamamında
    0,83 [0,66; 1,03]. SISTEM_KARTI:17 ve §6 güncellendi. A1 (ADR 0013) için girdi: `sozluksel` kural
    bağımsız kanıtla tutarlı; yeniden değerlendirme gerekmedi.
-6. **Kurul #4 kalanı (yarım kalan; U3 / VER-09):** uyarı oranı ölçümüne birleşik EDR eşiğiyle ikinci sütun.
-   Birleşik EDR'nin rota eşiği yok; önce eğitim günlerinde Peirce ile seçilip protokole yazılır (A2).
+6. ~~Kurul #4 kalanı~~ (29 Ekim, protokol §12): birleşik EDR eşiği 0,0757 (TI1 ile aynı 1-SE kuralı); uyarı
+   oranı birleşik EDR'de %36,1, TI1'de %46,3 (`2026-10-29_uyari_orani_birlesik/`). Eşik A2 için de girdi.
 7. **S-4 kalanı:** SIGMET bayat / `erisilemedi` / devre kesici demo fikstürü.
 8. **Kurul #28 (P3, VER-02):** yuvarlanan kapı; aktivasyon kararı son N yeni günde, altın günler yalnız rapor.
 9. **Kurul #29 (P3, VER-08 devamı):** Türkiye girdisinde OOD kapısı (destek dışı noktada ML/konformal "kapsam dışı").

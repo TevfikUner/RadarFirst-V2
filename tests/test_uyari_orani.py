@@ -102,3 +102,32 @@ def test_olcum_canli_veriyi_kapatir_hatayi_kaydeder_ve_ozet_oranlari_dogru():
     metin = uo.markdown_ozeti(rapor)
     assert "| **Tümü** | 3 | %66.7 | %66.7 |" in metin
     assert "sertifikalı EDR değildir" in metin
+
+
+def _noktali(sonuc, normal_edr, optimize_edr):
+    sonuc["normal_rota"]["noktalar"] = [{"birlesik_edr": d} for d in normal_edr]
+    sonuc["optimize_rota"]["noktalar"] = [{"birlesik_edr": d} for d in optimize_edr]
+    return sonuc
+
+
+def test_birlesik_riskli_nokta_esigi_sayar_degersiz_rotada_none():
+    assert uo.birlesik_riskli_nokta({"noktalar": [{"birlesik_edr": 0.05}, {"birlesik_edr": 0.08}, {}]}, 0.0757) == 1
+    assert uo.birlesik_riskli_nokta({"noktalar": [{"birlesik_edr": None}]}, 0.0757) is None
+    assert uo.birlesik_riskli_nokta({}, 0.0757) is None
+
+
+def test_birlesik_sutunu_yalniz_esik_verilince_ve_uyusma_oranlari():
+    girdi = (41.0, 28.9, 38.5, 43.4, 35000, "2019-01-01T00:00:00")
+    assert "normal_birlesik_riskli_nokta" not in uo.kaydi_cikar("A", girdi, _noktali(_sonuc(0), [0.1], [0.1]), 1.0)
+    kayitlar = [
+        uo.kaydi_cikar("A", girdi, _noktali(_sonuc(2, "yanal"), [0.1, 0.05], [0.05]), 1.0, 0.0757),
+        uo.kaydi_cikar("A", girdi, _noktali(_sonuc(1, "yanal"), [0.05], [0.09]), 1.0, 0.0757),
+        uo.kaydi_cikar("A", girdi, _noktali(_sonuc(0), [0.2], [0.2]), 1.0, 0.0757),
+        uo.kaydi_cikar("A", girdi, _noktali(_sonuc(0), [0.01], [0.01]), 1.0, 0.0757),
+    ]
+    b = uo.ozetle(kayitlar)["birlesik"]["genel"]
+    assert b["rota"] == 4 and b["ti1_uyari_orani"] == 0.5 and b["birlesik_uyari_orani"] == 0.5
+    assert (b["ikisi_de"], b["yalniz_ti1"], b["yalniz_birlesik"], b["hicbiri"]) == (0.25, 0.25, 0.25, 0.25)
+    assert b["ti1_sapmasi"] == 2
+    assert (b["sapmadan_once_birlesik_riskli_orani"], b["sapmadan_sonra_birlesik_riskli_orani"]) == (0.5, 0.5)
+    assert "birlesik" not in uo.ozetle([{k: v for k, v in kayitlar[0].items() if "birlesik" not in k}])
