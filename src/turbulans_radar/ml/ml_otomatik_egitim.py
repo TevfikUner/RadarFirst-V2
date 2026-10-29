@@ -139,6 +139,51 @@ def degerlendirme_gunleri_maskesi(gunler: pd.Series) -> tuple[pd.Series, str]:
     return gunler.isin(set(altin)), "altın test günleri"
 
 
+def gun_eslesme_sirasi(motor=None) -> list[str]:
+    """Günler, eşleşmiş örneklerinin en erken guncellenme_zamani'na göre (eski -> yeni); eşitlikte tarih sırası.
+    Tarihler geriye dönük doldurulduğu için 'yeni gün' tarih değil, eşleşmenin yazıldığı andır (yaklaşık)."""
+    sorgu = select(MlOrnegi.zaman, MlOrnegi.guncellenme_zamani).where(MlOrnegi.durum == "eslesti")
+    with Session(motor or motor_al()) as oturum:
+        satirlar = oturum.execute(sorgu).all()
+    if not satirlar:
+        return []
+    df = pd.DataFrame({"gun": [_utc_gunu(s.zaman) for s in satirlar], "an": [s.guncellenme_zamani for s in satirlar]})
+    return [str(g) for g in df.groupby("gun")["an"].min().sort_values(kind="stable").index]
+
+
+def degerlendirme_plani(gunler: pd.Series, eslesme_sirasi, aktif_egitim_gunleri, n=None) -> dict:
+    """Kurul #28: kapı maskesi, yalnız rapor maskesi (altın günler) ve yöntem. Yeni gün N'den azsa
+    'yetersiz' dolar: metrikler altın günlerde hesaplanır ama aday aktifleştirilmez."""
+    n = config.ML_YUVARLANAN_KAPI_GUN if n is None else n
+    altin = altin_test_gunleri()
+    if altin is None:
+        return {
+            "kapi": zamansal_holdout(gunler),
+            "rapor": None,
+            "yontem": "zamansal holdout (altın test günleri dondurulmamış)",
+            "yetersiz": None,
+        }
+    altin_maske = gunler.isin(set(altin))
+    if n <= 0:
+        return {"kapi": altin_maske, "rapor": None, "yontem": "altın test günleri", "yetersiz": None}
+    mevcut, haric = set(gunler.unique()), set(altin) | set(aktif_egitim_gunleri or ())
+    yeni = [g for g in eslesme_sirasi if g in mevcut and g not in haric]
+    if len(yeni) < n:
+        return {
+            "kapi": altin_maske,
+            "rapor": None,
+            "yontem": "altın test günleri (yalnız rapor)",
+            "yetersiz": f"Yuvarlanan kapı için aktif modelin görmediği yeni gün yetersiz ({len(yeni)} < {n}); "
+            "altın günler yalnız raporlandı, aktif model korunur.",
+        }
+    return {
+        "kapi": gunler.isin(set(yeni[-n:])),
+        "rapor": altin_maske,
+        "yontem": f"yuvarlanan kapı: aktif modelin görmediği, eşleşme sırasına göre son {n} yeni gün",
+        "yetersiz": None,
+    }
+
+
 def _kapidan_gecti_mi(fark: dict | None, ustunluk: float) -> bool:
     fark = fark or {}
     nokta, alt = fark.get("fark"), fark.get("alt")
@@ -282,8 +327,9 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
     if gunler.nunique() < config.ML_MIN_GUN:
         return {"karar": "atlandi", "gerekce": f"Yetersiz farklı gün ({gunler.nunique()} < {config.ML_MIN_GUN})."}
 
-    holdout, holdout_yontemi = degerlendirme_gunleri_maskesi(gunler)
-    egitim = ~holdout
+    plan = degerlendirme_plani(gunler, gun_eslesme_sirasi(motor), _aktif_model_egitim_gunleri())
+    holdout, holdout_yontemi = plan["kapi"], plan["yontem"]
+    egitim = ~holdout if plan["rapor"] is None else ~(holdout | plan["rapor"])
     Xe, ye, ge = X[egitim], y[egitim], gunler[egitim]
     Xh, yh, gh = X[holdout], y[holdout], gunler[holdout]
     isim, sonuclar, aday_model = protokol_adayi(Xe, ye, ge, kat_sayisi, tekrar_sayisi)
@@ -311,6 +357,18 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
         sampiyon_holdout = _holdout_metrikleri(sampiyon, Xh, yh)
         sampiyon_farki = eslestirilmis_auc_farki(yh, aday_olasilik, _olasilik(sampiyon, Xh), gh)
     terfi, gerekce = terfi_karari(yh, holdout_guven.get("model_eksi_ti1_roc_auc"), sampiyon_farki)
+    if plan["yetersiz"]:
+        terfi, gerekce = False, plan["yetersiz"]
+    altin_raporu = None
+    if plan["rapor"] is not None and plan["rapor"].any():
+        Xa, ya, ga = X[plan["rapor"]], y[plan["rapor"]], gunler[plan["rapor"]]
+        altin_raporu = {
+            "gunler": sorted(ga.unique().tolist()),
+            "aday": _holdout_metrikleri(aday_model, Xa, ya, model_esik),
+            "ti1_referansi": ti1_referansi(ya, Xa["ti1_indeksi"], ti1_esik),
+            "guven_araliklari": guven_araliklari(ya, Xa["ti1_indeksi"], ga, _olasilik(aday_model, Xa)),
+            "not": "Yalnız rapor; aktivasyon kararına girmez (kurul #28).",
+        }
     kayma = {
         "aktif_modele_gore": aktif_modele_gore_kayma(X, gunler),
         "egitim_ile_holdout": kayma_raporu(Xe, Xh, X.columns),
@@ -345,6 +403,7 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
                 "ti1_referansi": ti1_holdout,
                 "kalibre_ti1": kalibre_ti1,
                 "guven_araliklari": holdout_guven,
+                "altin_raporu": altin_raporu,
             },
             "olasilik_kalibrasyonu": "sigmoid (Platt), gün bazında gruplu çapraz doğrulama",
             "konformal": {

@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+from turbulans_radar import config
 from turbulans_radar.ml import ml_otomatik_egitim as me
 from turbulans_radar.ml import turbulans_ml_modeli as tm
 
@@ -34,6 +35,64 @@ def gecici_model_klasoru(monkeypatch, tmp_path):
     monkeypatch.setattr(tm, "MODEL_VERSIYONLARI_KLASORU", str(tmp_path / "versiyonlar"))
     monkeypatch.setattr(tm, "MODEL_VERSIYONLARI_MANIFEST_YOLU", str(tmp_path / "versiyonlar" / "manifest.json"))
     return tmp_path
+
+
+@pytest.fixture(autouse=True)
+def eski_kapi(monkeypatch):
+    """Mevcut testler kapıyı altın günlerde ölçer; yuvarlanan kapı aşağıdaki testlerde açıkça açılır."""
+    monkeypatch.setattr(config, "ML_YUVARLANAN_KAPI_GUN", 0)
+    monkeypatch.setattr(me, "gun_eslesme_sirasi", lambda motor=None: [])
+
+
+@pytest.fixture
+def altin_dosyasi(monkeypatch, tmp_path):
+    def yaz(gunler):
+        yol = tmp_path / "altin.json"
+        yol.write_text(json.dumps({"gunler": gunler}), encoding="utf-8")
+        monkeypatch.setattr(config, "ML_ALTIN_TEST_DOSYASI", str(yol))
+
+    return yaz
+
+
+def test_yuvarlanan_kapi_eslesme_sirasina_gore_son_yeni_gunleri_secer(altin_dosyasi):
+    gunler = pd.Series(["g1", "g2", "g3", "g4", "g5", "g6", "g6"])
+    altin_dosyasi(["g2"])
+    plan = me.degerlendirme_plani(gunler, ["g6", "g5", "g1", "g2", "g4", "g3"], ["g3"], n=2)
+    assert plan["yetersiz"] is None and "yuvarlanan" in plan["yontem"]
+    assert gunler[plan["kapi"]].tolist() == ["g1", "g4"]
+    assert gunler[plan["rapor"]].tolist() == ["g2"]
+
+    plan = me.degerlendirme_plani(gunler, ["g6", "g5", "g1", "g2", "g4", "g3"], ["g3"], n=5)
+    assert "yetersiz (4 < 5)" in plan["yetersiz"] and gunler[plan["kapi"]].tolist() == ["g2"]
+    assert me.degerlendirme_plani(gunler, [], None, n=0)["yontem"] == "altın test günleri"
+
+
+def test_yuvarlanan_kapida_altin_gunler_egitime_girmez_yalniz_raporlanir(
+    gecici_model_klasoru, altin_dosyasi, monkeypatch
+):
+    X, y, gunler = _veri()
+    sirali = sorted(gunler.unique())
+    altin_dosyasi(sirali[:12])
+    monkeypatch.setattr(config, "ML_YUVARLANAN_KAPI_GUN", 12)
+    monkeypatch.setattr(me, "gun_eslesme_sirasi", lambda motor=None: list(reversed(sirali)))
+    monkeypatch.setattr(me, "veritabanindan_veri_hazirla", lambda motor=None: (X, y, gunler))
+    sonuc = me.otomatik_egitim_calistir(sampiyon_yukleyici=lambda: None, kat_sayisi=3, tekrar_sayisi=1)
+    assert sonuc["holdout_yontemi"].startswith("yuvarlanan kapı")
+    bilgi = json.loads((gecici_model_klasoru / "model_bilgisi.json").read_text(encoding="utf-8"))
+    if sonuc["karar"] != "aktiflestirildi":
+        bilgi = tm.model_versiyonlarini_listele()[0]
+    assert bilgi["holdout"]["gunler"] == sirali[12:24]
+    assert bilgi["holdout"]["altin_raporu"]["gunler"] == sirali[:12]
+    assert not set(bilgi["egitim_gunleri"]) & set(sirali[:24])
+
+
+def test_yeni_gun_yetersizse_aday_aktiflestirilmez(gecici_model_klasoru, altin_dosyasi, monkeypatch):
+    X, y, gunler = _veri()
+    altin_dosyasi(sorted(gunler.unique())[:16])
+    monkeypatch.setattr(config, "ML_YUVARLANAN_KAPI_GUN", 100)
+    monkeypatch.setattr(me, "veritabanindan_veri_hazirla", lambda motor=None: (X, y, gunler))
+    sonuc = me.otomatik_egitim_calistir(sampiyon_yukleyici=lambda: None, kat_sayisi=3, tekrar_sayisi=1)
+    assert sonuc["karar"] == "saklandi" and "yetersiz" in sonuc["gerekce"]
 
 
 def test_zamansal_holdout_en_son_gunleri_ayirir():
