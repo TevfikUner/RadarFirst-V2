@@ -2,6 +2,10 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-29
+
+- ✅ GitHub Destek talebi açıldı (kurul #21): PR #1'in eski commit referanslarının kaldırılması istendi; PR sayfası kalır, GitHub yanıtı bekleniyor.
+
 ## 2026-10-28
 
 - ✅ YAPILACAKLAR öncelik sırası yeniden yazıldı (28 madde): tarihli 4, proje 10, araştırma 4, komite 6, teslim sonrası 4; yarım kalan #4 birleşik EDR sütunu ve ATM-05 eklendi.
