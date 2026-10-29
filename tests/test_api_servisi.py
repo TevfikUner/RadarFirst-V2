@@ -990,6 +990,29 @@ async def test_rota_simulasyonu_sigmet_kontrolu_alanini_icerir(istemci, api_anah
     assert "sigmet_ihlali_sayisi" in govde["normal_rota"]
 
 
+async def test_ariza_taklidi_kapaliyken_400_aciksa_sentetik_bulgu_doner(istemci, api_anahtari, monkeypatch):
+    govde = {
+        "baslangic_enlem": 5.0,
+        "baslangic_boylam": 10.0,
+        "bitis_enlem": 5.0,
+        "bitis_boylam": 25.0,
+        "irtifa_ft": 36000,
+        "zaman": "2019-01-15T00:00:00",
+        "ucak_modeli": "A320",
+        "ariza_taklidi": "sigmet_erisilemedi",
+    }
+    monkeypatch.setattr(config, "ARIZA_TAKLIDI_ETKIN", False)
+    yanit = await istemci.post("/api/v1/simulasyon/rota", json=govde, headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 400 and "ARIZA_TAKLIDI_ETKIN" in yanit.json()["detail"]
+
+    monkeypatch.setattr(config, "ARIZA_TAKLIDI_ETKIN", True)
+    yanit = await istemci.post("/api/v1/simulasyon/rota", json=govde, headers={"X-API-Key": api_anahtari})
+    assert yanit.status_code == 200
+    sonuc = yanit.json()
+    assert sonuc["sigmet_kontrolu"]["durum"] == "erisilemedi"
+    assert sonuc["bulgular"][0]["kod"] == "ariza_taklidi" and "SENTETİK" in sonuc["aciklama"]
+
+
 # --- Veri sağlayıcı uç noktaları ---
 
 

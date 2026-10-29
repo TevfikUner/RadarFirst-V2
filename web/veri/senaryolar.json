@@ -40,5 +40,27 @@
     "ad": "İstanbul → New York, veri kapsamı dışı",
     "aciklama": "Fail-safe: veri yokken risk '0' değil 'hesaplanmadı' yazılır.",
     "alanlar": {"baslangic-enlem": "41.00", "baslangic-boylam": "28.90", "bitis-enlem": "40.70", "bitis-boylam": "-74.00", "irtifa-ft": "34000", "zaman": "2019-01-05T12:00"}
+  },
+  {
+    "kimlik": "sigmet_bayat",
+    "ad": "SIGMET bayat (SENTETİK arıza tatbikatı)",
+    "aciklama": "Fail-safe: son başarılı SIGMET güncellemesi eski; rota çizilir ama aktif uyarıların eksik olabileceği kritik bulgu olarak yazılır. Sunucu durumu yalnız bu istekte taklit edilir (ARIZA_TAKLIDI_ETKIN).",
+    "ariza_taklidi": "sigmet_bayat",
+    "alanlar": {"baslangic-enlem": "41.00", "baslangic-boylam": "28.90", "bitis-enlem": "36.90", "bitis-boylam": "30.70", "irtifa-ft": "29000", "zaman": "2019-01-05T12:00"}
+  },
+  {
+    "kimlik": "sigmet_erisilemedi",
+    "ad": "SIGMET veritabanı erişilemedi (SENTETİK arıza tatbikatı)",
+    "aciklama": "Fail-safe: SIGMET kontrolü yapılamadığı açıkça yazılır, 'SIGMET yok' denmez; bu sonuç önbelleğe alınmaz. Sunucu durumu yalnız bu istekte taklit edilir.",
+    "ariza_taklidi": "sigmet_erisilemedi",
+    "alanlar": {"baslangic-enlem": "41.00", "baslangic-boylam": "28.90", "bitis-enlem": "36.90", "bitis-boylam": "30.70", "irtifa-ft": "29000", "zaman": "2019-01-05T12:00"}
+  },
+  {
+    "kimlik": "devre_kesici",
+    "ad": "Canlı GFS devre kesici açık (SENTETİK arıza tatbikatı)",
+    "aciklama": "Fail-safe: canlı sağlayıcı art arda hata verince indirme beklenmez; rüzgar ve risk hesaba katılamadığı yazılır, SIGMET ve kısıtlı saha yine uygulanır. Zaman şimdiki saate ayarlanır; sunucu durumu yalnız bu istekte taklit edilir.",
+    "ariza_taklidi": "devre_kesici",
+    "zaman_simdi": true,
+    "alanlar": {"baslangic-enlem": "38.40", "baslangic-boylam": "27.10", "bitis-enlem": "38.50", "bitis-boylam": "43.40", "irtifa-ft": "35000", "zaman": "2019-01-31T00:00"}
   }
 ]

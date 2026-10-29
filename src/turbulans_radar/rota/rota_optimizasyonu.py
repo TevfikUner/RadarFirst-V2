@@ -77,6 +77,7 @@ import pandas as pd
 import shapely
 
 from turbulans_radar import config
+from turbulans_radar.ariza_taklidi import taklit_mi
 from turbulans_radar.fizik.birim_donusumleri import (
     irtifa_metre_to_basinc_hpa,
 )
@@ -390,6 +391,8 @@ def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, t
 
     if sigmetler is None:
         try:
+            if taklit_mi("sigmet_erisilemedi"):
+                raise ConnectionError("arıza taklidi: SIGMET veritabanı erişilemez")
             sigmetler = gecerli_sigmetleri_getir(
                 baslangic.to_pydatetime(),
                 bitis.to_pydatetime(),
@@ -404,7 +407,7 @@ def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, t
         simdi = pd.Timestamp.now(tz="UTC")
         canli_mi = abs(simdi - baslangic) <= pd.Timedelta(hours=24)
         esik = pd.Timedelta(minutes=config.SIGMET_BAYATLIK_DAKIKA)
-        ozet["bayat_mi"] = bool(
+        ozet["bayat_mi"] = taklit_mi("sigmet_bayat") or bool(
             canli_mi and (ozet["son_guncelleme"] is None or simdi - pd.Timestamp(ozet["son_guncelleme"]) > esik)
         )
 

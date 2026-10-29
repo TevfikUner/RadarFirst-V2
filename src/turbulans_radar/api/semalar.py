@@ -149,6 +149,8 @@ class RotaSimulasyonuIstegi(BaseModel):
     varis_meydani: str | None = Field(default=None, pattern=r"^[A-Z]{4}$")
     topluluk: bool = False
     kalkis_penceresi: bool = False
+    # Demo arıza tatbikatı (S-4); yalnız ARIZA_TAKLIDI_ETKIN açıkken kabul edilir.
+    ariza_taklidi: Literal["sigmet_bayat", "sigmet_erisilemedi", "devre_kesici"] | None = None
 
     @field_validator("zaman")
     @classmethod
@@ -328,7 +330,7 @@ class RotaBulgusuYaniti(BaseModel):
     sigmet_uygulandi, sigmet_bayat, sigmet_ufuk_disi, kisitli_saha_erisilemedi,
     kisitli_saha_uygulandi, kisitli_saha_uc_koridoru, kisitli_saha_ornek_veri,
     guvenli_rota_yok, sapma_gereksiz, kacinma_sert_kisit, kacinma_tam_guvenli,
-    ti1_riski_kismen_kaldi."""
+    ti1_riski_kismen_kaldi, ariza_taklidi (SENTETİK demo tatbikatı)."""
 
     kod: str
     seviye: Literal["bilgi", "uyari", "kritik"]

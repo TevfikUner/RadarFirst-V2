@@ -108,6 +108,7 @@ from turbulans_radar.api.semalar import (
 )
 from turbulans_radar.api.yollar import analiz, geri_bildirim, hava_sahasi, ml, ucuslar
 from turbulans_radar.api.yollar.ml import MlGeceIsiIstegi
+from turbulans_radar.ariza_taklidi import ariza_taklidi
 from turbulans_radar.ayar_dogrulama import ag_acik_mi, ayarlari_dogrula
 from turbulans_radar.cli.statik_indir import yerel_kutuphane_durumu
 from turbulans_radar.depo.dagitik_kilit import LiderKilidi
@@ -840,6 +841,11 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
     Önbellekten dönen yanıt hesap yapmadığı için sınırdan düşmez (S-9: aynı NAT'taki
     tabletler aynı rotayı ister).
     """
+    if istek.ariza_taklidi is not None and not config.ARIZA_TAKLIDI_ETKIN:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="ariza_taklidi yalnız demo kurulumunda (ARIZA_TAKLIDI_ETKIN=true) kullanılabilir.",
+        )
     onbellek_anahtari = istek.model_dump_json()
     onceki, damga = await ortak._rota_onbellekten_al(onbellek_anahtari)
     if onceki is not None:
@@ -849,49 +855,56 @@ async def rota_simulasyonu(istek: RotaSimulasyonuIstegi, request: Request, rol: 
         f"rota_hesabi:{ortak._istemci_kimligi(request, rol)}", maks=config.ROTA_HESABI_DAKIKADA_MAKS, pencere_saniye=60
     )
     metrikler.ROTA_ONBELLEGI.labels("iska").inc()
-    async with ortak._agir_hesap_yuvasi():
-        hesap_baslangici = time.monotonic()
-        try:
-            sonuc = await asyncio.to_thread(
-                rota_simulasyonu_olustur,
-                istek.baslangic_enlem,
-                istek.baslangic_boylam,
-                istek.bitis_enlem,
-                istek.bitis_boylam,
-                istek.irtifa_ft,
-                istek.zaman,
-                istek.ucak_modeli,
-                canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
-                arama_uzayi=istek.arama_uzayi,
-                kalkis_meydani=istek.kalkis_meydani,
-                varis_meydani=istek.varis_meydani,
-            )
-        except (AtsAgiKullanilamazHatasi, AtsAgiHatasi, AntimeridyenHatasi) as hata:
-            raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(hata)) from None
-        if istek.kalkis_penceresi:
-            sonuc["kalkis_penceresi"] = await asyncio.to_thread(
-                kalkis_penceresi,
-                sonuc,
-                rota_simulasyonu_olustur,
-                (istek.baslangic_enlem, istek.baslangic_boylam, istek.bitis_enlem, istek.bitis_boylam, istek.irtifa_ft),
-                istek.zaman,
-                ucak_modeli_kodu=istek.ucak_modeli,
-                canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
-                arama_uzayi=istek.arama_uzayi,
-                kalkis_meydani=istek.kalkis_meydani,
-                varis_meydani=istek.varis_meydani,
-            )
-        if istek.topluluk:
+    with ariza_taklidi(istek.ariza_taklidi):
+        async with ortak._agir_hesap_yuvasi():
+            hesap_baslangici = time.monotonic()
             try:
-                sonuc = await asyncio.to_thread(rota_sonucuna_topluluk_ekle, sonuc)
-            except Exception as hata:
-                _logger.warning("GFS topluluğu hesaplanamadı: %s", dostane_hata_mesaji(hata))
-                sonuc["topluluk"] = {
-                    "hesaplandi_mi": False,
-                    "neden": f"Topluluk hesaplanamadı ({type(hata).__name__}).",
-                    "aciklama": TOPLULUK_DENEYSEL_NOT,
-                }
-        metrikler.ROTA_HESABI_SURESI.observe(time.monotonic() - hesap_baslangici)
+                sonuc = await asyncio.to_thread(
+                    rota_simulasyonu_olustur,
+                    istek.baslangic_enlem,
+                    istek.baslangic_boylam,
+                    istek.bitis_enlem,
+                    istek.bitis_boylam,
+                    istek.irtifa_ft,
+                    istek.zaman,
+                    istek.ucak_modeli,
+                    canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
+                    arama_uzayi=istek.arama_uzayi,
+                    kalkis_meydani=istek.kalkis_meydani,
+                    varis_meydani=istek.varis_meydani,
+                )
+            except (AtsAgiKullanilamazHatasi, AtsAgiHatasi, AntimeridyenHatasi) as hata:
+                raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(hata)) from None
+            if istek.kalkis_penceresi:
+                sonuc["kalkis_penceresi"] = await asyncio.to_thread(
+                    kalkis_penceresi,
+                    sonuc,
+                    rota_simulasyonu_olustur,
+                    (
+                        istek.baslangic_enlem,
+                        istek.baslangic_boylam,
+                        istek.bitis_enlem,
+                        istek.bitis_boylam,
+                        istek.irtifa_ft,
+                    ),
+                    istek.zaman,
+                    ucak_modeli_kodu=istek.ucak_modeli,
+                    canli_bekleme_saniye=config.CANLI_VERI_BEKLEME_SANIYE,
+                    arama_uzayi=istek.arama_uzayi,
+                    kalkis_meydani=istek.kalkis_meydani,
+                    varis_meydani=istek.varis_meydani,
+                )
+            if istek.topluluk:
+                try:
+                    sonuc = await asyncio.to_thread(rota_sonucuna_topluluk_ekle, sonuc)
+                except Exception as hata:
+                    _logger.warning("GFS topluluğu hesaplanamadı: %s", dostane_hata_mesaji(hata))
+                    sonuc["topluluk"] = {
+                        "hesaplandi_mi": False,
+                        "neden": f"Topluluk hesaplanamadı ({type(hata).__name__}).",
+                        "aciklama": TOPLULUK_DENEYSEL_NOT,
+                    }
+            metrikler.ROTA_HESABI_SURESI.observe(time.monotonic() - hesap_baslangici)
     sonuc["czml"] = simulasyonu_czml_e_cevir(sonuc)
     await ortak._rota_onbellege_koy(onbellek_anahtari, sonuc, damga)
     return sonuc

@@ -6,6 +6,72 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/harita-ayarlari": {
+      "get": {
+        "tags": [
+          "Sistem"
+        ],
+        "summary": "Harita Ayarlari",
+        "description": "Harita sayfalarının API anahtarı girilmeden önce okuduğu görünüm ayarları (P1-8).",
+        "operationId": "harita_ayarlari_harita_ayarlari_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {}
+              }
+            }
+          }
+        }
+      }
+    },
+    "/saglik": {
+      "get": {
+        "tags": [
+          "Sistem"
+        ],
+        "summary": "Saglik Kontrolu",
+        "description": "Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği).\nVarsayılan (sığ) davranış sadece süreç ayakta mı diye bakar, her yük\ndengeleyici probunda PostgreSQL'e gitmez. `?derin=true`: PostgreSQL\n(erişilemezse 503) + SIGMET tazeliği, canlı GFS, görev kuyruğu,\nkısıtlı sahalar, küp önbelleği ve yerel kütüphaneler; operasyonel bir\nsorun varsa durum 'bozulmus' olur (HTTP 200, monitoring gövdeye bakar).\nAğa açık kurulumda (API_YAYIN_ADRESI yerel değil ya da AG_ACILISI) anahtarsız\nyanıt yalnız durumu taşır (P1-6); ayrıntı yönetici anahtarıyla /api/v1/sistem/durum'da.",
+        "operationId": "saglik_kontrolu_saglik_get",
+        "parameters": [
+          {
+            "name": "derin",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "True ise veritabanı ve tüm dış bağımlılıklar kontrol edilir",
+              "default": false,
+              "title": "Derin"
+            },
+            "description": "True ise veritabanı ve tüm dış bağımlılıklar kontrol edilir"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SaglikYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/ws-bileti": {
       "post": {
         "tags": [
@@ -280,65 +346,65 @@
         }
       }
     },
-    "/api/v1/turbulans/model-bilgisi": {
+    "/api/v1/denetim": {
       "get": {
         "tags": [
-          "Türbülans Tahmini"
+          "Sistem"
         ],
-        "summary": "Turbulans Model Bilgisi",
-        "description": "ml_egitimi.py'nin kaydettiği model metadata'sını (seçilen model,\nmetrikler, özellik listesi, eğitim tarihi) döner. Model henüz\neğitilmediyse (bkz. turbulans/tahmin'deki aynı ilke) uydurma bir bilgi\nüretmez, dürüstçe egitildi_mi=False döner.",
-        "operationId": "turbulans_model_bilgisi_api_v1_turbulans_model_bilgisi_get",
+        "summary": "Denetim Kayitlari",
+        "description": "Değiştirici isteklerin (POST/PUT/PATCH/DELETE) denetim kaydı, en yeni\nönce: kim (anahtar kimliği), hangi rolle, ne yaptı, sonuç kodu. Reddedilen\ndenemeler 'kimliksiz' görünür. Sorgu dizesindeki webhook URL'si maskelenir.",
+        "operationId": "denetim_kayitlari_api_v1_denetim_get",
         "parameters": [
           {
-            "name": "X-API-Key",
-            "in": "header",
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 1000,
+              "minimum": 1,
+              "default": 100,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "kimlik",
+            "in": "query",
             "required": false,
             "schema": {
               "anyOf": [
                 {
-                  "type": "string"
+                  "type": "string",
+                  "maxLength": 64
                 },
                 {
                   "type": "null"
                 }
               ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ModelBilgisiYaniti"
-                }
-              }
-            }
+              "description": "Sadece bu anahtar kimliğinin kayıtları",
+              "title": "Kimlik"
+            },
+            "description": "Sadece bu anahtar kimliğinin kayıtları"
           },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
+          {
+            "name": "baslangic",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "format": "date-time"
+                },
+                {
+                  "type": "null"
                 }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/turbulans/model-versiyonlari": {
-      "get": {
-        "tags": [
-          "Türbülans Tahmini"
-        ],
-        "summary": "Turbulans Model Versiyonlari",
-        "description": "ml_egitimi.py'nin her çalıştırmasında biriktirdiği TÜM model\nversiyonlarını (en yeni önce) döner -- hiç eğitim yapılmadıysa boş\nliste. Aktif olan (şu an /turbulans/tahmin'in kullandığı) versiyonu\nayırt etmek için GET /turbulans/model-bilgisi'ndeki egitim_zamani ile\nkarşılaştırılabilir.",
-        "operationId": "turbulans_model_versiyonlari_api_v1_turbulans_model_versiyonlari_get",
-        "parameters": [
+              ],
+              "description": "Bu zamandan sonraki kayıtlar",
+              "title": "Baslangic"
+            },
+            "description": "Bu zamandan sonraki kayıtlar"
+          },
           {
             "name": "X-API-Key",
             "in": "header",
@@ -364,9 +430,9 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/ModelVersiyonuOzetiYaniti"
+                    "$ref": "#/components/schemas/DenetimKaydiYaniti"
                   },
-                  "title": "Response Turbulans Model Versiyonlari Api V1 Turbulans Model Versiyonlari Get"
+                  "title": "Response Denetim Kayitlari Api V1 Denetim Get"
                 }
               }
             }
@@ -384,24 +450,15 @@
         }
       }
     },
-    "/api/v1/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir": {
-      "post": {
+    "/api/v1/sistem/durum": {
+      "get": {
         "tags": [
-          "Türbülans Tahmini"
+          "Sistem"
         ],
-        "summary": "Turbulans Model Versiyonunu Aktiflestir",
-        "description": "Geçmiş bir model versiyonunu, YENİDEN EĞİTİM GEREKMEDEN aktif model\nyapar (rollback) -- örn. yeni bir eğitim çalıştırması beklenenden kötü\nçıkarsa bir önceki versiyona dönmek için. Bilinmeyen bir versiyon_id\n404 döner.",
-        "operationId": "turbulans_model_versiyonunu_aktiflestir_api_v1_turbulans_model_versiyonlari__versiyon_id__aktiflestir_post",
+        "summary": "Sistem Durumu",
+        "description": "/saglik?derin=true ile aynı rapor, ek olarak kaynak başına son hata\nmetinleriyle (API anahtarı gerektirir -- dış servis hata ayrıntıları\nherkese açık uçta gösterilmez).",
+        "operationId": "sistem_durumu_api_v1_sistem_durum_get",
         "parameters": [
-          {
-            "name": "versiyon_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "title": "Versiyon Id"
-            }
-          },
           {
             "name": "X-API-Key",
             "in": "header",
@@ -425,7 +482,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/ModelBilgisiYaniti"
+                  "$ref": "#/components/schemas/SistemDurumuYaniti"
                 }
               }
             }
@@ -1254,235 +1311,6 @@
         }
       }
     },
-    "/api/v1/sigmet/guncelle": {
-      "post": {
-        "tags": [
-          "SIGMET"
-        ],
-        "summary": "Sigmetleri Yenile",
-        "description": "AWC'den (aviationweather.gov: ABD `airsigmet` + uluslararası `isigmet`)\ncanlı SIGMET'leri çekip veritabanını günceller; akıştan düşen (iptal\nedilen) SIGMET'lerin geçerliliği sona erdirilir. n8n/cron'un periyodik\n(örn. 10-15 dk) tetiklemesi için -- ya da SIGMET_OTOMATIK_GUNCELLEME_DAKIKA\nile API'nin kendi zamanlayıcısı kullanılır.",
-        "operationId": "sigmetleri_yenile_api_v1_sigmet_guncelle_post",
-        "parameters": [
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SigmetYenilemeYaniti"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/sigmet": {
-      "get": {
-        "tags": [
-          "SIGMET"
-        ],
-        "summary": "Aktif Sigmetleri Listele",
-        "description": "ŞU AN geçerli SIGMET'ler (verilen kutuyla kesişenler) -- önyüzlerin\nharitada yasak bölgeleri çizmesi için.",
-        "operationId": "aktif_sigmetleri_listele_api_v1_sigmet_get",
-        "parameters": [
-          {
-            "name": "tehlike",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Örn. TURB, TS; verilmezse A*'ın kaçındığı set",
-              "title": "Tehlike"
-            },
-            "description": "Örn. TURB, TS; verilmezse A*'ın kaçındığı set"
-          },
-          {
-            "name": "enlem_min",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "number",
-              "maximum": 90,
-              "minimum": -90,
-              "default": -90,
-              "title": "Enlem Min"
-            }
-          },
-          {
-            "name": "enlem_maks",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "number",
-              "maximum": 90,
-              "minimum": -90,
-              "default": 90,
-              "title": "Enlem Maks"
-            }
-          },
-          {
-            "name": "boylam_min",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "number",
-              "maximum": 180,
-              "minimum": -180,
-              "default": -180,
-              "title": "Boylam Min"
-            }
-          },
-          {
-            "name": "boylam_maks",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "number",
-              "maximum": 180,
-              "minimum": -180,
-              "default": 180,
-              "title": "Boylam Maks"
-            }
-          },
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/SigmetOzetiYaniti"
-                  },
-                  "title": "Response Aktif Sigmetleri Listele Api V1 Sigmet Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/sigmet/{sigmet_id}/iwxxm": {
-      "get": {
-        "tags": [
-          "SIGMET"
-        ],
-        "summary": "Sigmet Iwxxm Disa Aktar",
-        "description": "Saklanan SIGMET'in IWXXM 2025-2 XML'i (veri/iwxxm.py). Mesaj\nNON-OPERATIONAL (TEST) işaretlidir: AWC verisinin yeniden kodlamasıdır,\nyetkili MWO yayını değildir. WMO koduna eşlenemeyen olgu 422 döner.",
-        "operationId": "sigmet_iwxxm_disa_aktar_api_v1_sigmet__sigmet_id__iwxxm_get",
-        "parameters": [
-          {
-            "name": "sigmet_id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "title": "Sigmet Id"
-            }
-          },
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/xml": {}
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/v1/sanal-pirep/canli-oturum": {
       "post": {
         "tags": [
@@ -1735,432 +1563,6 @@
                 }
               }
             }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/kisitli-sahalar": {
-      "get": {
-        "tags": [
-          "Kısıtlı Hava Sahaları"
-        ],
-        "summary": "Kisitli Sahalari Listele",
-        "description": "ŞU AN geçerli (süresizler dahil) kısıtlı/yasak hava sahaları -- A*'ın\nSIGMET gibi sert kısıt olarak kaçındığı alanlar.",
-        "operationId": "kisitli_sahalari_listele_api_v1_kisitli_sahalar_get",
-        "parameters": [
-          {
-            "name": "enlem_min",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "number",
-              "maximum": 90,
-              "minimum": -90,
-              "default": -90,
-              "title": "Enlem Min"
-            }
-          },
-          {
-            "name": "enlem_maks",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "number",
-              "maximum": 90,
-              "minimum": -90,
-              "default": 90,
-              "title": "Enlem Maks"
-            }
-          },
-          {
-            "name": "boylam_min",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "number",
-              "maximum": 180,
-              "minimum": -180,
-              "default": -180,
-              "title": "Boylam Min"
-            }
-          },
-          {
-            "name": "boylam_maks",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "number",
-              "maximum": 180,
-              "minimum": -180,
-              "default": 180,
-              "title": "Boylam Maks"
-            }
-          },
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/KisitliSahaYaniti"
-                  },
-                  "title": "Response Kisitli Sahalari Listele Api V1 Kisitli Sahalar Get"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      },
-      "post": {
-        "tags": [
-          "Kısıtlı Hava Sahaları"
-        ],
-        "summary": "Kisitli Sahalari Ice Aktar",
-        "description": "GeoJSON FeatureCollection içe aktarır (Polygon/MultiPolygon; properties:\nkimlik, ad, tur, taban_ft, tavan_ft, baslangic, bitis, aciklama). Örn. n8n\nbir NOTAM akışından geçici kısıtları `kaynak=notam` ile iter. Aynı\nkaynak:kimlik ikinci kez gelirse güncellenir.",
-        "operationId": "kisitli_sahalari_ice_aktar_api_v1_kisitli_sahalar_post",
-        "parameters": [
-          {
-            "name": "kaynak",
-            "in": "query",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "minLength": 1,
-              "maxLength": 32,
-              "pattern": "^[a-z0-9_\\-]+$",
-              "title": "Kaynak"
-            }
-          },
-          {
-            "name": "eskileri_kaldir",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "boolean",
-              "description": "Bu kaynağın yeni veride olmayan kayıtlarını sil",
-              "default": false,
-              "title": "Eskileri Kaldir"
-            },
-            "description": "Bu kaynağın yeni veride olmayan kayıtlarını sil"
-          },
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "additionalProperties": true,
-                "title": "Geojson"
-              }
-            }
-          }
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/KisitliSahaIceAktarmaYaniti"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/kisitli-sahalar/openaip": {
-      "post": {
-        "tags": [
-          "Kısıtlı Hava Sahaları"
-        ],
-        "summary": "Openaip Sahalarini Yenile",
-        "description": "Gerçek kısıtlı/yasak sahaları openAIP'ten çekip 'openaip' kaynağını tam\nyeniler (OPENAIP_API_ANAHTARI gerekir; AIRAC döngüsünde n8n tetikleyebilir).\nKuyruğa girer; sonuç GET /analiz/durum/{gorev_id}.",
-        "operationId": "openaip_sahalarini_yenile_api_v1_kisitli_sahalar_openaip_post",
-        "parameters": [
-          {
-            "name": "ulke",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "array",
-                  "items": {
-                    "type": "string"
-                  }
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "ISO ülke kodu(ları)",
-              "title": "Ulke"
-            },
-            "description": "ISO ülke kodu(ları)"
-          },
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
-        "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GorevBaslatildiYaniti"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/ml/gece-isi": {
-      "post": {
-        "tags": [
-          "Makine Öğrenmesi"
-        ],
-        "summary": "Ml Gece Isini Baslat",
-        "description": "n8n'in gecelik tek tetikleyicisi: yeni IEM PIREP'lerini çeker, bekleyen\nPIREP'leri CDS'ten ERA5 ile eşleştirir (gecelik ML_GECE_MAKS_CDS_ISTEK ve\ngünlük CDS_GUNLUK_MAKS_ISTEK sınırlarıyla), ardından aday model eğitir;\naday yalnızca holdout'ta aktif modeli geçerse aktifleştirilir. Aynı anda\nikinci bir ML işi kuyruğa alınmaz (409).",
-        "operationId": "ml_gece_isini_baslat_api_v1_ml_gece_isi_post",
-        "parameters": [
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "anyOf": [
-                  {
-                    "$ref": "#/components/schemas/MlGeceIsiIstegi"
-                  },
-                  {
-                    "type": "null"
-                  }
-                ],
-                "title": "Istek"
-              }
-            }
-          }
-        },
-        "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/GorevBaslatildiYaniti"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/ml/durum": {
-      "get": {
-        "tags": [
-          "Makine Öğrenmesi"
-        ],
-        "summary": "Ml Durumu",
-        "description": "ML veri hattının ve gece işinin durumu: örnek sayıları, eşleşmiş gün\nsayısı (eğitim ML_MIN_GUN'dan önce yapılmaz), bugünkü CDS kullanımı, IEM\nimleci, aktif model sürümü ve son ml_veri/ml_egitim görevleri.",
-        "operationId": "ml_durumu_api_v1_ml_durum_get",
-        "parameters": [
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MlDurumYaniti"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/kisitli-sahalar/{dis_kimlik}": {
-      "delete": {
-        "tags": [
-          "Kısıtlı Hava Sahaları"
-        ],
-        "summary": "Kisitli Saha Sil",
-        "operationId": "kisitli_saha_sil_api_v1_kisitli_sahalar__dis_kimlik__delete",
-        "parameters": [
-          {
-            "name": "dis_kimlik",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "maxLength": 128,
-              "title": "Dis Kimlik"
-            }
-          },
-          {
-            "name": "X-API-Key",
-            "in": "header",
-            "required": false,
-            "schema": {
-              "anyOf": [
-                {
-                  "type": "string"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "title": "X-Api-Key"
-            }
-          }
-        ],
-        "responses": {
-          "204": {
-            "description": "Successful Response"
           },
           "422": {
             "description": "Validation Error",
@@ -2509,64 +1911,133 @@
         }
       }
     },
-    "/api/v1/denetim": {
-      "get": {
+    "/api/v1/sigmet/guncelle": {
+      "post": {
         "tags": [
-          "Sistem"
+          "SIGMET"
         ],
-        "summary": "Denetim Kayitlari",
-        "description": "Değiştirici isteklerin (POST/PUT/PATCH/DELETE) denetim kaydı, en yeni\nönce: kim (anahtar kimliği), hangi rolle, ne yaptı, sonuç kodu. Reddedilen\ndenemeler 'kimliksiz' görünür. Sorgu dizesindeki webhook URL'si maskelenir.",
-        "operationId": "denetim_kayitlari_api_v1_denetim_get",
+        "summary": "Sigmetleri Yenile",
+        "description": "AWC'den (aviationweather.gov: ABD `airsigmet` + uluslararası `isigmet`)\ncanlı SIGMET'leri çekip veritabanını günceller; akıştan düşen (iptal\nedilen) SIGMET'lerin geçerliliği sona erdirilir. n8n/cron'un periyodik\n(örn. 10-15 dk) tetiklemesi için -- ya da SIGMET_OTOMATIK_GUNCELLEME_DAKIKA\nile API'nin kendi zamanlayıcısı kullanılır.",
+        "operationId": "sigmetleri_yenile_api_v1_sigmet_guncelle_post",
         "parameters": [
           {
-            "name": "limit",
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SigmetYenilemeYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/sigmet": {
+      "get": {
+        "tags": [
+          "SIGMET"
+        ],
+        "summary": "Aktif Sigmetleri Listele",
+        "description": "ŞU AN geçerli SIGMET'ler (verilen kutuyla kesişenler) -- önyüzlerin\nharitada yasak bölgeleri çizmesi için.",
+        "operationId": "aktif_sigmetleri_listele_api_v1_sigmet_get",
+        "parameters": [
+          {
+            "name": "tehlike",
             "in": "query",
             "required": false,
             "schema": {
-              "type": "integer",
-              "maximum": 1000,
-              "minimum": 1,
-              "default": 100,
-              "title": "Limit"
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "Örn. TURB, TS; verilmezse A*'ın kaçındığı set",
+              "title": "Tehlike"
+            },
+            "description": "Örn. TURB, TS; verilmezse A*'ın kaçındığı set"
+          },
+          {
+            "name": "enlem_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "default": -90,
+              "title": "Enlem Min"
             }
           },
           {
-            "name": "kimlik",
+            "name": "enlem_maks",
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "maxLength": 64
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Sadece bu anahtar kimliğinin kayıtları",
-              "title": "Kimlik"
-            },
-            "description": "Sadece bu anahtar kimliğinin kayıtları"
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "default": 90,
+              "title": "Enlem Maks"
+            }
           },
           {
-            "name": "baslangic",
+            "name": "boylam_min",
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                {
-                  "type": "string",
-                  "format": "date-time"
-                },
-                {
-                  "type": "null"
-                }
-              ],
-              "description": "Bu zamandan sonraki kayıtlar",
-              "title": "Baslangic"
-            },
-            "description": "Bu zamandan sonraki kayıtlar"
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "default": -180,
+              "title": "Boylam Min"
+            }
+          },
+          {
+            "name": "boylam_maks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "default": 180,
+              "title": "Boylam Maks"
+            }
           },
           {
             "name": "X-API-Key",
@@ -2593,9 +2064,9 @@
                 "schema": {
                   "type": "array",
                   "items": {
-                    "$ref": "#/components/schemas/DenetimKaydiYaniti"
+                    "$ref": "#/components/schemas/SigmetOzetiYaniti"
                   },
-                  "title": "Response Denetim Kayitlari Api V1 Denetim Get"
+                  "title": "Response Aktif Sigmetleri Listele Api V1 Sigmet Get"
                 }
               }
             }
@@ -2613,14 +2084,379 @@
         }
       }
     },
-    "/api/v1/sistem/durum": {
+    "/api/v1/sigmet/{sigmet_id}/iwxxm": {
       "get": {
         "tags": [
-          "Sistem"
+          "SIGMET"
         ],
-        "summary": "Sistem Durumu",
-        "description": "/saglik?derin=true ile aynı rapor, ek olarak kaynak başına son hata\nmetinleriyle (API anahtarı gerektirir -- dış servis hata ayrıntıları\nherkese açık uçta gösterilmez).",
-        "operationId": "sistem_durumu_api_v1_sistem_durum_get",
+        "summary": "Sigmet Iwxxm Disa Aktar",
+        "description": "Saklanan SIGMET'in IWXXM 2025-2 XML'i (veri/iwxxm.py). Mesaj\nNON-OPERATIONAL (TEST) işaretlidir: AWC verisinin yeniden kodlamasıdır,\nyetkili MWO yayını değildir. WMO koduna eşlenemeyen olgu 422 döner.",
+        "operationId": "sigmet_iwxxm_disa_aktar_api_v1_sigmet__sigmet_id__iwxxm_get",
+        "parameters": [
+          {
+            "name": "sigmet_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "title": "Sigmet Id"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/xml": {}
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kisitli-sahalar": {
+      "get": {
+        "tags": [
+          "Kısıtlı Hava Sahaları"
+        ],
+        "summary": "Kisitli Sahalari Listele",
+        "description": "ŞU AN geçerli (süresizler dahil) kısıtlı/yasak hava sahaları -- A*'ın\nSIGMET gibi sert kısıt olarak kaçındığı alanlar.",
+        "operationId": "kisitli_sahalari_listele_api_v1_kisitli_sahalar_get",
+        "parameters": [
+          {
+            "name": "enlem_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "default": -90,
+              "title": "Enlem Min"
+            }
+          },
+          {
+            "name": "enlem_maks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 90,
+              "minimum": -90,
+              "default": 90,
+              "title": "Enlem Maks"
+            }
+          },
+          {
+            "name": "boylam_min",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "default": -180,
+              "title": "Boylam Min"
+            }
+          },
+          {
+            "name": "boylam_maks",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "number",
+              "maximum": 180,
+              "minimum": -180,
+              "default": 180,
+              "title": "Boylam Maks"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/KisitliSahaYaniti"
+                  },
+                  "title": "Response Kisitli Sahalari Listele Api V1 Kisitli Sahalar Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Kısıtlı Hava Sahaları"
+        ],
+        "summary": "Kisitli Sahalari Ice Aktar",
+        "description": "GeoJSON FeatureCollection içe aktarır (Polygon/MultiPolygon; properties:\nkimlik, ad, tur, taban_ft, tavan_ft, baslangic, bitis, aciklama). Örn. n8n\nbir NOTAM akışından geçici kısıtları `kaynak=notam` ile iter. Aynı\nkaynak:kimlik ikinci kez gelirse güncellenir.",
+        "operationId": "kisitli_sahalari_ice_aktar_api_v1_kisitli_sahalar_post",
+        "parameters": [
+          {
+            "name": "kaynak",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 32,
+              "pattern": "^[a-z0-9_\\-]+$",
+              "title": "Kaynak"
+            }
+          },
+          {
+            "name": "eskileri_kaldir",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Bu kaynağın yeni veride olmayan kayıtlarını sil",
+              "default": false,
+              "title": "Eskileri Kaldir"
+            },
+            "description": "Bu kaynağın yeni veride olmayan kayıtlarını sil"
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true,
+                "title": "Geojson"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/KisitliSahaIceAktarmaYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kisitli-sahalar/openaip": {
+      "post": {
+        "tags": [
+          "Kısıtlı Hava Sahaları"
+        ],
+        "summary": "Openaip Sahalarini Yenile",
+        "description": "Gerçek kısıtlı/yasak sahaları openAIP'ten çekip 'openaip' kaynağını tam\nyeniler (OPENAIP_API_ANAHTARI gerekir; AIRAC döngüsünde n8n tetikleyebilir).\nKuyruğa girer; sonuç GET /analiz/durum/{gorev_id}.",
+        "operationId": "openaip_sahalarini_yenile_api_v1_kisitli_sahalar_openaip_post",
+        "parameters": [
+          {
+            "name": "ulke",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "description": "ISO ülke kodu(ları)",
+              "title": "Ulke"
+            },
+            "description": "ISO ülke kodu(ları)"
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GorevBaslatildiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/kisitli-sahalar/{dis_kimlik}": {
+      "delete": {
+        "tags": [
+          "Kısıtlı Hava Sahaları"
+        ],
+        "summary": "Kisitli Saha Sil",
+        "operationId": "kisitli_saha_sil_api_v1_kisitli_sahalar__dis_kimlik__delete",
+        "parameters": [
+          {
+            "name": "dis_kimlik",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "maxLength": 128,
+              "title": "Dis Kimlik"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "Successful Response"
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/turbulans/model-bilgisi": {
+      "get": {
+        "tags": [
+          "Türbülans Tahmini"
+        ],
+        "summary": "Turbulans Model Bilgisi",
+        "description": "ml_egitimi.py'nin kaydettiği model metadata'sını (seçilen model,\nmetrikler, özellik listesi, eğitim tarihi) döner. Model henüz\neğitilmediyse (bkz. turbulans/tahmin'deki aynı ilke) uydurma bir bilgi\nüretmez, dürüstçe egitildi_mi=False döner.",
+        "operationId": "turbulans_model_bilgisi_api_v1_turbulans_model_bilgisi_get",
         "parameters": [
           {
             "name": "X-API-Key",
@@ -2645,7 +2481,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SistemDurumuYaniti"
+                  "$ref": "#/components/schemas/ModelBilgisiYaniti"
                 }
               }
             }
@@ -2663,26 +2499,30 @@
         }
       }
     },
-    "/saglik": {
+    "/api/v1/turbulans/model-versiyonlari": {
       "get": {
         "tags": [
-          "Sistem"
+          "Türbülans Tahmini"
         ],
-        "summary": "Saglik Kontrolu",
-        "description": "Kasıtlı olarak API anahtarı gerektirmez (yaygın health-check pratiği).\nVarsayılan (sığ) davranış sadece süreç ayakta mı diye bakar, her yük\ndengeleyici probunda PostgreSQL'e gitmez. `?derin=true`: PostgreSQL\n(erişilemezse 503) + SIGMET tazeliği, canlı GFS, görev kuyruğu,\nkısıtlı sahalar, küp önbelleği ve yerel kütüphaneler; operasyonel bir\nsorun varsa durum 'bozulmus' olur (HTTP 200, monitoring gövdeye bakar).\nAğa açık kurulumda (API_YAYIN_ADRESI yerel değil ya da AG_ACILISI) anahtarsız\nyanıt yalnız durumu taşır (P1-6); ayrıntı yönetici anahtarıyla /api/v1/sistem/durum'da.",
-        "operationId": "saglik_kontrolu_saglik_get",
+        "summary": "Turbulans Model Versiyonlari",
+        "description": "ml_egitimi.py'nin her çalıştırmasında biriktirdiği TÜM model\nversiyonlarını (en yeni önce) döner -- hiç eğitim yapılmadıysa boş\nliste. Aktif olan (şu an /turbulans/tahmin'in kullandığı) versiyonu\nayırt etmek için GET /turbulans/model-bilgisi'ndeki egitim_zamani ile\nkarşılaştırılabilir.",
+        "operationId": "turbulans_model_versiyonlari_api_v1_turbulans_model_versiyonlari_get",
         "parameters": [
           {
-            "name": "derin",
-            "in": "query",
+            "name": "X-API-Key",
+            "in": "header",
             "required": false,
             "schema": {
-              "type": "boolean",
-              "description": "True ise veritabanı ve tüm dış bağımlılıklar kontrol edilir",
-              "default": false,
-              "title": "Derin"
-            },
-            "description": "True ise veritabanı ve tüm dış bağımlılıklar kontrol edilir"
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
           }
         ],
         "responses": {
@@ -2691,7 +2531,187 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/SaglikYaniti"
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ModelVersiyonuOzetiYaniti"
+                  },
+                  "title": "Response Turbulans Model Versiyonlari Api V1 Turbulans Model Versiyonlari Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/turbulans/model-versiyonlari/{versiyon_id}/aktiflestir": {
+      "post": {
+        "tags": [
+          "Türbülans Tahmini"
+        ],
+        "summary": "Turbulans Model Versiyonunu Aktiflestir",
+        "description": "Geçmiş bir model versiyonunu, YENİDEN EĞİTİM GEREKMEDEN aktif model\nyapar (rollback) -- örn. yeni bir eğitim çalıştırması beklenenden kötü\nçıkarsa bir önceki versiyona dönmek için. Bilinmeyen bir versiyon_id\n404 döner.",
+        "operationId": "turbulans_model_versiyonunu_aktiflestir_api_v1_turbulans_model_versiyonlari__versiyon_id__aktiflestir_post",
+        "parameters": [
+          {
+            "name": "versiyon_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Versiyon Id"
+            }
+          },
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModelBilgisiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ml/gece-isi": {
+      "post": {
+        "tags": [
+          "Makine Öğrenmesi"
+        ],
+        "summary": "Ml Gece Isini Baslat",
+        "description": "n8n'in gecelik tek tetikleyicisi: yeni IEM PIREP'lerini çeker, bekleyen\nPIREP'leri CDS'ten ERA5 ile eşleştirir (gecelik ML_GECE_MAKS_CDS_ISTEK ve\ngünlük CDS_GUNLUK_MAKS_ISTEK sınırlarıyla), ardından aday model eğitir;\naday yalnızca holdout'ta aktif modeli geçerse aktifleştirilir. Aynı anda\nikinci bir ML işi kuyruğa alınmaz (409).",
+        "operationId": "ml_gece_isini_baslat_api_v1_ml_gece_isi_post",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "anyOf": [
+                  {
+                    "$ref": "#/components/schemas/MlGeceIsiIstegi"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ],
+                "title": "Istek"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GorevBaslatildiYaniti"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/ml/durum": {
+      "get": {
+        "tags": [
+          "Makine Öğrenmesi"
+        ],
+        "summary": "Ml Durumu",
+        "description": "ML veri hattının ve gece işinin durumu: örnek sayıları, eşleşmiş gün\nsayısı (eğitim ML_MIN_GUN'dan önce yapılmaz), bugünkü CDS kullanımı, IEM\nimleci, aktif model sürümü ve son ml_veri/ml_egitim görevleri.",
+        "operationId": "ml_durumu_api_v1_ml_durum_get",
+        "parameters": [
+          {
+            "name": "X-API-Key",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Api-Key"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MlDurumYaniti"
                 }
               }
             }
@@ -2815,26 +2835,6 @@
                 "schema": {
                   "$ref": "#/components/schemas/HTTPValidationError"
                 }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/harita-ayarlari": {
-      "get": {
-        "tags": [
-          "Sistem"
-        ],
-        "summary": "Harita Ayarlari",
-        "description": "Harita sayfalarının API anahtarı girilmeden önce okuduğu görünüm ayarları (P1-8).",
-        "operationId": "harita_ayarlari_harita_ayarlari_get",
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {}
               }
             }
           }
@@ -3195,6 +3195,54 @@
         "title": "BacktestSonucuYaniti",
         "description": "rota_backtest.py -- gerçek iz vs büyük daire vs A* rotası (aynı ölçütle).\n*_riskli_oran: TI1 >= eşik nokta oranı (hava verisi yoksa None).\nBağımsız kanıt (bkz. bagimsiz_kanit.py; kaynak kapsamıyorsa None):\n*_turb_sigmet: aktif TURB/MTW SIGMET'ine giren nokta + bacak sayısı (A* bunları\ngörmez); *_pirep_raporu / *_mog_pirep: rota tüpündeki türbülans raporları /\norta ve üstü olanlar. kanit_kaynaklari: kanıtı sağlayan kaynaklar."
       },
+      "BacktestYakitiYaniti": {
+        "properties": {
+          "ucak_modeli_varsayimi": {
+            "type": "string",
+            "title": "Ucak Modeli Varsayimi"
+          },
+          "karsilastirilabilir": {
+            "type": "boolean",
+            "title": "Karsilastirilabilir"
+          },
+          "gercek_yakit_kg": {
+            "type": "number",
+            "title": "Gercek Yakit Kg"
+          },
+          "gercek_nox_kg": {
+            "type": "number",
+            "title": "Gercek Nox Kg"
+          },
+          "gercek_ortalama_tas_ms": {
+            "type": "number",
+            "title": "Gercek Ortalama Tas Ms"
+          },
+          "buyuk_daire_yakit_kg": {
+            "type": "number",
+            "title": "Buyuk Daire Yakit Kg"
+          },
+          "optimize_yakit_kg": {
+            "type": "number",
+            "title": "Optimize Yakit Kg"
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "ucak_modeli_varsayimi",
+          "karsilastirilabilir",
+          "gercek_yakit_kg",
+          "gercek_nox_kg",
+          "gercek_ortalama_tas_ms",
+          "buyuk_daire_yakit_kg",
+          "optimize_yakit_kg",
+          "aciklama"
+        ],
+        "title": "BacktestYakitiYaniti"
+      },
       "CanliAdsbOturumIstegi": {
         "properties": {
           "sure_dk": {
@@ -3401,6 +3449,73 @@
         "title": "DenetimKaydiYaniti",
         "description": "GET /api/v1/denetim -- bir değiştirici isteğin denetim kaydı."
       },
+      "DikeyKesitYaniti": {
+        "properties": {
+          "fl": {
+            "items": {
+              "type": "integer"
+            },
+            "type": "array",
+            "title": "Fl"
+          },
+          "mesafe_nm": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Mesafe Nm"
+          },
+          "ti1": {
+            "items": {
+              "anyOf": [
+                {
+                  "items": {
+                    "anyOf": [
+                      {
+                        "type": "number"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "type": "array",
+            "title": "Ti1"
+          },
+          "esik": {
+            "type": "number",
+            "title": "Esik"
+          },
+          "basinc_seviyeleri_hpa": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array",
+            "title": "Basinc Seviyeleri Hpa"
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fl",
+          "mesafe_nm",
+          "ti1",
+          "esik",
+          "basinc_seviyeleri_hpa",
+          "aciklama"
+        ],
+        "title": "DikeyKesitYaniti"
+      },
       "EsiklerYaniti": {
         "properties": {
           "ti1_esik_hafif": {
@@ -3441,6 +3556,150 @@
         ],
         "title": "EsiklerYaniti",
         "description": "harita3d.html gibi istemcilerin, config.py'deki renklendirme\neşiklerini Python tarafındaki değerlerle bire bir aynı tutması için."
+      },
+      "FplMadde15Yaniti": {
+        "properties": {
+          "madde15": {
+            "type": "string",
+            "title": "Madde15"
+          },
+          "nokta_sayisi": {
+            "type": "integer",
+            "title": "Nokta Sayisi"
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "madde15",
+          "nokta_sayisi",
+          "aciklama"
+        ],
+        "title": "FplMadde15Yaniti"
+      },
+      "GeriBildirimHedefOzeti": {
+        "properties": {
+          "toplam": {
+            "type": "integer",
+            "title": "Toplam"
+          },
+          "yararli_yanitlayan": {
+            "type": "integer",
+            "title": "Yararli Yanitlayan"
+          },
+          "yararli_evet": {
+            "type": "integer",
+            "title": "Yararli Evet"
+          },
+          "dogru_yanitlayan": {
+            "type": "integer",
+            "title": "Dogru Yanitlayan"
+          },
+          "dogru_evet": {
+            "type": "integer",
+            "title": "Dogru Evet"
+          }
+        },
+        "type": "object",
+        "required": [
+          "toplam",
+          "yararli_yanitlayan",
+          "yararli_evet",
+          "dogru_yanitlayan",
+          "dogru_evet"
+        ],
+        "title": "GeriBildirimHedefOzeti"
+      },
+      "GeriBildirimIstegi": {
+        "properties": {
+          "hedef_turu": {
+            "type": "string",
+            "enum": [
+              "rota",
+              "analiz",
+              "nokta_tahmini",
+              "genel"
+            ],
+            "title": "Hedef Turu"
+          },
+          "hedef_kimligi": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Hedef Kimligi"
+          },
+          "yararli_mi": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yararli Mi"
+          },
+          "dogru_mu": {
+            "anyOf": [
+              {
+                "type": "boolean"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Dogru Mu"
+          },
+          "aciklama": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 1000
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hedef_turu"
+        ],
+        "title": "GeriBildirimIstegi"
+      },
+      "GeriBildirimYaniti": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "kaydedildi_mi": {
+            "type": "boolean",
+            "title": "Kaydedildi Mi",
+            "default": true
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama",
+            "default": "Teşekkürler. Kayıt kişisel veri içermez (IP, ad ya da e-posta saklanmaz)."
+          }
+        },
+        "type": "object",
+        "required": [
+          "id"
+        ],
+        "title": "GeriBildirimYaniti"
       },
       "GorevBaslatildiYaniti": {
         "properties": {
@@ -3674,6 +3933,61 @@
         "title": "HavaDurumuKupuYaniti",
         "description": "hava_durumu_kupleri kataloğundaki bir küp (bkz. kup_katalogu.py)."
       },
+      "IzBulutuSeviyeBilgisiYaniti": {
+        "properties": {
+          "fl": {
+            "type": "integer",
+            "title": "Fl"
+          },
+          "duyarli_nokta_sayisi": {
+            "type": "integer",
+            "title": "Duyarli Nokta Sayisi"
+          },
+          "secenekler": {
+            "items": {
+              "$ref": "#/components/schemas/IzBulutuSeviyeSecenegiYaniti"
+            },
+            "type": "array",
+            "title": "Secenekler"
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fl",
+          "duyarli_nokta_sayisi",
+          "secenekler",
+          "aciklama"
+        ],
+        "title": "IzBulutuSeviyeBilgisiYaniti"
+      },
+      "IzBulutuSeviyeSecenegiYaniti": {
+        "properties": {
+          "fl": {
+            "type": "integer",
+            "title": "Fl"
+          },
+          "duyarli_nokta_sayisi": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Duyarli Nokta Sayisi"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fl"
+        ],
+        "title": "IzBulutuSeviyeSecenegiYaniti"
+      },
       "KabinOnerisiYaniti": {
         "properties": {
           "metin": {
@@ -3683,14 +3997,6 @@
           "ilk_bolum_baslangic_utc": {
             "type": "string",
             "title": "Ilk Bolum Baslangic Utc"
-          },
-          "bolum_sayisi": {
-            "type": "integer",
-            "title": "Bolum Sayisi"
-          },
-          "toplam_sure_dk": {
-            "type": "number",
-            "title": "Toplam Sure Dk"
           },
           "pencere_baslangic_utc": {
             "type": "string",
@@ -3707,6 +4013,14 @@
           "pencere_payi_notu": {
             "type": "string",
             "title": "Pencere Payi Notu"
+          },
+          "bolum_sayisi": {
+            "type": "integer",
+            "title": "Bolum Sayisi"
+          },
+          "toplam_sure_dk": {
+            "type": "number",
+            "title": "Toplam Sure Dk"
           }
         },
         "type": "object",
@@ -3739,6 +4053,113 @@
           "ek_yakit_yuzde"
         ],
         "title": "KacinmaBedeliYaniti"
+      },
+      "KalkisPenceresiSatiriYaniti": {
+        "properties": {
+          "fark_saat": {
+            "type": "integer",
+            "title": "Fark Saat"
+          },
+          "kalkis_utc": {
+            "type": "string",
+            "title": "Kalkis Utc"
+          },
+          "veri": {
+            "type": "string",
+            "title": "Veri"
+          },
+          "normal_riskli_sure_dk": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Normal Riskli Sure Dk"
+          },
+          "optimize_riskli_sure_dk": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimize Riskli Sure Dk"
+          },
+          "optimize_sure_dk": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimize Sure Dk"
+          },
+          "optimize_yakit_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Optimize Yakit Kg"
+          },
+          "strateji": {
+            "type": "string",
+            "title": "Strateji"
+          },
+          "guvenli_rota_bulundu_mu": {
+            "type": "boolean",
+            "title": "Guvenli Rota Bulundu Mu"
+          }
+        },
+        "type": "object",
+        "required": [
+          "fark_saat",
+          "kalkis_utc",
+          "veri",
+          "strateji",
+          "guvenli_rota_bulundu_mu"
+        ],
+        "title": "KalkisPenceresiSatiriYaniti"
+      },
+      "KalkisPenceresiYaniti": {
+        "properties": {
+          "bilgi_notu": {
+            "type": "string",
+            "title": "Bilgi Notu"
+          },
+          "satirlar": {
+            "items": {
+              "$ref": "#/components/schemas/KalkisPenceresiSatiriYaniti"
+            },
+            "type": "array",
+            "title": "Satirlar"
+          },
+          "hatalar": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Hatalar",
+            "default": []
+          }
+        },
+        "type": "object",
+        "required": [
+          "bilgi_notu",
+          "satirlar"
+        ],
+        "title": "KalkisPenceresiYaniti"
       },
       "KapsamYaniti": {
         "properties": {
@@ -4604,7 +5025,7 @@
           "seviye"
         ],
         "title": "RotaBulgusuYaniti",
-        "description": "'aciklama' metnindeki her cümlenin makine-okunur karşılığı; istemci\n(EFB) metni ayrıştırmadan kendi dilinde gösterebilir. seviye: bilgi |\nuyari | kritik. kod örnekleri: veri_gfs_tahmin, veri_era5, ti1_risk_yok,\nti1_risk_var, ruzgar_hesaba_katilamadi, sigmet_erisilemedi,\nsigmet_uygulandi, sigmet_bayat, sigmet_ufuk_disi, kisitli_saha_erisilemedi,\nkisitli_saha_uygulandi, kisitli_saha_uc_koridoru, kisitli_saha_ornek_veri,\nguvenli_rota_yok, sapma_gereksiz, kacinma_sert_kisit, kacinma_tam_guvenli,\nti1_riski_kismen_kaldi."
+        "description": "'aciklama' metnindeki her cümlenin makine-okunur karşılığı; istemci\n(EFB) metni ayrıştırmadan kendi dilinde gösterebilir. seviye: bilgi |\nuyari | kritik. kod örnekleri: veri_gfs_tahmin, veri_era5, ti1_risk_yok,\nti1_risk_var, ruzgar_hesaba_katilamadi, sigmet_erisilemedi,\nsigmet_uygulandi, sigmet_bayat, sigmet_ufuk_disi, kisitli_saha_erisilemedi,\nkisitli_saha_uygulandi, kisitli_saha_uc_koridoru, kisitli_saha_ornek_veri,\nguvenli_rota_yok, sapma_gereksiz, kacinma_sert_kisit, kacinma_tam_guvenli,\nti1_riski_kismen_kaldi, ariza_taklidi (SENTETİK demo tatbikatı)."
       },
       "RotaNoktasiGirdisi": {
         "properties": {
@@ -4753,6 +5174,17 @@
             "type": "number",
             "title": "Tahmini Yakit Kg"
           },
+          "tahmini_nox_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tahmini Nox Kg"
+          },
           "ek_yakit_yuzde": {
             "type": "number",
             "title": "Ek Yakit Yuzde"
@@ -4805,17 +5237,6 @@
             },
             "type": "array",
             "title": "Noktalar"
-          },
-          "tahmini_nox_kg": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tahmini Nox Kg"
           }
         },
         "type": "object",
@@ -4915,6 +5336,22 @@
             "type": "boolean",
             "title": "Kalkis Penceresi",
             "default": false
+          },
+          "ariza_taklidi": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "sigmet_bayat",
+                  "sigmet_erisilemedi",
+                  "devre_kesici"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Ariza Taklidi"
           }
         },
         "type": "object",
@@ -5025,6 +5462,44 @@
               }
             ]
           },
+          "dikey_kesit": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/DikeyKesitYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "iz_bulutu_seviye_bilgisi": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/IzBulutuSeviyeBilgisiYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fpl_madde15": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/FplMadde15Yaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "brifing_karti": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Brifing Karti",
+            "default": []
+          },
           "sure_tasarrufu_dk": {
             "type": "number",
             "title": "Sure Tasarrufu Dk"
@@ -5032,6 +5507,16 @@
           "ti1_guvenilirlik_notu": {
             "type": "string",
             "title": "Ti1 Guvenilirlik Notu"
+          },
+          "yakit_modeli": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/YakitModeliYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "uretim_bilgisi": {
             "anyOf": [
@@ -5050,6 +5535,16 @@
           "co2_farki_kg": {
             "type": "number",
             "title": "Co2 Farki Kg"
+          },
+          "yakit_tasarrufu_yuzde_araligi": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/YakitBandiYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "secenekler": {
             "items": {
@@ -5089,56 +5584,10 @@
               }
             ]
           },
-          "czml": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Czml"
-          },
-          "brifing_karti": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Brifing Karti",
-            "default": []
-          },
-          "yakit_modeli": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/YakitModeliYaniti"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
           "topluluk": {
             "anyOf": [
               {
                 "$ref": "#/components/schemas/ToplulukYaniti"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "yakit_tasarrufu_yuzde_araligi": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/YakitBandiYaniti"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "fpl_madde15": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/FplMadde15Yaniti"
               },
               {
                 "type": "null"
@@ -5155,25 +5604,13 @@
               }
             ]
           },
-          "dikey_kesit": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/DikeyKesitYaniti"
-              },
-              {
-                "type": "null"
-              }
-            ]
-          },
-          "iz_bulutu_seviye_bilgisi": {
-            "anyOf": [
-              {
-                "$ref": "#/components/schemas/IzBulutuSeviyeBilgisiYaniti"
-              },
-              {
-                "type": "null"
-              }
-            ]
+          "czml": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Czml"
           }
         },
         "type": "object",
@@ -5218,6 +5655,17 @@
           "tahmini_co2_kg": {
             "type": "number",
             "title": "Tahmini Co2 Kg"
+          },
+          "tahmini_nox_kg": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Tahmini Nox Kg"
           },
           "maks_yanal_sapma_km": {
             "anyOf": [
@@ -5368,17 +5816,6 @@
             "type": "integer",
             "title": "Kisitli Saha Ihlali Sayisi",
             "default": 0
-          },
-          "tahmini_nox_kg": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Tahmini Nox Kg"
           }
         },
         "type": "object",
@@ -6293,6 +6730,103 @@
         ],
         "title": "TopluSilmeYaniti"
       },
+      "ToplulukRotaOzetiYaniti": {
+        "properties": {
+          "en_yuksek": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "En Yuksek"
+          },
+          "yari_ve_ustu_nokta_sayisi": {
+            "type": "integer",
+            "title": "Yari Ve Ustu Nokta Sayisi",
+            "default": 0
+          },
+          "hesaplanan_nokta_sayisi": {
+            "type": "integer",
+            "title": "Hesaplanan Nokta Sayisi",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "title": "ToplulukRotaOzetiYaniti"
+      },
+      "ToplulukYaniti": {
+        "properties": {
+          "hesaplandi_mi": {
+            "type": "boolean",
+            "title": "Hesaplandi Mi"
+          },
+          "neden": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Neden"
+          },
+          "uye_sayisi": {
+            "type": "integer",
+            "title": "Uye Sayisi",
+            "default": 0
+          },
+          "kosular": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Kosular",
+            "default": []
+          },
+          "eksik_kosular": {
+            "items": {
+              "additionalProperties": true,
+              "type": "object"
+            },
+            "type": "array",
+            "title": "Eksik Kosular",
+            "default": []
+          },
+          "esik": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Esik"
+          },
+          "rotalar": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/ToplulukRotaOzetiYaniti"
+            },
+            "type": "object",
+            "title": "Rotalar",
+            "default": {}
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "hesaplandi_mi",
+          "aciklama"
+        ],
+        "title": "ToplulukYaniti"
+      },
       "TurbulansTahminIstegi": {
         "properties": {
           "enlem": {
@@ -6628,6 +7162,17 @@
             "type": "string",
             "title": "Yazilim Surumu"
           },
+          "yazilim_commit": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yazilim Commit"
+          },
           "uretim_zamani": {
             "type": "string",
             "title": "Uretim Zamani"
@@ -6666,17 +7211,6 @@
             "type": "object",
             "title": "Parametreler",
             "default": {}
-          },
-          "yazilim_commit": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Yazilim Commit"
           }
         },
         "type": "object",
@@ -6746,200 +7280,6 @@
         ],
         "title": "WsBiletiYaniti"
       },
-      "YakitModeliYaniti": {
-        "properties": {
-          "kaynak": {
-            "type": "string",
-            "enum": [
-              "openap",
-              "sabit"
-            ],
-            "title": "Kaynak"
-          },
-          "baslangic_kutle_kg": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Baslangic Kutle Kg"
-          },
-          "kutle_orani_notu": {
-            "type": "string",
-            "title": "Kutle Orani Notu"
-          },
-          "aciklama": {
-            "type": "string",
-            "title": "Aciklama"
-          },
-          "openap_surumu": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Openap Surumu"
-          }
-        },
-        "type": "object",
-        "required": [
-          "kaynak",
-          "kutle_orani_notu",
-          "aciklama"
-        ],
-        "title": "YakitModeliYaniti"
-      },
-      "BacktestYakitiYaniti": {
-        "properties": {
-          "ucak_modeli_varsayimi": {
-            "type": "string",
-            "title": "Ucak Modeli Varsayimi"
-          },
-          "karsilastirilabilir": {
-            "type": "boolean",
-            "title": "Karsilastirilabilir"
-          },
-          "gercek_yakit_kg": {
-            "type": "number",
-            "title": "Gercek Yakit Kg"
-          },
-          "gercek_nox_kg": {
-            "type": "number",
-            "title": "Gercek Nox Kg"
-          },
-          "gercek_ortalama_tas_ms": {
-            "type": "number",
-            "title": "Gercek Ortalama Tas Ms"
-          },
-          "buyuk_daire_yakit_kg": {
-            "type": "number",
-            "title": "Buyuk Daire Yakit Kg"
-          },
-          "optimize_yakit_kg": {
-            "type": "number",
-            "title": "Optimize Yakit Kg"
-          },
-          "aciklama": {
-            "type": "string",
-            "title": "Aciklama"
-          }
-        },
-        "type": "object",
-        "required": [
-          "ucak_modeli_varsayimi",
-          "karsilastirilabilir",
-          "gercek_yakit_kg",
-          "gercek_nox_kg",
-          "gercek_ortalama_tas_ms",
-          "buyuk_daire_yakit_kg",
-          "optimize_yakit_kg",
-          "aciklama"
-        ],
-        "title": "BacktestYakitiYaniti"
-      },
-      "ToplulukRotaOzetiYaniti": {
-        "properties": {
-          "en_yuksek": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "En Yuksek"
-          },
-          "yari_ve_ustu_nokta_sayisi": {
-            "type": "integer",
-            "title": "Yari Ve Ustu Nokta Sayisi",
-            "default": 0
-          },
-          "hesaplanan_nokta_sayisi": {
-            "type": "integer",
-            "title": "Hesaplanan Nokta Sayisi",
-            "default": 0
-          }
-        },
-        "type": "object",
-        "title": "ToplulukRotaOzetiYaniti"
-      },
-      "ToplulukYaniti": {
-        "properties": {
-          "hesaplandi_mi": {
-            "type": "boolean",
-            "title": "Hesaplandi Mi"
-          },
-          "neden": {
-            "anyOf": [
-              {
-                "type": "string"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Neden"
-          },
-          "uye_sayisi": {
-            "type": "integer",
-            "title": "Uye Sayisi",
-            "default": 0
-          },
-          "kosular": {
-            "items": {
-              "type": "string"
-            },
-            "type": "array",
-            "title": "Kosular",
-            "default": []
-          },
-          "eksik_kosular": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Eksik Kosular",
-            "default": []
-          },
-          "esik": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Esik"
-          },
-          "rotalar": {
-            "additionalProperties": {
-              "$ref": "#/components/schemas/ToplulukRotaOzetiYaniti"
-            },
-            "type": "object",
-            "title": "Rotalar",
-            "default": {}
-          },
-          "aciklama": {
-            "type": "string",
-            "title": "Aciklama"
-          }
-        },
-        "type": "object",
-        "required": [
-          "hesaplandi_mi",
-          "aciklama"
-        ],
-        "title": "ToplulukYaniti"
-      },
       "YakitBandiYaniti": {
         "properties": {
           "kutle_oranlari": {
@@ -6998,165 +7338,17 @@
         ],
         "title": "YakitBandiYaniti"
       },
-      "FplMadde15Yaniti": {
+      "YakitModeliYaniti": {
         "properties": {
-          "madde15": {
-            "type": "string",
-            "title": "Madde15"
-          },
-          "nokta_sayisi": {
-            "type": "integer",
-            "title": "Nokta Sayisi"
-          },
-          "aciklama": {
-            "type": "string",
-            "title": "Aciklama"
-          }
-        },
-        "type": "object",
-        "required": [
-          "madde15",
-          "nokta_sayisi",
-          "aciklama"
-        ],
-        "title": "FplMadde15Yaniti"
-      },
-      "GeriBildirimHedefOzeti": {
-        "properties": {
-          "toplam": {
-            "type": "integer",
-            "title": "Toplam"
-          },
-          "yararli_yanitlayan": {
-            "type": "integer",
-            "title": "Yararli Yanitlayan"
-          },
-          "yararli_evet": {
-            "type": "integer",
-            "title": "Yararli Evet"
-          },
-          "dogru_yanitlayan": {
-            "type": "integer",
-            "title": "Dogru Yanitlayan"
-          },
-          "dogru_evet": {
-            "type": "integer",
-            "title": "Dogru Evet"
-          }
-        },
-        "type": "object",
-        "required": [
-          "toplam",
-          "yararli_yanitlayan",
-          "yararli_evet",
-          "dogru_yanitlayan",
-          "dogru_evet"
-        ],
-        "title": "GeriBildirimHedefOzeti"
-      },
-      "GeriBildirimIstegi": {
-        "properties": {
-          "hedef_turu": {
+          "kaynak": {
             "type": "string",
             "enum": [
-              "rota",
-              "analiz",
-              "nokta_tahmini",
-              "genel"
+              "openap",
+              "sabit"
             ],
-            "title": "Hedef Turu"
+            "title": "Kaynak"
           },
-          "hedef_kimligi": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 64
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Hedef Kimligi"
-          },
-          "yararli_mi": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Yararli Mi"
-          },
-          "dogru_mu": {
-            "anyOf": [
-              {
-                "type": "boolean"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Dogru Mu"
-          },
-          "aciklama": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 1000
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Aciklama"
-          }
-        },
-        "type": "object",
-        "required": [
-          "hedef_turu"
-        ],
-        "title": "GeriBildirimIstegi"
-      },
-      "GeriBildirimYaniti": {
-        "properties": {
-          "id": {
-            "type": "integer",
-            "title": "Id"
-          },
-          "kaydedildi_mi": {
-            "type": "boolean",
-            "title": "Kaydedildi Mi",
-            "default": true
-          },
-          "aciklama": {
-            "type": "string",
-            "title": "Aciklama",
-            "default": "Teşekkürler. Kayıt kişisel veri içermez (IP, ad ya da e-posta saklanmaz)."
-          }
-        },
-        "type": "object",
-        "required": [
-          "id"
-        ],
-        "title": "GeriBildirimYaniti"
-      },
-      "KalkisPenceresiSatiriYaniti": {
-        "properties": {
-          "fark_saat": {
-            "type": "integer",
-            "title": "Fark Saat"
-          },
-          "kalkis_utc": {
-            "type": "string",
-            "title": "Kalkis Utc"
-          },
-          "veri": {
-            "type": "string",
-            "title": "Veri"
-          },
-          "normal_riskli_sure_dk": {
+          "baslangic_kutle_kg": {
             "anyOf": [
               {
                 "type": "number"
@@ -7165,211 +7357,35 @@
                 "type": "null"
               }
             ],
-            "title": "Normal Riskli Sure Dk"
+            "title": "Baslangic Kutle Kg"
           },
-          "optimize_riskli_sure_dk": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Optimize Riskli Sure Dk"
-          },
-          "optimize_sure_dk": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Optimize Sure Dk"
-          },
-          "optimize_yakit_kg": {
-            "anyOf": [
-              {
-                "type": "number"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Optimize Yakit Kg"
-          },
-          "strateji": {
+          "kutle_orani_notu": {
             "type": "string",
-            "title": "Strateji"
-          },
-          "guvenli_rota_bulundu_mu": {
-            "type": "boolean",
-            "title": "Guvenli Rota Bulundu Mu"
-          }
-        },
-        "type": "object",
-        "required": [
-          "fark_saat",
-          "kalkis_utc",
-          "veri",
-          "strateji",
-          "guvenli_rota_bulundu_mu"
-        ],
-        "title": "KalkisPenceresiSatiriYaniti"
-      },
-      "KalkisPenceresiYaniti": {
-        "properties": {
-          "bilgi_notu": {
-            "type": "string",
-            "title": "Bilgi Notu"
-          },
-          "satirlar": {
-            "items": {
-              "$ref": "#/components/schemas/KalkisPenceresiSatiriYaniti"
-            },
-            "type": "array",
-            "title": "Satirlar"
-          },
-          "hatalar": {
-            "items": {
-              "additionalProperties": true,
-              "type": "object"
-            },
-            "type": "array",
-            "title": "Hatalar",
-            "default": []
-          }
-        },
-        "type": "object",
-        "required": [
-          "bilgi_notu",
-          "satirlar"
-        ],
-        "title": "KalkisPenceresiYaniti"
-      },
-      "DikeyKesitYaniti": {
-        "properties": {
-          "fl": {
-            "items": {
-              "type": "integer"
-            },
-            "type": "array",
-            "title": "Fl"
-          },
-          "mesafe_nm": {
-            "items": {
-              "type": "number"
-            },
-            "type": "array",
-            "title": "Mesafe Nm"
-          },
-          "ti1": {
-            "items": {
-              "anyOf": [
-                {
-                  "items": {
-                    "anyOf": [
-                      {
-                        "type": "number"
-                      },
-                      {
-                        "type": "null"
-                      }
-                    ]
-                  },
-                  "type": "array"
-                },
-                {
-                  "type": "null"
-                }
-              ]
-            },
-            "type": "array",
-            "title": "Ti1"
-          },
-          "esik": {
-            "type": "number",
-            "title": "Esik"
-          },
-          "basinc_seviyeleri_hpa": {
-            "items": {
-              "type": "number"
-            },
-            "type": "array",
-            "title": "Basinc Seviyeleri Hpa"
+            "title": "Kutle Orani Notu"
           },
           "aciklama": {
             "type": "string",
             "title": "Aciklama"
+          },
+          "openap_surumu": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Openap Surumu"
           }
         },
         "type": "object",
         "required": [
-          "fl",
-          "mesafe_nm",
-          "ti1",
-          "esik",
-          "basinc_seviyeleri_hpa",
+          "kaynak",
+          "kutle_orani_notu",
           "aciklama"
         ],
-        "title": "DikeyKesitYaniti"
-      },
-      "IzBulutuSeviyeBilgisiYaniti": {
-        "properties": {
-          "fl": {
-            "type": "integer",
-            "title": "Fl"
-          },
-          "duyarli_nokta_sayisi": {
-            "type": "integer",
-            "title": "Duyarli Nokta Sayisi"
-          },
-          "secenekler": {
-            "items": {
-              "$ref": "#/components/schemas/IzBulutuSeviyeSecenegiYaniti"
-            },
-            "type": "array",
-            "title": "Secenekler"
-          },
-          "aciklama": {
-            "type": "string",
-            "title": "Aciklama"
-          }
-        },
-        "type": "object",
-        "required": [
-          "fl",
-          "duyarli_nokta_sayisi",
-          "secenekler",
-          "aciklama"
-        ],
-        "title": "IzBulutuSeviyeBilgisiYaniti"
-      },
-      "IzBulutuSeviyeSecenegiYaniti": {
-        "properties": {
-          "fl": {
-            "type": "integer",
-            "title": "Fl"
-          },
-          "duyarli_nokta_sayisi": {
-            "anyOf": [
-              {
-                "type": "integer"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Duyarli Nokta Sayisi"
-          }
-        },
-        "type": "object",
-        "required": [
-          "fl"
-        ],
-        "title": "IzBulutuSeviyeSecenegiYaniti"
+        "title": "YakitModeliYaniti"
       }
     }
   }
