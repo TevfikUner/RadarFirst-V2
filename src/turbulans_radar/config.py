@@ -229,6 +229,9 @@ ML_ALTIN_TEST_DOSYASI = _ortam_str(
     "ML_ALTIN_TEST_DOSYASI", os.path.join(os.path.dirname(__file__), "ml", "altin_test_gunleri.json")
 )
 ML_ALTIN_TEST_TOHUM = _ortam_sayi("ML_ALTIN_TEST_TOHUM", 0, int)
+# Kurul #28 (ADR 0014): aktivasyon kapısı aktif modelin görmediği, eşleşme sırasına göre en son N yeni günde
+# ölçülür; altın test günleri yalnız raporlanır. N altın küme boyutuyla (16) aynı. 0 = kapı altın günlerde.
+ML_YUVARLANAN_KAPI_GUN = _ortam_sayi("ML_YUVARLANAN_KAPI_GUN", 16, int)
 # ml/degerlendirme.py -- gün bazlı blok bootstrap tekrar sayısı (güven aralıkları ve
 # modelin TI1'e karşı eşleştirilmiş ROC-AUC farkı; bkz. docs/deney_protokolu.md).
 ML_BOOTSTRAP_TEKRAR = _ortam_sayi("ML_BOOTSTRAP_TEKRAR", 1000, int)

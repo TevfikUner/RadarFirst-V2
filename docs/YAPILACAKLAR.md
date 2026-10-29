@@ -30,7 +30,8 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
    oranı birleşik EDR'de %36,1, TI1'de %46,3 (`2026-10-29_uyari_orani_birlesik/`). Eşik A2 için de girdi.
 7. ~~S-4 kalanı~~ (29 Ekim): `ARIZA_TAKLIDI_ETKIN` (yalnız `.env.demo`) + rota isteğinde `ariza_taklidi`; seçicide
    üç SENTETİK tatbikat senaryosu, Playwright testli. Gerçek devre kesici mesajı da artık rota uyarısına yazılıyor.
-8. **Kurul #28 (P3, VER-02):** yuvarlanan kapı; aktivasyon kararı son N yeni günde, altın günler yalnız rapor.
+8. ~~Kurul #28 (P3, VER-02): yuvarlanan kapı~~ (29 Ekim, ADR 0014): kapı aktif modelin görmediği, eşleşme
+   sırasına göre son 16 yeni günde; altın günler yalnız rapor; yeni gün yetersizse aktif model korunur.
 9. ~~Kurul #29 (P3, VER-08 devamı): OOD kapısı~~ (29 Ekim, `ml/destek_kapisi.py`, `turbulans-ml-destek`): destek
    dışı girdide `/turbulans/tahmin` ML/konformal çıktı vermez. Türkiye %2,9, ABD altın kontrol %4,2 kapanıyor;
    marjinal kapı Türkiye'yi ayırmıyor (`docs/sonuclar/2026-10-29_ood_kapisi/`).

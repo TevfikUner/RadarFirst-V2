@@ -75,6 +75,7 @@ class AyarSemasi(BaseModel):
     SAC_ITKI_VERIMI: Annotated[float, Field(gt=0, lt=1)]
     SIGMET_MAKS_COZUMLENEMEYEN_ORAN: KapaliOran
     DEVRE_KESICI_ESIK: NegatifOlmayanTam
+    ML_YUVARLANAN_KAPI_GUN: NegatifOlmayanTam
     DEVRE_KESICI_TABAN_SANIYE: Pozitif
     DEVRE_KESICI_AZAMI_SANIYE: Pozitif
     CANLI_GECMIS_SAAT: NegatifOlmayanTam
