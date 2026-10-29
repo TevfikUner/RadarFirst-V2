@@ -323,6 +323,8 @@ def markdown_ozeti(rapor) -> str:
         "",
         f"**Birincil sonuç:** GMO = {_sayi(o['birincil']['gmo'])} {_ga(o['birincil'])} → {_KARAR_METNI[o['karar']]}.",
         "",
+        "![GMO ve %95 GA](bagimsiz_backtest.png)",
+        "",
         "| Grup | Rota | Gün | BD tüpü M / N | A* tüpü M / N | BD orta-üstü payı | A* orta-üstü payı | GMO | %95 GA "
         "(gün bloklu) |",
         "|---|---|---|---|---|---|---|---|---|",
@@ -353,6 +355,60 @@ def markdown_ozeti(rapor) -> str:
     return "\n".join(satirlar) + "\n"
 
 
+def sekil_satirlari(ozet) -> list[tuple[str, dict, bool]]:
+    i = ozet["ikincil"]
+    return [
+        ("Birincil: sapmalı, bağımsız günler", ozet["birincil"], True),
+        ("48 günün tamamı", i["tum_gunler_sapmali"], False),
+        ("Tüm senaryolar (sapmasız dahil)", i["tum_senaryolar"], False),
+        ("Net etiket (LGT'siz)", i["net_etiket_sapmali"], False),
+        *((f"FL{fl}", v, False) for fl, v in i["fl"].items()),
+        *((f"Strateji: {s}", v, False) for s, v in i["strateji"].items()),
+    ]
+
+
+def sekil_ciz(rapor: dict, yol: str) -> None:
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+    import matplotlib.ticker
+
+    satirlar = [s for s in sekil_satirlari(rapor["ozet"]) if s[1]["gmo"] is not None and s[1]["ga"] is not None]
+    fig, eksen = plt.subplots(figsize=(7.4, 0.42 * len(satirlar) + 1.4))
+    for y, (ad, o, birincil) in enumerate(reversed(satirlar)):
+        renk = "#2a78d6" if birincil else "#52514e"
+        eksen.plot(o["ga"], [y, y], color=renk, linewidth=2, solid_capstyle="round")
+        eksen.plot([o["gmo"]], [y], "o", color=renk, markersize=9 if birincil else 7, markeredgecolor="#fcfcfb")
+        eksen.annotate(
+            f"{o['gmo']:.2f} [{o['ga'][0]:.2f}; {o['ga'][1]:.2f}] · n={o['rota']}".replace(".", ","),
+            (1.0, y),
+            xycoords=("axes fraction", "data"),
+            xytext=(6, 0),
+            textcoords="offset points",
+            va="center",
+            fontsize=8,
+            color="#0b0b0b" if birincil else "#52514e",
+        )
+    eksen.axvline(1.0, color="#52514e", linewidth=0.8, linestyle="--")
+    eksen.set_xscale("log")
+    eksen.xaxis.set_minor_locator(matplotlib.ticker.NullLocator())
+    eksen.set_xticks([0.25, 0.5, 1.0, 2.0])
+    eksen.set_xticklabels(["0,25", "0,5", "1", "2"])
+    eksen.set_xlim(0.18, 2.2)
+    eksen.set_yticks(range(len(satirlar)))
+    eksen.set_yticklabels([s[0] for s in reversed(satirlar)], fontsize=8)
+    eksen.set_xlabel("Göreli maruziyet oranı (A* / büyük daire), %95 GA gün bloklu; < 1: A* daha az orta-üstü")
+    eksen.grid(True, axis="x", color="#e1e0d9", linewidth=0.5)
+    for kenar in ("top", "right", "left"):
+        eksen.spines[kenar].set_visible(False)
+    eksen.tick_params(axis="y", length=0)
+    fig.suptitle("Bağımsız rota backtest'i: PIREP tüpünde orta-üstü payı (NE-ABD, ERA5)", fontsize=10)
+    fig.tight_layout()
+    fig.savefig(yol, dpi=150, metadata={"Software": None}, bbox_inches="tight")
+    plt.close(fig)
+
+
 def ana(argv=None):
     ayrac = argparse.ArgumentParser(description="Bağımsız (PIREP tüpü) rota backtest'i, NE-ABD ERA5 küpleri (ağsız).")
     ayrac.add_argument("--kup-klasoru", default=VARSAYILAN_KUP_KLASORU)
@@ -360,7 +416,16 @@ def ana(argv=None):
     ayrac.add_argument("--fl", default=",".join(str(s // 100) for s in VARSAYILAN_SEVIYELER_FT))
     ayrac.add_argument("--gun-siniri", type=int, default=None, help="Deneme için ilk N gün")
     ayrac.add_argument("--cikti", required=True, help="Rapor klasörü (örn. docs/sonuclar/2026-10-29_bagimsiz_backtest)")
+    ayrac.add_argument("--sekil", action="store_true", help="Ölçmeden, --cikti'daki JSON'dan şekli ve README'yi yaz")
     arg = ayrac.parse_args(argv)
+    sekil_yolu = os.path.join(arg.cikti, "bagimsiz_backtest.png")
+    if arg.sekil:
+        with open(os.path.join(arg.cikti, "bagimsiz_backtest.json"), encoding="utf-8") as dosya:
+            rapor = json.load(dosya)
+        with open(os.path.join(arg.cikti, "README.md"), "w", encoding="utf-8") as dosya:
+            dosya.write(markdown_ozeti(rapor))
+        sekil_ciz(rapor, sekil_yolu)
+        return 0
     from turbulans_radar.fizik.ti1_esigi import etkin_ti1_esigi
     from turbulans_radar.ml.yeni_gun_degerlendirmesi import dondurma_gunleri
     from turbulans_radar.uretim_bilgisi import yazilim_commit
@@ -395,6 +460,7 @@ def ana(argv=None):
         json.dump(rapor, dosya, ensure_ascii=False, indent=2)
     with open(os.path.join(arg.cikti, "README.md"), "w", encoding="utf-8") as dosya:
         dosya.write(markdown_ozeti(rapor))
+    sekil_ciz(rapor, sekil_yolu)
     print(markdown_ozeti(rapor))
     return 0
 

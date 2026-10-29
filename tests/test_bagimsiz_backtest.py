@@ -164,3 +164,12 @@ def test_olcum_canli_veriyi_ve_kurali_sabitler_hatayi_kaydeder():
     assert gorulen[0][:2] == (False, "sozluksel") and gorulen[0][2] == {"sigmetler": [], "kisitli_sahalar": []}
     assert "hata" in kayitlar[1] and "hata" not in kayitlar[0]
     assert (config.ERA5_OTOMATIK_INDIRME, config.CANLI_HAVA_VERISI_ETKIN, config.ROTA_SECIM_KURALI) == eski
+
+
+def test_sekil_yalniz_gecerli_satirlari_cizer(tmp_path):
+    kayitlar = [_kayit(f"2018-01-{g:02d}", 1, 4, 4, 1) for g in range(1, 9)]
+    rapor = {"ozet": bb.ozetle(kayitlar, bagimli_gunler=set())}
+    yol = tmp_path / "sekil.png"
+    bb.sekil_ciz(rapor, str(yol))
+    assert yol.stat().st_size > 1000
+    assert [s[0] for s in bb.sekil_satirlari(rapor["ozet"])][0].startswith("Birincil")

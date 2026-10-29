@@ -117,7 +117,9 @@ veri dondurması). Aralıklar gün bazlı blok bootstrap %95 GA'dır.
   0,670 [0,634–0,708]; sonuç değişmiyor.
 - **Backtest (ERA5, THY322):** Riskli nokta oranı (gerçek / büyük daire / A*): 1 Ocak 2019
   0,00 / 0,20 / 0,00; 15 Ocak 2019 0,24 / 0,39 / 0,02. Ölçüm döngüseldir (A* TI1'i
-  düşürür, başarı TI1 ile ölçülür); bunu açıkça söyleyin.
+  düşürür, başarı TI1 ile ölçülür); bunu açıkça söyleyin. Bağımsız ölçüm (29 Ekim, §11):
+  NE-ABD'de A*'ın saptığı 908 rotada PIREP tüpündeki orta-üstü payı oranı 0,71 [0,58; 0,90];
+  48 günün tamamında 0,83 [0,66; 1,03]. Tek bölge, simüle rota, raporlama yanlılığı var.
 - **ML (nihai):** Protokol modeli (1-SE kuralı bu kez Random Forest'ı seçti; GB ile berabere)
   altın test günlerinde (16 gün, 1.583 PIREP) ROC-AUC 0,708 [0,677–0,738]. TI1'e göre fark
   +0,033 [+0,018; +0,049], p < 0,001: kapı geçildi. Jüri "neden RF?" derse: CV'de RF ile GB
