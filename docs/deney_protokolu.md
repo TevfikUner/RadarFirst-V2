@@ -296,3 +296,25 @@ sayısı (48 günde 1.015; orta-üstü 674; net NEG 96); 6 deneme rotasının TI
 - **Çıktı:** `docs/sonuclar/2026-10-29_bagimsiz_backtest/` (`bagimsiz_backtest.json` + README);
   bir kez çalıştırılır, üzerine yazılmaz. Zaman kutusu 2 gün; bitmezse SISTEM_KARTI'ndaki
   "gerçek uçuş izleriyle karşılaştırır" iddiası "doğrulama hattı gösterimi" diye yazılır.
+
+## 12. Birleşik EDR rota eşiği ve uyarı oranının ikinci sütunu (kurul #4 kalanı; 29 Ekim 2026, eşik hesaplanmadan yazıldı)
+
+**Amaç:** Uyarı oranını (28 Ekim, `2026-10-28_uyari_orani`) TI1 7e-7'nin yanında birleşik EDR eşiğiyle de
+vermek. Birleşik EDR'nin rota eşiği yoktu; eşik önce aşağıdaki kuralla seçilir, sonra uyarı oranına uygulanır.
+Rota sapma kararı TI1'le kalır (birleşik EDR'nin rota cezasına girmesi A2/VER-09, sunum sonrası).
+
+- **Eşik verisi:** dondurma veritabanı (`Turbulence-db-dondurma`, nihai paketin kaynağı), `ml_ornekleri`
+  `eslesti`; eğitim günleri = `ml/dondurma_gunleri.json` eksi `ml/altin_test_gunleri.json` (147 gün; TI1
+  eşiğinin seçildiği günler). Skor: `edr_esleme.birlesik_edr` (mevcut `edr_esleme_katsayilari.json`).
+- **Eşik kuralı (TI1 7e-7 ile aynı):** `degerlendirme.bir_se_esigi`: Peirce'i en yüksek eşiğin gün bazlı
+  bootstrap SE'si içindeki en yüksek eşik (`ML_BOOTSTRAP_TEKRAR`, tohum 0). Peirce-maks eşiği de raporlanır.
+  **Kontrol:** aynı çerçevede aynı kural TI1 için nihai paketteki 7,39e-7'yi vermeli; vermezse fark yazılır.
+- **Bilgi amaçlı:** altın test günlerinde seçilen eşiğin POD, POFD, Peirce'i TI1 7e-7'nin yanında. Karar yok.
+- **Uyarı oranı:** 28 Ekim senaryoları aynen (Türkiye Ocak 2019 küpü, 6 çift × 31 gün × 00/06/12/18 UTC ×
+  FL350/370, A320, `sozluksel`). Yeni sütunlar: büyük daire rotasında birleşik EDR ≥ eşik noktası olan rota
+  oranı; iki göstergenin uyuşması (ikisi de / yalnız TI1 / yalnız birleşik / hiçbiri); TI1 sapmasından sonra
+  A* rotasında birleşik riskli nokta kalan rota oranı. **Kontrol:** TI1 sütunları 28 Ekim sonucuyla aynı çıkmalı.
+- **Geçerlilik tehditleri:** katsayılar ve eşik ABD ERA5 verisinden; Türkiye'de beceri ölçülmedi (VER-08).
+  Birleşik EDR TI1'i de içerir, iki sütun bağımsız değildir.
+- **Çıktı:** `docs/sonuclar/2026-10-29_birlesik_esik/` ve `docs/sonuclar/2026-10-29_uyari_orani_birlesik/`;
+  bir kez, üzerine yazılmaz. Sonuç ne çıkarsa raporlanır.
