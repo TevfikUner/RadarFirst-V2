@@ -269,6 +269,9 @@ OPENSKY_ONBELLEK_MIN_YAS_SAAT = _ortam_sayi("OPENSKY_ONBELLEK_MIN_YAS_SAAT", 24,
 # <klasör>/era5/*.nc yerel küp olarak taranır, <klasör>/opensky_onbellek/ rota
 # önbelleğinin salt okunur yedeğidir. Boş bırakılırsa devre dışı.
 DEMO_VERI_KLASORU = _ortam_str("DEMO_VERI_KLASORU", "demo")
+# Demo arıza tatbikatı (S-4, bkz. ariza_taklidi.py): açıkken rota isteği 'ariza_taklidi' alanıyla SIGMET
+# bayat/erişilemedi ya da devre kesici durumunu yalnız o istek için taklit edebilir. Yalnız demo kurulumunda aç.
+ARIZA_TAKLIDI_ETKIN = _ortam_bool("ARIZA_TAKLIDI_ETKIN", False)
 
 # OpenSky Trino Veritabanı Ayarları
 # ÖNEMLİ: OpenSky 2024'te yeni backend'e geçti. Catalog "opensky" DEĞİL,

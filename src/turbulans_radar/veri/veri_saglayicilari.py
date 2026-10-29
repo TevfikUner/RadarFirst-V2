@@ -36,6 +36,7 @@ import pandas as pd
 import xarray as xr
 
 from turbulans_radar import config
+from turbulans_radar.ariza_taklidi import taklit_mi
 from turbulans_radar.depo.kaynak_durumu import devre_kalan_saniye, kaynak_durumlarini_getir, kaynak_durumunu_kaydet
 from turbulans_radar.depo.kup_katalogu import eski_canli_kupleri_temizle, kapsayan_hazir_kup_yolu, kup_kaydet
 from turbulans_radar.loglama import logger_al
@@ -212,6 +213,13 @@ class DevreAcikHatasi(RuntimeError):
     """Kaynak art arda hata verdiği için indirme bu sürede denenmedi (devre kesici)."""
 
 
+def devre_acik_mesaji(kaynak: str, kalan_saniye: float) -> str:
+    return (
+        f"Canlı hava verisi sağlayıcısı ({kaynak}) art arda hata verdi; devre kesici açık, indirme "
+        f"{kalan_saniye:.0f} sn sonra yeniden denenecek."
+    )
+
+
 def canli_devre_kalan_saniye(kaynak: str) -> float:
     """Veritabanı okunamazsa 0 (indirme denenir): kesici yalnız bekleme süresini kısaltır,
     sonucun dürüstlüğü ona bağlı değildir."""
@@ -258,9 +266,7 @@ def canli_kup_hazirla(kutu: Kutu, baslangic, bitis, saglayici: VeriSaglayici | N
 
     kalan = canli_devre_kalan_saniye(saglayici.kaynak)
     if kalan > 0:
-        raise DevreAcikHatasi(
-            f"{saglayici.kaynak} art arda hata verdi; indirme {kalan:.0f} sn sonra yeniden denenecek (devre kesici)."
-        )
+        raise DevreAcikHatasi(devre_acik_mesaji(saglayici.kaynak, kalan))
     anahtar = hashlib.sha1(repr((kutu, baslangic.isoformat(), bitis.isoformat())).encode()).hexdigest()[:10]
     hedef = os.path.join(
         config.CANLI_VERI_KLASORU, f"{saglayici.kaynak}_{datetime.now(UTC):%Y%m%dT%H%M%S}_{anahtar}.nc"
@@ -347,6 +353,10 @@ def veri_kupunu_sec(
     küp en fazla o kadar beklenir; süre dolarsa indirme arka planda sürer,
     None döner ve durum['canli_hazirlaniyor'] = True olur."""
     kup = kapsayan_veri_kupunu_bul(enlemler, boylamlar, zamanlar, basinc_hpa, pay_derece=pay_derece)
+    if kup is None and taklit_mi("devre_kesici"):
+        if durum is not None:
+            durum["canli_hata"] = devre_acik_mesaji("gfs", config.DEVRE_KESICI_TABAN_SANIYE)
+        return None
     if kup is not None or not config.CANLI_HAVA_VERISI_ETKIN:
         return kup
     if basinc_hpa is not None and not _canli_seviyeler_kapsar_mi(basinc_hpa):
@@ -375,7 +385,7 @@ def veri_kupunu_sec(
     except Exception as hata:
         _logger.warning("Canlı hava verisi alınamadı: %s", hata)
         if durum is not None:
-            durum["canli_hata"] = CANLI_VERI_ALINAMADI
+            durum["canli_hata"] = str(hata) if isinstance(hata, DevreAcikHatasi) else CANLI_VERI_ALINAMADI
         return None
 
 

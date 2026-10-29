@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from turbulans_radar import config
+from turbulans_radar.ariza_taklidi import etkin_taklit
 from turbulans_radar.fizik.ti1_esigi import etkin_ti1_esigi
 from turbulans_radar.rota.brifing import riskli_bolumler
 from turbulans_radar.rota.geometri import NM_KM
@@ -77,6 +78,17 @@ def _bulgulari_olustur(
     seviye=None,
 ):
     bulgular = _seviye_bulgulari(seviye)
+    if (taklit := etkin_taklit()) is not None:
+        bulgular.insert(
+            0,
+            _bulgu(
+                "ariza_taklidi",
+                "uyari",
+                f"SENTETİK ARIZA TATBİKATI ({taklit}): aşağıdaki veri kaynağı durumu demo için yalnız bu istekte "
+                "taklit edildi; gerçek sunucu durumu değildir (bkz. GET /saglik?derin=true).",
+                taklit=taklit,
+            ),
+        )
     if ruzgarli_mi and veri_kupu_kaynagi(veri_kupu) == "gfs":
         calisma = veri_kupu.attrs.get("model_calisma_zamani")
         bulgular.append(
