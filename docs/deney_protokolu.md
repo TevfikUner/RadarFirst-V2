@@ -250,3 +250,49 @@ değerleriyle (ILGILI_CALISMALAR §9) farkın ne kadarının bölme ve etiket ta
   esnektir. Aynı 2 × 2 tasarım, aynı 20 bölmeyle bir kez de derin RF'yle (`max_depth=None`,
   `min_samples_leaf=1`) çalıştırılır; çıktı `docs/sonuclar/2026-10-28_protokol_farki/derin/`. Ön kayıtlı
   değildir, "sonradan eklenen keşifsel" diye raporlanır.
+
+## 11. Bağımsız rota backtest'i (kurul #3; 29 Ekim 2026, tüp sayımı yapılmadan yazıldı)
+
+**Soru:** A* rotası (TI1 yumuşak kısıtıyla), aynı uçuşun büyük daire rotasına göre, rota tüpündeki
+PIREP'ler içinde daha düşük bir orta-üstü oranına mı maruz kalıyor? TI1 ile optimize edilen rotayı
+TI1 ile ölçmek döngüseldir; burada ölçüt, ne TI1'in ne A*'ın gördüğü pilot raporlarıdır.
+
+**Yazılmadan önce görülenler:** küplerin kapsamı ve günleri; kutudaki seyir PIREP'lerinin toplam
+sayısı (48 günde 1.015; orta-üstü 674; net NEG 96); 6 deneme rotasının TI1 çıktısı (tüp sayımı yok).
+
+- **Hava verisi:** `era5_egitim_verisi/` NE-ABD küpleri (40–50°K, 80–70°B; 300/250/200 hPa; 3 sa),
+  48 gün. Yalnız `ruzgar_verisi_kaynagi = era5_gercek` dönen ve iki rotada da TI1 riski hesaplanan
+  senaryolar girer. Ağ, canlı veri ve otomatik indirme kapalı.
+- **Senaryolar (sabit, sonuca bakılmadan):** 8 şehir çifti (JFK→YUL, BOS→YYZ, EWR→YQB, YYZ→BDL,
+  SYR→BOS, YOW→JFK, ROC→YQB, BUF→BOS) × küpte bulunan her gün × kalkış 12, 15, 18 UTC × FL340 ve
+  FL370; A320, koridor modu, varsayılan seçim kuralı (`sozluksel`, ADR 0013), TI1 eşiği 7e-7.
+  SIGMET ve kısıtlı saha verilmez (yalnız TI1 etkisi ölçülür).
+- **Bağımsız kanıt:** yerel IEM arşivi (`pirep_ham/`), seyir irtifası, `/OV UNK` hariç, yinelenenler
+  atılır. Tüp `bagimsiz_kanit.tupteki_pirepler` ile aynı: rota noktasına 50 km, ±2000 ft (noktanın
+  kendi irtifası; A* irtifa değiştirirse yeni irtifa), ±1 sa. Etiket ML etiketiyle aynıdır:
+  orta-üstü (M) = `pirep_siddet_sinifi ≥ 1` (LGT-MOD dahil), kontrol (N) = 0 (NEG ve hafif).
+- **Bağımsızlık:** 48 günün 7'si `ml/dondurma_gunleri.json`'da (TI1 eşiği ve model bu günlerin
+  PIREP'lerini gördü). **Birincil sonuç bu 7 gün çıkarılmış 41 günde** verilir.
+- **Birincil ölçüt:** A*'ın büyük daireden ayrıldığı (`kacinma_stratejisi ≠ yok`) senaryolarda
+  göreli maruziyet oranı GMO = (ΣM_A* / ΣN_A*) / (ΣM_BD / ΣN_BD). GMO < 1: A* tüpündeki raporlar
+  arasında orta-üstü payı daha düşük. Belirsizlik: kalkış gününe göre bloklu bootstrap
+  (2.000 tekrar, tohum 0, %95 yüzdelik aralık).
+- **Karar okuması:** üst sınır < 1 ise "bağımsız kanıt A*'ın orta-üstü maruziyetini azalttığını
+  destekliyor"; alt sınır > 1 ise "artırdı"; aralık 1'i içeriyorsa "fark gösterilemedi". ΣM ya da ΣN
+  herhangi bir rotada 0 kalırsa ya da sapmalı rotalarda toplam tüp raporu 30'dan azsa sonuç
+  "yetersiz örneklem" diye raporlanır. Sonuç ne çıkarsa raporlanır; senaryolar, tüp ve eşik
+  değiştirilmez.
+- **İkincil (önceden kayıtlı, birincil okumayı değiştirmez):** (a) 48 günün tamamı; (b) tüm
+  senaryolar (sapmasızlar dahil; iki rota aynı olduğu için GMO'yu 1'e çeker); (c) net etiket
+  (`duyarlilik_analizi.net_etiket`: LGT içermeyen orta-üstü / LGT içermeyen NEG-SMOOTH); (d) fark
+  tüpü: yalnız büyük daire tüpündeki ("kaçınılan") ve yalnız A* tüpündeki ("girilen") raporlarda
+  orta-üstü payı; (e) FL ve kaçınma stratejisine (yanal / irtifa) göre kırılım; (f) döngüsel
+  referans: aynı rotalarda TI1 riskli nokta sayısı.
+- **Geçerlilik tehditleri:** PIREP'ler trafiğin olduğu yerde ve çoğunlukla türbülans görülünce
+  verilir (orta-üstü payı yüksek, %66); oran ölçütü yoğunluk farkını kısmen giderir ama raporlama
+  yanlılığını gidermez. Tüpler aynı günün raporlarını paylaşır (bu yüzden gün bloklu GA). A* tüpü
+  büyük daire tüpüyle büyük ölçüde örtüşür; etki seyreltilir. Tek bölge, 48 gün, 3 seviyeli küp.
+  ERA5 uçak rüzgâr/sıcaklık gözlemlerini özümser, türbülans raporlarını özümsemez.
+- **Çıktı:** `docs/sonuclar/2026-10-29_bagimsiz_backtest/` (`bagimsiz_backtest.json` + README);
+  bir kez çalıştırılır, üzerine yazılmaz. Zaman kutusu 2 gün; bitmezse SISTEM_KARTI'ndaki
+  "gerçek uçuş izleriyle karşılaştırır" iddiası "doğrulama hattı gösterimi" diye yazılır.
