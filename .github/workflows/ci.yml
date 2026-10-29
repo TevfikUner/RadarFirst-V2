@@ -100,7 +100,7 @@ jobs:
             pip install -r requirements.txt
           fi
           pip install -r requirements-dev.txt
-      - name: Tip denetimi (mypy; api, depo, fizik -- pyproject [tool.mypy])
+      - name: Tip denetimi (mypy; tüm paket -- pyproject [tool.mypy])
         if: matrix.python == '3.12'
         run: mypy
       - name: Veritabanı şemasını kur (alembic upgrade head)

@@ -27,6 +27,8 @@ tablo var, ORM sadece onların Python tarafındaki tanımı.
                                              olayları; canlı olay sensörü, ML etiketi DEĞİL)
 """
 
+from datetime import date, datetime
+
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -56,11 +58,11 @@ class Ucus(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     ucus_numarasi: Mapped[str] = mapped_column(String, nullable=False)
-    tarih: Mapped[object] = mapped_column(Date, nullable=False)
+    tarih: Mapped[date] = mapped_column(Date, nullable=False)
     icao24: Mapped[str | None] = mapped_column(String, nullable=True)
     kalkis_havaalani: Mapped[str | None] = mapped_column(String, nullable=True)
     varis_havaalani: Mapped[str | None] = mapped_column(String, nullable=True)
-    olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    olusturulma_zamani: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
     olcumler: Mapped[list["EdrOlcumu"]] = relationship(
         back_populates="ucus",
@@ -78,7 +80,7 @@ class EdrOlcumu(Base):
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True)
     ucus_id: Mapped[int] = mapped_column(ForeignKey("ucuslar.id", ondelete="CASCADE"), nullable=False)
-    zaman: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    zaman: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     enlem: Mapped[float] = mapped_column(Float, nullable=False)
     boylam: Mapped[float] = mapped_column(Float, nullable=False)
     ti1_indeksi: Mapped[float | None] = mapped_column(Float, nullable=True)
@@ -106,11 +108,11 @@ class AnalizGorevi(Base):
     bildirim_webhook_url: Mapped[str | None] = mapped_column(Text, nullable=True)
     deneme_sayisi: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     isci: Mapped[str | None] = mapped_column(String(64), nullable=True)
-    baslama_zamani: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    kalp_atisi: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    bitis_zamani: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    guncellenme_zamani: Mapped[object] = mapped_column(
+    baslama_zamani: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    kalp_atisi: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    bitis_zamani: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    olusturulma_zamani: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    guncellenme_zamani: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
@@ -129,8 +131,8 @@ class Sigmet(Base):
     seri_no: Mapped[str | None] = mapped_column(String(16), nullable=True)
     tehlike: Mapped[str] = mapped_column(String(16), nullable=False)
     niteleyici: Mapped[str | None] = mapped_column(String(128), nullable=True)
-    gecerlilik_baslangic: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
-    gecerlilik_bitis: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    gecerlilik_baslangic: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    gecerlilik_bitis: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     taban_ft: Mapped[int | None] = mapped_column(Integer, nullable=True)
     tavan_ft: Mapped[int | None] = mapped_column(Integer, nullable=True)
     poligon: Mapped[list] = mapped_column(JSONB, nullable=False)
@@ -143,7 +145,7 @@ class Sigmet(Base):
     # yön dolu hız boşsa hız bilinmiyor (bkz. risk_katmanlari: muhafazakâr süpürme).
     hareket_yonu_derece: Mapped[float | None] = mapped_column(Float, nullable=True)
     hareket_hizi_kt: Mapped[float | None] = mapped_column(Float, nullable=True)
-    alinma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    alinma_zamani: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class HavaDurumuKupu(Base):
@@ -155,9 +157,9 @@ class HavaDurumuKupu(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     kaynak: Mapped[str] = mapped_column(String(16), nullable=False)
-    model_calisma_zamani: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    gecerlilik_baslangic: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
-    gecerlilik_bitis: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    model_calisma_zamani: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    gecerlilik_baslangic: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    gecerlilik_bitis: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     enlem_min: Mapped[float] = mapped_column(Float, nullable=False)
     enlem_maks: Mapped[float] = mapped_column(Float, nullable=False)
     boylam_min: Mapped[float] = mapped_column(Float, nullable=False)
@@ -166,7 +168,7 @@ class HavaDurumuKupu(Base):
     dosya_yolu: Mapped[str] = mapped_column(String, nullable=False)
     durum: Mapped[str] = mapped_column(String(16), nullable=False)
     boyut_bayt: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
-    olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    olusturulma_zamani: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class RotaBacktesti(Base):
@@ -202,15 +204,15 @@ class RotaBacktesti(Base):
     optimize_turb_sigmet: Mapped[int | None] = mapped_column(Integer, nullable=True)
     optimize_pirep_raporu: Mapped[int | None] = mapped_column(Integer, nullable=True)
     optimize_mog_pirep: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    olusturulma_zamani: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class VeriKaynagiDurumu(Base):
     __tablename__ = "veri_kaynagi_durumlari"
 
     kaynak: Mapped[str] = mapped_column(String(32), primary_key=True)
-    son_deneme_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
-    son_basari_zamani: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    son_deneme_zamani: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    son_basari_zamani: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     ardisik_hata_sayisi: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     son_hata: Mapped[str | None] = mapped_column(Text, nullable=True)
     son_ozet: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
@@ -224,7 +226,7 @@ class HizSiniriSayaci(Base):
     __tablename__ = "hiz_siniri_sayaclari"
 
     anahtar: Mapped[str] = mapped_column(String(200), primary_key=True)
-    pencere_baslangic: Mapped[object] = mapped_column(DateTime(timezone=True), primary_key=True)
+    pencere_baslangic: Mapped[datetime] = mapped_column(DateTime(timezone=True), primary_key=True)
     sayi: Mapped[int] = mapped_column(Integer, nullable=False)
 
 
@@ -237,7 +239,7 @@ class RotaOnbellekKaydi(Base):
     __table_args__ = (Index("ix_rota_onbellegi_olusturma", "olusturma"), {"prefixes": ["UNLOGGED"]})
 
     anahtar: Mapped[str] = mapped_column(String(64), primary_key=True)
-    olusturma: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    olusturma: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     sonuc: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
 
 
@@ -250,7 +252,7 @@ class DenetimKaydi(Base):
     __table_args__ = (Index("ix_denetim_kayitlari_zaman", "zaman"),)
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
-    zaman: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    zaman: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
     kimlik: Mapped[str] = mapped_column(String(64), nullable=False)
     rol: Mapped[str | None] = mapped_column(String(16), nullable=True)
     yontem: Mapped[str] = mapped_column(String(8), nullable=False)
@@ -271,8 +273,8 @@ class KisitliHavaSahasi(Base):
     tur: Mapped[str] = mapped_column(String(16), nullable=False)
     taban_ft: Mapped[int | None] = mapped_column(Integer, nullable=True)
     tavan_ft: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    gecerlilik_baslangic: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    gecerlilik_bitis: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    gecerlilik_baslangic: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    gecerlilik_bitis: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     poligon: Mapped[list] = mapped_column(JSONB, nullable=False)
     enlem_min: Mapped[float] = mapped_column(Float, nullable=False)
     enlem_maks: Mapped[float] = mapped_column(Float, nullable=False)
@@ -282,7 +284,7 @@ class KisitliHavaSahasi(Base):
     # Geçerlilik içinde yalnızca bu zamanlarda aktif (NOTAM aralıkları, AIP
     # haftalık takvimi; bkz. veri/saha_aktivasyonu.py). NULL: her zaman aktif.
     aktivasyon: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    guncellenme_zamani: Mapped[object] = mapped_column(
+    guncellenme_zamani: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
@@ -297,7 +299,7 @@ class MlOrnegi(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     pirep_anahtari: Mapped[str] = mapped_column(String(96), nullable=False)
     kaynak: Mapped[str] = mapped_column(String(16), nullable=False)
-    zaman: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    zaman: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     enlem: Mapped[float] = mapped_column(Float, nullable=False)
     boylam: Mapped[float] = mapped_column(Float, nullable=False)
     irtifa_ft: Mapped[float] = mapped_column(Float, nullable=False)
@@ -308,8 +310,8 @@ class MlOrnegi(Base):
     pencere_dosyasi: Mapped[str | None] = mapped_column(String(128), nullable=True)
     deneme_sayisi: Mapped[int] = mapped_column(Integer, nullable=False, server_default="0")
     son_hata: Mapped[str | None] = mapped_column(Text, nullable=True)
-    olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
-    guncellenme_zamani: Mapped[object] = mapped_column(
+    olusturulma_zamani: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    guncellenme_zamani: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
@@ -327,9 +329,9 @@ class SanalPirep(Base):
     icao24: Mapped[str | None] = mapped_column(String(8), nullable=True)
     ucus_numarasi: Mapped[str | None] = mapped_column(String(16), nullable=True)
     kaynak: Mapped[str] = mapped_column(String(16), nullable=False)
-    zaman: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
-    baslangic: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
-    bitis: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    zaman: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    baslangic: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    bitis: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     enlem: Mapped[float] = mapped_column(Float, nullable=False)
     boylam: Mapped[float] = mapped_column(Float, nullable=False)
     seviye_ft: Mapped[float] = mapped_column(Float, nullable=False)
@@ -339,8 +341,8 @@ class SanalPirep(Base):
     irtifa_kaynagi: Mapped[str | None] = mapped_column(String(8), nullable=True)
     # Kayıt anında çevresinde (kümeleme tüpü) olayı olan farklı uçak sayısı (kendisi dahil).
     ucak_sayisi: Mapped[int] = mapped_column(Integer, nullable=False, server_default="1")
-    bildirim_zamani: Mapped[object | None] = mapped_column(DateTime(timezone=True), nullable=True)
-    olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    bildirim_zamani: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    olusturulma_zamani: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class EdrOrnegi(Base):
@@ -357,7 +359,7 @@ class EdrOrnegi(Base):
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, autoincrement=True)
     gozlem_anahtari: Mapped[str] = mapped_column(String(96), nullable=False)
     kaynak: Mapped[str] = mapped_column(String(16), nullable=False)
-    zaman: Mapped[object] = mapped_column(DateTime(timezone=True), nullable=False)
+    zaman: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     enlem: Mapped[float] = mapped_column(Float, nullable=False)
     boylam: Mapped[float] = mapped_column(Float, nullable=False)
     irtifa_ft: Mapped[float] = mapped_column(Float, nullable=False)
@@ -367,7 +369,7 @@ class EdrOrnegi(Base):
     kalite: Mapped[str | None] = mapped_column(String(4), nullable=True)
     ml_ornek_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True)
     ozellikler: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
-    olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    olusturulma_zamani: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 class KullaniciGeriBildirimi(Base):
@@ -382,7 +384,7 @@ class KullaniciGeriBildirimi(Base):
     aciklama: Mapped[str | None] = mapped_column(Text, nullable=True)
     rol: Mapped[str] = mapped_column(String(16), nullable=False)
     yazilim_surumu: Mapped[str | None] = mapped_column(String(32), nullable=True)
-    olusturulma_zamani: Mapped[object] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    olusturulma_zamani: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
 def kutu_ifadesi(model):

@@ -175,7 +175,8 @@ def saha_ayristir(
         if not yaricap or len(set(koordinatlar)) != 1:
             return None, "daire tanımı belirsiz"
         km = float(yaricap.group(1)) * (1.852 if yaricap.group(2).upper() == "NM" else 0.001)
-        halka = _daire(*koordinatlar[0], km)
+        merkez_enlem, merkez_boylam = koordinatlar[0]
+        halka = _daire(merkez_enlem, merkez_boylam, km)
         sekil = f"daire r={yaricap.group(1)} {yaricap.group(2)}"
     else:
         if len(koordinatlar) < 3 or len(set(koordinatlar)) != len(koordinatlar):
@@ -183,7 +184,7 @@ def saha_ayristir(
         halka = [[b, e] for e, b in koordinatlar] + [[koordinatlar[0][1], koordinatlar[0][0]]]
         sekil = f"çokgen {len(koordinatlar)} köşe"
     zaman_kismi = govde[ust.end() :]
-    ozellikler = {
+    ozellikler: dict[str, object] = {
         "kimlik": kimlik,
         "ad": f"{kimlik} {ad.strip()}",
         "tur": _TUR[tur_harfi],

@@ -96,17 +96,7 @@ known-first-party = ["turbulans_radar"]
 
 [tool.mypy]
 python_version = "3.12"
-files = [
-    "src/turbulans_radar/api",
-    "src/turbulans_radar/depo",
-    "src/turbulans_radar/fizik",
-    "src/turbulans_radar/rota",
-    "src/turbulans_radar/isci",
-    "src/turbulans_radar/analiz",
-    "src/turbulans_radar/dogrulama",
-    "src/turbulans_radar/veri",
-    "src/turbulans_radar/ml",
-]
+files = ["src/turbulans_radar"]
 ignore_missing_imports = true
 follow_imports = "silent"
 

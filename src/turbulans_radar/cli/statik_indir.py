@@ -29,6 +29,7 @@ import shutil
 import tarfile
 import tempfile
 from pathlib import Path
+from typing import Any
 
 import httpx
 
@@ -36,7 +37,7 @@ VARSAYILAN_HEDEF = Path("web") / "vendor"
 MANIFEST = "SURUMLER.json"
 _NPM = "https://registry.npmjs.org"
 
-PAKETLER = {
+PAKETLER: dict[str, dict[str, Any]] = {
     "cesium": {
         "surum": "1.145.0",
         "butunluk": "sha512-6Azix8b5LPpoVSx8XQ6zPztpluJVmq+CEO3W2rOWxtc6bri6Nc9MvCYhKmTW1LAEwfisV7yzNgfulCXw9842+g==",
@@ -135,8 +136,11 @@ def arsivi_cikar(tarball: bytes, icerik: dict, hedef_klasor: Path) -> int:
             yol = (kok / goreli).resolve()
             if not yol.is_relative_to(kok):
                 continue
+            kaynak = arsiv.extractfile(uye)
+            if kaynak is None:
+                continue
             yol.parent.mkdir(parents=True, exist_ok=True)
-            yol.write_bytes(arsiv.extractfile(uye).read())
+            yol.write_bytes(kaynak.read())
             sayi += 1
     return sayi
 
