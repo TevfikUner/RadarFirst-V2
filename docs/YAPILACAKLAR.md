@@ -14,8 +14,8 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
    kalktığı `gh api` ile doğrulanır.
 2. **29 Ekim 23:55 (kullanıcı):** haftalık ilerleme raporu Hafta 5'in e-postayla gönderimi (PDF'ler
    masaüstünde, #136); 28 Ekim gelişmeleri (kurul A/B grubu) eklenebilir.
-3. **29–30 Ekim (kurul #19):** AIRAC kontrolü: `ciktilar/airac_yenile.log` "yenilendi", `/saglik?derin=true`
-   `ats_agi` "tamam"; "eski" ise demo FRA kullanmadığı için belgeye not düşülür.
+3. ~~29–30 Ekim (kurul #19): AIRAC kontrolü~~ (29 Ekim: günlük "yenilendi", AIRAC 11/26 yürürlük 29 Eki, bitiş
+   26 Kas, 682 nokta/85 saha; `/saglik?derin=true` `ats_agi` "tamam". "AMDT 06/26" değişmeyen ENR 4.1'in numarası.)
 4. **3 Kasım (kurul #11 devamı + ATM-05; ONAY 28 Ekim):** 28 Ekim–3 Kasım GFS koşuları
    (`turbulans-tahmin-ufku --indir`, ~15 MB) ve ERA5 kıyası (ERA5'in yayınlandığı geçerlilik zamanları, küçük
    CDS kutusu; araç `tahmin_ufku.py`'ye eklenecek). Aynı f000 ve ERA5 verisiyle ERA5 → GFS TI1 eşik eşlemesi
@@ -28,7 +28,8 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
    bağımsız kanıtla tutarlı; yeniden değerlendirme gerekmedi.
 6. ~~Kurul #4 kalanı~~ (29 Ekim, protokol §12): birleşik EDR eşiği 0,0757 (TI1 ile aynı 1-SE kuralı); uyarı
    oranı birleşik EDR'de %36,1, TI1'de %46,3 (`2026-10-29_uyari_orani_birlesik/`). Eşik A2 için de girdi.
-7. **S-4 kalanı:** SIGMET bayat / `erisilemedi` / devre kesici demo fikstürü.
+7. ~~S-4 kalanı~~ (29 Ekim): `ARIZA_TAKLIDI_ETKIN` (yalnız `.env.demo`) + rota isteğinde `ariza_taklidi`; seçicide
+   üç SENTETİK tatbikat senaryosu, Playwright testli. Gerçek devre kesici mesajı da artık rota uyarısına yazılıyor.
 8. **Kurul #28 (P3, VER-02):** yuvarlanan kapı; aktivasyon kararı son N yeni günde, altın günler yalnız rapor.
 9. **Kurul #29 (P3, VER-08 devamı):** Türkiye girdisinde OOD kapısı (destek dışı noktada ML/konformal "kapsam dışı").
 10. **MİM-02:** `rota_simulasyonu_olustur` bölme (altın çıktı ile bayt bayt aynı; sunum sonrası).
@@ -137,10 +138,10 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
   yapmak, (c) `ROTA_HESABI_DAKIKADA_MAKS`'ı yükseltmek. Karar kullanıcıda; sonra uygulanır ve S-9 yeniden ölçülür.
 - [x] (20 Ekim: `web/veri/senaryolar.json`, 7 senaryo, yalnız demo/test vakaları; Playwright) **S-3 senaryo seçici (M):** `web/ucus_simulasyonu.html` 2019 değerleriyle sabit açılıyor;
   `web/veri/senaryolar.json` + açılır liste, senaryo başına Playwright testi.
-- [ ] **S-4 başarısızlık durumları simülasyonda (M):** "ÖNERİ YOK", SIGMET bayat, `erisilemedi`, devre
+- [x] (29 Ekim) **S-4 başarısızlık durumları simülasyonda (M):** "ÖNERİ YOK", SIGMET bayat, `erisilemedi`, devre
   kesici gösterilebilsin; demo profilinde fikstür (gerçek arşiv yoksa SENTETİK etiketli).
   20 Ekim: "ÖNERİ YOK" (Beyrut → Bağdat, örnek Suriye sahası) ve kapsam dışı senaryoları seçicide, Playwright
-  testli. Kalan: SIGMET bayat/`erisilemedi` ve devre kesici için demo fikstürü (sunucu durumu taklidi gerekir).
+  testli. 29 Ekim: SIGMET bayat/`erisilemedi` ve devre kesici SENTETİK arıza tatbikatı olarak seçicide (S-4 bitti).
 - [x] (20 Ekim: `docs/ISLETIM_KILAVUZU.md`; tatbikat ve sağlık denendi, şifre rotasyonu ve canlı geri yükleme denenmedi diye işaretli) **P1-10 işletim kılavuzu (M):** `docs/ISLETIM_KILAVUZU.md` (başlatma/durdurma, yedek ve geri
   yükleme, migration, AIRAC, gece işi, anahtar ve DB şifre rotasyonu); her prosedür bir kez denenir.
 - [x] (20 Ekim: `--profile izleme` Prometheus + 5 alarm, bildirim kanalı yok (önerilen); ayrı izleme anahtarı) **P1-3 izleme yığını (ONAY: bildirim kanalı):** `izleme/prometheus.yml`, `alarmlar.yml`,

@@ -4,6 +4,8 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-29
 
+- ✅ S-4 kalanı: demo arıza tatbikatı (`ariza_taklidi`: SIGMET bayat/erişilemedi, devre kesici), yalnız `ARIZA_TAKLIDI_ETKIN` açıkken; SENTETİK etiketli, Playwright testli.
+- ✅ AIRAC kontrolü (#19): 11/26 yenilendi (bitiş 26 Kas), `/saglik` ats_agi "tamam".
 - ✅ Kurul #4 kalanı: birleşik EDR rota eşiği 0,0757 (TI1 ile aynı kural; kontrol 7,39e-7 birebir); uyarı oranı birleşik EDR %36,1, TI1 %46,3.
 - ✅ Kurul #3 bağımsız rota backtest'i (`turbulans-bagimsiz-backtest`, ağsız): NE-ABD 2.304 rota; sapmalı 908 rotada PIREP tüpü orta-üstü payı oranı A*/büyük daire 0,71 [0,58; 0,90], 48 günün tamamında 0,83 [0,66; 1,03].
 - ✅ GitHub Destek talebi açıldı (kurul #21): PR #1'in eski commit referanslarının kaldırılması istendi; PR sayfası kalır, GitHub yanıtı bekleniyor.
