@@ -9,8 +9,9 @@ Açık maddelerin önem sırası; ayrıntı aşağıdaki bölümlerde ve depo d�
 Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıcı kararıyla kapalı.
 
 **1. Tarihli (takvime bağlı)**
-1. **29 Ekim, ilk iş (kullanıcı):** GitHub Destek talebi P0-9 / kurul #21 (PR #1'deki eski şifre ref'i);
-   metin hazır, depo dışında. Depo herkese açık kaldıkça şart.
+1. ~~29 Ekim, ilk iş (kullanıcı): GitHub Destek talebi P0-9 / kurul #21~~ (29 Ekim: talep açıldı, PR #1 commit
+   referanslarının kaldırılması istendi). GitHub "tamamlandı" yazınca PR #1'in eski commit'lerine erişimin
+   kalktığı `gh api` ile doğrulanır.
 2. **29 Ekim 23:55 (kullanıcı):** haftalık ilerleme raporu Hafta 5'in e-postayla gönderimi (PDF'ler
    masaüstünde, #136); 28 Ekim gelişmeleri (kurul A/B grubu) eklenebilir.
 3. **29–30 Ekim (kurul #19):** AIRAC kontrolü: `ciktilar/airac_yenile.log` "yenilendi", `/saglik?derin=true`
@@ -102,7 +103,7 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
 - [x] (19 Ekim, temiz klon `071ecdb`, sayılar aynı; ekran aracı CSP'ye takılıyordu, düzeltildi) **Demo ekranlarını yenile:** `TI1_GUVENILIRLIK_NOTU` metni (15.940 PIREP / 163 gün) ve
   `harita3d.html`'deki "karar destek aracıdır" satırı değişti; `docs/sunum/ekranlar/`
   görüntüleri eski metni gösteriyor. İmaj derlendikten sonra temiz klondan (5532/8100 portları).
-- [ ] **GitHub Destek talebi (P0-9, kullanıcı):** PR #1'deki eski OpenSky şifresi; metin
+- [x] (29 Ekim: talep açıldı; GitHub yanıtı bekleniyor) **GitHub Destek talebi (P0-9, kullanıcı):** PR #1'deki eski OpenSky şifresi; metin
   `docs/guvenlik/GUVENLIK_TARAMASI_2026-10-05.md`. Depo herkese açılmadan önce şart.
   19 Ekim: kullanıcı başka bir zaman kendisi gönderecek (GitHub web formu; Claude gönderemez).
 - [ ] **Y-6 `docker builder prune` (~50 GB):** imaj npm erişimiyle başarıyla derlendikten sonra
@@ -259,7 +260,7 @@ jüri sorularına doğrudan yanıt verenler önde.
 
 - [x] (28 Ekim) A1 rota seçim kuralının varsayılanı: `sozluksel` kaldı, `maliyet` bayrak (ADR 0013).
 
-- [ ] GitHub Destek talebi (P0-9): PR #1'deki eski OpenSky şifresinin temizlenmesi; ayrıntı "18 Ekim gecesinden
+- [x] (29 Ekim: talep açıldı, "Remove the commit references"; PR sayfası kalır) GitHub Destek talebi (P0-9): PR #1'deki eski OpenSky şifresinin temizlenmesi; ayrıntı "18 Ekim gecesinden
   kalanlar" bölümünde. Kullanıcı gönderecek (19 Ekim'de ertelendi); depo herkese açılmadan önce şart.
 - [x] (16 Ekim, kullanıcı gönderdi) OpenSky'a bulut IP / Trino sorusu (`docs/fizibilite/OPENSKY_BULUT_ERISIMI.md`).
 - [x] (17 Ekim) OpenSky yanıtı geldi, özet `OPENSKY_BULUT_ERISIMI.md`'de: hiperölçekli bulut IP'leri giriş
