@@ -37,6 +37,7 @@ from turbulans_radar.ml.degerlendirme import (
     peirce_esigi,
     ti1_referansi,
 )
+from turbulans_radar.ml.destek_kapisi import destek_araligi_hesapla
 from turbulans_radar.ml.kayma_izleme import gunlere_gore_kayma, kayma_raporu
 from turbulans_radar.ml.ml_egitimi import _tahmin_metrikleri, bir_se_kurali_ile_sec, modelleri_egit_ve_karsilastir
 from turbulans_radar.ml.model_butunlugu import dosya_ozeti, guvenle_yukle, muhurle
@@ -323,6 +324,7 @@ def otomatik_egitim_calistir(motor=None, sampiyon_yukleyici=None, kat_sayisi=5, 
             "metrikler": cv_metrikleri,
             "aday_cv_metrikleri": {ad: m for ad, (_, m, _) in sonuclar.items()},
             "ozellik_sutunlari": list(X.columns),
+            "destek_araligi": destek_araligi_hesapla(Xe),
             "egitim_orneklem_sayisi": int(egitim.sum()),
             "test_orneklem_sayisi": int(holdout.sum()),
             "egitim_gunleri": sorted(ge.unique().tolist()),

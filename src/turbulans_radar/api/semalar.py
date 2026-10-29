@@ -580,6 +580,9 @@ class TurbulansTahminYaniti(BaseModel):
     ml_risk_durumu: Literal["dusuk_risk", "yuksek_risk", "belirsiz"] | None = None
     ml_konformal_hedef_kapsama: float | None = None
     ml_konformal_notu: str | None = None
+    # OOD kapısı (kurul #29): disinda ise ML olasılığı/konformal durum verilmez.
+    ml_destek_durumu: Literal["icinde", "disinda", "bilinmiyor"] | None = None
+    ml_destek_disi_ozellikler: list[str] = []
     uretim_bilgisi: UretimBilgisiYaniti | None = None
     aciklama: str
 
