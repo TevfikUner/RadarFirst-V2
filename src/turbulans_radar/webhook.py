@@ -96,7 +96,7 @@ def _dogrulanmis_adresler(url: str) -> list[str] | None:
         return None
     try:
         port = parcalar.port or (443 if parcalar.scheme == "https" else 80)
-        adresler = sorted({bilgi[4][0] for bilgi in socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)})
+        adresler = sorted({str(bilgi[4][0]) for bilgi in socket.getaddrinfo(host, port, proto=socket.IPPROTO_TCP)})
     except (socket.gaierror, UnicodeError, ValueError):
         return None
     return adresler if adresler and all(_genel_mi(a) for a in adresler) else None

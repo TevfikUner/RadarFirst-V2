@@ -43,7 +43,7 @@ DEMO_UCUSU, DEMO_TARIHI = "THY322", "2019-01-15"
 
 
 def donanim_bilgisi() -> dict:
-    bilgi = {
+    bilgi: dict[str, object] = {
         "isletim_sistemi": platform.platform(),
         "python": platform.python_version(),
         "mantiksal_cekirdek": os.cpu_count(),
@@ -93,7 +93,14 @@ def analiz_olc(tekrar=5, veritabanina_yaz=True) -> dict:
 
     config.ERA5_OTOMATIK_INDIRME = False
     config.CANLI_HAVA_VERISI_ETKIN = False
-    asamalar = {"rota_okuma": [], "kup_secimi": [], "eslestirme": [], "harita": [], "veritabani": [], "toplam": []}
+    asamalar: dict[str, list[float]] = {
+        "rota_okuma": [],
+        "kup_secimi": [],
+        "eslestirme": [],
+        "harita": [],
+        "veritabani": [],
+        "toplam": [],
+    }
     nokta_sayisi = None
     with tempfile.TemporaryDirectory() as gecici:
         for _ in range(tekrar):
@@ -192,6 +199,7 @@ def rota_olc(tekrar=6) -> dict:
                 )
                 toplamlar.append(ms)
                 a_yildiz.append(sum(a_yildiz_sureleri) if a_yildiz_sureleri else None)
+            assert sonuc is not None
             sicak = toplamlar[1:] or toplamlar
             sicak_a = [s for s in a_yildiz[1:] if s is not None]
             senaryolar.append(
