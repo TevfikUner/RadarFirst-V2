@@ -39,8 +39,8 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
 11. **Kurul #25 / MİM-08:** yerel Swagger (kotasız internette; statik katman değişince Docker CesiumJS'i yeniden indirir).
 12. **A2 / VER-09 (sunum sonrası):** birleşik EDR ya da ML'in rota cezasına girmesi (eşik seçimi ve GFS doğrulaması önce).
 13. **ATM-06:** GTG referans AUC'si yalnız Sharman vd. (2006) tam metni bulunursa.
-14. Araştırma CLI'larına test (`cli/demo_ekranlari` %27 vb.); mypy'nin `arayuz/`, `cli/` ve kök modüllere,
-    `depo/models.py` zaman sütunlarının `Mapped[datetime]`'a genişletilmesi.
+14. ~~mypy tüm pakete, `Mapped[datetime]`~~ (29 Ekim: 140 dosya temiz, 13 hata düzeltildi; 35 zaman sütunu
+    `Mapped[datetime]`/`date`). `cli/demo_ekranlari` testi %27 → %66. Kalan: diğer araştırma CLI'larına test.
 
 **3. Araştırma (yeni günlerde, önce protokole yazılarak)**
 15. Fikir 11 devamı (çoklu /TB grubu), Fikir 9, 10, 15, 19, 24, 29.

@@ -4,6 +4,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-29
 
+- ✅ mypy tüm pakette (140 dosya, 13 hata düzeltildi), `depo/models.py` 35 zaman sütunu `Mapped[datetime]`; `demo_ekranlari` testi %27 → %66.
 - ✅ Kurul #28 yuvarlanan kapı (ADR 0014): aktivasyon son 16 yeni günde (eşleşme sırası), altın günler yalnız rapor; şu an 148 yeni gün var.
 - ✅ Kurul #29 OOD kapısı: destek dışı girdide ML/konformal "kapsam dışı"; Türkiye %2,9, ABD kontrol %4,2 kapanıyor (marjinal kapı Türkiye'yi ayırmıyor).
 - ✅ S-4 kalanı: demo arıza tatbikatı (`ariza_taklidi`: SIGMET bayat/erişilemedi, devre kesici), yalnız `ARIZA_TAKLIDI_ETKIN` açıkken; SENTETİK etiketli, Playwright testli.
