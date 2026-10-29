@@ -139,7 +139,12 @@ def canli_sunucu():
     surec = subprocess.Popen(
         [sys.executable, "-m", "uvicorn", "turbulans_radar.api.api_servisi:app", "--port", str(port)],
         cwd=_PROJE_KOKU,
-        env={**os.environ, "PYTHONPATH": os.path.join(_PROJE_KOKU, "src"), "GOREV_GOMULU_ISCI": "false"},
+        env={
+            **os.environ,
+            "PYTHONPATH": os.path.join(_PROJE_KOKU, "src"),
+            "GOREV_GOMULU_ISCI": "false",
+            "ARIZA_TAKLIDI_ETKIN": "true",
+        },
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )

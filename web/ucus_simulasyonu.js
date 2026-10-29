@@ -439,6 +439,7 @@ async function simulasyonuCalistir() {
     arama_uzayi: document.getElementById("arama-uzayi").value,
     kalkis_penceresi: document.getElementById("kalkis-penceresi").checked,
   };
+  if (aktifTaklit) govde.ariza_taklidi = aktifTaklit;
   meydanlariEkle(govde, true);
   const anahtar = anahtarAl();
   if (!anahtar) { durumGoster("API anahtarı gerekli.", "hata"); return; }
@@ -498,6 +499,7 @@ async function ucusSirasindaYenidenHesapla() {
     ucak_modeli: sonUcakModeli,
     arama_uzayi: document.getElementById("arama-uzayi").value,
   };
+  if (aktifTaklit) govde.ariza_taklidi = aktifTaklit;
   meydanlariEkle(govde, false);
 
   const buton = document.getElementById("yeniden-hesapla-buton");
@@ -515,6 +517,7 @@ async function ucusSirasindaYenidenHesapla() {
 }
 
 let senaryolar = [];
+let aktifTaklit = null;
 
 async function senaryolariYukle() {
   try {
@@ -536,8 +539,10 @@ async function senaryolariYukle() {
 function senaryoyuUygula() {
   const s = senaryolar.find(x => x.kimlik === document.getElementById("senaryo").value);
   document.getElementById("senaryo-aciklamasi").textContent = s ? s.aciklama : "";
+  aktifTaklit = (s && s.ariza_taklidi) || null;
   if (!s) return;
   for (const [kimlik, deger] of Object.entries(s.alanlar)) document.getElementById(kimlik).value = deger;
+  if (s.zaman_simdi) document.getElementById("zaman").value = new Date().toISOString().slice(0, 13) + ":00";
 }
 
 document.getElementById("senaryo").addEventListener("change", senaryoyuUygula);

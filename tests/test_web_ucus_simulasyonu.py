@@ -16,6 +16,8 @@ bulunmazsa API "kapsam dışı" dürüst geri düşüşünü döner ve bu test o
 durumu da (rota yine de hesaplanır, sadece rüzgarsız) kabul eder.
 """
 
+import pytest
+
 
 def test_simulasyon_uctan_uca_calisir(canli_sunucu, tarayici_sayfasi, ekran_goruntusu):
     sayfa = tarayici_sayfasi["sayfa"]
@@ -160,3 +162,20 @@ def test_guvenli_rota_yok_senaryosunda_oneri_yok_yazar(canli_sunucu, tarayici_sa
     sayfa = tarayici_sayfasi["sayfa"]
     _senaryoyla_simule_et(canli_sunucu, sayfa, "guvenli_rota_yok")
     assert "öneri yok" in sayfa.inner_text("#tasarruf-satiri")
+
+
+@pytest.mark.parametrize(
+    ("kimlik", "beklenen"),
+    [
+        ("sigmet_bayat", "SIGMET güncellemesi"),
+        ("sigmet_erisilemedi", "SIGMET veritabanına erişilemedi"),
+        ("devre_kesici", "devre kesici açık"),
+    ],
+)
+def test_ariza_tatbikati_senaryolari_sentetik_etiketle_hata_durumunu_yazar(
+    canli_sunucu, tarayici_sayfasi, kimlik, beklenen
+):
+    sayfa = tarayici_sayfasi["sayfa"]
+    _senaryoyla_simule_et(canli_sunucu, sayfa, kimlik)
+    aciklama = sayfa.inner_text("#aciklama")
+    assert "SENTETİK ARIZA TATBİKATI" in aciklama and beklenen in aciklama
