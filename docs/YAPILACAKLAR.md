@@ -22,10 +22,10 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
    3 gün yerine ~10 günle yeniden ölçülür (ATM-05); eşik değişirse ONAY.
 
 **2. Proje iyileştirme (önem sırasıyla)**
-5. **Kurul #3, bağımsız rota backtest'i (P0, 2–3 gün):** NE-ABD küpleri + PIREP; büyük daire ve A* rotasında
-   MOD+ / NEG PIREP tüpü sayımı, göreli maruziyet oranı, gün bloklu GA; N ≥ 100 rota. 2 günde bitmezse
-   SISTEM_KARTI:17 iddiası "doğrulama hattı gösterimi" diye yeniden yazılır. A1 kuralının (ADR 0013) yeniden
-   değerlendirilmesi için de girdi.
+5. ~~Kurul #3, bağımsız rota backtest'i~~ (29 Ekim, protokol §11, `docs/sonuclar/2026-10-29_bagimsiz_backtest/`):
+   bağımsız günlerde sapmalı 908 rotada göreli maruziyet oranı 0,71 [0,58; 0,90]; 48 günün tamamında
+   0,83 [0,66; 1,03]. SISTEM_KARTI:17 ve §6 güncellendi. A1 (ADR 0013) için girdi: `sozluksel` kural
+   bağımsız kanıtla tutarlı; yeniden değerlendirme gerekmedi.
 6. **Kurul #4 kalanı (yarım kalan; U3 / VER-09):** uyarı oranı ölçümüne birleşik EDR eşiğiyle ikinci sütun.
    Birleşik EDR'nin rota eşiği yok; önce eğitim günlerinde Peirce ile seçilip protokole yazılır (A2).
 7. **S-4 kalanı:** SIGMET bayat / `erisilemedi` / devre kesici demo fikstürü.

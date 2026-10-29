@@ -14,7 +14,8 @@ karar destek sistemidir. Sistem üç işi yapar:
    (CAT) göstergelerini hesaplar.
 2. Aktif SIGMET'leri sert kısıt olarak uygulayarak türbülanstan kaçınan
    alternatif bir rota önerir.
-3. Önerilerini gerçek uçuş izleriyle otomatik olarak karşılaştırır.
+3. Önerilerini gerçek uçuş izleriyle ve bağımsız pilot raporlarıyla (PIREP)
+   karşılaştırır; toplu bağımsız ölçüm şimdilik tek bölgede (NE-ABD, 48 gün, §6).
 
 **Kapsam:** Rota önerisi yalnızca **seyir (en-route) safhası** içindir. Başlangıç
 ve bitiş seyre giriş (ToC) ve seyirden çıkış (ToD) noktası kabul edilir; kalkış,
@@ -411,7 +412,8 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 - Nihai paket veritabanındaki iki uçuşa (THY322, 1 ve 15 Ocak 2019)
   dayanır; seyir bölümleri OpenSky kapsama boşlukları ve küp sınırı nedeniyle
   kısadır. Sonuçlar istatistiksel bir kanıt değil, doğrulama hattının
-  çalıştığının gösterimidir.
+  çalıştığının gösterimidir. Toplu bağımsız ölçüm (29 Ekim, §6) gerçek iz değil,
+  simüle büyük daire / A* rotalarıyla ve yalnız NE-ABD'de yapıldı.
 - Backtest yalnızca koridor modunu ölçer; FRA modunun ek mesafesi ve riski
   backtest'te yoktur.
 
@@ -489,6 +491,14 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   döngüseldir (A* TI1'i düşürür, başarı TI1 ile ölçülür); bu uçuşlar için bağımsız
   kanıt kaynağı yoktur. Önceki "üç uçuşta ortalama 0,28" ölçümü (THY72C, THY606 dahil)
   tarihçedir; o uçuşlar bugünkü veritabanında yok.
+- **Bağımsız rota backtest'i (29 Ekim 2026, protokol §11, kurul #3):** NE-ABD ERA5 küplerinde
+  8 şehir çifti × 48 gün × 3 kalkış × 2 FL (2.304 rota, ağsız); ölçüt TI1'in ve A*'ın görmediği
+  IEM PIREP'leri (tüp 50 km, ±2000 ft, ±1 sa). TI1 eşiğinin seçildiği 7 gün çıkarılınca A*'ın
+  sapma önerdiği 908 rotada A* tüpündeki raporların orta-üstü payı 0,610, büyük dairede 0,687:
+  göreli maruziyet oranı 0,71 [0,58; 0,90] (gün bloklu %95 GA). Net etiketle 0,60 [0,43; 0,86];
+  48 günün tamamında 0,83 [0,66; 1,03] (1'i içeriyor). Raporlama yanlılığı, tüp örtüşmesi ve tek
+  bölge nedeniyle bu, TI1 sapmalarının bağımsız kanıtla tutarlı olduğunu gösterir; kaçınılan
+  türbülans miktarı ya da Türkiye'de beceri değildir (`docs/sonuclar/2026-10-29_bagimsiz_backtest/`).
 - **Bağımsız kanıtlı backtest (26 Eylül 2026, canlı GFS):** Gerçek bir
   uçuşta (PUE502, Brezilya, FL350) aktif TURB SIGMET maruziyeti gerçek iz 30,
   büyük daire 28, A* 33 nokta/bacak; TI1 üç rotada da risk görmedi. TI1

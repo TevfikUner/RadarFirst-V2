@@ -4,6 +4,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-29
 
+- ✅ Kurul #3 bağımsız rota backtest'i (`turbulans-bagimsiz-backtest`, ağsız): NE-ABD 2.304 rota; sapmalı 908 rotada PIREP tüpü orta-üstü payı oranı A*/büyük daire 0,71 [0,58; 0,90], 48 günün tamamında 0,83 [0,66; 1,03].
 - ✅ GitHub Destek talebi açıldı (kurul #21): PR #1'in eski commit referanslarının kaldırılması istendi; PR sayfası kalır, GitHub yanıtı bekleniyor.
 
 ## 2026-10-28
