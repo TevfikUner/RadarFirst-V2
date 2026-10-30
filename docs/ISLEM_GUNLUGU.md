@@ -2,6 +2,14 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-30
+
+- ✅ Danışman görüşmesi için yığın ayağa kaldırıldı ve uçtan uca denendi (THY322 analizi 0,25 sn, rota 2,5 sn, canlı LTAA SIGMET'i rotada uygulandı).
+- ✅ `SIGMET_SAKLAMA_GUN` 30 → 3650 (`.env`, kullanıcı onayı): 30 Eylül'den beri biriken 155 LTAA/LTBB SIGMET'i (5'i TURB) silinmesin.
+- ✅ Literatür ve açık kaynak taraması (OpenAlex 962 kayıt, GitHub ~70 depo): en yakın Zhu vd. 2026 (TR Part C, tahmin + rota + transfer öğrenme) ve Gökdeniz ve Ülkü 2026 (Türk ekip, ABD verisi); Türkiye'ye özgü CAT tahmin/rota çalışması bulunamadı (`docs/arastirma/LITERATUR_TARAMASI_2026-10-30.pdf`).
+- ✅ 18 slaytlık komite sunumu (`docs/sunum/KOMITE_SUNUMU_2026-10-30.pdf`).
+- ✅ Depo dışında (masaüstü): veri erişilebilirlik analizi ve 7 kuruma veri talebi e-posta taslakları; hiçbiri gönderilmedi.
+
 ## 2026-10-29
 
 - ✅ mypy tüm pakette (140 dosya, 13 hata düzeltildi), `depo/models.py` 35 zaman sütunu `Mapped[datetime]`; `demo_ekranlari` testi %27 → %66.
