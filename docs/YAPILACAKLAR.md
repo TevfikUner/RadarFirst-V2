@@ -47,6 +47,13 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
 16. GFS topluluk oranı, Fikir 18 devamı, Fikir 20, Fikir 23, F7 rüzgâr asimilasyonu (veri bütçesi, ONAY).
 17. Daha fazla OpenSky uçuşu (önce kota hesabı, ONAY); F5 yakıt sütunu (migration, ONAY).
 18. Gece işinin yeniden açılması (kullanıcı emri; `ML_GECE_ISI_SAATI`).
+29. **(30 Ekim, vize sonrası)** Türkiye TURB SIGMET'leri ↔ TI1 kıyası: 30 Eylül'den biriken LTAA/LTBB SIGMET'lerinin
+    zaman ve alanında canlı GFS ile TI1; bölgesel uyuşmazlık itirazına ilk Türkiye kanıtı (küçük örneklem).
+30. **(30 Ekim)** Faz 2, tırmanma/alçalma için ayrı model: 400–850 hPa, CAPE, arazi; FL100–FL280 PIREP'leri konvektif /
+    dağ dalgası / rüzgâr kesmesi diye ayrı etiket. Seyir modeline karıştırılmaz. Dayanak: Lee ve Chun (2025).
+31. **(30 Ekim)** İndekslerin `rojak` (Imperial College) ile aynı ERA5 üzerinde kıyası; Zhu vd. 2026, Gökdeniz ve
+    Ülkü 2026, He vd. 2026 ve iki derlemenin `docs/rapor/ILGILI_CALISMALAR.md`'ye eklenmesi
+    (`docs/arastirma/LITERATUR_TARAMASI_2026-10-30.pdf`).
 
 **4. Komite öncesi hazırlık (kullanıcı açana kadar ertelendi; kurul raporu §8)**
 19. Savunma hazırlığı (#5) ve danışmana YZ beyanı e-postası (K-1).
@@ -60,7 +67,8 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
 
 **5. Teslim sonrası / koşullu**
 25. `Turbulence-db-dondurma` DROP ve `docker builder prune` (~50 GB); ikisi de geri alınamaz, ONAY.
-26. Kurul #30: GTG/WAFS kıyası; MGM ve IATA Turbulence Aware başvurusu (kullanıcı, dış iletişim).
+26. Kurul #30: GTG/WAFS kıyası; MGM ve IATA Turbulence Aware başvurusu (kullanıcı, dış iletişim). 30 Ekim: TUSAŞ,
+    Boeing, Airbus, DLR, NASA, MGM ve IATA için e-posta taslakları hazır (masaüstü, depo dışı); danışman onayı bekliyor.
 27. P0-7 hibrit topoloji ADR'si (yalnız B planına geçilirse).
 28. Eski commit imzalarının temizliği (force-push; önerilen: yapılmaması).
 
