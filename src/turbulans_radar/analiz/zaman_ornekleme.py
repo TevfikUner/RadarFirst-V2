@@ -41,10 +41,10 @@ def rastgele_noktalar(veri_kupu, nokta_sayisi=VARSAYILAN_NOKTA, fl_araligi=VARSA
     )
 
 
-def karsilastir(saatlik, seyrek, esik) -> dict:
+def karsilastir(saatlik, seyrek, esik, seyrek_esik=None) -> dict:
     gecerli = np.isfinite(saatlik) & np.isfinite(seyrek)
     a, b = saatlik[gecerli], seyrek[gecerli]
-    riskli_a, riskli_b = a > esik, b > esik
+    riskli_a, riskli_b = a > esik, b > (esik if seyrek_esik is None else seyrek_esik)
     return {
         "nokta": int(gecerli.sum()),
         "spearman": float(pd.Series(a).corr(pd.Series(b), method="spearman")),
