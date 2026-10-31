@@ -33,12 +33,20 @@
    SHA'ları ve geri alma komutu `docs/denetim/2026-10-31/SILINEN_DALLAR.md`.)
 
 **C. Komite hazırlığı (kullanıcı açınca; madde 19–24)**
-9. Bütünleşik bitirme raporu (en büyük eksik teslimat; `docs/rapor/` yalnız bölüm taslakları).
-10. Savunma hazırlığı ve danışmana YZ beyanı e-postası (beyan 31 Ekim'de güncellendi).
+9. ~~Bütünleşik bitirme raporu~~ (31 Ekim, taslak: `docs/rapor/BITIRME_RAPORU.md` + `.pdf`, 29 sayfa; yeni bölümler
+   OZET, GIRIS, YONTEM, GELECEK_CALISMA; var olan taslaklar `scripts/bitirme_raporu.py --pdf` ile birleşir, test
+   eşzamanlılığı denetler). Kalan (kullanıcı): metni okuyup onaylamak; üniversite şablonu/kapak istenirse biçim;
+   bölüm içi "§0.4" gibi eski göndermeler yeni numaralara (4.0.4) çevrilmedi.
+10. Savunma hazırlığı ve danışmana YZ beyanı e-postası (beyan 31 Ekim'de güncellendi). 31 Ekim: çalışma kartları
+    `docs/sunum/SAVUNMA_HAZIRLIGI.md` (4 çekirdeğin koddan iskeleti ve soruları, "kendi kararlarım" taslağı, prova planı,
+    e-posta taslağı). Kalan (kullanıcı): 4 sayfayı elle çizmek, kararlar tablosuna gerekçe, 2 notsuz prova, e-postayı göndermek.
 11. ~~Komite sunumuna §10'un 79 günlük sonucu ve tek cümlelik katkı/konumlandırma slaytı~~ (31 Ekim: metin
     `docs/sunum/SUNUM_AKISI.md` §3 ve §8'de; slayt PDF'inin kaynağı depoda yok, PDF'e kullanıcı aktarır. Katkı
     cümlesi taslaktır, kullanıcı onaylar.)
-12. Demoya ABD vakası + ML modeli; iki seçim kuralının yan yana gösterimi; E7 kullanılabilirlik oturumları.
+12. Demoya ABD vakası + ML modeli; iki seçim kuralının yan yana gösterimi; E7 kullanılabilirlik oturumları. 31 Ekim
+    kararı (kullanıcı "önerdiğini uygula" dedi): **5 Kasım sonrasına ertelendi**; demo yığınına yeni veri ve arayüz
+    değişikliği getiriyor, 1–4 Kasım ekran/paket yenilemesi ve 5 Kasım demosundan hemen önce regresyon riski; Docker'lı
+    uçtan uca doğrulama gerekir. E7 katılımcı ister (kullanıcı).
 
 **D. Sunum sonrası**
 13. MİM-02 (madde 10); A2/VER-09 (madde 12; birleşik EDR ızgarada da TI1'den iyi, ilk aday); Fikir 10'un
@@ -86,7 +94,8 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
 12. **A2 / VER-09 (sunum sonrası):** birleşik EDR ya da ML'in rota cezasına girmesi (eşik seçimi ve GFS doğrulaması önce).
 13. **ATM-06:** GTG referans AUC'si yalnız Sharman vd. (2006) tam metni bulunursa.
 14. ~~mypy tüm pakete, `Mapped[datetime]`~~ (29 Ekim: 140 dosya temiz, 13 hata düzeltildi; 35 zaman sütunu
-    `Mapped[datetime]`/`date`). `cli/demo_ekranlari` testi %27 → %66. Kalan: diğer araştırma CLI'larına test.
+    `Mapped[datetime]`/`date`). `cli/demo_ekranlari` testi %27 → %66. 31 Ekim: `ekonomik_deger` %47,5 → %95, `esik_esleme` %55 → %91,
+    `tahmin_ufku` %80. Kalan: `performans_olcumu`, `birlesik_esik`, `sonuc_paketi`, `gosterge_degerlendirme`, `uyari_alani` (%51–56).
 
 **3. Araştırma (yeni günlerde, önce protokole yazılarak)**
 
@@ -110,7 +119,7 @@ gerekir, gece işi kapalı), Fikir 23 (OpenSky girişi kullanıcıda), F7/OpenSk
 
 **4. Komite öncesi hazırlık (kullanıcı açana kadar ertelendi; kurul raporu §8)**
 19. Savunma hazırlığı (#5) ve danışmana YZ beyanı e-postası (K-1).
-20. Bütünleşik bitirme raporu (#6).
+20. ~~Bütünleşik bitirme raporu (#6)~~ (31 Ekim taslağı, yukarıda C.9).
 21. Sunum: §10 birincil kanıt ve etiket gerekçesi (#14), katkı cümlesi ve konumlandırma slaytı (#15).
 22. Demo: ABD vakası + ML modeli (#17, OPS-05), iki seçim kuralının yan yana gösterimi (A1); E8 yedek video ve
     soğuk açılış provası (#8, 5 Kasım).
