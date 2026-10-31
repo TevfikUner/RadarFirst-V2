@@ -1,0 +1,346 @@
+{
+  "meta": {
+    "protokol": "docs/deney_protokolu.md §13.1–13.4 (keşifsel)",
+    "uretim_zamani": "2026-10-31T02:45:31+00:00",
+    "commit": "735262e68dc4a080583a748f08a70964f70b1476",
+    "kirli": false,
+    "uyari": "Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır."
+  },
+  "veri": {
+    "egitim_ornek": 16031,
+    "egitim_gun": 163,
+    "test_ornek": 7772,
+    "test_gun": 79
+  },
+  "kontrol_bolum10_temel_roc_auc": 0.6851020262734833,
+  "fikir10_komsuluk": {
+    "test_ornek": 7772,
+    "test_disi_kalan": 0,
+    "roc_auc": {
+      "TI1": 0.6582525698447792,
+      "A_komsu_maks": 0.6856443116759399,
+      "B_yatay_maks": 0.6782109765477136
+    },
+    "farklar": {
+      "A_komsu_maks - TI1": {
+        "fark": 0.027391741831160665,
+        "alt": 0.01734524465982895,
+        "ust": 0.0371450222660182,
+        "p_degeri": 0.0,
+        "anlamli": true,
+        "guven": 0.95,
+        "gecerli_tekrar": 1000,
+        "okuma": "daha iyi ayırıyor"
+      },
+      "B_yatay_maks - TI1": {
+        "fark": 0.01995840670293436,
+        "alt": 0.015770395112202382,
+        "ust": 0.024083347040708074,
+        "p_degeri": 0.0,
+        "anlamli": true,
+        "guven": 0.95,
+        "gecerli_tekrar": 1000,
+        "okuma": "daha iyi ayırıyor"
+      }
+    },
+    "peirce_esiginde": {
+      "TI1": {
+        "ornek": 7772,
+        "pozitif": 4298,
+        "esik": 4.943263667555719e-07,
+        "roc_auc": 0.6582525698447792,
+        "pod": 0.6060958585388553,
+        "pofd": 0.37737478411053543,
+        "far": 0.33478038815117467,
+        "csi": 0.46443216259582815,
+        "peirce": 0.22872107442831985,
+        "dogru_pozitif": 2605,
+        "yanlis_pozitif": 1311,
+        "yanlis_negatif": 1693,
+        "dogru_negatif": 2163
+      },
+      "A_komsu_maks": {
+        "ornek": 7772,
+        "pozitif": 4298,
+        "esik": 1.1363020243537942e-06,
+        "roc_auc": 0.6856443116759399,
+        "pod": 0.6798510935318753,
+        "pofd": 0.4061600460564191,
+        "far": 0.3256404338795292,
+        "csi": 0.511823436678928,
+        "peirce": 0.27369104747545625,
+        "dogru_pozitif": 2922,
+        "yanlis_pozitif": 1411,
+        "yanlis_negatif": 1376,
+        "dogru_negatif": 2063
+      },
+      "B_yatay_maks": {
+        "ornek": 7772,
+        "pozitif": 4298,
+        "esik": 7.952908659986736e-07,
+        "roc_auc": 0.6782109765477136,
+        "pod": 0.5851558864588181,
+        "pofd": 0.3238341968911917,
+        "far": 0.3090659340659341,
+        "csi": 0.4637654434814678,
+        "peirce": 0.2613216895676264,
+        "dogru_pozitif": 2515,
+        "yanlis_pozitif": 1125,
+        "yanlis_negatif": 1783,
+        "dogru_negatif": 2349
+      }
+    },
+    "kural_esiginde_7e-7": {
+      "TI1": {
+        "ornek": 7772,
+        "pozitif": 4298,
+        "esik": 7e-07,
+        "roc_auc": 0.6582525698447792,
+        "pod": 0.48534201954397393,
+        "pofd": 0.25273459988485897,
+        "far": 0.29622132253711203,
+        "csi": 0.40301391035548684,
+        "peirce": 0.23260741965911497,
+        "dogru_pozitif": 2086,
+        "yanlis_pozitif": 878,
+        "yanlis_negatif": 2212,
+        "dogru_negatif": 2596
+      },
+      "A_komsu_maks": {
+        "ornek": 7772,
+        "pozitif": 4298,
+        "esik": 7e-07,
+        "roc_auc": 0.6856443116759399,
+        "pod": 0.8529548627268497,
+        "pofd": 0.6442141623488774,
+        "far": 0.3790650406504065,
+        "csi": 0.5608935128518971,
+        "peirce": 0.20874070037797232,
+        "dogru_pozitif": 3666,
+        "yanlis_pozitif": 2238,
+        "yanlis_negatif": 632,
+        "dogru_negatif": 1236
+      }
+    }
+  },
+  "fikir11_cok_grup": {
+    "sayimlar": {
+      "egitim": {
+        "ornek": 16031,
+        "rapor_bulunan": 12275,
+        "cok_gruplu": 482,
+        "degisen_0_1": 38,
+        "degisen_1_0": 0,
+        "kontrol_tek_grupta_farkli": 0
+      },
+      "test": {
+        "ornek": 7772,
+        "rapor_bulunan": 5896,
+        "cok_gruplu": 248,
+        "degisen_0_1": 22,
+        "degisen_1_0": 0,
+        "kontrol_tek_grupta_farkli": 0
+      }
+    },
+    "roc_auc": {
+      "TI1": {
+        "y": 0.6509691843034511,
+        "y_cok": 0.6521091001693771
+      },
+      "birlesik_edr": {
+        "y": 0.6615000978246075,
+        "y_cok": 0.6630977649330192
+      },
+      "temel": {
+        "y": 0.6736323576392038,
+        "y_cok": 0.6758203536783257
+      },
+      "genis": {
+        "y": 0.6839267435464114,
+        "y_cok": 0.685416217560733
+      }
+    },
+    "farklar": {
+      "TI1": {
+        "fark": 0.001139915865925989,
+        "alt": -0.0010627239852921324,
+        "ust": 0.003679180209189772,
+        "gecerli_tekrar": 1000,
+        "okuma": "fark gösterilemedi"
+      },
+      "birlesik_edr": {
+        "fark": 0.0015976671084116933,
+        "alt": -0.0004933272208671568,
+        "ust": 0.004121805053790517,
+        "gecerli_tekrar": 1000,
+        "okuma": "fark gösterilemedi"
+      },
+      "temel": {
+        "fark": 0.0021879960391218978,
+        "alt": 4.165674244741854e-05,
+        "ust": 0.004718313492690604,
+        "gecerli_tekrar": 1000,
+        "okuma": "daha iyi ayırıyor"
+      },
+      "genis": {
+        "fark": 0.0014894740143216456,
+        "alt": -0.0007159844520750135,
+        "ust": 0.004171720941134514,
+        "gecerli_tekrar": 1000,
+        "okuma": "fark gösterilemedi"
+      }
+    }
+  },
+  "fikir24_auc2": {
+    "egitim_roc_auc": {
+      "ti1_indeksi": 0.6731195506559478,
+      "ti2_indeksi": 0.6702213881459593,
+      "dusey_ruzgar_kaymasi": 0.6471609836383416,
+      "yatay_deformasyon": 0.6287982242418041,
+      "ters_richardson": 0.6554894300040399
+    },
+    "agirlik": {
+      "ti1_indeksi": 0.21111680443696787,
+      "ti2_indeksi": 0.2093027622675186,
+      "dusey_ruzgar_kaymasi": 0.19514752468847732,
+      "yatay_deformasyon": 0.1842302778911531,
+      "ters_richardson": 0.20020263071588304
+    },
+    "test_ornek": 7772,
+    "roc_auc": {
+      "agirlikli": 0.6691471016630086,
+      "esit": 0.6694188136400081,
+      "TI1": 0.6582525698447792
+    },
+    "farklar": {
+      "agirlikli - esit": {
+        "fark": -0.0002717119769994891,
+        "alt": -0.0004509734888830579,
+        "ust": -0.00010279788827481096,
+        "p_degeri": 0.002,
+        "anlamli": true,
+        "guven": 0.95,
+        "gecerli_tekrar": 1000,
+        "okuma": "daha kötü ayırıyor"
+      },
+      "agirlikli - TI1": {
+        "fark": 0.010894531818229414,
+        "alt": 0.006828282624126417,
+        "ust": 0.014943199808196691,
+        "p_degeri": 0.0,
+        "anlamli": true,
+        "guven": 0.95,
+        "gecerli_tekrar": 1000,
+        "okuma": "daha iyi ayırıyor"
+      }
+    }
+  },
+  "fikir19_ek_teshisler": {
+    "egitim_ornek": 16031,
+    "test_ornek": 7772,
+    "test_disi_kalan": 0,
+    "roc_auc": {
+      "TI1": 0.6582525698447792,
+      "FRONT": 0.5177256401539536,
+      "|FRONT|": 0.5905215450117646,
+      "TEMPG": 0.55893912981979,
+      "-PV": 0.5096568928044346
+    },
+    "ti1_farki": {
+      "FRONT": {
+        "fark": -0.14052692969082559,
+        "alt": -0.15961334314407424,
+        "ust": -0.1207100313662743,
+        "p_degeri": 0.0,
+        "anlamli": true,
+        "guven": 0.95,
+        "gecerli_tekrar": 1000,
+        "okuma": "daha kötü ayırıyor"
+      },
+      "|FRONT|": {
+        "fark": -0.06773102483301463,
+        "alt": -0.08140428691321412,
+        "ust": -0.054258671023766525,
+        "p_degeri": 0.0,
+        "anlamli": true,
+        "guven": 0.95,
+        "gecerli_tekrar": 1000,
+        "okuma": "daha kötü ayırıyor"
+      },
+      "TEMPG": {
+        "fark": -0.09931344002498921,
+        "alt": -0.11612024336143738,
+        "ust": -0.08301124781062137,
+        "p_degeri": 0.0,
+        "anlamli": true,
+        "guven": 0.95,
+        "gecerli_tekrar": 1000,
+        "okuma": "daha kötü ayırıyor"
+      },
+      "-PV": {
+        "fark": -0.1485956770403446,
+        "alt": -0.17590101978263642,
+        "ust": -0.11993788231083034,
+        "p_degeri": 0.0,
+        "anlamli": true,
+        "guven": 0.95,
+        "gecerli_tekrar": 1000,
+        "okuma": "daha kötü ayırıyor"
+      }
+    },
+    "pv_negatif_payi": {
+      "orta_ustu": 0.0805025593299209,
+      "kontrol": 0.055267702936096716
+    },
+    "modeller": {
+      "temel": {
+        "secilen": "Random Forest",
+        "cv": {
+          "Lojistik Regresyon": {
+            "roc_auc": 0.6888292537639238,
+            "roc_auc_se": 0.0052417005193809985
+          },
+          "Random Forest": {
+            "roc_auc": 0.7011820251041591,
+            "roc_auc_se": 0.005892552781521854
+          },
+          "Gradient Boosting": {
+            "roc_auc": 0.7002432422425908,
+            "roc_auc_se": 0.005943144945731005
+          }
+        },
+        "esik": 0.5207628374477787,
+        "test_roc_auc": 0.6851020262734833
+      },
+      "ek": {
+        "secilen": "Lojistik Regresyon",
+        "cv": {
+          "Lojistik Regresyon": {
+            "roc_auc": 0.6984102737788737,
+            "roc_auc_se": 0.006138197046851917
+          },
+          "Random Forest": {
+            "roc_auc": 0.7031634157689929,
+            "roc_auc_se": 0.005942307971136572
+          },
+          "Gradient Boosting": {
+            "roc_auc": 0.702316036578433,
+            "roc_auc_se": 0.005846898076690972
+          }
+        },
+        "esik": 0.534248139523027,
+        "test_roc_auc": 0.6812459196321916
+      }
+    },
+    "ek - temel": {
+      "fark": -0.0038561066412916567,
+      "alt": -0.009789814549478883,
+      "ust": 0.002246489966233174,
+      "p_degeri": 0.208,
+      "anlamli": false,
+      "guven": 0.95,
+      "gecerli_tekrar": 1000,
+      "okuma": "fark gösterilemedi"
+    }
+  }
+}

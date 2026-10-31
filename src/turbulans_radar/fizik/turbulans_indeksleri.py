@@ -90,6 +90,55 @@ def yatay_diverjans_hesapla(u, v, enlem_boyutu="latitude", boylam_boyutu="longit
     return dudx + dvdy - v * metrik
 
 
+DUNYA_ACISAL_HIZI = 7.292e-5
+
+
+def yatay_vortisite_hesapla(u, v, enlem_boyutu="latitude", boylam_boyutu="longitude"):
+    """ζ = dv/dx - du/dy + u·tanφ/a (küresel)."""
+    _, dudy, dvdx, _, metrik = _kuresel_turevler(u, v, enlem_boyutu, boylam_boyutu)
+    return dvdx - dudy + u * metrik
+
+
+def yatay_gradyan_buyuklugu_hesapla(alan, enlem_boyutu="latitude", boylam_boyutu="longitude"):
+    """|∇alan| (ör. TEMPG = |∇T|, Sharman vd. 2006)."""
+    dx = _metre_per_derece_boylam(alan[enlem_boyutu])
+    return np.hypot(alan.differentiate(boylam_boyutu) / dx, alan.differentiate(enlem_boyutu) / METRE_PER_DERECE_ENLEM)
+
+
+def frontogenez_hesapla(theta, u, v, enlem_boyutu="latitude", boylam_boyutu="longitude"):
+    """2B kinematik frontogenez F = ½|∇θ|(DEF·cos2β − DIV) (Bluestein 1993; MetPy ile aynı biçim).
+    β: genişleme ekseni ile izentroplar arasındaki açı. Pozitif F cephe güçlenmesidir."""
+    dudx, dudy, dvdx, dvdy, metrik = _kuresel_turevler(u, v, enlem_boyutu, boylam_boyutu)
+    gerilme = dudx - dvdy - v * metrik
+    kayma = dvdx + dudy + u * metrik
+    deformasyon = np.sqrt(gerilme**2 + kayma**2)
+    diverjans = dudx + dvdy - v * metrik
+    dx = _metre_per_derece_boylam(theta[enlem_boyutu])
+    theta_x = theta.differentiate(boylam_boyutu) / dx
+    theta_y = theta.differentiate(enlem_boyutu) / METRE_PER_DERECE_ENLEM
+    buyukluk = np.hypot(theta_x, theta_y)
+    psi = 0.5 * np.arctan2(kayma, gerilme)
+    with np.errstate(divide="ignore", invalid="ignore"):
+        beta = np.arcsin(np.clip((-theta_x * np.cos(psi) - theta_y * np.sin(psi)) / buyukluk, -1.0, 1.0))
+    return 0.5 * buyukluk * (deformasyon * np.cos(2 * beta) - diverjans)
+
+
+def potansiyel_vortisite_hesapla(vortisite, enlem_derece, theta_ust, theta_alt, basinc_ust_hpa, basinc_alt_hpa):
+    """Hidrostatik izobarik yaklaşım PV = −g(ζ + f)∂θ/∂p, PVU (1e-6 K m² kg⁻¹ s⁻¹); yatay terimler ihmal."""
+    f = 2 * DUNYA_ACISAL_HIZI * np.sin(np.deg2rad(np.asarray(enlem_derece, dtype=float)))
+    dp_pa = (np.asarray(basinc_ust_hpa, dtype=float) - np.asarray(basinc_alt_hpa, dtype=float)) * 100.0
+    with np.errstate(divide="ignore", invalid="ignore"):
+        dtheta_dp = (np.asarray(theta_ust, dtype=float) - np.asarray(theta_alt, dtype=float)) / dp_pa
+    return -YERCEKIMI_IVMESI * (np.asarray(vortisite, dtype=float) + f) * dtheta_dp * 1e6
+
+
+def ti3_indeksi_hesapla(ti1, diverjans_simdi, diverjans_6sa_once, katsayi=0.01):
+    """TI3 = TI1 + C·|DIV(t) − DIV(t−6 sa)| (Ellrod ve Knox 2010; C = 0,01, Kim ve Kim 2026)."""
+    return np.asarray(ti1, dtype=float) + katsayi * np.abs(
+        np.asarray(diverjans_simdi, dtype=float) - np.asarray(diverjans_6sa_once, dtype=float)
+    )
+
+
 def hipsometrik_kalinlik_m(basinc_ust_hpa, basinc_alt_hpa, sicaklik_ust_k, sicaklik_alt_k):
     """Δz = R_d·T̄/g·ln(p_alt/p_ust); T̄ iki seviyenin ortalama sıcaklığı."""
     ortalama_t = (np.asarray(sicaklik_ust_k, dtype=float) + np.asarray(sicaklik_alt_k, dtype=float)) / 2

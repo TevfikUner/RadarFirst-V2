@@ -748,6 +748,7 @@ sıra benim değerlendirmem.
   yazılmalı. Negatif sayısı azalır, güven aralıkları genişler.
 
 ### Fikir 9. Uyarı alanı oranı ve alan tabanlı tehdit skoru
+- **Durum:** Yapıldı, keşifsel (31 Ekim, protokol §13.5, `docs/sonuclar/2026-10-31_uyari_alani/`): NE-ABD 41 bağımsız günde POD–alan AUC TI1 0,631, birleşik EDR 0,654; 7e-7'de ızgaranın %16,3'ü uyarıda, POD 0,33. TTS yapılmadı.
 - **Kaynak:** Makale23 (TTS = GPC / (GPF + GPO − GPC); fazla alan tahmini başlıca
   sorunlardan biri).
 - **Katkısı:** Değerlendirme ve rota bağlantısı. Yüksek POD, her yeri "riskli" boyayarak da
@@ -760,6 +761,7 @@ sıra benim değerlendirmem.
   TTS'yi yalnız MADIS günlerinde vermek daha doğru.
 
 ### Fikir 10. Komşuluk maksimumuyla eşleştirme duyarlılığı
+- **Durum:** Ölçüldü, keşifsel (31 Ekim, §13.1): §10 günlerinde ±1 hücre/seviye/saat maksimumu TI1'den +0,027 [+0,017; +0,037] ROC-AUC; pencere iki sınıfı birlikte büyütüyor (7e-7'de POFD 0,25 → 0,64). `eslestirme.py` modu sunum sonrası, ONAY.
 - **Kaynak:** Makale23 (Kanada AES: raporun önceki 10° segmentindeki en büyük değer).
 - **Katkısı:** Doğruluk yorumu. PIREP konum ve zaman hatası nokta eşleştirmede becerinin
   bir kısmını kaybettirir.
@@ -771,6 +773,7 @@ sıra benim değerlendirmem.
   iki sınıfa birlikte uygulanmalı ve önceden kaydedilmeli.
 
 ### Fikir 11. PIREP ayrıştırıcısını avwx-engine ile çapraz test
+- **Durum:** Yapıldı (20 Ekim, 499/500 uyuşma). Devamı (31 Ekim, §13.2): çoklu /TB grubunun en şiddetlisi test günlerinde 22 etiketi çeviriyor, ROC-AUC etkisi ≤ +0,002.
 - **Kaynak:** R23 (avwx-engine, MIT, `avwx/current/pirep.py` ve test verileri).
 - **Katkısı:** Veri kalitesi. Etiketimizi `pirep_siddet_sinifi` belirliyor: `SEV|EXTM`
   içeriyorsa 2, `MOD|MDT` içeriyorsa 1, yoksa 0. Geçmişte PIREP verisinde birim hatası
@@ -825,6 +828,7 @@ sıra benim değerlendirmem.
   toplanmamalı.
 
 ### Fikir 15. TI3 (Ellrod–Knox DVT) göstergesi
+- **Durum:** Ölçüldü, keşifsel (31 Ekim, §13.6): pencere deposu yalnız ±1 sa tuttuğu için NE-ABD küplerinde; TI3 − TI1 POD–alan AUC +0,015 [−0,010; +0,043], PIREP ROC-AUC +0,007 [−0,030; +0,039], fark gösterilemedi.
 - **Kaynak:** Makale11 (TI3 = TI1 + C·|div(t) − div(t−6 sa)|, C = 0,01), Makale1 (TI3 öne
   çıkan özellik), Ellrod ve Knox (2010) (`ILGILI_CALISMALAR`'da zaten var).
 - **Katkısı:** Doğruluk. Antisiklonik akış ve atalet-çekim dalgası kaynaklı CAT'i de
@@ -877,6 +881,7 @@ sıra benim değerlendirmem.
 - **Risk ve bağımlılıklar:** Geçmiş GFS koşuları gerekir (THREDDS −48 sa sınırı).
 
 ### Fikir 19. Ek teşhisler: frontogenez, ∇T, NCSU1, negatif PV
+- **Durum:** Ölçüldü, keşifsel (31 Ekim, §13.4; frontogenez ve vortisite MetPy ile çapraz kontrollü): tek başına ROC-AUC frontogenez 0,518, |F| 0,591, |∇T| 0,559, −PV 0,510 (TI1 0,658); modele katkı −0,004 [−0,010; +0,002]. NCSU1 birincil kaynak (Sharman vd. 2006) elde olmadığı için hesaplanmadı.
 - **Kaynak:** Makale8 (çoklu teşhis ve işaret uyumu), Makale21 (UBF, VOSQ, TEMPG, Brown2),
   Makale19 (WCB tipinde negatif PV, olayların ~%30'u).
 - **Katkısı:** Doğruluk ve akademik değer. TI1'in kaçırdığı tip II olaylar yakalanabilir.
@@ -933,6 +938,7 @@ sıra benim değerlendirmem.
   Trino'da bu tabloların varlığı ve kotası kontrol edilmedi; ban riski kuralı geçerli.
 
 ### Fikir 24. AUC² ağırlıklı birleşik EDR
+- **Durum:** Ölçüldü, keşifsel (31 Ekim, §13.3): ağırlıklar 0,18–0,21; ağırlıklı − eşit −0,0003 [−0,0005; −0,0001], pratikte sıfır. Eşit ağırlık kalır.
 - **Kaynak:** Makale21 (Wᵢ = AUCᵢ² / ΣAUC², Kim ve Chun 2011).
 - **Katkısı:** Küçük bir doğruluk kazancı olabilir. Bizde birleşik EDR eşit ağırlıklı
   (`fizik/edr_esleme.py`) ve TI1'e göre farkı zaten küçük (0,684'e karşı 0,671).

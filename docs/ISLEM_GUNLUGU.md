@@ -2,6 +2,14 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-10-31
+
+- ✅ Protokol §13 skorlardan önce commit'lendi; Fikir 9, 10, 11 devamı, 15, 19, 24 bir kez çalıştı (keşifsel, karar değişmedi).
+- ✅ Fikir 10: komşuluk maksimumu TI1'den +0,027 [+0,017; +0,037]; 7e-7'de POFD 0,25 → 0,64, eşik yeniden seçilmeli.
+- ✅ Fikir 9: NE-ABD POD–alan AUC TI1 0,631, birleşik EDR +0,024; 7e-7'de alan %16,3, POD 0,33, POFD 0,18.
+- ✅ Fikir 11/15/19/24: etiket etkisi ≤ 0,002; TI3 farksız; frontogenez/|∇T|/PV zayıf; AUC² ağırlık ≈ eşit. NCSU1 kaynak yok.
+- ⏸️ Ertelenen: #25, ATM-06, gece işi, MİM-02, A2, Fikir 18/20/23/29, F7/OpenSky/F5 (gerekçe YAPILACAKLAR §3).
+
 ## 2026-10-30
 
 - ✅ Danışman görüşmesi için yığın ayağa kaldırıldı ve uçtan uca denendi (THY322 analizi 0,25 sn, rota 2,5 sn, canlı LTAA SIGMET'i rotada uygulandı).
