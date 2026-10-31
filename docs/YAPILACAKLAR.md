@@ -15,7 +15,10 @@
    **yapılmaz** (CesiumJS önbellekte). `DEMO_SENARYOSU` sayıları kontrol edilir.
 2. **3 Kasım: #11 devamı + ATM-05 (madde 4, ONAY 28 Ekim).** `turbulans-tahmin-ufku --indir --baslangic
    2026-10-28T12 --bitis 2026-11-03T00` (~15 MB; 28 Ekim 12Z koşusu 4–5 Kasım'da UCAR'dan silinir). ERA5 kıyas aracı
-   `tahmin_ufku.py`'ye önce yazılır (ERA5 ~5 gün gecikmeli: 3 Kasım'da ~29 Ekim'e kadarki zamanlar).
+   31 Ekim'de yazıldı (`--era5`; 23 Ekim ile CDS'ten denendi, 1 MB önbellekte). İndirmeden sonra:
+   `CDSAPI_RC=<CDSAPI_RC_DOSYASI> turbulans-tahmin-ufku --era5 --baslangic 2026-10-23T00 --bitis 2026-11-03T00
+   --cikti docs/sonuclar/2026-11-03_tahmin_ufku` (ERA5 ~5 gün gecikmeli: ~29 Ekim'e kadarki zamanlar, ~7 CDS isteği,
+   ~7 MB). ATM-05 eşlemesi aynı raporda; eşik farkı çıkarsa `.env` değişikliği ONAY.
 3. **5 Kasım: E8 yedek video ve soğuk açılış provası** (madde 22). 1. madde bitmeden çekilmez.
 4. **5 Kasım Perşembe 23:55: Hafta 6 ilerleme raporu.** Hafta aralığı kullanıcıya sorulur (öneri 30 Ekim–5 Kasım);
    Hafta 5 e-postasının gönderildiği doğrulanır (madde 2).
@@ -58,7 +61,7 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
    26 Kas, 682 nokta/85 saha; `/saglik?derin=true` `ats_agi` "tamam". "AMDT 06/26" değişmeyen ENR 4.1'in numarası.)
 4. **3 Kasım (kurul #11 devamı + ATM-05; ONAY 28 Ekim):** 28 Ekim–3 Kasım GFS koşuları
    (`turbulans-tahmin-ufku --indir`, ~15 MB) ve ERA5 kıyası (ERA5'in yayınlandığı geçerlilik zamanları, küçük
-   CDS kutusu; araç `tahmin_ufku.py`'ye eklenecek). Aynı f000 ve ERA5 verisiyle ERA5 → GFS TI1 eşik eşlemesi
+   CDS kutusu; araç 31 Ekim'de `tahmin_ufku.py --era5` olarak eklendi). Aynı f000 ve ERA5 verisiyle ERA5 → GFS TI1 eşik eşlemesi
    3 gün yerine ~10 günle yeniden ölçülür (ATM-05); eşik değişirse ONAY.
 
 **2. Proje iyileştirme (önem sırasıyla)**
@@ -316,7 +319,7 @@ jüri sorularına doğrudan yanıt verenler önde.
 - [ ] **3 Kasım (#11 devamı; ONAY 28 Ekim):** `turbulans-tahmin-ufku --indir --baslangic 2026-10-28T12 --bitis
   2026-11-03T00` (UCAR yalnız son ~7,5 günün koşularını tutar; ~15 MB), sonra tüm aralıkla (23 Ekim–3 Kasım)
   yeniden rapor. Aynı gün ERA5 kıyası: ERA5'in yayınlandığı geçerlilik zamanları (~5 gün gecikme) için küçük
-  CDS kutusu, GFS f000/f024/f048 TI1'i ERA5 TI1'ine karşı (araç henüz yok, `tahmin_ufku.py`'ye eklenecek).
+  CDS kutusu, GFS f000/f024/f048 TI1'i ERA5 TI1'ine karşı (31 Ekim: `turbulans-tahmin-ufku --era5`).
 - [ ] **5 Kasım:** E8 yedek demo videosu (3–5 dk, metin `docs/sunum/DEMO_SENARYOSU.md` §4;
   ekranlar temiz klondan).
 - [ ] Sunum konuşulmaya başlanınca: E7 kullanılabilirlik oturumları (katılımcı bulmak zaman alır).
