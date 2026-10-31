@@ -38,3 +38,23 @@ def test_zarf_her_alfada_en_iyi_esigi_alir_ve_kayip_sinirini_hesaplar():
     sonuc = ed.hesapla(paket, kacinma_bedeli_yuzde=2.0)
     satir = sonuc["PIREP altın günler (ölçülen)"]["seriler"]["TI1 risk eşiği (7e-07)"]
     assert satir["en_az_kayip_yakit_yuzdesi"] == pytest.approx(2.0 / satir["deger_kattigi_alfa"][1])
+
+
+def test_calistir_depodaki_paketle_json_markdown_ve_sekil_yazar(tmp_path):
+    pytest.importorskip("matplotlib")
+    rapor = ed.calistir(str(tmp_path))
+    assert rapor["kacinma_bedeli_yuzde"] is not None
+    assert {"PIREP altın günler (ölçülen)"} <= set(rapor["sonuc"])
+    for ad in ("ekonomik_deger.json", "README.md", "rev_egrileri.png"):
+        assert (tmp_path / ad).stat().st_size > 0
+    metin = (tmp_path / "README.md").read_text(encoding="utf-8")
+    assert "Göreli ekonomik değer" in metin and "sertifikalı EDR değildir" in metin
+
+
+def test_kacinma_bedeli_yoksa_kayip_araligi_bos(tmp_path):
+    pytest.importorskip("matplotlib")
+    rapor = ed.calistir(str(tmp_path), uyari_orani_yolu=str(tmp_path / "yok.json"))
+    assert rapor["kacinma_bedeli_yuzde"] is None
+    ozet = next(iter(rapor["sonuc"].values()))["seriler"]
+    assert all(o["en_az_kayip_yakit_yuzdesi"] is None for o in ozet.values())
+    assert "—–—" in ed.markdown_ozeti(rapor)

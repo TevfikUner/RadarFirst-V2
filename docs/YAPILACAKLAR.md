@@ -43,7 +43,10 @@
 11. ~~Komite sunumuna §10'un 79 günlük sonucu ve tek cümlelik katkı/konumlandırma slaytı~~ (31 Ekim: metin
     `docs/sunum/SUNUM_AKISI.md` §3 ve §8'de; slayt PDF'inin kaynağı depoda yok, PDF'e kullanıcı aktarır. Katkı
     cümlesi taslaktır, kullanıcı onaylar.)
-12. Demoya ABD vakası + ML modeli; iki seçim kuralının yan yana gösterimi; E7 kullanılabilirlik oturumları.
+12. Demoya ABD vakası + ML modeli; iki seçim kuralının yan yana gösterimi; E7 kullanılabilirlik oturumları. 31 Ekim
+    kararı (kullanıcı "önerdiğini uygula" dedi): **5 Kasım sonrasına ertelendi**; demo yığınına yeni veri ve arayüz
+    değişikliği getiriyor, 1–4 Kasım ekran/paket yenilemesi ve 5 Kasım demosundan hemen önce regresyon riski; Docker'lı
+    uçtan uca doğrulama gerekir. E7 katılımcı ister (kullanıcı).
 
 **D. Sunum sonrası**
 13. MİM-02 (madde 10); A2/VER-09 (madde 12; birleşik EDR ızgarada da TI1'den iyi, ilk aday); Fikir 10'un
@@ -91,7 +94,8 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
 12. **A2 / VER-09 (sunum sonrası):** birleşik EDR ya da ML'in rota cezasına girmesi (eşik seçimi ve GFS doğrulaması önce).
 13. **ATM-06:** GTG referans AUC'si yalnız Sharman vd. (2006) tam metni bulunursa.
 14. ~~mypy tüm pakete, `Mapped[datetime]`~~ (29 Ekim: 140 dosya temiz, 13 hata düzeltildi; 35 zaman sütunu
-    `Mapped[datetime]`/`date`). `cli/demo_ekranlari` testi %27 → %66. Kalan: diğer araştırma CLI'larına test.
+    `Mapped[datetime]`/`date`). `cli/demo_ekranlari` testi %27 → %66. 31 Ekim: `ekonomik_deger` %47,5 → %95, `esik_esleme` %55 → %91,
+    `tahmin_ufku` %80. Kalan: `performans_olcumu`, `birlesik_esik`, `sonuc_paketi`, `gosterge_degerlendirme`, `uyari_alani` (%51–56).
 
 **3. Araştırma (yeni günlerde, önce protokole yazılarak)**
 

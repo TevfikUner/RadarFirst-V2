@@ -122,3 +122,48 @@ def test_gfs_esigi_yalniz_gfs_kupunde_ve_yalniz_kendi_baglaminda_uygulanir(monke
     assert uretim_bilgisi(_kup([300.0, 250.0], "era5_cds"))["esikler"]["ti1_orta_siddetli_uygulanan"] == (
         config.TI1_ESIK_ORTA_SIDDETLI
     )
+
+
+def test_eslemeyi_calistir_ve_ana_indirmesiz_rapor_yazar(monkeypatch, tmp_path):
+    istekler = []
+
+    def era5_getir(gun, saatler, kutu, klasor):
+        istekler.append(("era5", gun, tuple(saatler)))
+        kup = _kup(list(config.ERA5_BASINC_SEVIYELERI_HPA), "era5_cds")
+        zamanlar = [(gun + pd.Timedelta(hours=s)).tz_convert(None) for s in saatler]
+        return xr.concat([kup.assign_coords(valid_time=[z]) for z in zamanlar], dim="valid_time")
+
+    def gfs_getir(zaman, kutu, klasor):
+        istekler.append(("gfs", zaman))
+        return _kup([300.0, 250.0, 200.0]).assign_coords(valid_time=[zaman.tz_convert(None)])
+
+    monkeypatch.setattr(esik_esleme, "era5_gununu_getir", era5_getir)
+    monkeypatch.setattr(esik_esleme, "gfs_analizini_getir", gfs_getir)
+    cikti = tmp_path / "rapor"
+    esik_esleme.ana(
+        [
+            "--baslangic", "2026-10-10T00:00Z", "--bitis", "2026-10-10T06:00Z",
+            "--kutu", "38.5,41.5,28.5,31.5", "--adim", "1.0", "--fl", "320,360",
+            "--veri-klasoru", str(tmp_path / "veri"), "--cikti", str(cikti), "--tekrar", "20",
+        ]
+    )  # fmt: skip
+    assert [i[0] for i in istekler] == ["era5", "gfs", "gfs"] and istekler[0][2] == (0, 6)
+    metin = (cikti / "esik_esleme.md").read_text(encoding="utf-8")
+    assert "ERA5 → canlı GFS" in metin and "| FL320 |" in metin and "| FL360 |" in metin
+    rapor = __import__("json").loads((cikti / "esik_esleme.json").read_text(encoding="utf-8"))
+    assert rapor["zaman_sayisi"] == 2 and rapor["genel"]["n"] == 2 * 2 * 4 * 4
+    assert rapor["ayarlar"]["fl"] == [320, 360]
+
+
+def test_getiriciler_var_olan_dosyayi_indirmeden_yukler(monkeypatch, tmp_path):
+    _kup([300.0, 250.0, 200.0]).to_netcdf(tmp_path / "gfs_f000_2026101000.nc")
+    _kup([300.0, 250.0], "era5_cds").to_netcdf(tmp_path / "era5_20261010_00-06.nc")
+
+    def indirme_yok(*a, **k):
+        raise AssertionError("indirme denendi")
+
+    monkeypatch.setattr("turbulans_radar.veri.veri_saglayicilari.GfsThreddsSaglayici", indirme_yok)
+    monkeypatch.setattr("turbulans_radar.veri.era5_saglayici._cds_istemcisi", indirme_yok)
+    gfs = esik_esleme.gfs_analizini_getir("2026-10-10T00:00Z", (38.0, 42.0, 28.0, 32.0), str(tmp_path))
+    era5 = esik_esleme.era5_gununu_getir("2026-10-10T06:00Z", [0, 6], (38.0, 42.0, 28.0, 32.0), str(tmp_path))
+    assert gfs.sizes["pressure_level"] == 3 and era5.sizes["pressure_level"] == 2
