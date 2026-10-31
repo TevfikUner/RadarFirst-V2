@@ -37,7 +37,9 @@
    OZET, GIRIS, YONTEM, GELECEK_CALISMA; var olan taslaklar `scripts/bitirme_raporu.py --pdf` ile birleşir, test
    eşzamanlılığı denetler). Kalan (kullanıcı): metni okuyup onaylamak; üniversite şablonu/kapak istenirse biçim;
    bölüm içi "§0.4" gibi eski göndermeler yeni numaralara (4.0.4) çevrilmedi.
-10. Savunma hazırlığı ve danışmana YZ beyanı e-postası (beyan 31 Ekim'de güncellendi).
+10. Savunma hazırlığı ve danışmana YZ beyanı e-postası (beyan 31 Ekim'de güncellendi). 31 Ekim: çalışma kartları
+    `docs/sunum/SAVUNMA_HAZIRLIGI.md` (4 çekirdeğin koddan iskeleti ve soruları, "kendi kararlarım" taslağı, prova planı,
+    e-posta taslağı). Kalan (kullanıcı): 4 sayfayı elle çizmek, kararlar tablosuna gerekçe, 2 notsuz prova, e-postayı göndermek.
 11. ~~Komite sunumuna §10'un 79 günlük sonucu ve tek cümlelik katkı/konumlandırma slaytı~~ (31 Ekim: metin
     `docs/sunum/SUNUM_AKISI.md` §3 ve §8'de; slayt PDF'inin kaynağı depoda yok, PDF'e kullanıcı aktarır. Katkı
     cümlesi taslaktır, kullanıcı onaylar.)

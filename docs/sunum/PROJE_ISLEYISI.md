@@ -294,7 +294,7 @@ aktif TURB SIGMET'in gösterdiği bölgede TI1 hiç risk görmedi.
 3. Veri ve filtre (2 dk): §2–3, "neden baro irtifa" ve "neden kapsam filtresi".
 4. Birleştirme ve göstergeler (2 dk): §5–6, TI1 = VWS × DEF.
 5. Rota ve simülasyon (2 dk): §7, demo ekranı.
-6. Etiket, model, sonuç (2 dk): §8–10, "model geçemedi, bunu dürüstçe raporladık".
+6. Etiket, model, sonuç (2 dk): §8–10, "model TI1'i küçük ama tutarlı farkla geçiyor (§10, 79 yeni gün: +0,027); 7 Ekim'de 80 günle geçememişti, bunu da söyle".
 
 ## 14. Sık gelebilecek sorular
 
