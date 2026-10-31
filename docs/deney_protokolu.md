@@ -318,3 +318,95 @@ Rota sapma kararı TI1'le kalır (birleşik EDR'nin rota cezasına girmesi A2/VE
   Birleşik EDR TI1'i de içerir, iki sütun bağımsız değildir.
 - **Çıktı:** `docs/sonuclar/2026-10-29_birlesik_esik/` ve `docs/sonuclar/2026-10-29_uyari_orani_birlesik/`;
   bir kez, üzerine yazılmaz. Sonuç ne çıkarsa raporlanır.
+
+## 13. Keşifsel göstergeler: Fikir 9, 10, 11 devamı, 15, 19, 24 (31 Ekim 2026, skorlar hesaplanmadan yazıldı)
+
+**Not:** §10.4'ün istediği ön kayıt. Yazıldığı anda §10 test günlerinde TI1, temel ve geniş set skorları
+biliniyordu (`2026-10-27_yeni_gun/`); aşağıdaki yeni skorların hiçbiri hesaplanmamıştı. Hepsi
+**keşifsel**dir: birincil sonucu (§10.2), model aktivasyonunu ve rota kararını değiştirmez; üretime alınması
+ayrı karardır (ONAY). Çoklu karşılaştırma düzeltmesi yapılmaz, yalnız GA ile okunur. Sonuç ne çıkarsa raporlanır.
+
+**Ortak (13.1–13.4, örnek düzeyi):** eğitim `ml/dondurma_gunleri.json` (163 gün), test §10'un sabit 79 günlük
+listesi (`2026-10-27_yeni_gun/yeni_gun_degerlendirmesi.json`, `veri.test_gunleri`). Örnekler §10 ile aynı
+(`_veriyi_hazirla`, geniş set tam). Bir göstergesi hesaplanamayan örnek yalnız o karşılaştırmadan düşer, sayısı
+yazılır. Fark: ROC-AUC(a) − ROC-AUC(b), gün bloklu eşleştirilmiş bootstrap (`eslestirilmis_auc_farki`,
+`ML_BOOTSTRAP_TEKRAR`, tohum 0). Okuma: GA alt > 0 "a daha iyi ayırıyor", üst < 0 "daha kötü", aksi
+"fark gösterilemedi". Eşik gereken yerde Peirce-maks eşiği eğitim günlerinde seçilir (`peirce_esigi`), test
+günlerine aynen uygulanır. Çıktı `docs/sonuclar/2026-10-31_kesifsel_gostergeler/kesifsel_gostergeler.json`
++ README; bir kez, dosya varsa üzerine yazılmaz. Kod `turbulans-kesifsel-gostergeler`.
+
+### 13.1 Fikir 10: komşuluk maksimumu eşleştirmesi
+
+- **Skorlar:** (A) `ti1_komsu_maks` (mevcut bağlam özelliği: ±1 hücre 0,25°, ±1 seviye, ±1 sa; 81 nokta);
+  (B) yalnız yatay: aynı saat ve katmanda ±1 hücre (9 nokta) TI1 en büyüğü. İki sınıfa birlikte uygulanır.
+- **Ölçüt:** A − TI1 ve B − TI1 ROC-AUC farkı. Eşikte: her skorun eğitim Peirce-maks eşiğinde test POD,
+  POFD, Peirce; TI1 7e-7 kural eşiğinde de TI1 ve A için POD/POFD (pencerenin iki sınıfı birlikte büyüttüğünü
+  göstermek için).
+- **Okuma:** A ya da B'nin GA alt > 0 olması, nokta eşleştirmenin konum/zaman hatası yüzünden ayırma
+  kaybettiğine işaret eder; `fizik/eslestirme.py`'ye mod eklemek ayrı karardır.
+
+### 13.2 Fikir 11 devamı: çoklu /TB grubu etiketi
+
+- **Etiket:** yerel IEM arşivinin ham `REPORT` metninde `/TB` alanı ve onu izleyen, bilinen bir alan koduyla
+  (OV, TM, FL, TP, SK, WX, TA, WV, TB, IC, RM) başlamayan `/` gruplarının tamamı; `pirep_siddet_sinifi` bu
+  birleşik metne uygulanır (en şiddetli grup). y_çok = sınıf ≥ 1. `REPORT` bulunamayan ya da `/TB` alanı
+  ayrıştırılamayan örnek bu analizden düşer.
+- **Kontrol:** tek gruplu raporlarda y_çok, mevcut etiketle aynı olmalı; farklı çıkanlar sayılır ve yazılır.
+- **Ölçüt:** test günlerinde etiketi değişen örnek sayısı (0→1, 1→0) ve eğitim günlerindeki sayı (eğitim
+  yeniden yapılmaz). Aynı skorlarla (TI1, birleşik EDR, §10 protokol modelleri temel ve geniş; eğitim etiketi
+  değişmez) ROC-AUC(y_çok) − ROC-AUC(y), gün bloklu bootstrap.
+- **Okuma:** değişen örnek az olacağı için fark büyük olasılıkla GA içinde kalır; bu da "etiket gürültüsü bu
+  kaynaktan sonucu değiştirmiyor" diye raporlanır.
+
+### 13.3 Fikir 24: AUC² ağırlıklı birleşik EDR
+
+- **Ağırlık:** `edr_esleme` göstergelerinin (TI1, TI2, |VWS|, DEF, 1/Ri) EDR'ye eşlenmiş değerleri için
+  eğitim günlerinde ROC-AUC_i; w_i = AUC_i² / Σ AUC_j² (Gu ve Wang 2024, Kim ve Chun 2011). Birleşik =
+  Σ w_i·EDR_i, o noktada tanımsız gösterge varsa kalan ağırlıklar yeniden normalize edilir.
+- **Ölçüt:** ağırlıklı − eşit ağırlıklı birleşik EDR ve ağırlıklı − TI1 ROC-AUC farkı (ikisinin de tanımlı
+  olduğu test örneklerinde). Ağırlıklar ve eğitim AUC'leri raporlanır.
+
+### 13.4 Fikir 19: ek teşhisler
+
+- **Teşhisler** (pencere deposundan, noktanın en yakın seviyesinde; düşey türev çevreleyen katmandan):
+  - FRONT: 2B kinematik frontogenez, F = −|∇θ|⁻¹[θx²·ux + θx·θy·(vx + uy) + θy²·vy] (Bluestein 1993);
+    skor F, ayrıca |F| ayrı satır.
+  - TEMPG: |∇T| (Sharman vd. 2006, Gu ve Wang 2024 Tablo 2).
+  - PV: hidrostatik izobarik yaklaşım, PV = −g·(ζ + f)·∂θ/∂p; skor −PV (düşük/negatif PV riskli,
+    Makale19). Sınıf başına PV < 0 payı da tanımlayıcı olarak verilir.
+  - NCSU1 **hesaplanmaz**: formülün birincil kaynağı (Sharman vd. 2006) elde yok; uydurulmaz (ATM-06 ile aynı).
+- **Ölçüt:** her teşhisin tek başına ROC-AUC'si ve TI1 farkı. Ayrıca "temel + FRONT, TEMPG, PV" (11 özellik)
+  protokol modeli (§3 seçim kuralı, eğitim günlerinde) − temel set farkı (H1 ile aynı biçim).
+- **Okuma:** model farkı GA alt > 0 ise F9 geniş setine aday; üretime alınması gece işinin bu teşhisleri
+  üretmesini gerektirir (ONAY).
+
+### 13.5 Fikir 9: ızgara düzeyinde uyarı alanı ve POD–alan eğrisi (NE-ABD küpleri)
+
+- **Veri:** `era5_egitim_verisi/` NE-ABD küpleri (48 gün; 40–50°K, 80–70°B, 0,25°, 3 sa, 300/250/200 hPa),
+  zaman ekseninde birleştirilir. **Birincil: `ml/dondurma_gunleri.json`'daki 7 gün çıkarılmış 41 gün**
+  (§11 ile aynı). Ağ yok, indirme yok.
+- **Hacim:** kutudaki tüm ızgara noktaları × küpün tüm zamanları × FL300, FL330, FL360, FL390
+  (`rotayi_hava_durumuyla_eslestir`; küpün çevrelediği aralık). **PIREP'ler:** yerel IEM arşivi
+  (`bagimsiz_backtest.arsiv_pireplerini_oku`), kutu içi, FL300–FL390, aynı günler; aynı fonksiyonla eşlenir.
+  Orta-üstü (M) = sınıf ≥ 1, kontrol (N) = 0.
+- **Skorlar:** TI1, birleşik EDR (sabit katsayılar), TI3 (13.6).
+- **Eğri:** eşikler = her skorun birleşik ızgara dağılımının %50–%99,5 yüzdelikleri (0,5 adım) + kural eşikleri
+  (TI1 7e-7, birleşik EDR 0,0757). Her eşikte uyarı alanı oranı A (ızgara noktalarının eşik üstü payı),
+  POD_M (M raporlarının eşik üstü payı) ve POFD (N raporlarının eşik üstü payı).
+- **Özet ölçüt:** POD_M–A eğrisinin altındaki alan (AUC_A; (0,0) ve (1,1) uçlarıyla yamuk; rastgele 0,5) ve
+  A = %10 ile %20'deki POD_M (doğrusal ara değer). Belirsizlik: gün bloklu bootstrap (2.000, tohum 0); TI1'e
+  karşı farklar eşleştirilmiş. Kural eşiklerinde A, POD_M, POFD.
+- **Kapsam dışı:** TTS (gözlenen alan PIREP'lerden bilinemez; MADIS günleri bu küplerde yok).
+
+### 13.6 Fikir 15: TI3 (Ellrod–Knox DVT; NE-ABD küpleri)
+
+- **Tanım:** TI3 = TI1 + C·|DIV(t) − DIV(t − 6 sa)|, C = 0,01 (Kim ve Kim 2026, Lee vd. 2023 izlenerek); DIV
+  noktanın en yakın seviyesinde, `yatay_diverjans_hesapla`. Pencere deposu yalnız ±1 sa tuttuğu için örnek
+  düzeyinde (13.1–13.4) **yapılamaz**; NE-ABD küpleri 3 saatlik ve çoğunlukla ardışık 3 günlük bloklar olduğu
+  için orada hesaplanır. t − 6 sa küpte yoksa (blok başı) TI3 tanımsızdır, nokta düşer.
+- **Ölçüt:** 41 günde PIREP düzeyinde ROC-AUC (TI3 − TI1, aynı PIREP'ler, gün bloklu eşleştirilmiş bootstrap);
+  13.5 eğrisinde TI3 satırı. DVT/TI1 oranının medyanı tanımlayıcı olarak verilir.
+- **Çıktı (13.5–13.6):** `docs/sonuclar/2026-10-31_uyari_alani/uyari_alani.json` + README + şekil; bir kez,
+  üzerine yazılmaz. Kod `turbulans-uyari-alani`.
+- **Geçerlilik tehditleri:** 3 seviye, tek bölge, 41 gün, birkaç yüz PIREP; PIREP'ler trafik ve raporlama
+  yanlılığı taşır (orta-üstü payı yüksek). ERA5'te 6 saatlik DIV farkı analiz artımlarını da içerir.
