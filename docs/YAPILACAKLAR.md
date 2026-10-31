@@ -44,6 +44,12 @@
   4. `DEMO_SENARYOSU.md` ve sunum akışı: "gerçek uçuş Belgrad TURB SIGMET'inden geçti, sistem bu SIGMET'i sert kısıt alır".
   5. İsteğe bağlı SXS6MG (Londra → Antalya), aynı adımlar (+30 dk).
   6. Ardından demo ekranları ve sunum paketi yenilenir (A.1 ile birleşir).
+  7. THY4QR noktalarında OOD kapısının kapanma oranı (indirme yok, birkaç dakika).
+  8. **Veri kalitesi (31 Ekim bulgusu):** LYBA U03/U04 TURB SIGMET'lerinin metninde "FL290/380" ve "FL260/380" yazıyor ama
+     DB'de `taban_ft`/`tavan_ft` boş (U06'da dolu). AWC alanı boşsa irtifa bandını ham metinden (`FLxxx/yyy`) okuyan düzeltme
+     + test. Boş bant bugün tüm irtifalar sayılıyor (tutucu); THY4QR FL330–370'te uçtuğu için ön bulgu değişmez.
+  9. MADIS EDR 25 Ekim: kontrol edilmedi (bir günlük MADIS dosyası indirmek gerekir; Avrupa'da açık EDR seyrek,
+     11 günde 28 hafif+). IEM PIREP o gün Avrupa'da 0 (IEM yalnız Kuzey Amerika/Pasifik).
 - Trino girişi: her yeni süreçte tarayıcıda OAuth ekranı açılır. Kalıcı çözüm `keyring` + `keyrings.alt` (WSL venv,
   depo dışı düz dosya); Claude'un kurulumu izin denetimince engellendi, kullanıcı isterse kendisi kurar. Kurulmazsa sorgular
   tek süreçte toplanır.
