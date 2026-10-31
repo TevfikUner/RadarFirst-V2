@@ -4,6 +4,8 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-31
 
+- ✅ Proje taraması (`docs/denetim/2026-10-31/TARAMA.md`): CI/test/güvenlik temiz, kapsam %84,6; acil: 3 Kasım GFS, 5 Kasım öncesi demo ekranları ve sunum paketi.
+- ✅ GitHub Destek talebi doğrulandı (şifreli commit 422, PR #1 404). Belge düzeltmeleri: test sayısı 1.242, beyan sayımları, SONUCLAR §2.10, ILGILI_CALISMALAR'a 4 Crossref künyesi.
 - ✅ Protokol §13 skorlardan önce commit'lendi; Fikir 9, 10, 11 devamı, 15, 19, 24 bir kez çalıştı (keşifsel, karar değişmedi).
 - ✅ Fikir 10: komşuluk maksimumu TI1'den +0,027 [+0,017; +0,037]; 7e-7'de POFD 0,25 → 0,64, eşik yeniden seçilmeli.
 - ✅ Fikir 9: NE-ABD POD–alan AUC TI1 0,631, birleşik EDR +0,024; 7e-7'de alan %16,3, POD 0,33, POFD 0,18.
