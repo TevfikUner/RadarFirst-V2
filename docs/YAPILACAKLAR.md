@@ -3,6 +3,45 @@
 İleri bir tarihe ertelenen tüm işler burada tek listede tutulur. Biten madde silinmez,
 `[x]` ile işaretlenir ve yanına PR/tarih yazılır. Yeni ertelenen iş buraya eklenir.
 
+## Sıradaki işler (31 Ekim 2026, tarama sonrası; `docs/denetim/2026-10-31/TARAMA.md`)
+
+Önerilen sıra. Ayrıntı ve kanıt tarama raporunda; numaralar aşağıdaki öncelik listesine bağlanır.
+
+**A. Bu hafta (5 Kasım sunumundan önce)**
+1. **1–4 Kasım: demo ekranları ve sunum paketi yenileme (önerilen ilk iş).** Ekranlar 19 Ekim, paket
+   (`sunum_paketi_20261027`) `e73fdd8`; S-3 seçici, S-4 arıza tatbikatı, OOD kapısı, model paneli (ROC-AUC),
+   `katman_cevrelenmiyor` ve Ri notu ikisinde de yok. WSL temiz klonundan (5532/8100) `turbulans-demo-ekranlari`,
+   ardından `bash scripts/sunum_paketi.sh`; OneDrive'a kopya + SHA256. Bitene kadar `docker builder prune`
+   **yapılmaz** (CesiumJS önbellekte). `DEMO_SENARYOSU` sayıları kontrol edilir.
+2. **3 Kasım: #11 devamı + ATM-05 (madde 4, ONAY 28 Ekim).** `turbulans-tahmin-ufku --indir --baslangic
+   2026-10-28T12 --bitis 2026-11-03T00` (~15 MB; 28 Ekim 12Z koşusu 4–5 Kasım'da UCAR'dan silinir). ERA5 kıyas aracı
+   `tahmin_ufku.py`'ye önce yazılır (ERA5 ~5 gün gecikmeli: 3 Kasım'da ~29 Ekim'e kadarki zamanlar).
+3. **5 Kasım: E8 yedek video ve soğuk açılış provası** (madde 22). 1. madde bitmeden çekilmez.
+4. **5 Kasım Perşembe 23:55: Hafta 6 ilerleme raporu.** Hafta aralığı kullanıcıya sorulur (öneri 30 Ekim–5 Kasım);
+   Hafta 5 e-postasının gönderildiği doğrulanır (madde 2).
+
+**B. Kullanıcı kararı bekleyenler**
+5. Masaüstü `yedekler/` klasöründeki eski şifreli bundle/mirror'ların silinmesi (GitHub tarafı 31 Ekim'de kapandı;
+   geri alınamaz).
+6. Herkese açık depoda `CLAUDE.md` ve `.claude/settings.json` (kurul JRİ-01): kalsın mı, kaldırılsın mı (geçmişte
+   kalır; geçmiş yeniden yazılmaz).
+7. Gece işinin yeniden açılması (madde 18; kotasız internette düşük bütçe önerisi: CDS 10, MADIS kapalı, ~130 MB).
+8. Eski dallar: uzakta 49, yerelde 57 `claude/*` (çoğu birleşmiş); uzak dalları silmek paylaşılan durumu değiştirir.
+
+**C. Komite hazırlığı (kullanıcı açınca; madde 19–24)**
+9. Bütünleşik bitirme raporu (en büyük eksik teslimat; `docs/rapor/` yalnız bölüm taslakları).
+10. Savunma hazırlığı ve danışmana YZ beyanı e-postası (beyan 31 Ekim'de güncellendi).
+11. Komite sunumuna §10'un 79 günlük sonucu ve tek cümlelik katkı/konumlandırma slaytı (30 Ekim sunumunda yok).
+12. Demoya ABD vakası + ML modeli; iki seçim kuralının yan yana gösterimi; E7 kullanılabilirlik oturumları.
+
+**D. Sunum sonrası**
+13. MİM-02 (madde 10); A2/VER-09 (madde 12; birleşik EDR ızgarada da TI1'den iyi, ilk aday); Fikir 10'un
+    `eslestirme.py` modu ve eşiğin yeniden seçimi (ONAY).
+14. Türkiye TURB SIGMET ↔ TI1 (madde 29; 5 TURB SIGMET için GFS arşivi yok, küçük ERA5 kutusu, ONAY); Faz 2 (madde 30);
+    `rojak` kıyası (madde 31).
+15. `Turbulence-db-dondurma` DROP ve `docker builder prune` (~65 GB; madde 25, sunum paketi yenilendikten sonra, ONAY);
+    #25 yerel Swagger (kotasız internet).
+
 ## Öncelik sırası (28 Ekim 2026 gece, kurul raporu sonrası)
 
 Açık maddelerin önem sırası; ayrıntı aşağıdaki bölümlerde ve depo dışındaki kurul raporunda (28 Ekim, §0).
