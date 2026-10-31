@@ -23,6 +23,31 @@
 4. **5 Kasım Perşembe 23:55: Hafta 6 ilerleme raporu.** Hafta aralığı kullanıcıya sorulur (öneri 30 Ekim–5 Kasım);
    Hafta 5 e-postasının gönderildiği doğrulanır (madde 2).
 
+**A2. Komite için güncel ve kapsamı iyi vaka (31 Ekim, kullanıcı kararı: önce bu; sonraki oturumda)**
+- Durum (31 Ekim): THY322'de (15 Ocak 2019) seyrin yalnız %11,7'si ADS-B'li, 66 dk boşluk (Bolu–Gürcistan). `turbulans-kapsam-tarama`
+  (PR #159) 21–26 Ekim'de 39 uçuşu taradı (`ciktilar/kapsam_tarama*.csv`): İstanbul/Antalya/Sabiha iç hat ve Avrupa
+  uçuşlarının seyri %100 kapsanıyor; boşluk yalnız Dubai → İstanbul (107 dk) ve Moskova → İstanbul (228 dk).
+- Analiz edilen (ERA5 CDS, ~6 MB, geliştirme DB'sinde): THY5HS 24 Eki İstanbul → Antalya (sakin, riskli 0);
+  **THY4QR 25 Eki İstanbul → Madrid** (11.180 nokta TI1'li, %18,5 riskli); SXS6MG 25 Eki Londra → Antalya (%41 riskli).
+- Ön bulgu (keşifsel, elle yapılan kontrol, iki uçuş): THY4QR, 12:06–15:30 geçerli Belgrad (LYBA) TURB SIGMET'inden geçti; SIGMET
+  içindeki 730 noktanın tamamında TI1 riskli, dışında %12,8. SXS6MG aynı SIGMET'te %97 ve dışında %37,5. (PUE502'de TI1
+  SIGMET'i kaçırmıştı.) O gün rota çevresinde 8 TURB SIGMET'i (LYBA, LRBB, LIRR, LIBB, LAAA, LGGG). SIGMET gözlem değil
+  uyarıdır; LYBA'nın irtifa bandı boş; noktalar bağımsız değil. Kontrol bir CLI'a dönüştürülmeden rapora sayı yazılmaz.
+- **Öneri (kullanıcı 31 Ekim'de sordu):** komitede ana vaka THY4QR; THY322 ağsız yedek olarak paketde kalır.
+- Sonraki oturumda yapılacaklar (~1,5–2 sa):
+  1. SIGMET–TI1 kontrolünü küçük bir CLI'a çevir (`dogrulama/`; DB'deki SIGMET poligonları [boylam, enlem], zaman ve
+     irtifa bandı), test yaz, sonucu `docs/sonuclar/<tarih>_guncel_vaka/`'ya koy.
+  2. THY4QR'yi ikinci demo vakası yap: ERA5 kutusunu rota kaçınma koridorunu (±400 km) kapsayacak şekilde indir, demo
+     paketine yalnız gerekli seviyeler (boyut THY322 paketine yakın tut; şu anki uçuş dilimi 1,9 MB), `demo/README.md` SHA256.
+  3. Senaryo seçiciye (`web/veri/senaryolar.json`) İstanbul → Madrid, 25 Ekim; LYBA TURB SIGMET'i demo fikstürü olarak
+     (gerçek mesaj, etiketli). Playwright testi; THY322'ye dokunma.
+  4. `DEMO_SENARYOSU.md` ve sunum akışı: "gerçek uçuş Belgrad TURB SIGMET'inden geçti, sistem bu SIGMET'i sert kısıt alır".
+  5. İsteğe bağlı SXS6MG (Londra → Antalya), aynı adımlar (+30 dk).
+  6. Ardından demo ekranları ve sunum paketi yenilenir (A.1 ile birleşir).
+- Trino girişi: her yeni süreçte tarayıcıda OAuth ekranı açılır. Kalıcı çözüm `keyring` + `keyrings.alt` (WSL venv,
+  depo dışı düz dosya); Claude'un kurulumu izin denetimince engellendi, kullanıcı isterse kendisi kurar. Kurulmazsa sorgular
+  tek süreçte toplanır.
+
 **B. Kullanıcı kararı bekleyenler** (31 Ekim: kullanıcı "önerdiğin seçeneği uygula" dedi; öneriler uygulandı)
 5. ~~Masaüstü `yedekler/` eski şifreli bundle/mirror'ları~~ (31 Ekim: **silinmedi**. Şifre 1 Ekim'de değişti, dosyalar
    yalnız yerelde, öncelik veri kaybı, silme geri alınamaz. Kullanıcı isterse yine silinebilir.)

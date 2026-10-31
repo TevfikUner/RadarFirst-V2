@@ -4,6 +4,8 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-31
 
+- ✅ Kapsam taraması (39 uçuş, 21–26 Eki): Batı Türkiye ve Avrupa seyri %100 kapsanıyor; THY322'de %11,7. Komite vakası önerisi THY4QR (İstanbul → Madrid, 25 Eki, %18,5 riskli; Belgrad TURB SIGMET'i içinde TI1 %100 riskli, ön bulgu).
+- ⏸️ THY4QR demo paketi ve senaryosu sonraki oturuma (YAPILACAKLAR A2).
 - ✅ `turbulans-tahmin-ufku --era5` (3 Kasım ERA5 kıyası + ATM-05 eşlemesi) yazıldı, 23 Ekim ile CDS'te denendi (1 MB); PR #157.
 - ✅ B kararları önerildiği gibi: yedekler kaldı, CLAUDE.md kaldı, gece işi kapalı; 56 yerel + 47 uzak birleşmiş dal silindi (SHA listesi `docs/denetim/2026-10-31/SILINEN_DALLAR.md`).
 - ✅ SUNUM_AKISI: §10 (79 yeni gün, +0,027) birincil kanıt, katkı/konumlandırma maddesi (taslak).
