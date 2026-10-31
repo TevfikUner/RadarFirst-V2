@@ -4,6 +4,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-31
 
+- ✅ `turbulans-kapsam-tarama`: ADS-B kapsam ölçümü; THY322 seyrinin %11,7'si kapsanmış (66 dk boşluk). Batı Türkiye uçuşları taranacak.
 - ✅ `turbulans-tahmin-ufku --era5` (3 Kasım ERA5 kıyası + ATM-05 eşlemesi) yazıldı, 23 Ekim ile CDS'te denendi (1 MB); PR #157.
 - ✅ B kararları önerildiği gibi: yedekler kaldı, CLAUDE.md kaldı, gece işi kapalı; 56 yerel + 47 uzak birleşmiş dal silindi (SHA listesi `docs/denetim/2026-10-31/SILINEN_DALLAR.md`).
 - ✅ SUNUM_AKISI: §10 (79 yeni gün, +0,027) birincil kanıt, katkı/konumlandırma maddesi (taslak).

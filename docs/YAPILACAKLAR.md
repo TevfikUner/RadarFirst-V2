@@ -23,6 +23,12 @@
 4. **5 Kasım Perşembe 23:55: Hafta 6 ilerleme raporu.** Hafta aralığı kullanıcıya sorulur (öneri 30 Ekim–5 Kasım);
    Hafta 5 e-postasının gönderildiği doğrulanır (madde 2).
 
+**A2. Komite için güncel ve kapsamı iyi vaka (31 Ekim, kullanıcı kararı: önce bu)**
+- THY322'de (15 Ocak 2019) seyrin yalnız %11,7'si ADS-B'li, 66 dk boşluk (Bolu–Gürcistan; OpenSky alıcısı yok).
+  `turbulans-kapsam-tarama` Batı Türkiye havalimanlarının (LTFM, LTFJ, LTBJ, LTAI, LTFE, LTBS, LTAC) uçuşlarında
+  kapsamı ölçer. Kullanıcı WSL'de OAuth girişiyle çalıştırır; en iyi 2–3 uçuş için ERA5 dilimi + analiz, sonra
+  THY322'ye dokunmadan ikinci demo paketi. Türkiye TURB SIGMET'lerinin 5'i de 41–45°D'de (kapsam zayıf bölgede).
+
 **B. Kullanıcı kararı bekleyenler** (31 Ekim: kullanıcı "önerdiğin seçeneği uygula" dedi; öneriler uygulandı)
 5. ~~Masaüstü `yedekler/` eski şifreli bundle/mirror'ları~~ (31 Ekim: **silinmedi**. Şifre 1 Ekim'de değişti, dosyalar
    yalnız yerelde, öncelik veri kaybı, silme geri alınamaz. Kullanıcı isterse yine silinebilir.)
