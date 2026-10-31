@@ -23,18 +23,21 @@
 4. **5 Kasım Perşembe 23:55: Hafta 6 ilerleme raporu.** Hafta aralığı kullanıcıya sorulur (öneri 30 Ekim–5 Kasım);
    Hafta 5 e-postasının gönderildiği doğrulanır (madde 2).
 
-**B. Kullanıcı kararı bekleyenler**
-5. Masaüstü `yedekler/` klasöründeki eski şifreli bundle/mirror'ların silinmesi (GitHub tarafı 31 Ekim'de kapandı;
-   geri alınamaz).
-6. Herkese açık depoda `CLAUDE.md` ve `.claude/settings.json` (kurul JRİ-01): kalsın mı, kaldırılsın mı (geçmişte
-   kalır; geçmiş yeniden yazılmaz).
-7. Gece işinin yeniden açılması (madde 18; kotasız internette düşük bütçe önerisi: CDS 10, MADIS kapalı, ~130 MB).
-8. Eski dallar: uzakta 49, yerelde 57 `claude/*` (çoğu birleşmiş); uzak dalları silmek paylaşılan durumu değiştirir.
+**B. Kullanıcı kararı bekleyenler** (31 Ekim: kullanıcı "önerdiğin seçeneği uygula" dedi; öneriler uygulandı)
+5. ~~Masaüstü `yedekler/` eski şifreli bundle/mirror'ları~~ (31 Ekim: **silinmedi**. Şifre 1 Ekim'de değişti, dosyalar
+   yalnız yerelde, öncelik veri kaybı, silme geri alınamaz. Kullanıcı isterse yine silinebilir.)
+6. ~~`CLAUDE.md` ve `.claude/settings.json` herkese açık depoda~~ (31 Ekim: **kaldı**. İkisinde de sır yok; YZ kullanımı
+   beyanda açık, kaldırmak geçmişte kalacağı için bir şey gizlemez; deny listesi güvenlik önleminin kanıtı.)
+7. ~~Gece işinin yeniden açılması~~ (31 Ekim: **kapalı kaldı**; 28 Ekim'deki açık emir, sunum için yeni veri gerekmiyor.)
+8. ~~Eski dallar~~ (31 Ekim: master'ın atası olan 56 yerel + 47 uzak `claude/*` dalı silindi, içerik kaybı yok; uç
+   SHA'ları ve geri alma komutu `docs/denetim/2026-10-31/SILINEN_DALLAR.md`.)
 
 **C. Komite hazırlığı (kullanıcı açınca; madde 19–24)**
 9. Bütünleşik bitirme raporu (en büyük eksik teslimat; `docs/rapor/` yalnız bölüm taslakları).
 10. Savunma hazırlığı ve danışmana YZ beyanı e-postası (beyan 31 Ekim'de güncellendi).
-11. Komite sunumuna §10'un 79 günlük sonucu ve tek cümlelik katkı/konumlandırma slaytı (30 Ekim sunumunda yok).
+11. ~~Komite sunumuna §10'un 79 günlük sonucu ve tek cümlelik katkı/konumlandırma slaytı~~ (31 Ekim: metin
+    `docs/sunum/SUNUM_AKISI.md` §3 ve §8'de; slayt PDF'inin kaynağı depoda yok, PDF'e kullanıcı aktarır. Katkı
+    cümlesi taslaktır, kullanıcı onaylar.)
 12. Demoya ABD vakası + ML modeli; iki seçim kuralının yan yana gösterimi; E7 kullanılabilirlik oturumları.
 
 **D. Sunum sonrası**
