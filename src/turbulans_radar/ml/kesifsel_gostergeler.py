@@ -401,13 +401,12 @@ def calistir(cikti: str, motor=None, tekrar=None, arsiv_klasoru=None) -> dict:
 
 
 def _f(x, bicim="{:.3f}") -> str:
-    return "—" if x is None or not np.isfinite(x) else bicim.format(x)
+    return "—" if x is None or not np.isfinite(x) else bicim.format(x).replace(".", ",")
 
 
 def _fark_satiri(ad, f) -> str:
-    return (
-        f"| {ad} | {_f(f['fark'], '{:+.3f}')} | [{_f(f['alt'], '{:+.3f}')}; {_f(f['ust'], '{:+.3f}')}] | {f['okuma']} |"
-    )
+    ad, b = ad.replace("|FRONT|", "abs(FRONT)"), "{:+.4f}"
+    return f"| {ad} | {_f(f['fark'], b)} | [{_f(f['alt'], b)}; {_f(f['ust'], b)}] | {f['okuma']} |"
 
 
 def markdown_ozeti(rapor) -> str:
@@ -441,7 +440,7 @@ def markdown_ozeti(rapor) -> str:
         "| Eğitim Peirce-maks eşiği | Eşik | POD | POFD | Peirce |",
         "|---|---|---|---|---|",
         *(
-            f"| {ad} | {m['esik']:.3g} | {_f(m['pod'])} | {_f(m['pofd'])} | {_f(m['peirce'])} |"
+            f"| {ad} | {_f(m['esik'], '{:.3g}')} | {_f(m['pod'])} | {_f(m['pofd'])} | {_f(m['peirce'])} |"
             for ad, m in k10["peirce_esiginde"].items()
         ),
         "",
@@ -458,7 +457,7 @@ def markdown_ozeti(rapor) -> str:
         f"## Fikir 24: AUC² ağırlıklı birleşik EDR ({k24['test_ornek']} örnek)",
         "",
         "Ağırlıklar (eğitim AUC): "
-        + ", ".join(f"{ad} {k24['agirlik'][ad]:.3f} ({k24['egitim_roc_auc'][ad]:.3f})" for ad in k24["agirlik"])
+        + ", ".join(f"{ad} {_f(k24['agirlik'][ad])} ({_f(k24['egitim_roc_auc'][ad])})" for ad in k24["agirlik"])
         + f". Test ROC-AUC: ağırlıklı {_f(k24['roc_auc']['agirlikli'])}, eşit {_f(k24['roc_auc']['esit'])}, "
         f"TI1 {_f(k24['roc_auc']['TI1'])}.",
         "",
@@ -467,7 +466,9 @@ def markdown_ozeti(rapor) -> str:
         "",
         f"## Fikir 19: ek teşhisler ({k19['test_ornek']} örnek; NCSU1 hesaplanmadı)",
         "",
-        "Tek başına ROC-AUC: " + ", ".join(f"{ad} {_f(a)}" for ad, a in k19["roc_auc"].items()) + ". PV < 0 payı: "
+        "Tek başına ROC-AUC: "
+        + ", ".join(f"{ad.replace('|FRONT|', 'abs(FRONT)')} {_f(a)}" for ad, a in k19["roc_auc"].items())
+        + ". PV < 0 payı: "
         f"orta-üstü {_f(k19['pv_negatif_payi']['orta_ustu'])}, kontrol {_f(k19['pv_negatif_payi']['kontrol'])}.",
         "",
         baslik,

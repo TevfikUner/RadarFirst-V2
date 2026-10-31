@@ -346,7 +346,7 @@ def _bolum(ad: str, b: dict) -> list[str]:
         "| Kural eşiği | Eşik | Uyarı alanı | POD (orta-üstü) | POFD (kontrol) |",
         "|---|---|---|---|---|",
         *(
-            f"| {ad_} | {k['esik']:.4g} | {_f(k['alan'])} | {_f(k['pod'])} | {_f(k['pofd'])} |"
+            f"| {ad_} | {_f(k['esik'], '{:.4g}')} | {_f(k['alan'])} | {_f(k['pod'])} | {_f(k['pofd'])} |"
             for ad_, k in b["kural_esikleri"].items()
         ),
         "",

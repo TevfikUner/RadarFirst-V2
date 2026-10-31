@@ -43,7 +43,14 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
     `Mapped[datetime]`/`date`). `cli/demo_ekranlari` testi %27 → %66. Kalan: diğer araştırma CLI'larına test.
 
 **3. Araştırma (yeni günlerde, önce protokole yazılarak)**
-15. Fikir 11 devamı (çoklu /TB grubu), Fikir 9, 10, 15, 19, 24, 29.
+
+31 Ekim kararı (kullanıcı "önerdiğini uygula, önermediğini ertele" dedi): yerel veriyle yapılabilen 15. madde yapıldı.
+Ertelenenler ve nedenleri: #25 Swagger (kotasız internet), ATM-06 (Sharman 2006 tam metni yok), gece işi (kullanıcı
+emri), MİM-02 ve A2 (kurul: sunum öncesi regresyon riski), Fikir 29 (kazanç küçük), Fikir 18/20 (yeni gün verisi
+gerekir, gece işi kapalı), Fikir 23 (OpenSky girişi kullanıcıda), F7/OpenSky/F5 (ONAY ve veri bütçesi).
+15. ~~Fikir 11 devamı, Fikir 9, 10, 15, 19, 24~~ (31 Ekim, protokol §13, keşifsel; `2026-10-31_kesifsel_gostergeler/`,
+    `2026-10-31_uyari_alani/`). Kalan: Fikir 29 (beklenen kazanç küçük), NCSU1 (birincil kaynak yok, ATM-06 ile aynı),
+    Fikir 10'un `fizik/eslestirme.py`'ye mod olarak girmesi ve eşiğin yeniden seçilmesi (sunum sonrası, ONAY).
 16. GFS topluluk oranı, Fikir 18 devamı, Fikir 20, Fikir 23, F7 rüzgâr asimilasyonu (veri bütçesi, ONAY).
 17. Daha fazla OpenSky uçuşu (önce kota hesabı, ONAY); F5 yakıt sütunu (migration, ONAY).
 18. Gece işinin yeniden açılması (kullanıcı emri; `ML_GECE_ISI_SAATI`).
@@ -215,21 +222,28 @@ jüri sorularına doğrudan yanıt verenler önde.
   backtest için uçuş yönü; tabaka başına n, ROC-AUC, bootstrap GA. `ml/degerlendirme.py`.
 - [ ] **Fikir 8 — "Hafif = negatif" duyarlılığı** (protokol §10.3-3'te kayıtlı): hafif raporlar negatiften çıkarılır,
   AUC/Peirce yeniden; birincil sonuç değişmez, yalnız duyarlılık tablosu.
-- [ ] **Fikir 9 — Uyarı alanı oranı:** seçili eşikte riskli ızgara/nokta oranı ve
+- [x] (31 Ekim, §13.5, `2026-10-31_uyari_alani/`: 41 bağımsız NE-ABD gününde POD–alan AUC TI1 0,631, birleşik EDR
+  +0,024 [+0,013; +0,037]; 7e-7'de ızgaranın %16,3'ü uyarıda, POD 0,33, POFD 0,18; TTS hesaplanmadı) **Fikir 9 — Uyarı alanı oranı:** seçili eşikte riskli ızgara/nokta oranı ve
   "POD – uyarı alanı" eğrisi; TTS yalnız MADIS günlerinde. `ml/gosterge_degerlendirme.py`.
   Rota düzeyindeki sapma oranı 28 Ekim'de ölçüldü (`docs/sonuclar/2026-10-28_uyari_orani/`); ızgara/POD eğrisi açık.
-- [ ] **Fikir 10 — Komşuluk maksimumu eşleştirmesi:** ±1 hücre / ±1 sa pencerede TI1
+- [x] (31 Ekim, §13.1: §10'un 79 gününde ±1 hücre/seviye/saat maksimumu TI1'den +0,027 [+0,017; +0,037], yalnız
+  yatay +0,020 [+0,016; +0,024]; 7e-7'de POD 0,49 → 0,85 ama POFD 0,25 → 0,64, eşik yeniden seçilmeden kullanılamaz;
+  eslestirme.py modu ONAY ile sunum sonrası) **Fikir 10 — Komşuluk maksimumu eşleştirmesi:** ±1 hücre / ±1 sa pencerede TI1
   maksimumu, iki sınıfa birlikte; `fizik/eslestirme.py`'de isteğe bağlı mod.
 - [x] (20 Ekim, `docs/sonuclar/2026-10-20_pirep_ayristirici/`: 500'de 499 uyuşma; çoklu /TB grubu %0,24 etiketi çevirir, aşağıdaki maddeye) **Fikir 11 — PIREP ayrıştırıcı çapraz testi:** 500 ham IEM PIREP, `pirep_siddet_sinifi`
   ile avwx-engine karşılaştırması; uyuşmazlık çıkarsa etiket değişikliği ayrıca karar.
-- [ ] **Fikir 11 devamı — çoklu /TB grubu etiketi:** IEM yalnız ilk grubu alıyor (`TB NEG 350/MOD 355` -> negatif);
+- [x] (31 Ekim, §13.2: test günlerinde 22, eğitimde 38 etiket 0→1, 1→0 yok; ROC-AUC farkları ≤ +0,002, etiket
+  gürültüsü bu kaynaktan sonucu değiştirmiyor) **Fikir 11 devamı — çoklu /TB grubu etiketi:** IEM yalnız ilk grubu alıyor (`TB NEG 350/MOD 355` -> negatif);
   seyir raporlarının %0,24'ünde etiket döner. En şiddetli grubu alan etiket, dondurma sonrası yeni günlerde
   duyarlılık olarak (protokole önceden yazılarak) değerlendirilir; dondurulmuş paket değişmez.
-- [ ] **Fikir 15 — TI3 (Ellrod–Knox DVT):** TI3 = TI1 + 0,01·|div(t) − div(t−6 sa)|; ERA5
+- [x] (31 Ekim, §13.6: pencere deposunda t−6 sa yok; NE-ABD küplerinde 41 günde POD–alan AUC TI3 − TI1 +0,015
+  [−0,010; +0,043], PIREP ROC-AUC +0,007 [−0,030; +0,039]: fark gösterilemedi) **Fikir 15 — TI3 (Ellrod–Knox DVT):** TI3 = TI1 + 0,01·|div(t) − div(t−6 sa)|; ERA5
   pencere deposunda t−6 sa var mı önce kontrol; TI1'e karşı yeni günlerde.
-- [ ] **Fikir 19 — Ek teşhisler:** frontogenez, ∇T, NCSU1, negatif PV; F9 geniş özellik
+- [x] (31 Ekim, §13.4: tek başına hepsi TI1'den zayıf (FRONT 0,518, |FRONT| 0,591, |∇T| 0,559, −PV 0,510; TI1 0,658);
+  temel + 3 teşhis − temel −0,004 [−0,010; +0,002], F9 adayı değil; NCSU1 kaynak yokluğundan hesaplanmadı) **Fikir 19 — Ek teşhisler:** frontogenez, ∇T, NCSU1, negatif PV; F9 geniş özellik
   setine aday olarak protokole yazılır (3 seviyeyle PV kaba).
-- [ ] **Fikir 24 — AUC² ağırlıklı birleşik EDR:** ağırlıklar yalnız eğitim günlerinden;
+- [x] (31 Ekim, §13.3: ağırlıklar 0,18–0,21, neredeyse eşit; ağırlıklı − eşit −0,0003 [−0,0005; −0,0001], pratikte
+  sıfır; eşit ağırlık kalır) **Fikir 24 — AUC² ağırlıklı birleşik EDR:** ağırlıklar yalnız eğitim günlerinden;
   `fizik/edr_esleme.py`'ye seçenek.
 - [ ] **Fikir 29 — Uçak tipine duyarlı risk:** OpenAP `prop` ile kanat yükü (BADA lisanslı,
   kullanılmaz); F9 adayı. Beklenen kazanç küçük (Gökdeniz ve Ülkü 2026: katkı %3,2).
