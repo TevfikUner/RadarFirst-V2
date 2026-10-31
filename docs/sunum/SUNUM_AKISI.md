@@ -9,13 +9,13 @@ yazılmamalıdır.
 | # | Slayt | Süre | Kaynak |
 |---|---|---|---|
 | 1 | Başlık | 0:20 | — |
-| 2 | Problem | 1:20 | E3 literatürü |
-| 3 | Mevcut çözümler ve boşluk | 1:00 | E3 literatürü |
+| 2 | Problem | 1:00 | E3 literatürü |
+| 3 | Mevcut çözümler, boşluk ve katkı | 1:20 | E3 literatürü, `ILGILI_CALISMALAR.md` |
 | 4 | Yaklaşım | 1:30 | README, ADR'ler |
 | 5 | Mimari | 1:30 | `docs/mimari.md` |
 | 6 | Canlı demo | 6:00 | `DEMO_SENARYOSU.md` |
 | 7 | Sonuçlar: performans | 0:45 | `docs/PERFORMANS_RAPORU.md` |
-| 8 | Sonuçlar: doğruluk ve ML | 1:00 | `docs/SISTEM_KARTI.md` §6, ML eğitim kaydı |
+| 8 | Sonuçlar: doğruluk ve ML | 1:00 | `docs/sonuclar/2026-10-27_yeni_gun/`, `SAYILAR.md` |
 | 9 | Sınırlamalar | 0:45 | `docs/SISTEM_KARTI.md` §5 |
 | 10 | Gelecek çalışma | 0:30 | Geliştirme planı, ürün ekibi raporu |
 | 11 | Kapanış ve sorular | 0:10 | — |
@@ -41,7 +41,7 @@ yazılmamalıdır.
 - Soru: Mevcut açık veriyle, bir dispeçerin rota kararına girdi olacak, ölçülebilir
   ve dürüst bir risk göstergesi üretilebilir mi?
 
-## 3. Mevcut çözümler ve boşluk
+## 3. Mevcut çözümler, boşluk ve katkı
 
 - Ellrod ve Knapp (1992) TI1; GTG çok teşhisli birleşimi (Sharman vd., 2006);
   log-normal EDR eşlemesi (Sharman ve Pearson, 2017); WAFS ızgara CAT ürünleri (Gill,
@@ -57,6 +57,18 @@ yazılmamalıdır.
   - K7: Bu sınır rota kararının yapısına taşındı: SIGMET sert, TI1 yumuşak kısıt (A*).
 - Mühendislik ekleri (kapılı ML, konformal "belirsiz", sanal PIREP, contrail, IWXXM,
   n8n, MCP) ana slaytlarda anılmaz; yedek slaytlardadır.
+- **Katkı (tek cümle, slaytın başlığı):** Açık veriyle, gerçek uçuş izinin barometrik
+  seviyesinde hesaplanan türbülans göstergesinin sınırını bağımsız etiketle ölçen ve bu sınırı
+  rota kararına taşıyan (SIGMET sert, TI1 yumuşak kısıt), çalışan bir karar destek sistemi.
+- **Konumlandırma (en yakın iki çalışma):** Zhu vd. (2026) tahmini kaçınma rotasına bağlar
+  (ERA5 + LiDAR, transfer öğrenme, Kuzey Amerika); özetinde gerçek ADS-B izi, SIGMET sert
+  kısıtı ve çalışan sistem yok. Gökdeniz ve Ülkü (2026) aynı açık veriyle (ERA5 + IEM PIREP,
+  ABD) AUC 0,904 raporlar, ama rastgele bölmeyle; bizim gün gruplu değerlerimizle doğrudan
+  kıyaslanamaz (`ILGILI_CALISMALAR.md` §9). Türkiye'ye özgü CAT tahmin/rota çalışması
+  taramada bulunamadı (30 Ekim, `docs/arastirma/LITERATUR_TARAMASI_2026-10-30.pdf`).
+
+Konuşmacı notu: "ilk" denmez; "taramada bulunamadı" denir. Katkı cümlesi KATKILAR.md'deki
+K1, K6 ve K7'nin özetidir.
 
 ## 4. Yaklaşım
 
@@ -101,8 +113,16 @@ Bulgu: tek süreçte GIL darboğazı; 4 süreçle aynı donanımda verim ~3 kat.
 
 ## 8. Sonuçlar: doğruluk ve ML
 
-Bu bölümdeki her sayı `docs/sonuclar/2026-10-18/SAYILAR.md` nihai paketinden alındı (18 Ekim
-veri dondurması). Aralıklar gün bazlı blok bootstrap %95 GA'dır.
+Birincil kanıt §10'dur (`docs/sonuclar/2026-10-27_yeni_gun/`): protokol test günlerine
+bakılmadan yazıldı, bir kez çalıştırıldı. Diğer sayılar `docs/sonuclar/2026-10-18/SAYILAR.md`
+nihai paketinden (18 Ekim veri dondurması). Aralıklar gün bazlı blok bootstrap %95 GA'dır.
+
+- **Birincil (§10, modelin görmediği 79 yeni gün, 7.769 PIREP):** TI1 ROC-AUC 0,658
+  [0,644; 0,671], model (temel set, RF) 0,685 [0,671; 0,699]; fark +0,027 [+0,018; +0,035],
+  ADR 0004 kapısı geçildi. 18 Ekim altın günlerindeki farka (+0,033) yakın: üstünlük yeni
+  günlerde korunuyor. Geniş set farkı (+0,008, p = 0,008) ardışık gün sızıntısı çıkarılınca
+  anlamlı değil (+0,005 [−0,002; +0,012]); zayıf ve kırılgan diye söylenir. Yeni günler de
+  2018–2020 ABD PIREP'idir: aynı dağılımda genelleme, bölge kayması değil.
 
 - **TI1'in bağımsız becerisi sınırlı:** Seyir irtifasındaki 15.940 PIREP'te (163 gün) ROC-AUC
   0,673 [0,661–0,684]. Altın test günlerinde 0,675 [0,641–0,706]. Risk eşiğinde (7e-7)
