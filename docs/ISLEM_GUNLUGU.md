@@ -9,6 +9,8 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ✅ SUNUM_AKISI: §10 (79 yeni gün, +0,027) birincil kanıt, katkı/konumlandırma maddesi (taslak).
 - ✅ Savunma çalışma kartları (`docs/sunum/SAVUNMA_HAZIRLIGI.md`): 4 çekirdek koddan, "neden 6 saat" türetmesi, e-posta taslağı; çizim/prova/gönderim kullanıcıda.
 - ✅ Bütünleşik bitirme raporu taslağı: `docs/rapor/BITIRME_RAPORU.md` + PDF (29 sayfa), `scripts/bitirme_raporu.py`.
+- ✅ Araştırma CLI testleri: `ekonomik_deger` %47,5 → %95, `esik_esleme` %55 → %91; PR #157/#158 birleşti (CI 7/7, yerelde 1.240 test).
+- ⏸️ C.12 (demoya ABD vakası + ML, iki kural yan yana) 5 Kasım sonrasına: demo regresyon riski, Docker'lı doğrulama gerekir.
 - ✅ Proje taraması (`docs/denetim/2026-10-31/TARAMA.md`): CI/test/güvenlik temiz, kapsam %84,6; acil: 3 Kasım GFS, 5 Kasım öncesi demo ekranları ve sunum paketi.
 - ✅ GitHub Destek talebi doğrulandı (şifreli commit 422, PR #1 404). Belge düzeltmeleri: test sayısı 1.242, beyan sayımları, SONUCLAR §2.10, ILGILI_CALISMALAR'a 4 Crossref künyesi.
 - ✅ Protokol §13 skorlardan önce commit'lendi; Fikir 9, 10, 11 devamı, 15, 19, 24 bir kez çalıştı (keşifsel, karar değişmedi).
