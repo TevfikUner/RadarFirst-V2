@@ -43,6 +43,12 @@ def test_adaylar_ic_hat_en_uzun_dis_hat_en_kisa_ve_tekil():
     )
     secim = kt.adaylari_sec(ucuslar, kt.VARSAYILAN_HAVALIMANLARI, adet=3)
     assert secim["ucus_numarasi"].tolist() == ["THY2", "THY1", "DLH1"]
+    uzun = kt.adaylari_sec(ucuslar, kt.VARSAYILAN_HAVALIMANLARI, adet=2, uzun_dis=True)
+    assert uzun["ucus_numarasi"].tolist() == ["DLH2", "DLH1"]
+    kayik = ucuslar.assign(ilk_gorulme=ucuslar["ilk_gorulme"] + [0, 0, 0, 7200, 0, 0, 0])
+    kayik = kayik.assign(son_gorulme=kayik["son_gorulme"] + [0, 0, 0, 7200, 0, 0, 0])
+    sabah = kt.adaylari_sec(kayik, kt.VARSAYILAN_HAVALIMANLARI, 5, uzun_dis=True, saat_araligi=(1, 3))
+    assert sabah["ucus_numarasi"].tolist() == ["DLH1"]
 
 
 def test_tara_onbellegi_kullanir_ve_sorgu_sayisi_gun_basina_bir_arti_aday(monkeypatch):

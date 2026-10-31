@@ -48,18 +48,29 @@ def ucuslari_listele(baglanti, gun, havalimanlari) -> pd.DataFrame:
     return _sorgu_calistir(baglanti, sorgu, sutunlar, [gun_ts, *havalimanlari, *havalimanlari])
 
 
-def adaylari_sec(ucuslar: pd.DataFrame, havalimanlari, adet, min_sure_dk=MIN_SURE_DK, maks_sure_dk=MAKS_SURE_DK):
+def adaylari_sec(
+    ucuslar: pd.DataFrame,
+    havalimanlari,
+    adet,
+    min_sure_dk=MIN_SURE_DK,
+    maks_sure_dk=MAKS_SURE_DK,
+    uzun_dis=False,
+    saat_araligi=None,
+):
     """İki ucu da listede olan (iç hat) en uzun uçuşlar ve bir ucu listede olan en kısa dış hatlar, yarı yarıya;
-    aynı uçuş numarasından bir tane."""
+    aynı uçuş numarasından bir tane. uzun_dis: yalnız dış hatlar, en uzun önce (seyri uzun vaka için)."""
     if ucuslar.empty:
         return ucuslar
     df = ucuslar.assign(sure_dk=(ucuslar["son_gorulme"] - ucuslar["ilk_gorulme"]) / 60)
     df = df[(df["sure_dk"] >= min_sure_dk) & (df["sure_dk"] <= maks_sure_dk) & (df["kalkis"] != df["varis"])]
     df = df.drop_duplicates("ucus_numarasi")
+    if saat_araligi:
+        saat = pd.to_datetime(df["ilk_gorulme"], unit="s", utc=True).dt.hour
+        df = df[(saat >= saat_araligi[0]) & (saat <= saat_araligi[1])]
     ic_maske = df["kalkis"].isin(havalimanlari) & df["varis"].isin(havalimanlari)
     ic = df[ic_maske].sort_values("sure_dk", ascending=False)
-    dis = df[~ic_maske].sort_values("sure_dk")
-    ic_adet = min(len(ic), (adet + 1) // 2)
+    dis = df[~ic_maske].sort_values("sure_dk", ascending=not uzun_dis)
+    ic_adet = 0 if uzun_dis else min(len(ic), (adet + 1) // 2)
     secim = pd.concat([ic.head(ic_adet), dis.head(adet - ic_adet)])
     return secim.reset_index(drop=True)
 
@@ -121,14 +132,29 @@ def _rota_getir(baglanti, aday, gun):
     return rota, False
 
 
-def tara(gunler, havalimanlari=VARSAYILAN_HAVALIMANLARI, adet=10, baglanti=None) -> pd.DataFrame:
+def tara(
+    gunler,
+    havalimanlari=VARSAYILAN_HAVALIMANLARI,
+    adet=10,
+    baglanti=None,
+    uzun_dis=False,
+    sure_araligi=None,
+    saat_araligi=None,
+) -> pd.DataFrame:
     if baglanti is None:
         from turbulans_radar.veri.veri_yukleme import trino_baglantisi_olustur
 
         baglanti = trino_baglantisi_olustur()
     satirlar = []
     for gun in gunler:
-        adaylar = adaylari_sec(ucuslari_listele(baglanti, gun, havalimanlari), havalimanlari, adet)
+        adaylar = adaylari_sec(
+            ucuslari_listele(baglanti, gun, havalimanlari),
+            havalimanlari,
+            adet,
+            *(sure_araligi or (MIN_SURE_DK, MAKS_SURE_DK)),
+            uzun_dis=uzun_dis,
+            saat_araligi=saat_araligi,
+        )
         print(f"[Bilgi] {gun}: {len(adaylar)} aday")
         for _, aday in adaylar.iterrows():
             rota, onbellekten = _rota_getir(baglanti, aday, gun)
@@ -152,10 +178,22 @@ def ana(argv=None):
     ayrac.add_argument("--gun", action="append", required=True, help="YYYY-MM-DD (birden çok verilebilir)")
     ayrac.add_argument("--havalimanlari", default=",".join(VARSAYILAN_HAVALIMANLARI))
     ayrac.add_argument("--adet", type=int, default=10, help="Gün başına aday (her biri bir sorgu)")
+    ayrac.add_argument(
+        "--sure-dk", default=f"{MIN_SURE_DK},{MAKS_SURE_DK}", help="Uçuş süresi aralığı, dk (en az,en çok)"
+    )
+    ayrac.add_argument("--saat", help="Kalkış saati aralığı, UTC (örn. 8,14)")
+    ayrac.add_argument("--uzun-dis", action="store_true", help="Yalnız dış hatlar, en uzun seyirli önce")
     ayrac.add_argument("--cikti", default=os.path.join(config.CIKTI_KLASORU, "kapsam_tarama.csv"))
     arg = ayrac.parse_args(argv)
     havalimanlari = tuple(h.strip().upper() for h in arg.havalimanlari.split(",") if h.strip())
-    sonuc = tara(arg.gun, havalimanlari, arg.adet)
+    sonuc = tara(
+        arg.gun,
+        havalimanlari,
+        arg.adet,
+        uzun_dis=arg.uzun_dis,
+        sure_araligi=tuple(float(x) for x in arg.sure_dk.split(",")),
+        saat_araligi=tuple(int(x) for x in arg.saat.split(",")) if arg.saat else None,
+    )
     os.makedirs(os.path.dirname(arg.cikti) or ".", exist_ok=True)
     sonuc.to_csv(arg.cikti, index=False)
     if not sonuc.empty and "seyir_kapsam_orani" in sonuc:
