@@ -4,6 +4,10 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 
 ## 2026-10-31
 
+- ✅ `turbulans-tahmin-ufku --era5` (3 Kasım ERA5 kıyası + ATM-05 eşlemesi) yazıldı, 23 Ekim ile CDS'te denendi (1 MB); PR #157.
+- ✅ B kararları önerildiği gibi: yedekler kaldı, CLAUDE.md kaldı, gece işi kapalı; 56 yerel + 47 uzak birleşmiş dal silindi (SHA listesi `docs/denetim/2026-10-31/SILINEN_DALLAR.md`).
+- ✅ SUNUM_AKISI: §10 (79 yeni gün, +0,027) birincil kanıt, katkı/konumlandırma maddesi (taslak).
+- ✅ Bütünleşik bitirme raporu taslağı: `docs/rapor/BITIRME_RAPORU.md` + PDF (29 sayfa), `scripts/bitirme_raporu.py`.
 - ✅ Proje taraması (`docs/denetim/2026-10-31/TARAMA.md`): CI/test/güvenlik temiz, kapsam %84,6; acil: 3 Kasım GFS, 5 Kasım öncesi demo ekranları ve sunum paketi.
 - ✅ GitHub Destek talebi doğrulandı (şifreli commit 422, PR #1 404). Belge düzeltmeleri: test sayısı 1.242, beyan sayımları, SONUCLAR §2.10, ILGILI_CALISMALAR'a 4 Crossref künyesi.
 - ✅ Protokol §13 skorlardan önce commit'lendi; Fikir 9, 10, 11 devamı, 15, 19, 24 bir kez çalıştı (keşifsel, karar değişmedi).

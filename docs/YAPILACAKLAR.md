@@ -33,7 +33,10 @@
    SHA'ları ve geri alma komutu `docs/denetim/2026-10-31/SILINEN_DALLAR.md`.)
 
 **C. Komite hazırlığı (kullanıcı açınca; madde 19–24)**
-9. Bütünleşik bitirme raporu (en büyük eksik teslimat; `docs/rapor/` yalnız bölüm taslakları).
+9. ~~Bütünleşik bitirme raporu~~ (31 Ekim, taslak: `docs/rapor/BITIRME_RAPORU.md` + `.pdf`, 29 sayfa; yeni bölümler
+   OZET, GIRIS, YONTEM, GELECEK_CALISMA; var olan taslaklar `scripts/bitirme_raporu.py --pdf` ile birleşir, test
+   eşzamanlılığı denetler). Kalan (kullanıcı): metni okuyup onaylamak; üniversite şablonu/kapak istenirse biçim;
+   bölüm içi "§0.4" gibi eski göndermeler yeni numaralara (4.0.4) çevrilmedi.
 10. Savunma hazırlığı ve danışmana YZ beyanı e-postası (beyan 31 Ekim'de güncellendi).
 11. ~~Komite sunumuna §10'un 79 günlük sonucu ve tek cümlelik katkı/konumlandırma slaytı~~ (31 Ekim: metin
     `docs/sunum/SUNUM_AKISI.md` §3 ve §8'de; slayt PDF'inin kaynağı depoda yok, PDF'e kullanıcı aktarır. Katkı
@@ -110,7 +113,7 @@ gerekir, gece işi kapalı), Fikir 23 (OpenSky girişi kullanıcıda), F7/OpenSk
 
 **4. Komite öncesi hazırlık (kullanıcı açana kadar ertelendi; kurul raporu §8)**
 19. Savunma hazırlığı (#5) ve danışmana YZ beyanı e-postası (K-1).
-20. Bütünleşik bitirme raporu (#6).
+20. ~~Bütünleşik bitirme raporu (#6)~~ (31 Ekim taslağı, yukarıda C.9).
 21. Sunum: §10 birincil kanıt ve etiket gerekçesi (#14), katkı cümlesi ve konumlandırma slaytı (#15).
 22. Demo: ABD vakası + ML modeli (#17, OPS-05), iki seçim kuralının yan yana gösterimi (A1); E8 yedek video ve
     soğuk açılış provası (#8, 5 Kasım).
