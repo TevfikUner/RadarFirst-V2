@@ -48,7 +48,9 @@ başlangıç değeridir.
 
 **Çözünürlük.** ERA5'in 0,25° ızgarası ve 25 hPa'lık katmanı, uçağın algıladığı
 ölçeği (yaklaşık 100 m – 1 km) çözemez; ince kararsız katmanlar (Ri < 0,25)
-örneklerin yalnızca %1,4'ünde görülür.
+örneklerin yalnızca %1,4'ünde görülür. PIREP'ler en yakın ızgara noktası ve saatle eşleşir; konum
+ve zaman hatası bu eşleştirmede ayırma kaybettirir: ±1 hücre/seviye/saat penceresindeki TI1 maksimumu
+ROC-AUC'yi 0,027 artırır (protokol §13.1, keşifsel). Rota kararı nokta değerini kullanmaya devam eder.
 
 **Aktarım ve kapsam dışı bırakılanlar.** Eşikler, birleşik EDR katsayıları ve model
 ERA5 ile seçildi; canlı GFS'ye doğrulanmadan aktarılır. Eşikler mevsime göre ayrılmadı.

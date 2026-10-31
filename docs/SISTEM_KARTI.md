@@ -441,9 +441,10 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
 
 ## 6. Doğrulama durumu
 
-- **Otomatik testler:** 1.182 test (28 Ekim 2026, yerel tam çalıştırma, ayrı test veritabanı:
-  tarayıcı ve dış ağ katmanı dışındaki 1.170 testin tamamı geçti, 0 hata; tarayıcı ve ağ
-  katmanı 12 test ayrıca çalışır), kod kapsamı %86,3. Önceki CI ölçümü: 18 Ekim, PR #93, 1.066
+- **Otomatik testler:** 1.242 test (31 Ekim 2026, `scripts/beyan_sayimlari.py` sayımı; yerel tam
+  çalıştırma, ayrı test veritabanı: tarayıcı ve dış ağ katmanı dışındaki 1.229 testin tamamı geçti,
+  0 hata; tarayıcı ve ağ katmanı 13 test ayrıca çalışır), kod kapsamı %84,6 (yeni araştırma CLI'ları
+  düşürdü; 28 Ekim %86,3). Önceki CI ölçümü: 18 Ekim, PR #93, 1.066
   test, kapsam %85. Kapsamı: birim testleri, gerçek PostgreSQL
   üzerinde API, depo ve görev kuyruğu testleri (eşzamanlı işçiler, ölen işçi
   kurtarma, LISTEN/NOTIFY), gerçek ERA5 küpüyle eşleştirme ve rota testleri,

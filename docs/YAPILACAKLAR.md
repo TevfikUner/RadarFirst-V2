@@ -10,10 +10,11 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
 
 **1. Tarihli (takvime bağlı)**
 1. ~~29 Ekim, ilk iş (kullanıcı): GitHub Destek talebi P0-9 / kurul #21~~ (29 Ekim: talep açıldı, PR #1 commit
-   referanslarının kaldırılması istendi). GitHub "tamamlandı" yazınca PR #1'in eski commit'lerine erişimin
-   kalktığı `gh api` ile doğrulanır.
+   referanslarının kaldırılması istendi). 31 Ekim doğrulandı: şifreli commit API'de 422 "No commit found",
+   PR #1 404. Kalan tek iz masaüstü `yedekler/` bundle'ları (silme kullanıcı kararı, geri alınamaz).
 2. **29 Ekim 23:55 (kullanıcı):** haftalık ilerleme raporu Hafta 5'in e-postayla gönderimi (PDF'ler
-   masaüstünde, #136); 28 Ekim gelişmeleri (kurul A/B grubu) eklenebilir.
+   masaüstünde, #136); 28 Ekim gelişmeleri (kurul A/B grubu) eklenebilir. 31 Ekim: gönderildiği doğrulanmadı.
+   Sonraki: Hafta 6, 5 Kasım Perşembe 23:55 (hafta aralığı kullanıcıya sorulur).
 3. ~~29–30 Ekim (kurul #19): AIRAC kontrolü~~ (29 Ekim: günlük "yenilendi", AIRAC 11/26 yürürlük 29 Eki, bitiş
    26 Kas, 682 nokta/85 saha; `/saglik?derin=true` `ats_agi` "tamam". "AMDT 06/26" değişmeyen ENR 4.1'in numarası.)
 4. **3 Kasım (kurul #11 devamı + ATM-05; ONAY 28 Ekim):** 28 Ekim–3 Kasım GFS koşuları
@@ -69,8 +70,8 @@ gerekir, gece işi kapalı), Fikir 23 (OpenSky girişi kullanıcıda), F7/OpenSk
 22. Demo: ABD vakası + ML modeli (#17, OPS-05), iki seçim kuralının yan yana gösterimi (A1); E8 yedek video ve
     soğuk açılış provası (#8, 5 Kasım).
 23. E7 kullanılabilirlik oturumları / pilotlarla deneme (#13, OPS-03).
-24. Rapor tesliminden hemen önce `scripts/beyan_sayimlari.py --kontrol` (K-2; 28 Ekim'de "güncel değil":
-    beyan 1.099 test / 308 commit).
+24. Rapor tesliminden hemen önce `scripts/beyan_sayimlari.py --kontrol` (K-2; 31 Ekim'de güncellendi:
+    424 commit / 1.242 test / 47.829 satırın 665'i; sonraki her commit sayıyı yeniden eskitir).
 
 **5. Teslim sonrası / koşullu**
 25. `Turbulence-db-dondurma` DROP ve `docker builder prune` (~50 GB); ikisi de geri alınamaz, ONAY.
@@ -218,9 +219,10 @@ SONRA dondurmadan sonra toplanan yeni günlerde çalıştırılır; aynı 16 alt
 kullanılmaz. Böylece sonuç görüldükten sonra seçim (p-hacking) olmaz. Öncelik sırası
 jüri sorularına doğrudan yanıt verenler önde.
 
-- [ ] **Fikir 4 — Tabakalı doğrulama** (protokol §10.3-2'de kayıtlı): mevsim, 250 hPa rüzgâr sınıfı (<30 / ≥30 m/s),
+- [x] (27 Ekim, §10.3-2, `2026-10-27_yeni_gun/` `tabakalar`: mevsim ve 30 m/s rüzgâr tabakaları) **Fikir 4 — Tabakalı doğrulama** (protokol §10.3-2'de kayıtlı): mevsim, 250 hPa rüzgâr sınıfı (<30 / ≥30 m/s),
   backtest için uçuş yönü; tabaka başına n, ROC-AUC, bootstrap GA. `ml/degerlendirme.py`.
-- [ ] **Fikir 8 — "Hafif = negatif" duyarlılığı** (protokol §10.3-3'te kayıtlı): hafif raporlar negatiften çıkarılır,
+- [x] (27 Ekim, §10.3-3: 6.992 metinli örneğin 2.079'u hafif negatif; çıkarılınca TI1 0,654 → 0,730, temel model
+  0,683 → 0,772) **Fikir 8 — "Hafif = negatif" duyarlılığı** (protokol §10.3-3'te kayıtlı): hafif raporlar negatiften çıkarılır,
   AUC/Peirce yeniden; birincil sonuç değişmez, yalnız duyarlılık tablosu.
 - [x] (31 Ekim, §13.5, `2026-10-31_uyari_alani/`: 41 bağımsız NE-ABD gününde POD–alan AUC TI1 0,631, birleşik EDR
   +0,024 [+0,013; +0,037]; 7e-7'de ızgaranın %16,3'ü uyarıda, POD 0,33, POFD 0,18; TTS hesaplanmadı) **Fikir 9 — Uyarı alanı oranı:** seçili eşikte riskli ızgara/nokta oranı ve
@@ -266,11 +268,11 @@ jüri sorularına doğrudan yanıt verenler önde.
 - [x] (27 Ekim: `~/sunum_paketi_20261027`, 477 MB, OneDrive `TurbulansRadar_Yedekleri/sunum_paketi_20261027`, SHA256 OK; `compose wait` hatası düzeltildi) **25 Ekim:** sunum için Docker imajı yedeği: WSL'de `bash scripts/sunum_paketi.sh` (S-8; temiz klon,
   demo, ağsız ekran provası, `docker save`, SHA256SUMS). Çıktıyı OneDrive'a kopyala. Betik 19 Ekim'de
   yalnız sözdizimi ve compose ayarıyla denendi; ilk gerçek çalıştırma bu gün.
-- [ ] **29–30 Ekim (AIRAC bitişi, otomatik; ONAY 19 Ekim, komite O-3):** "TurbulansRadar AIRAC
+- [x] (29 Ekim: "yenilendi", AIRAC 11/26, bitiş 26 Kasım; 30 Ekim "guncel") **29–30 Ekim (AIRAC bitişi, otomatik; ONAY 19 Ekim, komite O-3):** "TurbulansRadar AIRAC
   yenileme" Windows görevi (her gün 12:00) yeniler; yalnız kontrol: `ciktilar/airac_yenile.log`
   "yenilendi" ve `db_aktarildi: true` diyor mu, `/saglik` `ats_agi` "tamam" mı. Görev ENR 1.3 FRA
   cümlesini bulamazsa (ör. H24'e geçiş) eski ağı korur ve BAŞARISIZ yazar; o zaman ENR 1.3 elle okunur.
-- [ ] **29 Ekim Perşembe 23:55:** haftalık ilerleme raporu Hafta 5 (23 Ekim teslimi yapılmadı;
+- [x] (27 Ekim: PDF'ler hazırlandı, #136; e-posta gönderimi kullanıcıda, yukarıda madde 2) **29 Ekim Perşembe 23:55:** haftalık ilerleme raporu Hafta 5 (23 Ekim teslimi yapılmadı;
   `docs/rapor/ILERLEME_RAPORU.md` + `scripts/ilerleme_raporu_pdf.py`, PDF'ler masaüstüne).
 - [ ] **3 Kasım (#11 devamı; ONAY 28 Ekim):** `turbulans-tahmin-ufku --indir --baslangic 2026-10-28T12 --bitis
   2026-11-03T00` (UCAR yalnız son ~7,5 günün koşularını tutar; ~15 MB), sonra tüm aralıkla (23 Ekim–3 Kasım)

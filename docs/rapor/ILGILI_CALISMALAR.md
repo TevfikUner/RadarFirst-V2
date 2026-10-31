@@ -35,8 +35,10 @@ Atlantik'te eğilim anlamlı değildi. Aynı çalışma, CAT eşiğinin veri set
 (Soliva Fabrega, 2025) 1994–2024'te genel bir artış bulmadı, ancak güney Avrupa'da indeks
 değerlerinin ve oynaklığın daha yüksek olduğunu gösterdi. Zhang vd. (2025) Çin'de 12.539
 uçak raporuyla CAT'in kışın en sık olduğunu (raporların %33,4'ü) ve 30 m/s üzeri jetlerle
-ilişkili olduğunu raporladı. Türkiye bu çalışmalarda ayrı bir bölge olarak incelenmedi;
-yalnız komşu bölgelerdeki bulgular aktarılabilir.
+ilişkili olduğunu raporladı. He vd. (2026), yine Çin'de PIREP ve ERA5 ile CAT teşhisleri için
+eşik belirleme yöntemlerini karşılaştırdı; bu, eşiği veriden bir kuralla seçen yaklaşımımızın
+(TI1 7e-7, eğitim günlerinde Peirce'in 1-SE kuralı) doğrudan kıyas noktasıdır. Türkiye bu
+çalışmalarda ayrı bir bölge olarak incelenmedi; yalnız komşu bölgelerdeki bulgular aktarılabilir.
 
 **Projeyle bağ.** Fizik katmanı TI1, TI2, VWS, DEF ve Ri'yi ERA5'ten, uçağın basıncını
 çevreleyen 25 hPa'lık katmandan hesaplar (`fizik/turbulans_indeksleri.py`,
@@ -128,6 +130,15 @@ Gökdeniz ve Ülkü'de en önemli özellik coğrafi koordinatlardır (%17,5). Ya
 topografyaya bağlıyor, ama konuma bağlı bir ezberle de açıklanabilir; koordinatlı bir
 modelde rastgele bölmenin etkisini ölçmedik.
 
+Zhu vd. (2026), ERA5 ve LiDAR verisinden EDR tahmin eden ve verisi az bölgelere genellemeyi
+hedefleyen bir transfer öğrenme modeli (CAT-TLNet) kurdu, PIREP'lerle değerlendirdi ve tahmini
+tam ve kısmi kaçınma rotası optimizasyonuna bağladı (Kuzey Amerika). Tahmini rota planlamasıyla
+birleştirmesi bakımından bu projeye en yakın çalışmadır (değerlendirme özet düzeyinde yapıldı).
+Özetinde gerçek ADS-B izi, SIGMET sert kısıtı ve çalışan bir karar destek sistemi yer almaz;
+transfer öğrenme ise Türkiye'deki etiket yokluğu için bir gelecek çalışma yoludur. Alanın iki
+güncel derlemesi makine öğrenmesi yöntemlerini (Li vd. 2026) ve CAT'in havacılık işletmesine
+etkisini (Di Vito vd. 2025) özetler.
+
 **Projeyle bağ.** Modelimiz açık veriyle (ERA5 + IEM PIREP) eğitilir, gün gruplu çapraz
 doğrulama ve zamansal holdout kullanır, TI1'i geçmeyen aday aktifleşmez (K4). Hafif
 raporlar negatif sınıftadır. Bölme ve etiket farkları §9 tablosunda yan yana verilir.
@@ -210,6 +221,7 @@ bağımsız etiketlere (PIREP, MADIS EDR) karşı kendi referansı olan TI1'le �
 - ☑ Angelopoulos, A. N. ve Bates, S. (2021). A gentle introduction to conformal prediction and distribution-free uncertainty quantification. arXiv:2107.07511.
 - ☑ Barber, R. F., Candès, E. J., Ramdas, A. ve Tibshirani, R. J. (2021). Predictive inference with the jackknife+. *The Annals of Statistics*, 49(1). https://doi.org/10.1214/20-AOS1965
 - ☑ Cheung, J. C. H. (2018). Flight planning: node-based trajectory prediction and turbulence avoidance. *Meteorological Applications*, 25(1), 78–85. https://doi.org/10.1002/met.1671
+- ☑ Di Vito, V., Zollo, A. L., Cerasuolo, G., Montesarchio, M. ve Bucchignani, E. (2025). Clear-air turbulence and aviation operations: A literature review. *Sustainability*, 17(9), 4065. https://doi.org/10.3390/su17094065
 - ☑ Ellrod, G. P. ve Knapp, D. I. (1992). An objective clear-air turbulence forecasting technique: verification and operational use. *Weather and Forecasting*, 7(1), 150–165. https://doi.org/10.1175/1520-0434(1992)007<0150:AOCATF>2.0.CO;2
 - ☑ Ellrod, G. P. ve Knox, J. A. (2010). Improvements to an operational clear-air turbulence diagnostic index by addition of a divergence trend term. *Weather and Forecasting*, 25(2), 789–798. https://doi.org/10.1175/2009WAF2222290.1
 - ☑ Foudad, M., Sanchez-Gomez, E., Jaravel, T., Rochoux, M. C. ve Terray, L. (2024). Past and future trends in clear-air turbulence over the Northern Hemisphere. *Journal of Geophysical Research: Atmospheres*, 129(13), e2023JD040261. https://doi.org/10.1029/2023JD040261
@@ -217,6 +229,7 @@ bağımsız etiketlere (PIREP, MADIS EDR) karşı kendi referansı olan TI1'le �
 - ☑ Gökdeniz, K. ve Ülkü, İ. (2026). Predictive modeling of high-altitude clear air turbulence in the United States: A machine learning approach. arXiv:2607.11899 [physics.ao-ph].
 - ☑ Gu, A. ve Wang, Y. (2024). Optimizing clear air turbulence forecasts using the K-nearest neighbor algorithm. *Journal of Meteorological Research*, 38(6), 1064–1077. https://doi.org/10.1007/s13351-024-4060-7
 - ☑ Hart, P. E., Nilsson, N. J. ve Raphael, B. (1968). A formal basis for the heuristic determination of minimum cost paths. *IEEE Transactions on Systems Science and Cybernetics*, 4(2), 100–107. https://doi.org/10.1109/TSSC.1968.300136
+- ☑ He, Q., Gao, Z., Xu, X. ve Li, Y. (2026). A comparative study of threshold-setting methods for clear-air turbulence diagnosis over China using PIREPs and ERA5 data. *Atmosphere*, 17(10), 931. https://doi.org/10.3390/atmos17100931
 - ☑ Hersbach, H. vd. (2020). The ERA5 global reanalysis. *Quarterly Journal of the Royal Meteorological Society*, 146(730), 1999–2049. https://doi.org/10.1002/qj.3803
 - ☐ ICAO. *Annex 3 to the Convention on International Civil Aviation: Meteorological Service for International Air Navigation* (EDR raporlaması ve WAFS).
 - ☐ ICAO. *Doc 9574: Manual on a 300 m (1 000 ft) Vertical Separation Minimum* (RVSM irtifa tutma toleransı).
@@ -224,6 +237,7 @@ bağımsız etiketlere (PIREP, MADIS EDR) karşı kendi referansı olan TI1'le �
 - ☑ Kim, S.-H., Chun, H.-Y., Kim, J.-H., Sharman, R. D. ve Strahan, M. (2019). Retrieval of eddy dissipation rate from derived equivalent vertical gust included in Aircraft Meteorological Data Relay (AMDAR). *Atmospheric Measurement Techniques Discussions* (ön baskı). https://doi.org/10.5194/amt-2019-442
 - ☑ Kopeć, J. M., Kwiatkowski, K., de Haan, S. ve Malinowski, S. P. (2016). Retrieving atmospheric turbulence information from regular commercial aircraft using Mode-S and ADS-B. *Atmospheric Measurement Techniques*, 9(5), 2253–2265. https://doi.org/10.5194/amt-9-2253-2016
 - ☑ Lee, J. H., Kim, J.-H., Sharman, R. D., Kim, J. ve Son, S.-W. (2023). Climatology of clear-air turbulence in upper troposphere and lower stratosphere in the Northern Hemisphere using ERA5 reanalysis data. *Journal of Geophysical Research: Atmospheres*, 128(1), e2022JD037679. https://doi.org/10.1029/2022JD037679
+- ☑ Li, K., Huang, B., Wang, H., Fu, N., Liu, H., Yan, X. ve Pan, Y. (2026). A review of machine learning methods for aviation turbulence identification and forecasting. *IEEE Access*, 14, 131476–131486. https://doi.org/10.1109/ACCESS.2026.3726047
 - ☑ Muñoz-Esparza, D., Sharman, R. D. ve Deierling, W. (2020). Aviation turbulence forecasting at upper levels with machine learning techniques based on regression trees. *Journal of Applied Meteorology and Climatology*, 59(11), 1883–1899. https://doi.org/10.1175/JAMC-D-20-0116.1
 - ☑ NTSB (2021). *Preventing Turbulence-Related Injuries in Air Carrier Operations Conducted Under 14 CFR Part 121*. Safety Research Report NTSB/SS-21/01.
 - ☑ Roberts, D. R. vd. (2017). Cross-validation strategies for data with temporal, spatial, hierarchical, or phylogenetic structure. *Ecography*, 40(8), 913–929. https://doi.org/10.1111/ecog.02881
@@ -235,4 +249,5 @@ bağımsız etiketlere (PIREP, MADIS EDR) karşı kendi referansı olan TI1'le �
 - ☑ Sharman, R., Tebaldi, C., Wiener, G. ve Wolff, J. (2006). An integrated approach to mid- and upper-level turbulence forecasting. *Weather and Forecasting*, 21(3), 268–287. https://doi.org/10.1175/WAF924.1
 - ☑ Vovk, V., Gammerman, A. ve Shafer, G. (2022). *Algorithmic Learning in a Random World* (2. baskı). Springer. https://doi.org/10.1007/978-3-031-06649-8
 - ☑ Zhang, W., Zhang, X., Yuan, W., Zhang, C., Hu, M. ve Yang, T. (2025). Clear-air turbulence over China: climatology and multiscale mechanisms from first long-term aircraft reports. *Atmosphere*, 16(10), 1218. https://doi.org/10.3390/atmos16101218
+- ☑ Zhu, C., Zhang, C., Ng, K. K. H., Chan, P. W. ve Delahaye, D. (2026). Enhancing air traffic safety through clear-air turbulence prediction and trajectory optimisation. *Transportation Research Part C: Emerging Technologies*, 190, 105791. https://doi.org/10.1016/j.trc.2026.105791
 - ☐ Holton, J. R. *An Introduction to Dynamic Meteorology* (Richardson sayısı bölümü; baskı ve sayfa kitaptan alınmalı).

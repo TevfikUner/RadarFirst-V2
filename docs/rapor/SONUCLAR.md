@@ -437,6 +437,28 @@ riskli olanların %57'si tahminde de riskli; f048: 0,50 [0,39–0,59], %43. Risk
 Referans GFS'in kendi analizidir; gözlemle (ERA5) kıyas ERA5'in yayın gecikmesi yüzünden 3 Kasım'a kaldı.
 Paket `docs/sonuclar/2026-10-28_tahmin_ufku/`.
 
+### 2.10 Keşifsel göstergeler (protokol §13; 31 Ekim, skorlardan önce kayıtlı)
+
+Hepsi keşifseldir; birincil sonuç, model ve rota kararı değişmedi. Örnek düzeyi §10'un sabit 79 test
+gününde (7.772 örnek; §10'da 7.769, o günlere sonradan 3 örnek eşleşti; temel set ROC-AUC 0,685 aynı):
+
+| Analiz | Sonuç (ROC-AUC farkı, gün bloklu %95 GA) |
+|---|---|
+| Fikir 10, komşuluk maksimumu (±1 hücre/seviye/saat) − TI1 | +0,027 [+0,017; +0,037]; yalnız yatay ±1 hücre +0,020 [+0,016; +0,024] |
+| Aynı pencere, 7e-7 eşiğinde | POD 0,49 → 0,85, POFD 0,25 → 0,64 (pencere iki sınıfı birlikte büyütür; eşik yeniden seçilmeli) |
+| Fikir 11 devamı, çoklu /TB grubunun en şiddetlisi | 22 test etiketi 0→1 (1→0 yok); TI1, birleşik EDR ve modellerde etki ≤ +0,002 |
+| Fikir 24, AUC² ağırlıklı − eşit ağırlıklı birleşik EDR | −0,0003 [−0,0005; −0,0001]; ağırlıklar 0,18–0,21, pratikte fark yok |
+| Fikir 19, tek başına (TI1 0,658) | frontogenez 0,518, \|F\| 0,591, \|∇T\| 0,559, −PV 0,510; hepsi TI1'den zayıf |
+| Fikir 19, temel + 3 teşhis − temel model | −0,004 [−0,010; +0,002]; F9 adayı değil (NCSU1 kaynak yokluğundan hesaplanmadı) |
+
+Izgara düzeyi NE-ABD ERA5 küplerinde, dondurma günleri çıkarılmış 41 günde (660 PIREP, FL300–390): POD–uyarı
+alanı eğrisinin altındaki alan TI1 0,631 [0,585; 0,671], birleşik EDR 0,654 (TI1'e göre +0,024 [+0,013; +0,037]),
+TI3 0,646 (+0,015 [−0,010; +0,043], fark gösterilemedi; Fikir 15). 7e-7 eşiğinde ızgaranın %16,3'ü uyarı
+alanında, orta-üstü PIREP'lerin %33'ü (POD) ve kontrol raporlarının %18'i (POFD) eşik üstünde. TTS hesaplanmadı.
+Okuma: nokta eşleştirme PIREP konum/zaman hatası yüzünden ayırma kaybediyor; birleşik EDR'nin TI1'e üstünlüğü ızgara
+düzeyinde de görülüyor (A2 için ilk aday). Paketler `docs/sonuclar/2026-10-31_kesifsel_gostergeler/` ve
+`docs/sonuclar/2026-10-31_uyari_alani/`.
+
 ## 3. Nesnel değerlendirme: MADIS ölçülen EDR (M1) — tarihçe, 5 Ekim (güncel: §0.4)
 
 Etiket: MADIS maxEDR ≥ 0,1 (hafif ve üstü). 12.232 ölçüm, 372 pozitif (%3,0), 4 gün.
