@@ -151,7 +151,8 @@ def tara(
             ucuslari_listele(baglanti, gun, havalimanlari),
             havalimanlari,
             adet,
-            *(sure_araligi or (MIN_SURE_DK, MAKS_SURE_DK)),
+            min_sure_dk=(sure_araligi or (MIN_SURE_DK, MAKS_SURE_DK))[0],
+            maks_sure_dk=(sure_araligi or (MIN_SURE_DK, MAKS_SURE_DK))[1],
             uzun_dis=uzun_dis,
             saat_araligi=saat_araligi,
         )
