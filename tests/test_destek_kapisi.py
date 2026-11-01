@@ -35,3 +35,15 @@ def test_ayri_dosya_yalniz_ayni_model_sha_icin_kullanilir(tmp_path):
     assert dk.aktif_destek_araligi({"model_sha256": "abc"}, str(tmp_path / "yok.json")) is None
     kendi = {"ozellikler": {"a": [0.0, 1.0]}}
     assert dk.aktif_destek_araligi({"model_sha256": "baska", "destek_araligi": kendi}, str(yol)) == kendi
+
+
+def test_kapanma_ozeti_oran_ve_ozellik_sayimlari():
+    destek = {"ozellikler": {"a": [0.0, 1.0], "b": [0.0, 1.0]}}
+    ozet = dk.kapanma_ozeti(pd.DataFrame({"a": [0.5, 2.0, 2.0, 0.1], "b": [0.5, 0.5, -1.0, 0.2]}), destek)
+    assert (ozet["nokta"], ozet["kapanan"], ozet["kapanma_orani"]) == (4, 2, 0.5)
+    assert ozet["ozellik_basina"] == {"a": 2, "b": 1}
+
+
+def test_ucus_kipinde_kup_zorunlu():
+    with pytest.raises(SystemExit):
+        dk.ana(["--ucus", "THY4QR:2026-10-25"])

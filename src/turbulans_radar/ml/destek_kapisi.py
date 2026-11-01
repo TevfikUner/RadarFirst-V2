@@ -94,9 +94,53 @@ def destek_dosyasi_yaz(motor=None, yol: str | None = None) -> dict:
     return kayit
 
 
+def kapanma_ozeti(ozellikler: pd.DataFrame, destek: dict) -> dict:
+    """Kapının (en az bir özellik destek dışı) kapandığı oran ve özellik başına dışarıda kalan sayı."""
+    disarida = destek_disi_ozellikler(ozellikler, destek)
+    sayac: dict[str, int] = {}
+    for liste in disarida:
+        for sutun in liste:
+            sayac[sutun] = sayac.get(sutun, 0) + 1
+    kapanan = sum(bool(liste) for liste in disarida)
+    return {
+        "nokta": len(disarida),
+        "kapanan": kapanan,
+        "kapanma_orani": round(kapanan / len(disarida), 4) if disarida else None,
+        "ozellik_basina": dict(sorted(sayac.items(), key=lambda k: -k[1])),
+    }
+
+
+def ucus_kapanma_orani(ucus: str, tarih: str, kup_yolu: str, motor=None) -> dict:
+    import xarray as xr
+
+    from turbulans_radar.depo.veritabani import ucus_olcumlerini_dataframe_olarak_getir
+    from turbulans_radar.ml.turbulans_ml_modeli import model_bilgisini_yukle, ozellikleri_cikar
+
+    destek = aktif_destek_araligi(model_bilgisini_yukle())
+    if destek is None:
+        raise SystemExit("Aktif modelin destek aralığı yok (önce turbulans-ml-destek).")
+    olcumler = ucus_olcumlerini_dataframe_olarak_getir(ucus, tarih, motor=motor)
+    if olcumler is None or olcumler.empty:
+        raise SystemExit(f"{ucus} / {tarih} veritabanında yok.")
+    olcumler = olcumler[olcumler["ti1_indeksi"].notna()]
+    with xr.open_dataset(kup_yolu) as kup:
+        kup = kup.load()
+    ozellikler = ozellikleri_cikar(olcumler[["zaman", "enlem", "boylam", "irtifa_m"]].reset_index(drop=True), kup)
+    ozellikler = ozellikler[ozellikler["ti1_indeksi"].notna()].reset_index(drop=True)
+    return {"ucus": ucus, "tarih": tarih, "kup": os.path.basename(kup_yolu), **kapanma_ozeti(ozellikler, destek)}
+
+
 def ana(argv=None):
     ayristirici = argparse.ArgumentParser(description="Aktif modelin özellik destek aralığını yazar (kurul #29).")
-    ayristirici.parse_args(argv)
+    ayristirici.add_argument("--ucus", help="UCUS:YYYY-AA-GG; aralık yazılmaz, uçuş noktalarında kapanma oranı ölçülür")
+    ayristirici.add_argument("--kup", help="--ucus için ERA5 küpü (aktif modelin seviyeleriyle)")
+    arg = ayristirici.parse_args(argv)
+    if arg.ucus:
+        if not arg.kup:
+            ayristirici.error("--ucus için --kup gerekli")
+        ucus, _, tarih = arg.ucus.partition(":")
+        print(json.dumps(ucus_kapanma_orani(ucus, tarih, arg.kup), ensure_ascii=False, indent=2))
+        return
     kayit = destek_dosyasi_yaz()
     print(json.dumps(kayit, ensure_ascii=False, indent=2))
 
