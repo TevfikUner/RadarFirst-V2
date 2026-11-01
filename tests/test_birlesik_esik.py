@@ -38,3 +38,26 @@ def test_markdown_esigi_ve_kontrolu_yazar():
     }
     metin = be.markdown_ozeti(rapor)
     assert "Seçilen eşik" in metin and "Kontrol" in metin and "sertifikalı EDR değildir" in metin
+
+
+def test_cli_raporu_bir_kez_yazar(tmp_path, monkeypatch):
+    import json
+
+    import pandas as pd
+
+    import turbulans_radar.depo.veritabani as vt
+    import turbulans_radar.ml.ml_otomatik_egitim as moe
+    import turbulans_radar.ml.sonuc_disa_aktarimi as sda
+
+    y, ti1, birlesik, gunler, altin = _veri()
+    monkeypatch.setattr(vt, "motor_al", lambda: None)
+    monkeypatch.setattr(sda, "pirep_ornekleri", lambda motor, kesme: (None, {"y": y, "gun": pd.Series(gunler)}))
+    monkeypatch.setattr(sda, "skorlari_hesapla", lambda X: {"TI1": ti1, "Birleşik EDR": birlesik})
+    monkeypatch.setattr(sda, "git_bilgisi", lambda: {"commit": "abc"})
+    monkeypatch.setattr(moe, "degerlendirme_gunleri_maskesi", lambda g: (altin, "test"))
+    assert be.ana(["--cikti", str(tmp_path), "--tekrar", "20"]) == 0
+    rapor = json.loads((tmp_path / be.CIKTI_ADI).read_text(encoding="utf-8"))
+    assert rapor["meta"]["altin_yontemi"] == "test" and rapor["veri"]["altin_gun"] == 4
+    assert "Seçilen eşik" in (tmp_path / "README.md").read_text(encoding="utf-8")
+    with pytest.raises(SystemExit, match="üzerine yazılmaz"):
+        be.ana(["--cikti", str(tmp_path)])

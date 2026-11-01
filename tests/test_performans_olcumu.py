@@ -117,3 +117,116 @@ def test_rota_olc_a_yildizi_ayri_zamanlar_ve_geri_yukler(monkeypatch):
     tablo = po.markdown_tablosu({"rota": sonuc})
     assert "### Rota kararı (2 tekrar" in tablo and "| S2 İzmir→Van FL350 | era5_gercek |" in tablo
     assert "çağrılmadı" in tablo
+
+
+def test_donanim_bilgisi_temel_alanlari_verir():
+    bilgi = po.donanim_bilgisi()
+    assert bilgi["mantiksal_cekirdek"] and bilgi["python"] and "islemci" in bilgi
+
+
+def test_analiz_olc_asamalari_olcer_db_hatasinda_yazimi_birakir(monkeypatch):
+    import pandas as pd
+
+    from turbulans_radar import config
+    from turbulans_radar.analiz import ucus_analizi
+    from turbulans_radar.arayuz import harita
+    from turbulans_radar.depo import veritabani
+    from turbulans_radar.fizik import eslestirme
+    from turbulans_radar.veri import opensky_onbellegi
+
+    monkeypatch.setattr(config, "ERA5_OTOMATIK_INDIRME", True)
+    monkeypatch.setattr(config, "CANLI_HAVA_VERISI_ETKIN", True)
+    rota = pd.DataFrame({"enlem": [41.0, 41.1]})
+    monkeypatch.setattr(opensky_onbellegi, "rota_onbellekten_oku", lambda u, t: rota)
+    monkeypatch.setattr(ucus_analizi, "_veri_kupunu_sec", lambda r: "kup")
+    monkeypatch.setattr(eslestirme, "rotayi_hava_durumuyla_eslestir", lambda r, k: r)
+    monkeypatch.setattr(harita, "zaman_kaydiricili_harita_olustur", lambda e, dosya_adi: None)
+
+    def db_yok(*a):
+        raise ConnectionError("db yok")
+
+    monkeypatch.setattr(veritabani, "ucus_ve_olcumleri_kaydet", db_yok)
+    sonuc = po.analiz_olc(tekrar=3)
+    assert sonuc["nokta_sayisi"] == 2 and sonuc["tekrar"] == 3
+    assert set(sonuc["asamalar"]) == {"rota_okuma", "kup_secimi", "eslestirme", "harita", "toplam"}
+    assert sonuc["asamalar"]["toplam"]["adet"] == 2
+    assert config.ERA5_OTOMATIK_INDIRME is False and config.CANLI_HAVA_VERISI_ETKIN is False
+
+
+def test_api_olc_tum_senaryolari_isinmayla_calistirir(monkeypatch):
+    istekler = []
+
+    def isle(istek):
+        istekler.append(istek.url.path)
+        return httpx.Response(200, json={})
+
+    asil = httpx.AsyncClient
+    monkeypatch.setattr(httpx, "AsyncClient", lambda **k: asil(transport=httpx.MockTransport(isle), **k))
+    monkeypatch.setenv("TURBULANS_API_ANAHTARI", "anahtar")
+    sonuc = po.api_olc("http://test", eszamanliliklar=(1, 2), istek_carpani=1, isinma=1)
+    assert set(sonuc["senaryolar"]) == {ad for ad, *_ in po.api_senaryolari()}
+    assert [s["istek"] for s in sonuc["senaryolar"]["saglik"]] == [10, 10]
+    assert len(istekler) == len(po.api_senaryolari()) * (1 + 10 + 10)
+
+
+class _Satir:
+    def __init__(self, **alanlar):
+        self.__dict__.update(alanlar)
+
+
+class _SahteMotor:
+    def __init__(self, satirlar):
+        self.satirlar = satirlar
+
+    def connect(self):
+        motor = self
+
+        class _Baglanti:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def execute(self, *a, **k):
+                class _Sonuc:
+                    def all(self_):
+                        return motor.satirlar
+
+                return _Sonuc()
+
+        return _Baglanti()
+
+
+def test_gece_olc_istek_basina_sureyi_hesaplar(monkeypatch):
+    from datetime import UTC, datetime, timedelta
+
+    from turbulans_radar.depo import veritabani
+
+    t0 = datetime(2026, 10, 1, 3, tzinfo=UTC)
+    satirlar = [
+        _Satir(
+            olusturulma_zamani=t0,
+            baslama_zamani=t0,
+            bitis_zamani=t0 + timedelta(minutes=60),
+            ozet=[{"cds_istek": 30, "eslesti": 900}],
+        ),
+        _Satir(
+            olusturulma_zamani=t0, baslama_zamani=t0, bitis_zamani=t0 + timedelta(minutes=20), ozet={"cds_istek": 10}
+        ),
+        _Satir(olusturulma_zamani=t0, baslama_zamani=None, bitis_zamani=None, ozet=None),
+    ]
+    monkeypatch.setattr(veritabani, "motor_al", lambda: _SahteMotor(satirlar))
+    sonuc = po.gece_olc()
+    assert [c["istek_basina_sn"] for c in sonuc["calismalar"]] == [120.0, 120.0, None]
+    assert sonuc["calismalar"][0]["eslesen"] == 900 and sonuc["istek_basina_sn_medyan"] == 120.0
+
+
+def test_ana_secilen_bolumu_olcer_ve_json_yazar(monkeypatch, tmp_path):
+    import json
+
+    monkeypatch.setattr(po, "gece_olc", lambda: {"calismalar": [], "istek_basina_sn_medyan": None})
+    yol = tmp_path / "olcum.json"
+    po.ana(["gece", "--json", str(yol)])
+    sonuc = json.loads(yol.read_text(encoding="utf-8"))
+    assert sonuc["gece"]["calismalar"] == [] and "donanim" in sonuc and "analiz" not in sonuc
