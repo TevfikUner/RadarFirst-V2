@@ -2,6 +2,17 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-11-01
+
+- ✅ SIGMET irtifa bandı: AWC alanı boşsa ham metinden (`FL290/380`, `SFC/FL100`, `TOP FL420`…) okunuyor; `turbulans-sigmet --irtifa-onar` 445 eski kaydı onardı (LYBA U03/U04 dahil).
+- ✅ `turbulans-sigmet-ti1`: THY4QR LYBA U04 içinde 730 nokta %100 riskli, dışarıda %12,8 (keşifsel; `docs/sonuclar/2026-11-01_guncel_vaka/`).
+- ✅ Geri yükleme tatbikatı canlı sunucuda ayrı DB'ye: 2 sn, 16/16 tablo, alembic aynı. `Turbulence-db-tatbikat` silinemedi (izin), YAPILACAKLAR madde 25.
+- ✅ Bitirme raporu: 18 eski § göndermesi yeni numaralara (betikte); PDF yeniden üretildi.
+- ✅ Demo: İstanbul → Madrid 25 Ekim senaryosu, ERA5 koridor kutusu (1 CDS isteği, 884 KB), 19 gerçek arşiv SIGMET'i fikstür; sonuç dürüstçe ÖNERİ YOK. Playwright testli.
+- ✅ OOD kapısı THY4QR'de %6,5 kapanıyor (`turbulans-ml-destek --ucus`).
+- ✅ Test kapsamı: 5 araştırma CLI'ı %51–56 → %86–99.
+- ⏸️ Araştırma maddeleri (Fikir 18/20/23/29, F5/F7, OpenSky) 5 Kasım sonrasına; Hafta 5 e-postası ve keyring kullanıcıda.
+
 ## 2026-10-31
 
 - ✅ Kapsam taraması (39 uçuş, 21–26 Eki): Batı Türkiye ve Avrupa seyri %100 kapsanıyor; THY322'de %11,7. Komite vakası önerisi THY4QR (İstanbul → Madrid, 25 Eki, %18,5 riskli; Belgrad TURB SIGMET'i içinde TI1 %100 riskli, ön bulgu).
