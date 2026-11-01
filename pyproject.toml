@@ -60,6 +60,7 @@ turbulans-tahmin-ufku = "turbulans_radar.analiz.tahmin_ufku:ana"
 turbulans-kesifsel-gostergeler = "turbulans_radar.ml.kesifsel_gostergeler:ana"
 turbulans-uyari-alani = "turbulans_radar.analiz.uyari_alani:ana"
 turbulans-kapsam-tarama = "turbulans_radar.cli.kapsam_tarama:ana"
+turbulans-sigmet-ti1 = "turbulans_radar.dogrulama.sigmet_ti1_kiyasi:ana"
 
 [tool.setuptools.dynamic]
 dependencies = { file = ["requirements.txt"] }
