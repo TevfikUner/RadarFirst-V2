@@ -54,7 +54,7 @@
      11 günde 28 hafif+). IEM PIREP o gün Avrupa'da 0 (IEM yalnız Kuzey Amerika/Pasifik).
 - Trino girişi: her yeni süreçte tarayıcıda OAuth ekranı açılır. Kalıcı çözüm `keyring` + `keyrings.alt` (WSL venv,
   depo dışı düz dosya); Claude'un kurulumu izin denetimince engellendi, kullanıcı isterse kendisi kurar. Kurulmazsa sorgular
-  tek süreçte toplanır.
+  tek süreçte toplanır. **1 Kasım: kullanıcı erteledi** (acelesi yok); yeni OpenSky sorgusu gerekince yeniden sorulur.
 
 **B. Kullanıcı kararı bekleyenler** (31 Ekim: kullanıcı "önerdiğin seçeneği uygula" dedi; öneriler uygulandı)
 5. ~~Masaüstü `yedekler/` eski şifreli bundle/mirror'ları~~ (31 Ekim: **silinmedi**. Şifre 1 Ekim'de değişti, dosyalar
@@ -87,8 +87,8 @@
     `eslestirme.py` modu ve eşiğin yeniden seçimi (ONAY).
 14. Türkiye TURB SIGMET ↔ TI1 (madde 29; 5 TURB SIGMET için GFS arşivi yok, küçük ERA5 kutusu, ONAY); Faz 2 (madde 30);
     `rojak` kıyası (madde 31).
-15. `Turbulence-db-dondurma` / `Turbulence-db-tatbikat` DROP ve `docker builder prune` (~32 GB; madde 25, sunum
-    paketi yenilendikten sonra, ONAY);
+15. `Turbulence-db-dondurma` / `Turbulence-db-tatbikat` DROP ve `docker builder prune` (~32 GB; madde 25, ONAY).
+    **1 Kasım, kullanıcı kararı: veritabanından hiçbir şey vize dönemi bitmeden silinmez**; vizeden sonra konuşulur.
     #25 yerel Swagger (kotasız internet).
 
 ## Öncelik sırası (28 Ekim 2026 gece, kurul raporu sonrası)
@@ -169,7 +169,7 @@ ve sağlayıcı sınırları). Değişen bir koşul yok.
 **5. Teslim sonrası / koşullu**
 25. `Turbulence-db-dondurma` ve `Turbulence-db-tatbikat` (1 Kasım geri yükleme tatbikatı kopyası; Claude'un
     `dropdb`'si izin denetiminde reddedildi) DROP ve `docker builder prune` (~32 GB, 1 Kasım); hepsi geri
-    alınamaz, ONAY.
+    alınamaz, ONAY. **Vize dönemi bitene kadar ertelendi (kullanıcı, 1 Kasım).**
 26. Kurul #30: GTG/WAFS kıyası; MGM ve IATA Turbulence Aware başvurusu (kullanıcı, dış iletişim). 30 Ekim: TUSAŞ,
     Boeing, Airbus, DLR, NASA, MGM ve IATA için e-posta taslakları hazır (masaüstü, depo dışı); danışman onayı bekliyor.
 27. P0-7 hibrit topoloji ADR'si (yalnız B planına geçilirse).

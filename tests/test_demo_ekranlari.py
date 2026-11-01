@@ -91,3 +91,11 @@ def test_harita3d_secicileri_sayfada_var(tmp_path):
     for ad, argumanlar in sayfa.cagrilar:
         if ad in ("fill", "click", "wait_for_selector", "inner_text"):
             assert re.search(rf'id="{argumanlar[0].lstrip("#")}"', html), argumanlar[0]
+
+
+def test_secicili_ekranlar_senaryo_dosyasinda_var():
+    import json
+
+    kimlikler = {s["kimlik"] for s in json.loads((KOK / "web/veri/senaryolar.json").read_text(encoding="utf-8"))}
+    secicili = [s["senaryo"] for s in de.SENARYOLAR.values() if "senaryo" in s]
+    assert secicili and set(secicili) <= kimlikler
