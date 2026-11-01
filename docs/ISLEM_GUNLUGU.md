@@ -12,6 +12,9 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ✅ OOD kapısı THY4QR'de %6,5 kapanıyor (`turbulans-ml-destek --ucus`).
 - ✅ Test kapsamı: 5 araştırma CLI'ı %51–56 → %86–99.
 - ⏸️ Araştırma maddeleri (Fikir 18/20/23/29, F5/F7, OpenSky) 5 Kasım sonrasına; Hafta 5 e-postası ve keyring kullanıcıda.
+- ✅ Demo ekranları temiz klondan yenilendi (5 ekran, 2'si yeni); sunum paketi 479 MB, OneDrive'a kopyalandı, SHA256 OK.
+- ✅ Komite sunumu 20 slayt (güncel vaka + "sistem bilmediğini söyler" eklendi, sayılar güncel); HTML kaynağı depoda.
+- ⏸️ Kullanıcı kararı: veritabanından silme işleri vize sonrasına; keyring ertelendi.
 
 ## 2026-10-31
 

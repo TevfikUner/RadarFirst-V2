@@ -8,7 +8,11 @@
 Önerilen sıra. Ayrıntı ve kanıt tarama raporunda; numaralar aşağıdaki öncelik listesine bağlanır.
 
 **A. Bu hafta (5 Kasım sunumundan önce)**
-1. **1–4 Kasım: demo ekranları ve sunum paketi yenileme (önerilen ilk iş).** Ekranlar 19 Ekim, paket
+1. ~~**1–4 Kasım: demo ekranları ve sunum paketi yenileme**~~ (1 Kasım: temiz klon `9e0996d`, ağsız prova, 5 ekran
+   (04 güncel vaka, 05 arıza tatbikatı yeni), `~/sunum_paketi_20261101` 479 MB, OneDrive kopyası SHA256 9/9 OK.
+   Komite sunumu 20 slayt `docs/sunum/KOMITE_SUNUMU_2026-11-01.pdf`, kaynağı artık depoda
+   (`docs/sunum/kaynak/komite_sunumu.html`, `python scripts/komite_sunumu.py`); masaüstünde danışman önerisi adlı kopya.
+   Model paneli ROC-AUC/OOD ekranı demo yığınında model olmadığı için alınmadı; OOD slayt 13'te tabloyla.) Eski not: Ekranlar 19 Ekim, paket
    (`sunum_paketi_20261027`) `e73fdd8`; S-3 seçici, S-4 arıza tatbikatı, OOD kapısı, model paneli (ROC-AUC),
    `katman_cevrelenmiyor` ve Ri notu ikisinde de yok. WSL temiz klonundan (5532/8100) `turbulans-demo-ekranlari`,
    ardından `bash scripts/sunum_paketi.sh`; OneDrive'a kopya + SHA256. Bitene kadar `docker builder prune`
@@ -48,8 +52,8 @@
      Tek başına "FL440" (çoğunlukla yazım hatalı CB tepesi) bandı daraltmaz.
 - Kalan:
   5. İsteğe bağlı SXS6MG (Londra → Antalya), aynı adımlar (+30 dk).
-  6. Demo ekranları ve sunum paketi yenilenir (A.1 ile birleşir); yeni senaryonun ekranı da alınır. Yeni kod Docker
-     imajına girmeden demo yığınında senaryo çalışmaz (imaj yeniden derlenir).
+  6. ~~Demo ekranları ve sunum paketi~~ (1 Kasım, A.1). Temiz demoda rota çevresinde 14 aktif SIGMET (geliştirme
+     DB'sinde fikstür kutusu dışından bir mesajla 15); belgeler temiz demonun sayısını kullanır.
   9. MADIS EDR 25 Ekim: kontrol edilmedi (bir günlük MADIS dosyası indirmek gerekir; Avrupa'da açık EDR seyrek,
      11 günde 28 hafif+). IEM PIREP o gün Avrupa'da 0 (IEM yalnız Kuzey Amerika/Pasifik).
 - Trino girişi: her yeni süreçte tarayıcıda OAuth ekranı açılır. Kalıcı çözüm `keyring` + `keyrings.alt` (WSL venv,

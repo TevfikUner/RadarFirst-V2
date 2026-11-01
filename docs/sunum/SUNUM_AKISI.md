@@ -95,7 +95,13 @@ Dört katman, her biri ayrı doğrulanır:
 
 ## 6. Canlı demo
 
-`DEMO_SENARYOSU.md` §2. Ağsız; olmazsa yedek video.
+`DEMO_SENARYOSU.md` §2. Ağsız; olmazsa yedek video. Adım 5b güncel vaka: İstanbul → Madrid, 25 Ekim 2026
+(THY4QR Belgrad TURB SIGMET'inin içinden geçti; 730 noktanın %100'ü riskli, dışarıda %12,8; keşifsel). Rota
+çevresindeki 14 arşiv SIGMET'iyle sistem ÖNERİ YOK der. Demo bozulursa slayt PDF'indeki ekranlar kullanılır.
+
+Slayt PDF'i: `docs/sunum/KOMITE_SUNUMU_2026-11-01.pdf` (20 slayt; kaynak `docs/sunum/kaynak/komite_sunumu.html`,
+`python scripts/komite_sunumu.py`). Ekranlar `docs/sunum/ekranlar/01–05`, temiz klondan ağsız provayla
+(`scripts/sunum_paketi.sh`, 1 Kasım).
 
 ## 7. Sonuçlar: performans
 
