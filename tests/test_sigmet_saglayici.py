@@ -255,6 +255,49 @@ def test_makul_olmayan_irtifa_bandi_muhafazakar_genisletilir():
     assert bant(base=30000, top=20000) == (None, None)
 
 
+@pytest.mark.parametrize(
+    ("metin", "beklenen"),
+    [
+        ("LYBA SIGMET U03 SEV TURB FCST W OF LINE N4440 E02155 - N4205 E02055 FL290/380 MOV E NC=", (29000, 38000)),
+        ("SEV TURB FCST SFC/FL100 STNR NC=", (0, 10000)),
+        ("SEV MTW FCST 3000FT/FL150 NC=", (3000, 15000)),
+        ("SEV TURB OBS 1500M/FL120 NC=", (4921, 12000)),
+        ("SEV TURB FCST SFC/060 MOV E 30KT NC=", (0, 6000)),
+        ("EMBD TS OBS TOP FL420 MOV NE NC=", (None, 42000)),
+        ("EMBD TS OBS CB TOPS ABV FL550 MOV STNRY NC=", (None, None)),
+        ("EMBD TS FCST TOP ABV FL390 MOV NE INTSF=", (None, None)),
+        ("SEV TURB FCST ABV FL300 NC=", (30000, None)),
+        ("SEV TURB FCST BLW FL280 NC=", (None, 28000)),
+        ("OCNL TS OBS CB TOS FL480 MOV NW 05KT=", (None, None)),
+        ("SEV TURB FCST FL400/280 MOV E 15KT NC=", (None, None)),
+        ("SEV TURB FCST WI N4100 E02000 - N4200 E02100 FL250/300 AND WI N4300 E02200 FL330/370 NC=", (25000, 37000)),
+        ("SEV MTW FCST WI S3030 E01754 - S3030 E02116=", (None, None)),
+    ],
+)
+def test_bos_irtifa_alanlari_ham_metinden_okunur(metin, beklenen):
+    kayit = ss.sigmet_kaydini_normalize_et("isigmet", {**ULUSLARARASI_ORNEK, "top": None, "rawSigmet": metin})
+    assert (kayit["taban_ft"], kayit["tavan_ft"]) == beklenen
+
+
+def test_dolu_irtifa_alani_metinle_ezilmez():
+    kayit = ss.sigmet_kaydini_normalize_et("isigmet", {**ULUSLARARASI_ORNEK, "rawSigmet": "SEV TURB FL290/380"})
+    assert (kayit["taban_ft"], kayit["tavan_ft"]) == (None, 39000)
+
+
+def test_bandi_bos_eski_kayitlar_metinden_onarilir(test_veritabani):
+    bos = ss.sigmet_kaydini_normalize_et("isigmet", {**ULUSLARARASI_ORNEK, "top": None})
+    okunamaz = {**bos, "dis_kimlik": "test-okunamaz"}
+    bos.update(kaynak="test", ham_metin="LYBA SIGMET U04 SEV TURB FL260/380 MOV E NC=")
+    okunamaz.update(kaynak="test", ham_metin="SEV TURB FCST NC=")
+    ss.sigmetleri_kaydet([bos, okunamaz], motor=test_veritabani)
+    assert ss.irtifa_bantlarini_metinden_onar(motor=test_veritabani, kaynak="test") == 1
+    with test_veritabani.connect() as baglanti:
+        bantlar = baglanti.execute(
+            text("SELECT ham_metin, taban_ft, tavan_ft FROM sigmetler WHERE kaynak = 'test' ORDER BY ham_metin")
+        ).all()
+    assert [tuple(b[1:]) for b in bantlar] == [(26000, 38000), (None, None)]
+
+
 def test_tehlikesi_okunamayan_sigmet_bilinmiyor_olarak_saklanir():
     kayit = ss.sigmet_kaydini_normalize_et("isigmet", {**ULUSLARARASI_ORNEK, "hazard": None})
     assert kayit["tehlike"] == "BILINMIYOR"
