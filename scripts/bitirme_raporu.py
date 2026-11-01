@@ -55,12 +55,52 @@ def _kod_disi_satirlar(metin):
         yield satir, kod
 
 
-def bolumu_numarala(metin, no, baslik):
+_BASLIK_NO = re.compile(r"^(#{2,4}) (\d+(?:\.\d+)*)\.? (.*)$")
+_IC_ATIF = re.compile(r"(?<!protokol )(?<!protokolü )(?<!\.md` )§(\d+(?:\.\d+)*)(?:–(§?)(\d+(?:\.\d+)*))?")
+
+
+def baslik_numaralari(metin):
+    return {m.group(2) for satir, kod in _kod_disi_satirlar(metin) if not kod and (m := _BASLIK_NO.match(satir))}
+
+
+def atiflari_numarala(satir, no, numaralar, diger_bolumler=()):
+    """Bölümün kendi başlığına giden '§0.4' -> '§4.0.4'; protokol ve başka belge atıfları (§10, `X.md` §3) kalır.
+    diger_bolumler: (dosya adı, bölüm başlığı, bölüm no, başlık numaraları) -- '`SONUCLAR.md` §0.1' -> '§4.0.1'."""
+
+    def ic(m):
+        if m.group(1) not in numaralar:
+            return m.group(0)
+        ikinci = ""
+        if m.group(3):
+            ikinci = f"–{m.group(2)}{f'{no}.' if m.group(3) in numaralar else ''}{m.group(3)}"
+        return f"§{no}.{m.group(1)}{ikinci}"
+
+    satir = _IC_ATIF.sub(ic, satir)
+    for ad, baslik, diger_no, diger_numaralar in diger_bolumler:
+        satir = re.sub(
+            rf"`{re.escape(ad)}` §(\d+(?:\.\d+)*)",
+            lambda m, n=diger_no, s=diger_numaralar: f"§{n}.{m.group(1)}" if m.group(1) in s else m.group(0),
+            satir,
+        )
+        satir = re.sub(
+            rf"{re.escape(baslik)} §(\d+(?:\.\d+)*)",
+            lambda m, b=baslik, n=diger_no, s=diger_numaralar: (
+                f"{b} §{n}.{m.group(1)}" if m.group(1) in s else m.group(0)
+            ),
+            satir,
+        )
+    return satir
+
+
+def bolumu_numarala(metin, no, baslik, diger_bolumler=()):
+    numaralar = baslik_numaralari(metin)
     satirlar = []
     for satir, kod in _kod_disi_satirlar(metin):
+        if not kod:
+            satir = atiflari_numarala(satir, no, numaralar, diger_bolumler)
         if not kod and satir.startswith("# "):
             satir = f"# {no}. {baslik}"
-        elif not kod and (m := re.match(r"^(#{2,4}) (\d+(?:\.\d+)*)\.? (.*)$", satir)):
+        elif not kod and (m := _BASLIK_NO.match(satir)):
             satir = f"{m.group(1)} {no}.{m.group(2)} {m.group(3)}"
         satirlar.append(satir)
     metin = "\n".join(satirlar)
@@ -81,9 +121,10 @@ def raporu_olustur() -> str:
         "## Özet",
         ozet,
     ]
+    kaynaklar = {ad: ilgili if ad == "ILGILI_CALISMALAR.md" else _oku(ad) for ad, _ in BOLUMLER}
+    diger = [(ad, b, n, baslik_numaralari(kaynaklar[ad])) for n, (ad, b) in enumerate(BOLUMLER, start=1)]
     for no, (ad, baslik) in enumerate(BOLUMLER, start=1):
-        metin = ilgili if ad == "ILGILI_CALISMALAR.md" else _oku(ad)
-        metin = bolumu_numarala(metin, no, baslik)
+        metin = bolumu_numarala(kaynaklar[ad], no, baslik, [d for d in diger if d[0] != ad])
         if ad == "YONTEM.md":
             son = max(int(n) for n in re.findall(rf"^## {no}\.(\d+) ", metin, flags=re.M))
             metin += f"\n\n## {no}.{son + 1} Araç kullanımı beyanı\n\n{beyan}"

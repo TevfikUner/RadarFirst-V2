@@ -6394,6 +6394,11 @@
                 "type": "null"
               }
             ]
+          },
+          "demo_arsivi_mi": {
+            "type": "boolean",
+            "title": "Demo Arsivi Mi",
+            "default": false
           }
         },
         "type": "object",

@@ -276,6 +276,8 @@ class SigmetKontroluYaniti(BaseModel):
     yayin_ufku_disi: str = "yok"
     yayin_ufku_saat: float | None = None
     tampon: SigmetTamponuYaniti | None = None
+    # SIGMET'lerden biri demo paketindeki arşiv mesajı (canlı uyarı değil).
+    demo_arsivi_mi: bool = False
 
 
 class KisitliSahaYaniti(BaseModel):

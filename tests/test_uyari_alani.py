@@ -97,3 +97,42 @@ def test_pirep_noktalari_kutu_ve_fl_suzgeci(monkeypatch):
     sonuc = ua.pirep_noktalari(["2019-01-01"])
     assert sonuc["irtifa_ft"].tolist() == [35000.0, 39000.0]
     assert sonuc["baro_irtifa_m"].tolist() == pytest.approx([10668.0, 11887.2])
+
+
+def test_calistir_bir_kez_json_readme_ve_sekil_yazar(tmp_path, monkeypatch):
+    import json
+
+    import turbulans_radar.ml.sonuc_disa_aktarimi as sda
+    import turbulans_radar.ml.yeni_gun_degerlendirmesi as ygd
+
+    klasor = tmp_path / "kup"
+    klasor.mkdir()
+    _kup(pd.date_range("2019-01-01", periods=32, freq="3h")).to_netcdf(klasor / "ne_abd.nc")
+    rng = np.random.default_rng(1)
+    n = 120
+    pirep = pd.DataFrame(
+        {
+            "zaman": pd.to_datetime("2019-01-01T06:00Z") + pd.to_timedelta(rng.uniform(0, 3 * 24 * 60, n), unit="min"),
+            "enlem": rng.uniform(41.0, 49.0, n),
+            "boylam": rng.uniform(-79.0, -71.0, n),
+            "baro_irtifa_m": rng.uniform(9500.0, 11500.0, n),
+            "sinif": rng.integers(0, 2, n),
+        }
+    )
+    monkeypatch.setattr(ua, "pirep_noktalari", lambda gunler, arsiv: pirep.copy())
+    monkeypatch.setattr(ygd, "dondurma_gunleri", lambda: {"2019-01-01"})
+    monkeypatch.setattr(sda, "git_bilgisi", lambda: {"commit": "abc"})
+    cikti = tmp_path / "rapor"
+    ua.ana(["--cikti", str(cikti), "--kup-klasoru", str(klasor), "--tekrar", "20"])
+    rapor = json.loads((cikti / ua.CIKTI_ADI).read_text(encoding="utf-8"))
+    assert rapor["gunler"]["bagimli_cikarilan"] == ["2019-01-01"] and len(rapor["gunler"]["bagimsiz"]) == 3
+    assert set(rapor["birincil_bagimsiz"]["kural_esikleri"]) == set(ua.KURAL_ESIKLERI)
+    assert "karar destek aracıdır" in (cikti / "README.md").read_text(encoding="utf-8")
+    assert (cikti / "pod_alan_egrisi.png").stat().st_size > 0
+    with pytest.raises(SystemExit, match="üzerine yazılmaz"):
+        ua.calistir(str(cikti), str(klasor))
+
+
+def test_kup_yoksa_acik_hata(tmp_path):
+    with pytest.raises(FileNotFoundError):
+        ua.kupleri_birlestir(str(tmp_path))

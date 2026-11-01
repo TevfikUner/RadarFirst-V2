@@ -34,20 +34,22 @@
   SIGMET'i kaçırmıştı.) O gün rota çevresinde 8 TURB SIGMET'i (LYBA, LRBB, LIRR, LIBB, LAAA, LGGG). SIGMET gözlem değil
   uyarıdır; LYBA'nın irtifa bandı boş; noktalar bağımsız değil. Kontrol bir CLI'a dönüştürülmeden rapora sayı yazılmaz.
 - **Öneri (kullanıcı 31 Ekim'de sordu):** komitede ana vaka THY4QR; THY322 ağsız yedek olarak paketde kalır.
-- Sonraki oturumda yapılacaklar (~1,5–2 sa):
-  1. SIGMET–TI1 kontrolünü küçük bir CLI'a çevir (`dogrulama/`; DB'deki SIGMET poligonları [boylam, enlem], zaman ve
-     irtifa bandı), test yaz, sonucu `docs/sonuclar/<tarih>_guncel_vaka/`'ya koy.
-  2. THY4QR'yi ikinci demo vakası yap: ERA5 kutusunu rota kaçınma koridorunu (±400 km) kapsayacak şekilde indir, demo
-     paketine yalnız gerekli seviyeler (boyut THY322 paketine yakın tut; şu anki uçuş dilimi 1,9 MB), `demo/README.md` SHA256.
-  3. Senaryo seçiciye (`web/veri/senaryolar.json`) İstanbul → Madrid, 25 Ekim; LYBA TURB SIGMET'i demo fikstürü olarak
-     (gerçek mesaj, etiketli). Playwright testi; THY322'ye dokunma.
-  4. `DEMO_SENARYOSU.md` ve sunum akışı: "gerçek uçuş Belgrad TURB SIGMET'inden geçti, sistem bu SIGMET'i sert kısıt alır".
+- 1 Kasım'da yapılanlar (sonuç: `docs/sonuclar/2026-11-01_guncel_vaka/`):
+  1. ~~SIGMET–TI1 CLI~~ `turbulans-sigmet-ti1` (zaman, poligon, irtifa bandı; testli). THY4QR LYBA U04 içinde 730 nokta,
+     %100 riskli, dışarıda %12,8; SXS6MG %96,8 / %37,5. Elle yapılan kontrolle aynı.
+  2. ~~ERA5 koridor kutusu~~ `demo/era5/era5_THY4QR_2026-10-25.nc` (±400 km, 300/250/200 hPa, 11–17 UTC, 1 CDS isteği,
+     884 KB); `demo/README.md` SHA256 + test.
+  3. ~~Senaryo ve SIGMET fikstürü~~ `istanbul_madrid_arsiv_sigmet`; fikstür o penceredeki 19 gerçek SIGMET'in tamamı
+     (yalnız LYBA seçilmedi: seçilse 140 km yanal kaçınma çıkıyordu, tümüyle FL340'ta 15 aktif SIGMET ve ÖNERİ YOK).
+     `DEMO_SIGMET_FIKSTURU_YUKLE` (yalnız `.env.demo`, üretimde reddedilir), rota bulgusu "canlı uyarı değildir". Playwright testli.
+  4. ~~DEMO_SENARYOSU~~ adım 5b eklendi.
+  7. ~~OOD kapısı~~ `turbulans-ml-destek --ucus`: 11.180 noktanın %6,5'inde kapanıyor (hepsinde `yatay_deformasyon`).
+  8. ~~Veri kalitesi~~ AWC alanı boşsa bant ham metinden okunuyor; `turbulans-sigmet --irtifa-onar` 445 eski kaydı onardı.
+     Tek başına "FL440" (çoğunlukla yazım hatalı CB tepesi) bandı daraltmaz.
+- Kalan:
   5. İsteğe bağlı SXS6MG (Londra → Antalya), aynı adımlar (+30 dk).
-  6. Ardından demo ekranları ve sunum paketi yenilenir (A.1 ile birleşir).
-  7. THY4QR noktalarında OOD kapısının kapanma oranı (indirme yok, birkaç dakika).
-  8. **Veri kalitesi (31 Ekim bulgusu):** LYBA U03/U04 TURB SIGMET'lerinin metninde "FL290/380" ve "FL260/380" yazıyor ama
-     DB'de `taban_ft`/`tavan_ft` boş (U06'da dolu). AWC alanı boşsa irtifa bandını ham metinden (`FLxxx/yyy`) okuyan düzeltme
-     + test. Boş bant bugün tüm irtifalar sayılıyor (tutucu); THY4QR FL330–370'te uçtuğu için ön bulgu değişmez.
+  6. Demo ekranları ve sunum paketi yenilenir (A.1 ile birleşir); yeni senaryonun ekranı da alınır. Yeni kod Docker
+     imajına girmeden demo yığınında senaryo çalışmaz (imaj yeniden derlenir).
   9. MADIS EDR 25 Ekim: kontrol edilmedi (bir günlük MADIS dosyası indirmek gerekir; Avrupa'da açık EDR seyrek,
      11 günde 28 hafif+). IEM PIREP o gün Avrupa'da 0 (IEM yalnız Kuzey Amerika/Pasifik).
 - Trino girişi: her yeni süreçte tarayıcıda OAuth ekranı açılır. Kalıcı çözüm `keyring` + `keyrings.alt` (WSL venv,
@@ -66,8 +68,9 @@
 **C. Komite hazırlığı (kullanıcı açınca; madde 19–24)**
 9. ~~Bütünleşik bitirme raporu~~ (31 Ekim, taslak: `docs/rapor/BITIRME_RAPORU.md` + `.pdf`, 29 sayfa; yeni bölümler
    OZET, GIRIS, YONTEM, GELECEK_CALISMA; var olan taslaklar `scripts/bitirme_raporu.py --pdf` ile birleşir, test
-   eşzamanlılığı denetler). Kalan (kullanıcı): metni okuyup onaylamak; üniversite şablonu/kapak istenirse biçim;
-   bölüm içi "§0.4" gibi eski göndermeler yeni numaralara (4.0.4) çevrilmedi.
+   eşzamanlılığı denetler). Kalan (kullanıcı): metni okuyup onaylamak; üniversite şablonu/kapak istenirse biçim.
+   1 Kasım: bölüm içi ve bölümler arası § göndermeleri betikte yeni numaralara çevriliyor (18 yer; protokol ve
+   başka belge atıfları olduğu gibi kalır).
 10. Savunma hazırlığı ve danışmana YZ beyanı e-postası (beyan 31 Ekim'de güncellendi). 31 Ekim: çalışma kartları
     `docs/sunum/SAVUNMA_HAZIRLIGI.md` (4 çekirdeğin koddan iskeleti ve soruları, "kendi kararlarım" taslağı, prova planı,
     e-posta taslağı). Kalan (kullanıcı): 4 sayfayı elle çizmek, kararlar tablosuna gerekçe, 2 notsuz prova, e-postayı göndermek.
@@ -84,7 +87,8 @@
     `eslestirme.py` modu ve eşiğin yeniden seçimi (ONAY).
 14. Türkiye TURB SIGMET ↔ TI1 (madde 29; 5 TURB SIGMET için GFS arşivi yok, küçük ERA5 kutusu, ONAY); Faz 2 (madde 30);
     `rojak` kıyası (madde 31).
-15. `Turbulence-db-dondurma` DROP ve `docker builder prune` (~65 GB; madde 25, sunum paketi yenilendikten sonra, ONAY);
+15. `Turbulence-db-dondurma` / `Turbulence-db-tatbikat` DROP ve `docker builder prune` (~32 GB; madde 25, sunum
+    paketi yenilendikten sonra, ONAY);
     #25 yerel Swagger (kotasız internet).
 
 ## Öncelik sırası (28 Ekim 2026 gece, kurul raporu sonrası)
@@ -126,7 +130,9 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
 13. **ATM-06:** GTG referans AUC'si yalnız Sharman vd. (2006) tam metni bulunursa.
 14. ~~mypy tüm pakete, `Mapped[datetime]`~~ (29 Ekim: 140 dosya temiz, 13 hata düzeltildi; 35 zaman sütunu
     `Mapped[datetime]`/`date`). `cli/demo_ekranlari` testi %27 → %66. 31 Ekim: `ekonomik_deger` %47,5 → %95, `esik_esleme` %55 → %91,
-    `tahmin_ufku` %80. Kalan: `performans_olcumu`, `birlesik_esik`, `sonuc_paketi`, `gosterge_degerlendirme`, `uyari_alani` (%51–56).
+    `tahmin_ufku` %80. 1 Kasım: `performans_olcumu` %51 → %86, `birlesik_esik` %51 → %98, `sonuc_paketi` %55 → %96,
+    `gosterge_degerlendirme` %53 → %93, `uyari_alani` %56 → %99 (CLI gövdeleri sahte veriyle; `gorev_olc` DB kuyruğu
+    gerektirdiği için testsiz).
 
 **3. Araştırma (yeni günlerde, önce protokole yazılarak)**
 
@@ -134,6 +140,8 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
 Ertelenenler ve nedenleri: #25 Swagger (kotasız internet), ATM-06 (Sharman 2006 tam metni yok), gece işi (kullanıcı
 emri), MİM-02 ve A2 (kurul: sunum öncesi regresyon riski), Fikir 29 (kazanç küçük), Fikir 18/20 (yeni gün verisi
 gerekir, gece işi kapalı), Fikir 23 (OpenSky girişi kullanıcıda), F7/OpenSky/F5 (ONAY ve veri bütçesi).
+1 Kasım: kullanıcı "önerdiğini uygula" dedi; öneri yine ertelemek (5 Kasım öncesi demo regresyon riski, veri bütçesi
+ve sağlayıcı sınırları). Değişen bir koşul yok.
 15. ~~Fikir 11 devamı, Fikir 9, 10, 15, 19, 24~~ (31 Ekim, protokol §13, keşifsel; `2026-10-31_kesifsel_gostergeler/`,
     `2026-10-31_uyari_alani/`). Kalan: Fikir 29 (beklenen kazanç küçük), NCSU1 (birincil kaynak yok, ATM-06 ile aynı),
     Fikir 10'un `fizik/eslestirme.py`'ye mod olarak girmesi ve eşiğin yeniden seçilmesi (sunum sonrası, ONAY).
@@ -144,9 +152,9 @@ gerekir, gece işi kapalı), Fikir 23 (OpenSky girişi kullanıcıda), F7/OpenSk
     zaman ve alanında canlı GFS ile TI1; bölgesel uyuşmazlık itirazına ilk Türkiye kanıtı (küçük örneklem).
 30. **(30 Ekim)** Faz 2, tırmanma/alçalma için ayrı model: 400–850 hPa, CAPE, arazi; FL100–FL280 PIREP'leri konvektif /
     dağ dalgası / rüzgâr kesmesi diye ayrı etiket. Seyir modeline karıştırılmaz. Dayanak: Lee ve Chun (2025).
-31. **(30 Ekim)** İndekslerin `rojak` (Imperial College) ile aynı ERA5 üzerinde kıyası; Zhu vd. 2026, Gökdeniz ve
-    Ülkü 2026, He vd. 2026 ve iki derlemenin `docs/rapor/ILGILI_CALISMALAR.md`'ye eklenmesi
-    (`docs/arastirma/LITERATUR_TARAMASI_2026-10-30.pdf`).
+31. **(30 Ekim)** İndekslerin `rojak` (Imperial College) ile aynı ERA5 üzerinde kıyası. ~~Zhu vd. 2026, Gökdeniz ve
+    Ülkü 2026, He vd. 2026 ve iki derlemenin `docs/rapor/ILGILI_CALISMALAR.md`'ye eklenmesi~~ (31 Ekim, Crossref
+    künyeleriyle; `docs/arastirma/LITERATUR_TARAMASI_2026-10-30.pdf`).
 
 **4. Komite öncesi hazırlık (kullanıcı açana kadar ertelendi; kurul raporu §8)**
 19. Savunma hazırlığı (#5) ve danışmana YZ beyanı e-postası (K-1).
@@ -159,7 +167,9 @@ gerekir, gece işi kapalı), Fikir 23 (OpenSky girişi kullanıcıda), F7/OpenSk
     424 commit / 1.242 test / 47.829 satırın 665'i; sonraki her commit sayıyı yeniden eskitir).
 
 **5. Teslim sonrası / koşullu**
-25. `Turbulence-db-dondurma` DROP ve `docker builder prune` (~50 GB); ikisi de geri alınamaz, ONAY.
+25. `Turbulence-db-dondurma` ve `Turbulence-db-tatbikat` (1 Kasım geri yükleme tatbikatı kopyası; Claude'un
+    `dropdb`'si izin denetiminde reddedildi) DROP ve `docker builder prune` (~32 GB, 1 Kasım); hepsi geri
+    alınamaz, ONAY.
 26. Kurul #30: GTG/WAFS kıyası; MGM ve IATA Turbulence Aware başvurusu (kullanıcı, dış iletişim). 30 Ekim: TUSAŞ,
     Boeing, Airbus, DLR, NASA, MGM ve IATA için e-posta taslakları hazır (masaüstü, depo dışı); danışman onayı bekliyor.
 27. P0-7 hibrit topoloji ADR'si (yalnız B planına geçilirse).
@@ -208,10 +218,10 @@ Yarım kalan ya da dış koşul bekleyen işler. Ayrıntı: `docs/ISLEM_GUNLUGU.
 - [x] (19 Ekim, temiz klon `071ecdb`, sayılar aynı; ekran aracı CSP'ye takılıyordu, düzeltildi) **Demo ekranlarını yenile:** `TI1_GUVENILIRLIK_NOTU` metni (15.940 PIREP / 163 gün) ve
   `harita3d.html`'deki "karar destek aracıdır" satırı değişti; `docs/sunum/ekranlar/`
   görüntüleri eski metni gösteriyor. İmaj derlendikten sonra temiz klondan (5532/8100 portları).
-- [x] (29 Ekim: talep açıldı; GitHub yanıtı bekleniyor) **GitHub Destek talebi (P0-9, kullanıcı):** PR #1'deki eski OpenSky şifresi; metin
+- [x] (29 Ekim: talep açıldı; 31 Ekim: çözüldü, şifreli commit API'de 422, PR #1 404) **GitHub Destek talebi (P0-9, kullanıcı):** PR #1'deki eski OpenSky şifresi; metin
   `docs/guvenlik/GUVENLIK_TARAMASI_2026-10-05.md`. Depo herkese açılmadan önce şart.
   19 Ekim: kullanıcı başka bir zaman kendisi gönderecek (GitHub web formu; Claude gönderemez).
-- [ ] **Y-6 `docker builder prune` (~50 GB):** imaj npm erişimiyle başarıyla derlendikten sonra
+- [ ] **Y-6 `docker builder prune` (1 Kasım `docker system df`: build önbelleği 35,5 GB, 32,5 GB geri kazanılabilir):** imaj npm erişimiyle başarıyla derlendikten sonra
   (önbellek silinirse Cesium yeniden indirilir). Geri alınamaz, ONAY.
 - [ ] **`Turbulence-db-dondurma` veritabanı:** dondurma yedeğinin geri yüklenmiş kopyası,
   yeniden üretim kanıtı için bırakıldı (`POSTGRES_DB=Turbulence-db-dondurma turbulans-ml-degerlendirme
@@ -343,10 +353,10 @@ jüri sorularına doğrudan yanıt verenler önde.
   (D-5'te #126 böyle doğrulandı).
 - [x] **mypy'yi kademeli genişlet:** 28 Ekim'de `rota/`, `isci/`, `analiz/`, `dogrulama/`, ardından `veri/` ve
   `ml/` eklendi (109 dosya temiz; bulgular tip ek açıklaması, `cast(CursorResult, …)` ve değişken adı ayrımıyla
-  giderildi, davranış değişmedi). Kalan: `arayuz/`, `cli/` ve kök modüller; `depo/models.py` zaman sütunları
-  `Mapped[object]` (ileride `Mapped[datetime]`).
-- [ ] **Düşük öncelik:** araştırma CLI'larına test (`cli/demo_ekranlari` %27,
-  `cli/performans_olcumu` %51); karar destek yolunda değiller.
+  giderildi, davranış değişmedi). 29 Ekim: tüm paket (140 dosya) temiz, `depo/models.py` zaman sütunları
+  `Mapped[datetime]`/`date` (öncelik listesi madde 14).
+- [ ] **Düşük öncelik:** araştırma CLI'larına test; güncel durum öncelik listesi madde 14'te (`demo_ekranlari`
+  29 Ekim'de %66). Karar destek yolunda değiller.
 
 ## Tarihli hatırlatmalar
 

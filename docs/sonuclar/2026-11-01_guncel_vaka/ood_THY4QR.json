@@ -1,0 +1,13 @@
+{
+  "ucus": "THY4QR",
+  "tarih": "2026-10-25",
+  "kup": "era5_20261025T10_8f7c71760d.nc",
+  "nokta": 11180,
+  "kapanan": 723,
+  "kapanma_orani": 0.0647,
+  "ozellik_basina": {
+    "yatay_deformasyon": 723,
+    "ti1_indeksi": 466,
+    "ti2_indeksi": 171
+  }
+}

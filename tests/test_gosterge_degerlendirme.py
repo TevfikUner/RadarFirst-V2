@@ -54,3 +54,57 @@ def test_bes_gunden_azda_yalniz_nokta_deger_verir():
     y = (oz["ti1_indeksi"] > np.median(oz["ti1_indeksi"])).astype(int).to_numpy()
     sonuc = gd.skorlari_degerlendir(y, gd.skor_tablosu(oz), np.repeat(["a", "b", "c"], 20))
     assert "not" in sonuc and set(sonuc["skorlar"]["TI1"]) == {"roc_auc"}
+
+
+def _depo_sahte(monkeypatch, n=200):
+    import turbulans_radar.ml.ml_otomatik_egitim as moe
+    import turbulans_radar.ml.ozellik_deposu as od
+
+    oz = _ozellikler(n).set_axis(range(1, n + 1))
+    gunler = pd.date_range("2026-01-01", periods=10, freq="D", tz="UTC").repeat(n // 10)
+    ml = pd.DataFrame(
+        {
+            "id": oz.index,
+            "zaman": gunler,
+            "ozellikler": [{"ti1_indeksi": v * 2, "basinc_hpa": 250.0} for v in oz["ti1_indeksi"]],
+        }
+    )
+    edr = pd.DataFrame({"id": oz.index[:100], "zaman": gunler[:100], "max_edr": np.linspace(0.0, 0.5, 100)})
+    monkeypatch.setattr(od, "_ornekleri_oku", lambda motor: ml)
+    monkeypatch.setattr(od, "_edr_ornekleri_oku", lambda motor: edr)
+    monkeypatch.setattr(od, "depodan_tum_ozellikler", lambda m, e: (oz, oz.iloc[:100], ["bozuk.nc"]))
+    monkeypatch.setattr(moe, "zamansal_holdout", lambda gun: pd.Series(gun >= "2026-01-08", index=gun.index))
+    siniflar = pd.Series((oz["ti1_indeksi"] > oz["ti1_indeksi"].median()).astype(int).to_numpy(), index=oz.index)
+    monkeypatch.setattr(gd, "_ml_siniflari", lambda motor, idler: siniflar)
+    return oz
+
+
+def test_calistir_pirep_madis_ve_seviye_tablolarini_uretir(monkeypatch):
+    _depo_sahte(monkeypatch)
+    rapor = gd.calistir(motor=object(), tekrar=10)
+    assert rapor["acilamayan_pencere_dosyasi"] == 1 and rapor["eski_kaynak"] == "veritabanı"
+    assert rapor["pirep_orta_ve_ustu"]["tum"]["skorlar"]["TI1"]["roc_auc"] == 1.0
+    assert rapor["pirep_orta_ve_ustu"]["holdout_gunleri"] == ["2026-01-08", "2026-01-09", "2026-01-10"]
+    assert "eski_fizik_ti1" in rapor["pirep_orta_ve_ustu"]
+    assert {"madis_hafif_ve_ustu", "madis_orta_ve_ustu"} <= set(rapor)
+    assert rapor["seviye_ti1_esik_orani"][0]["basinc_hpa"] in (200.0, 250.0)
+
+
+def test_cli_onceki_dosyayla_json_yazar(monkeypatch, tmp_path):
+    import json
+
+    oz = _depo_sahte(monkeypatch)
+    onceki = tmp_path / "onceki.parquet"
+    pd.DataFrame(
+        {
+            "tablo": "ml_ornekleri",
+            "id": oz.index,
+            "ozellikler": [json.dumps({"ti1_indeksi": 0.0, "basinc_hpa": 250.0})] * len(oz),
+        }
+    ).to_parquet(onceki)
+    monkeypatch.setattr("turbulans_radar.depo.veritabani.motor_al", lambda: object())
+    cikti = tmp_path / "rapor.json"
+    gd.ana(["--cikti", str(cikti), "--tekrar", "10", "--onceki", str(onceki)])
+    rapor = json.loads(cikti.read_text(encoding="utf-8"))
+    assert rapor["eski_kaynak"] == str(onceki)
+    assert all(s["eski_oran_hafif"] == 0.0 for s in rapor["seviye_ti1_esik_orani"])

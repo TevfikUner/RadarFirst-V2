@@ -156,7 +156,7 @@ karşılaştırması yapmadık (gelecek çalışma, M3). Sharman ve Pearson'ın 
 açık veriye uyguladık: teşhislerin klimatolojisini ERA5 pencere deposunun eğitim
 günlerinden hesaplayıp beş göstergeyi birleştirdik (`fizik/edr_esleme.py`). Birleşik
 gösterge tek başına TI1'i küçük ama anlamlı farkla geçti (altın test günlerinde ROC-AUC
-0,688'e karşı 0,675; bkz. `SONUCLAR.md` §0.1).
+0,688'e karşı 0,675; bkz. §4.0.1).
 
 ## 2.3 Türbülans gözlemi ve doğrulama: PIREP ve EDR
 
@@ -229,7 +229,7 @@ etkisini (Di Vito vd. 2025) özetler.
 
 **Projeyle bağ.** Modelimiz açık veriyle (ERA5 + IEM PIREP) eğitilir, gün gruplu çapraz
 doğrulama ve zamansal holdout kullanır, TI1'i geçmeyen aday aktifleşmez (K4). Hafif
-raporlar negatif sınıftadır. Bölme ve etiket farkları §9 tablosunda yan yana verilir.
+raporlar negatif sınıftadır. Bölme ve etiket farkları §2.9 tablosunda yan yana verilir.
 
 ## 2.6 Belirsizlik: konformal tahmin
 
@@ -458,7 +458,7 @@ göre kabul kriterleriyle izlendi. Çekirdek modüllerin (`fizik/eslestirme.py`,
 
 # 4. Sonuçlar
 
-Güncel (nihai) sayılar §0'dadır. §1–§3 ölçüm tarihi 5 Ekim 2026. Ham sayılar `docs/rapor/veri/` altında JSON olarak durur;
+Güncel (nihai) sayılar §4.0'dadır. §4.1–§4.3 ölçüm tarihi 5 Ekim 2026. Ham sayılar `docs/rapor/veri/` altında JSON olarak durur;
 her tablo aşağıdaki komutlarla yeniden üretilir. Güven aralıkları (GA) gün bazlı blok
 bootstrap ile %95'tir (aynı günün raporları birlikte örneklenir; bkz.
 `docs/deney_protokolu.md`). "TI1'e göre fark" aynı bootstrap örnekleriyle
@@ -482,7 +482,7 @@ Güncel sayılar [`docs/sonuclar/2026-10-18/`](../sonuclar/2026-10-18/SAYILAR.md
 paketindendir: kesme 18 Ekim 2026, commit `5ddcd40`, üretim 18 Ekim 00:25 UTC, tek liste
 `SAYILAR.md`. Paket dondurma yedeğinden (`db_yedekleri/kalici/turbulans_20261018_dondurma.dump`)
 ve canlı veritabanından ayrı ayrı üretildi; iki çıktı birebir aynı. 7 Ekim ön paketi ([`2026-10-07/`](../sonuclar/2026-10-07/SAYILAR.md))
-tarihçe olarak durur. Aşağıdaki §1–§3 ölçümleri 5 Ekim tarihlidir ve o günkü zamansal
+tarihçe olarak durur. Aşağıdaki §4.1–§4.3 ölçümleri 5 Ekim tarihlidir ve o günkü zamansal
 holdout'u kullanır; onlar da tarihçedir.
 
 ```
@@ -554,7 +554,7 @@ olduğu gibi uygulandı. Taramanın tamamı JSON'da `esik_taramasi.tarama` altı
 | `TI1_ESIK_ORTA_SIDDETLI` 7e-7 (config, risk eşiği; 8 Ekim'e kadar 8e-7) | 0,501 | 0,248 | 0,394 |
 
 Peirce eşiğinde altın günlerdeki Peirce 0,249 [0,177–0,308]. Ri için aynı yöntem Ri < 2,27
-verdi. Klasik 0,25 sınırı ERA5 çözünürlüğünde çok seyrek aşılır (bkz. §1.1).
+verdi. Klasik 0,25 sınırı ERA5 çözünürlüğünde çok seyrek aşılır (bkz. §4.1.1).
 
 Seviyeye göre (her seviyede eşik o seviyenin eğitim örnekleriyle seçildi):
 
@@ -617,7 +617,7 @@ günleriyle çakışabilir (model MADIS etiketini görmedi, aynı günlerin PIRE
 PR-AUC taban orandan 3–4 kat yüksek, ama mutlak değeri düşük. %3'lük bir olayda ROC-AUC
 0,7–0,8 sıralamanın rastgeleden iyi olduğunu söyler; uyarıların çoğunun yanlış alarm
 olacağını gizler. Model olasılığı ortalama 0,505, Brier becerisi −8,50: olasılık PIREP taban
-oranına göre kalibre olduğu için ölçülen sıklık olarak okunamaz (§4). Önsel kayma
+oranına göre kalibre olduğu için ölçülen sıklık olarak okunamaz (§4.4). Önsel kayma
 düzeltmesiyle (PIREP taban oranından MADIS taban oranına) Brier becerisi 0,041 olur; bu
 yalnız bir gösterimdir, düzeltme aynı veriden yapıldığı için iyimserdir ve karara girmez.
 
@@ -667,7 +667,7 @@ Eski hesapta seviyeler arasında belirgin bir dengesizlik vardı. Seyrin yoğun 
 250 hPa'da kayma 200–300 hPa arasından (~2,6 km) alındığı için seyreliyordu. Yeni
 hesapta oranlar seviyeler arasında birbirine yaklaştı. Sabit eşikler (4e-7, 8e-7)
 eski hesaba göre konmuştu ve yeni fizikte daha sık aşılıyor. Risk eşiği 8 Ekim'de
-eğitim günlerinden 1-SE kuralıyla 7e-7'ye çekildi (bkz. §0.2); hafif eşiği (4e-7)
+eğitim günlerinden 1-SE kuralıyla 7e-7'ye çekildi (bkz. §4.0.2); hafif eşiği (4e-7)
 hâlâ kaba bir başlangıç değeridir.
 
 ### 4.1.2 Birleşik gösterge (log-normal EDR eşlemesi)
@@ -696,7 +696,7 @@ MADIS hafif ve üstü (12.232 ölçüm, 372 pozitif, **4 gün**, ön sonuç, GA 
 birleşik EDR 0,773, TI1 0,735, 1/Ri 0,729, TI2 0,696, VWS 0,691, DEF 0,669. Orta ve
 üstü MADIS ölçümü yok (0 örnek).
 
-## 4.2 Makine öğrenmesi modeli (PIREP) — §2.1–2.2 tarihçe, 5 Ekim
+## 4.2 Makine öğrenmesi modeli (PIREP) — §4.2.1–4.2.2 tarihçe, 5 Ekim
 
 ### 4.2.1 Holdout sonuçları
 
@@ -720,7 +720,7 @@ değerlendirilmedi.
 
 Güvenilirlik diyagramı: [`veri/guvenilirlik_diyagrami.svg`](veri/guvenilirlik_diyagrami.svg).
 PIREP holdout'ta noktalar köşegene yakın; olasılık PIREP taban oranına göre
-kalibre. MADIS serisi köşegenin çok altında (bkz. §3).
+kalibre. MADIS serisi köşegenin çok altında (bkz. §4.3).
 
 ### 4.2.2 Eğitim geçmişi ve olumsuz ara bulgu
 
@@ -746,7 +746,7 @@ eklediği bir değer yoktu. Veri büyüdükçe (64 gün) ve fizik düzeltildikç
 anlamlı ama küçük bir farkla geçti (+0,023, GA alt sınırı +0,002).
 
 5 Ekim'de aktif olan eski fizikli model, 9 Ekim'de yeni fizikle eğitilen Random Forest
-aktifleşince devreden çıktı. O tarihten bu yana aktif model 9 Ekim RF'sidir (bkz. §0.1).
+aktifleşince devreden çıktı. O tarihten bu yana aktif model 9 Ekim RF'sidir (bkz. §4.0.1).
 
 ### 4.2.3 Duyarlılık analizleri (Madde 7, isteğe bağlı)
 
@@ -793,7 +793,7 @@ günlerine bakılarak görüldü. Seçim kuralını buna göre değiştirmek tes
 model seçmek olur. Bu yüzden 18 Ekim dondurmasında protokol değişmeden uygulanır; bulgu
 yalnız tartışma bölümünde yer alır. Dondurmada protokol değişmeden uygulandı; 1-SE kuralı
 163 günlük veride ağaç modelini (sıralı sorguyla RF, ilk üretimde GB) seçti ve model TI1'i
-geçti (§0.1).
+geçti (§4.0.1).
 
 ### 4.2.4 RF ayarı ve bağlam özellikleri (F9 deneyi, 15 Ekim)
 
@@ -868,7 +868,7 @@ her biri 20 bölmeyle puanlandı (protokol §10.7, commit `708ea6e`, skordan ön
 | Rastgele örnek 70/30, hafif çıkarılmış | 0,785 [0,772–0,805] | 0,740 |
 
 Aralıklar 20 bölmenin 2,5–97,5 yüzdelikleridir. Rastgele bölme bu veride AUC'yi şişirmedi
-(−0,001); sonuç görüldükten sonra eklenen derin RF (`max_depth=None`) varyantında da +0,001 (§2.4'teki
+(−0,001); sonuç görüldükten sonra eklenen derin RF (`max_depth=None`) varyantında da +0,001 (§4.2.4'teki
 OOB bulgusuyla tutarlı). Hafif raporları çıkarmak 0,083 (TI1'de 0,063) artırdı. Farkın ölçülen
 kısmı etiket tanımından gelir; kalan ~0,08–0,12 bölge, özellik (koordinat, BADA) ve modelle ilgilidir,
 ölçülmedi. Paket `docs/sonuclar/2026-10-28_protokol_farki/`.
@@ -917,7 +917,7 @@ Okuma: nokta eşleştirme PIREP konum/zaman hatası yüzünden ayırma kaybediyo
 düzeyinde de görülüyor (A2 için ilk aday). Paketler `docs/sonuclar/2026-10-31_kesifsel_gostergeler/` ve
 `docs/sonuclar/2026-10-31_uyari_alani/`.
 
-## 4.3 Nesnel değerlendirme: MADIS ölçülen EDR (M1) — tarihçe, 5 Ekim (güncel: §0.4)
+## 4.3 Nesnel değerlendirme: MADIS ölçülen EDR (M1) — tarihçe, 5 Ekim (güncel: §4.0.4)
 
 Etiket: MADIS maxEDR ≥ 0,1 (hafif ve üstü). 12.232 ölçüm, 372 pozitif (%3,0), 4 gün.
 Gün bazlı GA için en az 5 gün gerektiğinden aralık verilmedi; sonuçlar **ön sonuçtur**.
@@ -939,7 +939,7 @@ iyimser olabilir.
 
 Model sıralamada (ROC-AUC) MADIS'te de TI1'den iyi, ama **olasılıkları ölçülen
 sıklığa göre kalibre değil**. Ortalama tahmin %49, gerçek oran %3; Brier becerisi
-negatif. Nedeni §4'teki raporlama yanlılığıdır. Bu yüzden arayüzde olasılık mutlak
+negatif. Nedeni §4.4'teki raporlama yanlılığıdır. Bu yüzden arayüzde olasılık mutlak
 sıklık olarak sunulmaz.
 
 ## 4.4 PIREP raporlama yanlılığı (Madde 7)
@@ -952,7 +952,7 @@ Bu yüzden PIREP örneklemi türbülansa doğru güçlü biçimde yanlıdır. So
 - Modelin olasılığı "PIREP verilmiş bir noktada orta ve üstü türbülans" olasılığıdır;
   bir uçuş noktasındaki mutlak türbülans sıklığı değildir.
 - ROC-AUC taban orandan bağımsız olduğu için sıralama becerisi anlamlıdır; Brier ve
-  güvenilirlik ise etiket kaynağına bağlıdır (§2.1 ile §3'ü karşılaştırın).
+  güvenilirlik ise etiket kaynağına bağlıdır (§4.2.1 ile §4.3'ü karşılaştırın).
 - "Negatif" PIREP'ler (sakin raporlar) de seçilmiş bir örneklemdir; rastgele noktaları
   temsil etmez.
 
@@ -976,8 +976,8 @@ güncellemeye devam ettiği için aynı komut canlı veride farklı sayı verir;
 Dondurmadan önce kapanan işler:
 
 - ~~Penceresiz 1.597 örneğin yeni fizikle yeniden indirilmesi~~ (7 Eki: penceresiz eşleşmiş örnek kalmadı)
-- ~~TI1 eşiklerinin yeni fiziğe göre yeniden değerlendirilmesi~~ (8 Eki: §0.2, 1-SE kuralıyla 7e-7)
-- ~~MADIS'te en az 5 güne ulaşılması (GA için)~~ (7 Eki: 6 gün, §0.4)
+- ~~TI1 eşiklerinin yeni fiziğe göre yeniden değerlendirilmesi~~ (8 Eki: §4.0.2, 1-SE kuralıyla 7e-7)
+- ~~MADIS'te en az 5 güne ulaşılması (GA için)~~ (7 Eki: 6 gün, §4.0.4)
 
 # 5. Katkılar
 
@@ -1084,7 +1084,7 @@ POD 1/8, POFD 0/8.
 - Ağsız demo paketi; 1.182 otomatik test (28 Ekim 2026) ve 6 işli CI (sır taraması, SBOM, tarayıcı
   testleri, ağsız demo dahil); ölçülmüş performans raporu.
 - Kanıt: ADR 0006–0009, `docs/PERFORMANS_RAPORU.md`, `docs/VERI_KAYNAKLARI_VE_LISANSLAR.md`.
-- En yakın çalışmadan farkı: İncelenen açık kaynak türbülans projeleri (İlgili Çalışmalar §8) doğrulama ve işletim altyapısı içermez; bizde kuyruk, kilit, yedek, sağlayıcı yasak korumaları ve otomatik testler ölçülmüş performansla birlikte gelir.
+- En yakın çalışmadan farkı: İncelenen açık kaynak türbülans projeleri (İlgili Çalışmalar §2.8) doğrulama ve işletim altyapısı içermez; bizde kuyruk, kilit, yedek, sağlayıcı yasak korumaları ve otomatik testler ölçülmüş performansla birlikte gelir.
 
 ## Özgünlük beyanı
 

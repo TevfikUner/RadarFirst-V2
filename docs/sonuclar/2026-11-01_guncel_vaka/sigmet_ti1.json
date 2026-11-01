@@ -1,0 +1,81 @@
+{
+  "parametreler": {
+    "ti1_esigi": 7e-07,
+    "kaynak": "era5",
+    "tehlikeler": [
+      "TURB"
+    ]
+  },
+  "commit": "d6dcaf04ca833185cde2a5b92c9dfb2da2b54a63",
+  "uretim_zamani": "2026-11-01T10:33:41+00:00",
+  "ucuslar": [
+    {
+      "ucus": "THY4QR",
+      "tarih": "2026-10-25",
+      "ti1_nokta": 11180,
+      "riskli_nokta": 2068,
+      "sigmet_ici_nokta": 730,
+      "sigmet_ici_riskli": 730,
+      "sigmet_ici_riskli_orani": 1.0,
+      "sigmet_disi_nokta": 10450,
+      "sigmet_disi_riskli": 1338,
+      "sigmet_disi_riskli_orani": 0.128,
+      "rota_cevresindeki_sigmet": 5,
+      "kesisen_sigmetler": [
+        {
+          "fir": "LYBA",
+          "seri": "U04",
+          "tehlike": "TURB",
+          "baslangic": "2026-10-25T12:06:00+00:00",
+          "bitis": "2026-10-25T15:30:00+00:00",
+          "taban_ft": 26000,
+          "tavan_ft": 38000,
+          "nokta": 730,
+          "riskli": 730,
+          "riskli_orani": 1.0
+        }
+      ]
+    },
+    {
+      "ucus": "SXS6MG",
+      "tarih": "2026-10-25",
+      "ti1_nokta": 10879,
+      "riskli_nokta": 4484,
+      "sigmet_ici_nokta": 677,
+      "sigmet_ici_riskli": 655,
+      "sigmet_ici_riskli_orani": 0.9675,
+      "sigmet_disi_nokta": 10202,
+      "sigmet_disi_riskli": 3829,
+      "sigmet_disi_riskli_orani": 0.3753,
+      "rota_cevresindeki_sigmet": 18,
+      "kesisen_sigmetler": [
+        {
+          "fir": "LYBA",
+          "seri": "U04",
+          "tehlike": "TURB",
+          "baslangic": "2026-10-25T12:06:00+00:00",
+          "bitis": "2026-10-25T15:30:00+00:00",
+          "taban_ft": 26000,
+          "tavan_ft": 38000,
+          "nokta": 677,
+          "riskli": 655,
+          "riskli_orani": 0.9675
+        }
+      ]
+    },
+    {
+      "ucus": "THY5HS",
+      "tarih": "2026-10-24",
+      "ti1_nokta": 1336,
+      "riskli_nokta": 0,
+      "sigmet_ici_nokta": 0,
+      "sigmet_ici_riskli": 0,
+      "sigmet_ici_riskli_orani": null,
+      "sigmet_disi_nokta": 1336,
+      "sigmet_disi_riskli": 0,
+      "sigmet_disi_riskli_orani": 0.0,
+      "rota_cevresindeki_sigmet": 0,
+      "kesisen_sigmetler": []
+    }
+  ]
+}

@@ -50,7 +50,11 @@ geri yükleme adımları `db_yedekleri/migration_oncesi/` altındaki en yeni dum
   sh otomasyon/uygulama_rolu_olustur.sh
   docker compose start api worker
   ```
-  Denendi: tatbikatın geçici sunucusunda (18 Ekim, 3 sn); canlı veritabanında denenmedi.
+  Denendi: tatbikatın geçici sunucusunda (18 Ekim, 3 sn). 1 Kasım: aynı komutlar canlı sunucuda ayrı bir
+  veritabanına (`createdb Turbulence-db-tatbikat`, `turbulans_20261101.dump`, rol betiği o DB'ye) 2 sn'de
+  hatasız; 16/16 tablo ve alembic sürümü canlıyla aynı, satır farkı yalnız `sigmetler`'de yedekten sonra gelen
+  127 kayıt, uygulama rolü 16 tablonun sahibi ve okuyabiliyor. Canlı veritabanının kendisine geri yükleme
+  yapılmadı (gerek yok, veri kaybı riski).
 - Kalıcı yedekler (`db_yedekleri/kalici/`, dondurma günü) silinmez.
 
 ## 5. ML gece işi

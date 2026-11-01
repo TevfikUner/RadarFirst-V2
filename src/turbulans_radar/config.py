@@ -272,6 +272,9 @@ OPENSKY_ONBELLEK_MIN_YAS_SAAT = _ortam_sayi("OPENSKY_ONBELLEK_MIN_YAS_SAAT", 24,
 # <klasör>/era5/*.nc yerel küp olarak taranır, <klasör>/opensky_onbellek/ rota
 # önbelleğinin salt okunur yedeğidir. Boş bırakılırsa devre dışı.
 DEMO_VERI_KLASORU = _ortam_str("DEMO_VERI_KLASORU", "demo")
+# Açıkken API açılışında <DEMO_VERI_KLASORU>/sigmet/*.json (gerçek arşiv SIGMET'leri, değiştirilmeden)
+# 'demo_arsiv' kaynağıyla yüklenir; rota bulgusunda canlı uyarı olmadığı yazılır. Yalnız demo kurulumunda aç.
+DEMO_SIGMET_FIKSTURU_YUKLE = _ortam_bool("DEMO_SIGMET_FIKSTURU_YUKLE", False)
 # Demo arıza tatbikatı (S-4, bkz. ariza_taklidi.py): açıkken rota isteği 'ariza_taklidi' alanıyla SIGMET
 # bayat/erişilemedi ya da devre kesici durumunu yalnız o istek için taklit edebilir. Yalnız demo kurulumunda aç.
 ARIZA_TAKLIDI_ETKIN = _ortam_bool("ARIZA_TAKLIDI_ETKIN", False)

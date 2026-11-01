@@ -29,9 +29,12 @@ POST /api/v1/sigmet/guncelle):
     turbulans-sigmet
 """
 
+import argparse
+import glob
 import hashlib
 import itertools
 import json
+import os
 import re
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
@@ -148,16 +151,69 @@ def _irtifa_ft(deger) -> int | None:
     return irtifa if 0 <= irtifa <= _MAKS_MAKUL_IRTIFA_FT else None
 
 
+_METIN_IRTIFA_DESENI = re.compile(
+    r"\bTOPS?\s+(?P<top_yon>ABV|BLW)?\s*FL(?P<top>\d{3})\b"
+    r"|\b(?P<yon>ABV|BLW)\s+FL(?P<yon_fl>\d{3})\b"
+    r"|(?<![\w/])(?:(?P<sfc>SFC)|(?P<alt_ft>\d{3,5})\s?(?P<alt_birim>FT|M)|FL(?P<alt_fl>\d{3}))"
+    r"/(?:FL(?P<ust_fl>\d{3})|(?P<ust_ft>\d{3,5})\s?(?P<ust_birim>FT|M)|(?P<ust_cplk>\d{3}))\b"
+    r"|(?<![\w/])FL(?P<tek>\d{3})\b(?!/)"
+)
+
+
+def _birimli_ft(deger: str, birim: str) -> int:
+    return round(int(deger) * 3.28084) if birim == "M" else int(deger)
+
+
+def _metinden_irtifa_bandi(metin: str) -> tuple[int | None, int | None]:
+    """ICAO Annex 3 biçimleri: 'FL290/380', 'SFC/FL100', '3000FT/FL150', 'TOP[S] [ABV|BLW] FL420',
+    'ABV FL300', 'BLW FL280'. Birden fazla bant varsa en geniş zarf alınır; açık uç (TOP, BLW
+    tabanı; ABV, TOP ABV tavanı) None kalır. Tek başına 'FL440' çoğunlukla yazım hatalı bir CB
+    tepesidir ('CB TOS FL480', 'TOP AVB FL450'); belirsiz sayılır ve bandı daraltmaz."""
+    tabanlar: list[int | None] = []
+    tavanlar: list[int | None] = []
+    for e in _METIN_IRTIFA_DESENI.finditer(metin):
+        if e["top"]:
+            tabanlar.append(None)
+            tavanlar.append(None if e["top_yon"] == "ABV" else int(e["top"]) * 100)
+        elif e["yon"]:
+            fl = int(e["yon_fl"]) * 100
+            tabanlar.append(fl if e["yon"] == "ABV" else None)
+            tavanlar.append(None if e["yon"] == "ABV" else fl)
+        elif e["tek"]:
+            tabanlar.append(None)
+            tavanlar.append(None)
+        else:
+            if e["sfc"]:
+                tabanlar.append(0)
+            elif e["alt_fl"]:
+                tabanlar.append(int(e["alt_fl"]) * 100)
+            else:
+                tabanlar.append(_birimli_ft(e["alt_ft"], e["alt_birim"]))
+            if e["ust_ft"]:
+                tavanlar.append(_birimli_ft(e["ust_ft"], e["ust_birim"]))
+            else:
+                tavanlar.append(int(e["ust_fl"] or e["ust_cplk"]) * 100)
+    if not tabanlar:
+        return None, None
+    taban = None if None in tabanlar else min(t for t in tabanlar if t is not None)
+    tavan = None if None in tavanlar else max(t for t in tavanlar if t is not None)
+    return _irtifa_ft(taban), _irtifa_ft(tavan)
+
+
 def _irtifa_bandi(ham: dict) -> tuple[int | None, int | None]:
     """Okunamayan/makul olmayan değer None olur -- A* None tabanı yer, None
     tavanı sonsuz sayar, yani belirsizlik HER ZAMAN daha geniş bir yasak
-    bölgeye çevrilir. Taban > tavan ise bant tamamen belirsiz sayılır."""
+    bölgeye çevrilir. Taban > tavan ise bant tamamen belirsiz sayılır.
+    Uluslararası akışta base/top ikisi de boşsa bant ham metinden okunur
+    (AWC bazı FIR'lerde 'FL290/380' yazılı mesajın alanlarını boş bırakıyor)."""
     if _abd_bicimi_mi(ham):
         alt = [a for a in map(_irtifa_ft, (ham.get("altitudeLow1"), ham.get("altitudeLow2"))) if a is not None]
         ust = [a for a in map(_irtifa_ft, (ham.get("altitudeHi1"), ham.get("altitudeHi2"))) if a is not None]
         taban, tavan = (min(alt) if alt else None), (max(ust) if ust else None)
     else:
         taban, tavan = _irtifa_ft(ham.get("base")), _irtifa_ft(ham.get("top"))
+        if taban is None and tavan is None:
+            taban, tavan = _metinden_irtifa_bandi(str(ham.get("rawSigmet") or ""))
     if taban is not None and tavan is not None and taban > tavan:
         return None, None
     return taban, tavan
@@ -312,6 +368,28 @@ def sigmetleri_kaydet(kayitlar: list[dict], motor=None) -> int:
     return len(kayitlar)
 
 
+def irtifa_bantlarini_metinden_onar(motor=None, kaynak: str = "isigmet") -> int:
+    """Bandı boş kaydedilmiş eski uluslararası SIGMET'lere ham metinden okunan bandı yazar."""
+    motor = motor or motor_al()
+    sayi = 0
+    with Session(motor) as oturum:
+        satirlar = oturum.scalars(
+            select(Sigmet).where(
+                Sigmet.kaynak == kaynak,
+                Sigmet.taban_ft.is_(None),
+                Sigmet.tavan_ft.is_(None),
+                Sigmet.ham_metin.is_not(None),
+            )
+        ).all()
+        for s in satirlar:
+            taban, tavan = _irtifa_bandi({"rawSigmet": s.ham_metin})
+            if taban is not None or tavan is not None:
+                s.taban_ft, s.tavan_ft = taban, tavan
+                sayi += 1
+        oturum.commit()
+    return sayi
+
+
 def akista_olmayanlari_sonlandir(kaynak: str, akistaki_kimlikler: set[str], motor=None) -> int:
     motor = motor or motor_al()
     simdi = datetime.now(UTC)
@@ -329,11 +407,37 @@ def akista_olmayanlari_sonlandir(kaynak: str, akistaki_kimlikler: set[str], moto
         return cast(CursorResult, sonuc).rowcount
 
 
+DEMO_SIGMET_KAYNAGI = "demo_arsiv"
+
+
+def demo_sigmetlerini_yukle(klasor: str | None = None, motor=None) -> int:
+    """<DEMO_VERI_KLASORU>/sigmet/*.json: `sigmetler` satırlarının (id hariç) değiştirilmemiş dökümü."""
+    klasor = klasor or os.path.join(config.DEMO_VERI_KLASORU, "sigmet")
+    kayitlar = []
+    for yol in sorted(glob.glob(os.path.join(klasor, "*.json"))):
+        with open(yol, encoding="utf-8") as f:
+            for satir in json.load(f):
+                kayitlar.append(
+                    {
+                        **satir,
+                        "dis_kimlik": f"demo:{satir['dis_kimlik']}"[:64],
+                        "kaynak": DEMO_SIGMET_KAYNAGI,
+                        "gecerlilik_baslangic": datetime.fromisoformat(satir["gecerlilik_baslangic"]),
+                        "gecerlilik_bitis": datetime.fromisoformat(satir["gecerlilik_bitis"]),
+                    }
+                )
+    return sigmetleri_kaydet(kayitlar, motor=motor)
+
+
 def eski_sigmetleri_temizle(saklama_suresi: timedelta | None = None, motor=None) -> int:
     saklama_suresi = saklama_suresi or timedelta(days=config.SIGMET_SAKLAMA_GUN)
     motor = motor or motor_al()
     with Session(motor) as oturum:
-        sonuc = oturum.execute(delete(Sigmet).where(Sigmet.gecerlilik_bitis < datetime.now(UTC) - saklama_suresi))
+        sonuc = oturum.execute(
+            delete(Sigmet).where(
+                Sigmet.gecerlilik_bitis < datetime.now(UTC) - saklama_suresi, Sigmet.kaynak != DEMO_SIGMET_KAYNAGI
+            )
+        )
         oturum.commit()
         return cast(CursorResult, sonuc).rowcount
 
@@ -506,6 +610,13 @@ def ana():
     from turbulans_radar.konsol_kurulumu import konsolu_utf8_yap
 
     konsolu_utf8_yap()
+    ayristirici = argparse.ArgumentParser(description="AWC SIGMET'lerini çeker ve sigmetler tablosuna yazar.")
+    ayristirici.add_argument(
+        "--irtifa-onar", action="store_true", help="Bandı boş eski kayıtların bandını ham metinden doldurur."
+    )
+    if ayristirici.parse_args().irtifa_onar:
+        print({"onarilan": irtifa_bantlarini_metinden_onar()})
+        return
     print(sigmetleri_guncelle())
 
 

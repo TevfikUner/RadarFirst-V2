@@ -161,6 +161,7 @@ from turbulans_radar.veri.kisitli_saha_saglayici import (
 )
 from turbulans_radar.veri.openaip_saglayici import OPENAIP_DURUM_ANAHTARI
 from turbulans_radar.veri.sigmet_saglayici import (
+    demo_sigmetlerini_yukle,
     kaynak_saglik_durumlari,
     sigmetleri_guncelle,
     son_guncelleme_zamani,
@@ -185,6 +186,12 @@ async def _yasam_dongusu(uygulama):
                 _logger.warning("%d ÖRNEK kısıtlı hava sahası yüklendi (resmi veri değil).", sayi)
         except Exception as hata:
             _logger.warning("Örnek kısıtlı sahalar yüklenemedi: %s", dostane_hata_mesaji(hata))
+    if config.DEMO_SIGMET_FIKSTURU_YUKLE and config.DEMO_VERI_KLASORU:
+        try:
+            if sayi := await asyncio.to_thread(demo_sigmetlerini_yukle):
+                _logger.warning("%d arşiv SIGMET'i demo fikstürü olarak yüklendi (canlı uyarı değil).", sayi)
+        except Exception as hata:
+            _logger.warning("Demo SIGMET fikstürü yüklenemedi: %s", dostane_hata_mesaji(hata))
     _anahtar_ayarlarini_denetle()
     dinleyici = asyncio.create_task(_uyari_dinleyicisi())
     lider = LiderKilidi(ZAMANLAYICI_LIDER_KILIDI)

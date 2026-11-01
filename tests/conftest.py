@@ -144,6 +144,7 @@ def canli_sunucu():
             "PYTHONPATH": os.path.join(_PROJE_KOKU, "src"),
             "GOREV_GOMULU_ISCI": "false",
             "ARIZA_TAKLIDI_ETKIN": "true",
+            "DEMO_SIGMET_FIKSTURU_YUKLE": "true",
         },
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

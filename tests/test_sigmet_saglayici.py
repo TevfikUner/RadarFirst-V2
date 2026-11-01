@@ -255,6 +255,49 @@ def test_makul_olmayan_irtifa_bandi_muhafazakar_genisletilir():
     assert bant(base=30000, top=20000) == (None, None)
 
 
+@pytest.mark.parametrize(
+    ("metin", "beklenen"),
+    [
+        ("LYBA SIGMET U03 SEV TURB FCST W OF LINE N4440 E02155 - N4205 E02055 FL290/380 MOV E NC=", (29000, 38000)),
+        ("SEV TURB FCST SFC/FL100 STNR NC=", (0, 10000)),
+        ("SEV MTW FCST 3000FT/FL150 NC=", (3000, 15000)),
+        ("SEV TURB OBS 1500M/FL120 NC=", (4921, 12000)),
+        ("SEV TURB FCST SFC/060 MOV E 30KT NC=", (0, 6000)),
+        ("EMBD TS OBS TOP FL420 MOV NE NC=", (None, 42000)),
+        ("EMBD TS OBS CB TOPS ABV FL550 MOV STNRY NC=", (None, None)),
+        ("EMBD TS FCST TOP ABV FL390 MOV NE INTSF=", (None, None)),
+        ("SEV TURB FCST ABV FL300 NC=", (30000, None)),
+        ("SEV TURB FCST BLW FL280 NC=", (None, 28000)),
+        ("OCNL TS OBS CB TOS FL480 MOV NW 05KT=", (None, None)),
+        ("SEV TURB FCST FL400/280 MOV E 15KT NC=", (None, None)),
+        ("SEV TURB FCST WI N4100 E02000 - N4200 E02100 FL250/300 AND WI N4300 E02200 FL330/370 NC=", (25000, 37000)),
+        ("SEV MTW FCST WI S3030 E01754 - S3030 E02116=", (None, None)),
+    ],
+)
+def test_bos_irtifa_alanlari_ham_metinden_okunur(metin, beklenen):
+    kayit = ss.sigmet_kaydini_normalize_et("isigmet", {**ULUSLARARASI_ORNEK, "top": None, "rawSigmet": metin})
+    assert (kayit["taban_ft"], kayit["tavan_ft"]) == beklenen
+
+
+def test_dolu_irtifa_alani_metinle_ezilmez():
+    kayit = ss.sigmet_kaydini_normalize_et("isigmet", {**ULUSLARARASI_ORNEK, "rawSigmet": "SEV TURB FL290/380"})
+    assert (kayit["taban_ft"], kayit["tavan_ft"]) == (None, 39000)
+
+
+def test_bandi_bos_eski_kayitlar_metinden_onarilir(test_veritabani):
+    bos = ss.sigmet_kaydini_normalize_et("isigmet", {**ULUSLARARASI_ORNEK, "top": None})
+    okunamaz = {**bos, "dis_kimlik": "test-okunamaz"}
+    bos.update(kaynak="test", ham_metin="LYBA SIGMET U04 SEV TURB FL260/380 MOV E NC=")
+    okunamaz.update(kaynak="test", ham_metin="SEV TURB FCST NC=")
+    ss.sigmetleri_kaydet([bos, okunamaz], motor=test_veritabani)
+    assert ss.irtifa_bantlarini_metinden_onar(motor=test_veritabani, kaynak="test") == 1
+    with test_veritabani.connect() as baglanti:
+        bantlar = baglanti.execute(
+            text("SELECT ham_metin, taban_ft, tavan_ft FROM sigmetler WHERE kaynak = 'test' ORDER BY ham_metin")
+        ).all()
+    assert [tuple(b[1:]) for b in bantlar] == [(26000, 38000), (None, None)]
+
+
 def test_tehlikesi_okunamayan_sigmet_bilinmiyor_olarak_saklanir():
     kayit = ss.sigmet_kaydini_normalize_et("isigmet", {**ULUSLARARASI_ORNEK, "hazard": None})
     assert kayit["tehlike"] == "BILINMIYOR"
@@ -412,3 +455,44 @@ def test_fir_yedegi_esik_hesabinda_cozumlenemeyen_gibi_sayilir(test_veritabani, 
     assert ozet["kaynaklar"]["test"]["fir_poligonu"] == 4
     # Kayıtlar hesaplanıp DB'ye yazılsa da (dürüst geçici bilgi), akış "tamam" sayılmaz.
     assert ozet["kaynaklar"]["test"]["durum"] == "hata"
+
+
+def test_demo_fiksturu_arsiv_kaynagiyla_yuklenir_ve_temizlenmez(test_veritabani, tmp_path):
+    import json
+
+    kayit = ss.sigmet_kaydini_normalize_et("isigmet", ULUSLARARASI_ORNEK)
+    eski = datetime(2026, 10, 25, 12, tzinfo=UTC)
+    kayit.update(gecerlilik_baslangic=eski.isoformat(), gecerlilik_bitis=(eski + timedelta(hours=3)).isoformat())
+    (tmp_path / "gun.json").write_text(json.dumps([kayit]), encoding="utf-8")
+    try:
+        assert ss.demo_sigmetlerini_yukle(str(tmp_path), motor=test_veritabani) == 1
+        assert ss.demo_sigmetlerini_yukle(str(tmp_path), motor=test_veritabani) == 1
+        ss.eski_sigmetleri_temizle(timedelta(days=1), motor=test_veritabani)
+        with test_veritabani.connect() as baglanti:
+            satirlar = baglanti.execute(
+                text("SELECT kaynak, fir_kodu FROM sigmetler WHERE dis_kimlik = :k"),
+                {"k": f"demo:{kayit['dis_kimlik']}"},
+            ).all()
+        assert [tuple(s) for s in satirlar] == [(ss.DEMO_SIGMET_KAYNAGI, "LTAA")]
+    finally:
+        with test_veritabani.begin() as baglanti:
+            baglanti.execute(
+                text("DELETE FROM sigmetler WHERE kaynak = 'demo_arsiv' AND dis_kimlik = :k"),
+                {"k": f"demo:{kayit['dis_kimlik']}"},
+            )
+
+
+def test_depodaki_demo_fiksturu_gecerli_ve_tek_gun():
+    import json
+    from pathlib import Path
+
+    kayitlar = json.loads(
+        (Path(__file__).resolve().parents[1] / "demo/sigmet/sigmetler_2026-10-25_istanbul_madrid.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(kayitlar) == 19
+    assert {k["kaynak"] for k in kayitlar} == {"isigmet"}
+    lyba = [k for k in kayitlar if k["fir_kodu"] == "LYBA" and k["seri_no"] == "U04"]
+    assert lyba and (lyba[0]["taban_ft"], lyba[0]["tavan_ft"]) == (26000, 38000) and "FL260/380" in lyba[0]["ham_metin"]
+    assert all(k["gecerlilik_baslangic"].startswith("2026-10-25") for k in kayitlar)
