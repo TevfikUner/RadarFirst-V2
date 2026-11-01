@@ -455,3 +455,44 @@ def test_fir_yedegi_esik_hesabinda_cozumlenemeyen_gibi_sayilir(test_veritabani, 
     assert ozet["kaynaklar"]["test"]["fir_poligonu"] == 4
     # Kayıtlar hesaplanıp DB'ye yazılsa da (dürüst geçici bilgi), akış "tamam" sayılmaz.
     assert ozet["kaynaklar"]["test"]["durum"] == "hata"
+
+
+def test_demo_fiksturu_arsiv_kaynagiyla_yuklenir_ve_temizlenmez(test_veritabani, tmp_path):
+    import json
+
+    kayit = ss.sigmet_kaydini_normalize_et("isigmet", ULUSLARARASI_ORNEK)
+    eski = datetime(2026, 10, 25, 12, tzinfo=UTC)
+    kayit.update(gecerlilik_baslangic=eski.isoformat(), gecerlilik_bitis=(eski + timedelta(hours=3)).isoformat())
+    (tmp_path / "gun.json").write_text(json.dumps([kayit]), encoding="utf-8")
+    try:
+        assert ss.demo_sigmetlerini_yukle(str(tmp_path), motor=test_veritabani) == 1
+        assert ss.demo_sigmetlerini_yukle(str(tmp_path), motor=test_veritabani) == 1
+        ss.eski_sigmetleri_temizle(timedelta(days=1), motor=test_veritabani)
+        with test_veritabani.connect() as baglanti:
+            satirlar = baglanti.execute(
+                text("SELECT kaynak, fir_kodu FROM sigmetler WHERE dis_kimlik = :k"),
+                {"k": f"demo:{kayit['dis_kimlik']}"},
+            ).all()
+        assert [tuple(s) for s in satirlar] == [(ss.DEMO_SIGMET_KAYNAGI, "LTAA")]
+    finally:
+        with test_veritabani.begin() as baglanti:
+            baglanti.execute(
+                text("DELETE FROM sigmetler WHERE kaynak = 'demo_arsiv' AND dis_kimlik = :k"),
+                {"k": f"demo:{kayit['dis_kimlik']}"},
+            )
+
+
+def test_depodaki_demo_fiksturu_gecerli_ve_tek_gun():
+    import json
+    from pathlib import Path
+
+    kayitlar = json.loads(
+        (Path(__file__).resolve().parents[1] / "demo/sigmet/sigmetler_2026-10-25_istanbul_madrid.json").read_text(
+            encoding="utf-8"
+        )
+    )
+    assert len(kayitlar) == 19
+    assert {k["kaynak"] for k in kayitlar} == {"isigmet"}
+    lyba = [k for k in kayitlar if k["fir_kodu"] == "LYBA" and k["seri_no"] == "U04"]
+    assert lyba and (lyba[0]["taban_ft"], lyba[0]["tavan_ft"]) == (26000, 38000) and "FL260/380" in lyba[0]["ham_metin"]
+    assert all(k["gecerlilik_baslangic"].startswith("2026-10-25") for k in kayitlar)

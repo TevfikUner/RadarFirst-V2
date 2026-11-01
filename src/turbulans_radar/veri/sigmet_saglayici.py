@@ -30,9 +30,11 @@ POST /api/v1/sigmet/guncelle):
 """
 
 import argparse
+import glob
 import hashlib
 import itertools
 import json
+import os
 import re
 from datetime import UTC, datetime, timedelta
 from typing import Any, cast
@@ -405,11 +407,37 @@ def akista_olmayanlari_sonlandir(kaynak: str, akistaki_kimlikler: set[str], moto
         return cast(CursorResult, sonuc).rowcount
 
 
+DEMO_SIGMET_KAYNAGI = "demo_arsiv"
+
+
+def demo_sigmetlerini_yukle(klasor: str | None = None, motor=None) -> int:
+    """<DEMO_VERI_KLASORU>/sigmet/*.json: `sigmetler` satırlarının (id hariç) değiştirilmemiş dökümü."""
+    klasor = klasor or os.path.join(config.DEMO_VERI_KLASORU, "sigmet")
+    kayitlar = []
+    for yol in sorted(glob.glob(os.path.join(klasor, "*.json"))):
+        with open(yol, encoding="utf-8") as f:
+            for satir in json.load(f):
+                kayitlar.append(
+                    {
+                        **satir,
+                        "dis_kimlik": f"demo:{satir['dis_kimlik']}"[:64],
+                        "kaynak": DEMO_SIGMET_KAYNAGI,
+                        "gecerlilik_baslangic": datetime.fromisoformat(satir["gecerlilik_baslangic"]),
+                        "gecerlilik_bitis": datetime.fromisoformat(satir["gecerlilik_bitis"]),
+                    }
+                )
+    return sigmetleri_kaydet(kayitlar, motor=motor)
+
+
 def eski_sigmetleri_temizle(saklama_suresi: timedelta | None = None, motor=None) -> int:
     saklama_suresi = saklama_suresi or timedelta(days=config.SIGMET_SAKLAMA_GUN)
     motor = motor or motor_al()
     with Session(motor) as oturum:
-        sonuc = oturum.execute(delete(Sigmet).where(Sigmet.gecerlilik_bitis < datetime.now(UTC) - saklama_suresi))
+        sonuc = oturum.execute(
+            delete(Sigmet).where(
+                Sigmet.gecerlilik_bitis < datetime.now(UTC) - saklama_suresi, Sigmet.kaynak != DEMO_SIGMET_KAYNAGI
+            )
+        )
         oturum.commit()
         return cast(CursorResult, sonuc).rowcount
 

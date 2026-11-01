@@ -132,6 +132,7 @@ from turbulans_radar.rota.ruzgar import (
 from turbulans_radar.uretim_bilgisi import uretim_bilgisi
 from turbulans_radar.veri.kisitli_saha_saglayici import ORNEK_KAYNAK, gecerli_kisitli_sahalari_getir
 from turbulans_radar.veri.sigmet_saglayici import (
+    DEMO_SIGMET_KAYNAGI,
     gecerli_sigmetleri_getir,
     kacinilacak_tehlikeler,
     son_guncelleme_zamani,
@@ -429,6 +430,7 @@ def _sigmet_katmanini_hazirla(sigmetler, enlemler_gc, boylamlar_gc, zaman_iso, t
         for sg in katman.sigmetler
     ]
     ozet["aktif_sigmet_sayisi"] = len(katman.sigmetler)
+    ozet["demo_arsivi_mi"] = any(sg.get("kaynak") == DEMO_SIGMET_KAYNAGI for sg in katman.sigmetler)
     ozet["tampon"] = katman.tampon_ozeti()
     ozet.update(sigmet_ufku(baslangic, bitis))
     if not katman.sigmetler:

@@ -179,6 +179,15 @@ def _bulgulari_olustur(
                 normal_rota_ihlali=ihlal,
             )
         )
+        if sigmet_kontrolu.get("demo_arsivi_mi"):
+            bulgular.append(
+                _bulgu(
+                    "sigmet_demo_arsivi",
+                    "uyari",
+                    "NOT: SIGMET'ler demo paketindeki ARŞİV mesajlarıdır (AWC'den o gün alınmış, değiştirilmemiş) "
+                    "-- canlı uyarı değildir.",
+                )
+            )
     ufuk_disi = sigmet_kontrolu.get("yayin_ufku_disi", "yok")
     if durum != "erisilemedi" and ufuk_disi != "yok":
         bulgular.append(

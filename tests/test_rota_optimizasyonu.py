@@ -867,3 +867,13 @@ def test_secim_kurali_varsayilani_degismez_ve_yanita_yazilir(gercek_senaryo, mon
     assert maliyet["optimize_rota"]["tahmini_yakit_kg"] <= varsayilan["optimize_rota"]["tahmini_yakit_kg"] + 1e-6
     with pytest.raises(ValueError):
         rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320", secim_kurali="yanlis")
+
+
+def test_demo_arsiv_sigmeti_bulguda_canli_uyari_degil_diye_etiketlenir():
+    canli = _izmir_van([_kare_sigmet(37.9, 38.9, 26.6, 27.6)])
+    assert canli["sigmet_kontrolu"]["demo_arsivi_mi"] is False
+    assert "sigmet_demo_arsivi" not in {b["kod"] for b in canli["bulgular"]}
+    arsiv = _izmir_van([{**_kare_sigmet(37.9, 38.9, 26.6, 27.6), "kaynak": "demo_arsiv"}])
+    assert arsiv["sigmet_kontrolu"]["demo_arsivi_mi"] is True
+    assert {b["kod"]: b for b in arsiv["bulgular"]}["sigmet_demo_arsivi"]["seviye"] == "uyari"
+    assert "canlı uyarı değildir" in arsiv["aciklama"]

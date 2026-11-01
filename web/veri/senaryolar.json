@@ -42,6 +42,12 @@
     "alanlar": {"baslangic-enlem": "41.00", "baslangic-boylam": "28.90", "bitis-enlem": "40.70", "bitis-boylam": "-74.00", "irtifa-ft": "34000", "zaman": "2019-01-05T12:00"}
   },
   {
+    "kimlik": "istanbul_madrid_arsiv_sigmet",
+    "ad": "İstanbul → Madrid (25 Ekim 2026), gerçek arşiv SIGMET'leri",
+    "aciklama": "Güncel vaka (THY4QR'nin günü): o pencerede Balkanlar–İtalya hattında 12–15 gerçek TURB/TS SIGMET'i sert kısıt; koridorda hepsinden kaçan rota yok, sistem ÖNERİ YOK der. Gerçek uçuş Belgrad (LYBA U04) SEV TURB SIGMET'inin içinden geçti. SIGMET'ler demo paketindeki arşiv mesajlarıdır (DEMO_SIGMET_FIKSTURU_YUKLE), canlı uyarı değildir.",
+    "alanlar": {"baslangic-enlem": "41.26", "baslangic-boylam": "28.74", "bitis-enlem": "40.47", "bitis-boylam": "-3.56", "irtifa-ft": "34000", "zaman": "2026-10-25T11:45"}
+  },
+  {
     "kimlik": "sigmet_bayat",
     "ad": "SIGMET bayat (SENTETİK arıza tatbikatı)",
     "aciklama": "Fail-safe: son başarılı SIGMET güncellemesi eski; rota çizilir ama aktif uyarıların eksik olabileceği kritik bulgu olarak yazılır. Sunucu durumu yalnız bu istekte taklit edilir (ARIZA_TAKLIDI_ETKIN).",

@@ -179,3 +179,12 @@ def test_ariza_tatbikati_senaryolari_sentetik_etiketle_hata_durumunu_yazar(
     _senaryoyla_simule_et(canli_sunucu, sayfa, kimlik)
     aciklama = sayfa.inner_text("#aciklama")
     assert "SENTETİK ARIZA TATBİKATI" in aciklama and beklenen in aciklama
+
+
+def test_guncel_vakada_arsiv_sigmetleri_etiketli_uygulanir_ve_oneri_yok_yazar(canli_sunucu, tarayici_sayfasi):
+    sayfa = tarayici_sayfasi["sayfa"]
+    _senaryoyla_simule_et(canli_sunucu, sayfa, "istanbul_madrid_arsiv_sigmet")
+    aciklama = sayfa.inner_text("#aciklama")
+    assert "aktif SIGMET sert kısıt olarak uygulandı" in aciklama
+    assert "ARŞİV mesajlarıdır" in aciklama and "canlı uyarı değildir" in aciklama
+    assert "öneri yok" in sayfa.inner_text("#tasarruf-satiri")

@@ -70,6 +70,7 @@ en az bir kez söylenmelidir.
 | 3 | 0:30 | 3B harita, sol panel | Model paneli ve lejanttaki TI1 notunu gösterin | "TI1'in tek başına güvenilirliği kanıtlanmadı: seyir irtifasındaki 15.940 PIREP'te ROC-AUC 0,67. Bu not ekranda her zaman duruyor." |
 | 4 | 1:30 | Rota simülasyonu | 41.0, 29.0 → 40.5, 43.5; 35000 ft (doğu yönü, tek FL); 15.01.2019 20:00; A320; **Simüle Et** | "Büyük daire rotasında FL350'de yaklaşık 214 NM, 26 dakikalık riskli bölüm var; kırmızı çizilen kısım. Seçim kuralı önce riskli nokta sayısına, sonra yakıta bakar; bu yüzden sistem riskli nokta içermeyen en ucuz seçeneği öneriyor: 105 NM sola yanal sapma; riskli bölüm tamamen atlatılıyor, bedeli +7,8 dakika ve %9,5 yakıt. Seçenekler tablosunda daha ucuz alternatif de duruyor: aynı yönün bir üst yasal seviyesi FL370 daha yüksek irtifada %2,0 daha az yakıt yakıyor (OpenAP, kütleye ve irtifaya bağlı) ama 1 riskli nokta bırakıyor. TI1 kanıtlanmış bir gösterge olmadığı için bu takas dispeçerin kararıdır; sistem iki seçeneği bedeliyle gösterir." (Ekran: `ekranlar/02_…`) |
 | 5 | 1:00 | Rota simülasyonu | 38.35, 38.31 → 36.34, 43.13 (Malatya → Musul); **Simüle Et** | "Bu kez sert kısıt: normal rota örnek kısıtlı sahaya 11 noktada giriyor, önerilen rota hiç girmiyor (30 NM sola sapma, bedeli %6,1 seyir yakıtı). Bu bölge ERA5 diliminin dışında; ekranda türbülans riski '0' değil 'hesaplanmadı' yazıyor, çünkü veri yokken risk yok demek en tehlikeli hata olurdu. SIGMET de aynı sert kısıt mekanizmasıyla çalışıyor." (Ekran: `ekranlar/03_…`) |
+| 5b | 1:00 | Rota simülasyonu | Senaryo seçici: "İstanbul → Madrid (25 Ekim 2026), gerçek arşiv SIGMET'leri"; **Simüle Et** | "Güncel bir gün. Gerçek THY4QR uçuşu Belgrad'ın şiddetli türbülans SIGMET'inin (LYBA U04, FL260–380) içinden geçti; o 730 noktanın tamamında TI1 riskli, dışında %12,8 (keşifsel, iki uçuş). O gün Balkanlar–İtalya hattında 15 TURB/TS SIGMET'i aktifti. Sistem hepsini sert kısıt alıyor ve koridorda hepsinden kaçan rota bulamıyor: ÖNERİ YOK diyor, uydurma rota çizmiyor. SIGMET'ler o gün AWC'den alınmış arşiv mesajları; ekranda canlı uyarı olmadıkları yazıyor." (Sonuç: `docs/sonuclar/2026-11-01_guncel_vaka/`) |
 | 6 | 0:30 | Slayt | ML ve doğrulama sonuçları slaytına geçin | "Model sonuçlarını canlı değil, ölçülmüş haliyle gösteriyorum. Sistem sertifikalı EDR üretmez; karar destek aracıdır." |
 
 Demo paketinde olmayanlar, slaytla gösterilir:
@@ -78,7 +79,8 @@ Demo paketinde olmayanlar, slaytla gösterilir:
   (doğru davranış). Eğitim sonuçları (güven aralıkları, konformal kapsama)
   geliştirme yığınından slayta konur.
 - **Canlı SIGMET:** AWC'den çekilir, ağ ister. Ağ varsa
-  `POST /api/v1/sigmet/guncelle` sonrası aynı simülasyonda gösterilebilir.
+  `POST /api/v1/sigmet/guncelle` sonrası aynı simülasyonda gösterilebilir. Ağsız demoda adım 5b'deki
+  arşiv SIGMET'leri (`DEMO_SIGMET_FIKSTURU_YUKLE=true`, `.env.demo`'da açık) kullanılır.
 - **Swagger (`/docs`):** Arayüz dosyaları CDN'den yüklendiği için ağ ister.
   Ağsız demoda `openapi.json` ya da Postman koleksiyonu gösterilir.
 - **Sanal PIREP (M6):** Demo izi tırmanış ağırlıklı olduğu için olay üretmez (doğru
