@@ -1,0 +1,465 @@
+<!doctype html>
+<html lang="tr"><head><meta charset="utf-8"><title>Türbülans Radar Sunumu</title>
+<style>
+@page { size: 338.67mm 190.5mm; margin: 0; }
+:root { --lac: #10243e; --mavi: #1d4e89; --acik: #e8eff7; --yesil: #1a7f37; --kirmizi: #b42318; --turuncu: #c27a00; --gri: #5b6776; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', 'Calibri', sans-serif; color: #1f2933; }
+.s { width: 338.67mm; height: 190.5mm; position: relative; overflow: hidden; page-break-after: always; break-after: page; padding: 15mm 18mm 13mm; background: #fff; }
+.s:last-child { page-break-after: auto; }
+.bant { position: absolute; left: 0; top: 0; width: 7mm; height: 100%; background: var(--mavi); }
+.ust { font-size: 11pt; letter-spacing: .14em; text-transform: uppercase; color: var(--mavi); font-weight: 700; margin-bottom: 2mm; }
+h2 { font-size: 30pt; color: var(--lac); margin: 0 0 6mm; line-height: 1.12; }
+p, li { font-size: 17pt; line-height: 1.4; }
+ul { margin: 0; padding-left: 7mm; } li { margin: 3mm 0; }
+.alt { position: absolute; left: 18mm; right: 18mm; bottom: 6mm; font-size: 10pt; color: #8a96a3; display: flex; justify-content: space-between; }
+.iki { display: grid; grid-template-columns: 1fr 1fr; gap: 10mm; align-items: start; }
+.uc { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7mm; }
+.kart { background: var(--acik); border-radius: 4mm; padding: 6mm 7mm; }
+.kart h3 { margin: 0 0 2.5mm; font-size: 17.5pt; color: var(--mavi); }
+.kart p { font-size: 14.8pt; margin: 0; line-height: 1.42; }
+.sayi { font-size: 46pt; font-weight: 800; color: var(--mavi); line-height: 1; }
+.sayi.k { color: var(--kirmizi); }
+.sayi-alt { font-size: 14pt; line-height: 1.4; color: var(--gri); margin-top: 2mm; }
+.vurgu { background: #fff7e0; border-left: 2mm solid #d99a00; padding: 4mm 6mm; border-radius: 0 3mm 3mm 0; font-size: 16pt; margin-top: 6mm; line-height: 1.42; }
+.mavikutu { background: var(--lac); color: #fff; border-radius: 4mm; padding: 7mm 9mm; font-size: 18pt; line-height: 1.4; }
+table { width: 100%; border-collapse: collapse; font-size: 14.5pt; }
+th { background: var(--mavi); color: #fff; text-align: left; padding: 3mm 3.5mm; font-weight: 600; }
+td { padding: 3mm 3.5mm; border-bottom: 1px solid #d9e2ec; vertical-align: top; }
+td.m { text-align: center; font-weight: 700; }
+.e { color: var(--yesil); } .h { color: var(--kirmizi); } .t { color: var(--turuncu); } .g { color: #8a96a3; }
+tr.biz td { background: #eaf5ec; font-weight: 700; }
+.sik table { font-size: 13pt !important; } .sik td { padding: 2mm 3mm; } .sik th { padding: 2.4mm 3mm; } .sik h2 { margin-bottom: 4mm; }
+img.ekran { width: 100%; border-radius: 3mm; box-shadow: 0 1mm 4mm rgba(0,0,0,.18); }
+.kaynak { font-size: 11.5pt; color: var(--gri); margin-top: 3mm; }
+.kapak { background: linear-gradient(135deg, #0d1f36 0%, #1d4e89 100%); color: #fff; padding: 26mm 24mm; }
+.kapak h1 { font-size: 40pt; margin: 6mm 0 6mm; line-height: 1.1; }
+.kapak .alt-baslik { font-size: 19pt; opacity: .92; max-width: 230mm; line-height: 1.35; }
+.kapak .kim { position: absolute; bottom: 22mm; left: 24mm; font-size: 13.5pt; line-height: 1.6; opacity: .95; }
+.kapak .rozet { display: inline-block; border: 1px solid rgba(255,255,255,.6); padding: 1.5mm 4mm; border-radius: 10mm; font-size: 11pt; letter-spacing: .1em; text-transform: uppercase; }
+svg text { font-family: 'Segoe UI', sans-serif; }
+.dar li { font-size: 15.5pt; margin: 2.6mm 0; line-height: 1.4; }
+.etiket { display: inline-block; font-size: 11.5pt; font-weight: 700; padding: .6mm 3mm; border-radius: 3mm; color: #fff; }
+</style></head><body>
+
+<!-- KAPAK -->
+<section class="s kapak">
+  <span class="rozet">Bitirme projesi · Komite sunumu</span>
+  <h1>Türbülans Tespit ve<br>Rota Optimizasyonu</h1>
+  <div class="alt-baslik">Görünmeyen açık hava türbülansını, açık veriyle ölçülebilir bir risk göstergesine ve
+  dispeçerin kullanabileceği bir rota kararına dönüştürmek.</div>
+  <div class="kim"><b>Tevfik Üner</b> · Danışman: Arş. Gör. Dr. Fatih Titrek<br>
+  Bilgisayar Mühendisliği, Konya Teknik Üniversitesi · Kasım 2026</div>
+</section>
+
+<!-- PROBLEM -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">1 · Problem</div>
+  <h2>Seyir irtifasındaki türbülans görünmez, ama insanları yaralar</h2>
+  <div class="uc">
+    <div class="kart"><div class="sayi k">1/3+</div><div class="sayi-alt">ABD'de 2009–2018 arası tarifeli havayolu kazalarının üçte birinden fazlası türbülansla ilgili; çoğunda uçak hasar görmedi ama en az bir kişi ağır yaralandı, en sık kabin ekibi.<br><i>NTSB SS-21/01 (2021)</i></div></div>
+    <div class="kart"><div class="sayi">0</div><div class="sayi-alt">Açık hava türbülansında bulut ya da yağış yoktur; uçağın hava radarı onu <b>göremez</b>. Pilotun elindeki tek uyarı tahmin ve diğer pilotların gecikmeli raporlarıdır.</div></div>
+    <div class="kart"><div class="sayi k">2×+</div><div class="sayi-alt">1980–2021 arasında orta ve üstü açık hava türbülansı sıklığı Orta Doğu'da iki katından fazla arttı.<br><i>Foudad vd. (2024), JGR Atmospheres</i></div></div>
+  </div>
+  <div class="vurgu"><b>Türkiye'den gerçek örnek:</b> 21 Ağustos 2019, Delhi→Londra seferindeki bir Airbus A340, <b>Kuzey Türkiye üzerinde FL360'ta</b>
+  orta-şiddetli türbülansa girdi, bir yolcu ağır yaralandı. Kaza raporuna göre türbülans <b>tahmin edilmemişti ve hava radarında görünmüyordu</b>.
+  <span style="color:#5b6776">(AAIB Bulletin 2/2020, G-VFIT; yakında tek bir bulut vardı.)</span></div>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>2</span></div>
+</section>
+
+<!-- BUGÜN NE VAR -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">2 · Bugün ne var, eksik olan ne?</div>
+  <h2>Çözümler var, ama ya kapalı ya da kararın dışında</h2>
+  <table>
+    <tr><th style="width:24%">Bugünkü araç</th><th style="width:40%">Ne sağlıyor</th><th>Sınırı</th></tr>
+    <tr><td><b>GTG, WAFS</b> (resmî tahmin)</td><td>Hava modelinden türbülans tahmin haritası</td><td>Harita verir; rota kararını dispeçere bırakır</td></tr>
+    <tr><td><b>PIREP</b> (pilot raporu)</td><td>Yaşanmış türbülansın bildirimi</td><td>Gönüllü, gecikmeli, öznel; Türkiye'de kamuya açık değil</td></tr>
+    <tr><td><b>Uçak EDR ölçümü</b>, IATA Turbulence Aware</td><td>Uçağın kendi sensörüyle nesnel ölçüm</td><td>Havayollarının verisi; izinle, çoğu zaman ücretle</td></tr>
+    <tr><td><b>SkyPath</b> gibi ticari ürünler</td><td>Gözlem ağı + kısa vadeli tahmin</td><td>Kapalı; doğruluk iddiaları şirket kaynaklı</td></tr>
+    <tr><td><b>Akademik ML çalışmaları</b></td><td>Yüksek başarı oranları (AUC 0,86–0,90)</td><td>Çoğu yalnız model; rota yok; rastgele bölme sonucu iyimser gösterebilir</td></tr>
+  </table>
+  <div class="vurgu"><b>Boşluk:</b> Açık veriyle çalışan, göstergenin <b>ne kadar güvenilir olduğunu ölçen</b> ve bu ölçümü
+  <b>rota kararının kurallarına</b> yansıtan bir sistem; Türkiye için hiç yok.</div>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>3</span></div>
+</section>
+
+<!-- SORU -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">3 · Araştırma sorusu</div>
+  <h2>Sorduğumuz soru</h2>
+  <div class="mavikutu" style="font-size:21pt; margin-bottom:8mm">Yalnızca açık veriyle, bir dispeçerin rota kararına girdi olabilecek,
+  <b>ölçülebilir</b> ve <b>dürüst</b> bir türbülans risk göstergesi üretilebilir mi?</div>
+  <div class="iki">
+    <div><h3 style="color:var(--mavi); font-size:19pt; margin:0 0 3mm">Kapsam</h3><ul class="dar">
+      <li>Seyir safhası: FL280–FL420</li>
+      <li>Açık hava türbülansı (jet akımı kayması)</li>
+      <li>Geçmiş uçuş analizi ve uçuş öncesi planlama</li></ul></div>
+    <div><h3 style="color:var(--mavi); font-size:19pt; margin:0 0 3mm">Neden seyir?</h3><ul class="dar">
+      <li>Alçak irtifadaki fırtına türbülansı büyük ölçüde radarda görünür ve SIGMET ile duyurulur.</li>
+      <li>Seyirdeki açık hava türbülansı görünmez; <b>aracı en az olan kısım</b>.</li>
+      <li>Alçalma/tırmanma farklı bir fizik ve ayrı bir model ister (yol haritasında).</li></ul></div>
+  </div>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>4</span></div>
+</section>
+
+<!-- ÇÖZÜM TEK BAKIŞTA -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">4 · Çözüm</div>
+  <h2>Dört katman, her biri ayrı ölçülür</h2>
+  <svg viewBox="0 0 1200 330" width="100%">
+    <defs><marker id="ok" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#1d4e89"/></marker></defs>
+    <g>
+      <rect x="10" y="20" width="255" height="230" rx="16" fill="#e8eff7"/>
+      <text x="137" y="62" text-anchor="middle" font-size="26" font-weight="700" fill="#1d4e89">1 · Veri</text>
+      <text x="137" y="102" text-anchor="middle" font-size="18" fill="#1f2933">Gerçek uçuş izi</text>
+      <text x="137" y="130" text-anchor="middle" font-size="18" fill="#1f2933">Rüzgâr ve sıcaklık</text>
+      <text x="137" y="158" text-anchor="middle" font-size="18" fill="#1f2933">Resmî uyarılar</text>
+      <text x="137" y="186" text-anchor="middle" font-size="18" fill="#1f2933">Pilot raporu, ölçülen EDR</text>
+      <text x="137" y="228" text-anchor="middle" font-size="15" fill="#5b6776">hepsi açık kaynak</text>
+    </g>
+    <line x1="270" y1="135" x2="305" y2="135" stroke="#1d4e89" stroke-width="4" marker-end="url(#ok)"/>
+    <g>
+      <rect x="315" y="20" width="255" height="230" rx="16" fill="#e8eff7"/>
+      <text x="442" y="62" text-anchor="middle" font-size="26" font-weight="700" fill="#1d4e89">2 · Fizik</text>
+      <text x="442" y="102" text-anchor="middle" font-size="18">Her iz noktası, uçağın</text>
+      <text x="442" y="130" text-anchor="middle" font-size="18">irtifasındaki hava</text>
+      <text x="442" y="158" text-anchor="middle" font-size="18">hücresiyle eşleşir</text>
+      <text x="442" y="186" text-anchor="middle" font-size="18">→ TI1, Richardson, EDR</text>
+      <text x="442" y="228" text-anchor="middle" font-size="15" fill="#5b6776">veri yoksa "hesaplanmadı"</text>
+    </g>
+    <line x1="575" y1="135" x2="610" y2="135" stroke="#1d4e89" stroke-width="4" marker-end="url(#ok)"/>
+    <g>
+      <rect x="620" y="20" width="255" height="230" rx="16" fill="#e8eff7"/>
+      <text x="747" y="62" text-anchor="middle" font-size="26" font-weight="700" fill="#1d4e89">3 · Öğrenme</text>
+      <text x="747" y="102" text-anchor="middle" font-size="18">Gösterge, bağımsız</text>
+      <text x="747" y="130" text-anchor="middle" font-size="18">etikete karşı ölçülür;</text>
+      <text x="747" y="158" text-anchor="middle" font-size="18">model ancak onu</text>
+      <text x="747" y="186" text-anchor="middle" font-size="18">geçerse devreye girer</text>
+      <text x="747" y="228" text-anchor="middle" font-size="15" fill="#5b6776">her gece kendiliğinden büyür</text>
+    </g>
+    <line x1="880" y1="135" x2="915" y2="135" stroke="#1d4e89" stroke-width="4" marker-end="url(#ok)"/>
+    <g>
+      <rect x="925" y="20" width="265" height="230" rx="16" fill="#10243e"/>
+      <text x="1057" y="62" text-anchor="middle" font-size="26" font-weight="700" fill="#fff">4 · Karar</text>
+      <text x="1057" y="102" text-anchor="middle" font-size="18" fill="#fff">A* rota araması:</text>
+      <text x="1057" y="130" text-anchor="middle" font-size="18" fill="#fff">uyarı alanına girme,</text>
+      <text x="1057" y="158" text-anchor="middle" font-size="18" fill="#fff">riskten mümkünse kaç,</text>
+      <text x="1057" y="186" text-anchor="middle" font-size="18" fill="#fff">en az yakıtı seç</text>
+      <text x="1057" y="228" text-anchor="middle" font-size="15" fill="#c9d8ea">seçenekler bedeliyle</text>
+    </g>
+    <text x="600" y="300" text-anchor="middle" font-size="19" fill="#5b6776">Ana fikir: göstergenin ölçülen sınırı, rota kararının kurallarını belirler.</text>
+  </svg>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>5</span></div>
+</section>
+
+<!-- VERİ -->
+<section class="s sik"><div class="bant"></div>
+  <div class="ust">5 · Veri nereden geliyor?</div>
+  <h2>Yalnızca açık veri</h2>
+  <table>
+    <tr><th style="width:22%">Kaynak</th><th style="width:30%">Ne veriyor</th><th style="width:30%">Nasıl çekiyoruz</th><th>Türkiye</th></tr>
+    <tr><td><b>OpenSky Network</b></td><td>Uçağın ~1 sn'lik konumu, barometrik irtifası, hızı (ADS-B)</td><td>Akademik hesapla SQL sorgusu; bitmiş uçuşlar önbelleğe</td><td class="e">✓</td></tr>
+    <tr><td><b>ERA5</b> (Copernicus)</td><td>Rüzgâr, sıcaklık; 0,25°, saatlik, 1940'tan bugüne</td><td>Uçuşa özel küçük dilim; olmazsa Google Cloud yedeği</td><td class="e">✓</td></tr>
+    <tr><td><b>GFS</b> (NOAA)</td><td>Canlı ve ileriye dönük hava tahmini</td><td>Son 48 saat ve uçuş öncesi planlama için</td><td class="e">✓</td></tr>
+    <tr><td><b>SIGMET</b> (NOAA AWC)</td><td>Resmî tehlikeli hava uyarıları</td><td>15 dakikada bir; 30 Eylül'den beri 202 bölgeden 13.900 kayıt</td><td class="e">✓ 161 Türkiye</td></tr>
+    <tr><td><b>PIREP</b> (Iowa Mesonet)</td><td>Pilot türbülans raporları</td><td>Her gece artımlı; seyir irtifası filtresi</td><td class="h">✗ yalnız ABD</td></tr>
+    <tr><td><b>MADIS EDR</b> (NOAA)</td><td>Uçağın sensörüyle ölçülen türbülans</td><td>Saatlik dosyalar; gecede en fazla 1 gün</td><td class="h">✗ yalnız ABD</td></tr>
+  </table>
+  <div class="vurgu" style="font-size:13.5pt; margin-top:4mm">Sağlayıcılara saygı kodun içinde: aynı anda tek indirme (veritabanı kilidi), günlük istek ve
+  500 MB veri sınırı, istekler arası bekleme. Hesap için gereken her şey Türkiye'yi kapsıyor; eksik olan yalnızca <b>doğrulama etiketi</b>.</div>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>6</span></div>
+</section>
+
+<!-- EŞLEŞTİRME -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">6 · Nasıl çalışıyor: eşleştirme</div>
+  <h2>Uçağın izi ile hava verisini dört eksende birleştirmek</h2>
+  <div class="iki" style="grid-template-columns: 1.15fr 1fr">
+    <table>
+      <tr><th>Eksen</th><th>Uçak (OpenSky)</th><th>Hava (ERA5)</th><th>Bağlantı</th></tr>
+      <tr><td><b>Zaman</b></td><td>~1 sn</td><td>saatlik</td><td>en yakın saat (&gt;3 sa ise yok)</td></tr>
+      <tr><td><b>Konum</b></td><td>enlem/boylam</td><td>0,25° ızgara</td><td>en yakın hücre</td></tr>
+      <tr><td><b>Yükseklik</b></td><td>barometrik irtifa</td><td>basınç seviyesi</td><td>ISA formülü</td></tr>
+      <tr><td><b>Katman</b></td><td colspan="2">uçağın basıncını çevreleyen iki seviye</td><td>düşey kayma</td></tr>
+    </table>
+    <div>
+      <div class="kart" style="margin-bottom:5mm"><h3>Neden barometrik irtifa?</h3><p>Seyirde altimetre 1013,25 hPa'ya ayarlıdır; barometrik irtifa doğrudan
+      standart atmosfer basıncına karşılık gelir. GPS irtifası sıcaklığa göre sapar (örnek uçuşta medyan 225 m).</p></div>
+      <div class="kart"><h3>Kapsam dışı = "veri yok"</h3><p>Hava verisinin uzağındaki nokta hesaplanmaz. Aksi hâlde yazılım en yakın hücreyi
+      ne kadar uzak olursa olsun döndürür ve sessizce yanlış değer üretirdi. Örnek uçuşta 1614 noktanın 720'si seyirde hesaplandı.</p></div>
+    </div>
+  </div>
+  <p style="font-size:15pt; margin-top:6mm; color:var(--gri)">5.000 nokta tek bir vektörel sorguyla ~0,03 saniyede eşlenir (döngü yok).</p>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>7</span></div>
+</section>
+
+<!-- GÖSTERGE + KARAR -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">7 · Nasıl çalışıyor: gösterge ve rota kararı</div>
+  <h2>Göstergeden karara</h2>
+  <div class="iki">
+    <div>
+      <div class="kart" style="margin-bottom:5mm"><h3>Türbülans göstergeleri</h3>
+      <p><b>TI1 = düşey rüzgâr kayması × yatay deformasyon</b> (Ellrod ve Knapp, 1992)<br>
+      Richardson sayısı (kararlılık), birleşik EDR (0–1 ölçek)<br>
+      Risk eşiği <b>TI1 ≥ 7·10⁻⁷ s⁻²</b>: veriden, yalnız eğitim günlerinde seçildi.</p></div>
+      <div class="kart"><h3>Öneri yoksa, öneri verilmez</h3><p>Güvenli rota bulunamazsa sistem "ÖNERİ YOK" der.
+      Kaçınılacak risk yoksa rota büyük daireyle aynı kalır; uydurma iyileşme gösterilmez.</p></div>
+    </div>
+    <div>
+      <table>
+        <tr><th>A* aramasında</th><th>Kural</th></tr>
+        <tr><td><span class="etiket" style="background:var(--kirmizi)">SERT</span> SIGMET, kısıtlı saha</td><td>Hiç girilmez (varış zamanı ve irtifa bandıyla)</td></tr>
+        <tr><td><span class="etiket" style="background:var(--turuncu)">YUMUŞAK</span> TI1 riski</td><td>Mümkünse kaçınılır; değilse en az riskli yol</td></tr>
+        <tr><td><span class="etiket" style="background:var(--mavi)">MALİYET</span> yakıt, süre</td><td>Rüzgârla yer hızı; açık kaynak OpenAP yakıt modeli</td></tr>
+        <tr><td><span class="etiket" style="background:#5b6776">SEÇENEK</span> seviye</td><td>Bir üst/alt yasal seviye, tırmanma bedeliyle</td></tr>
+      </table>
+      <p style="font-size:14.5pt; color:var(--gri); margin-top:5mm"><b>Neden SIGMET sert, TI1 yumuşak?</b> Çünkü TI1'in güvenilirliğini ölçtük ve
+      orta düzeyde çıktı (sonraki slaytlar). Güvenlik garantisi resmî uyarıdan gelir.</p>
+    </div>
+  </div>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>8</span></div>
+</section>
+
+<!-- MİMARİ -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">8 · Mimari</div>
+  <h2>Sistemi çalıştırınca ne oluyor?</h2>
+  <svg viewBox="0 0 1200 380" width="100%">
+    <defs><marker id="o2" markerWidth="10" markerHeight="10" refX="8" refY="5" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#5b6776"/></marker></defs>
+    <rect x="10" y="10" width="230" height="300" rx="14" fill="#f4f7fb" stroke="#c9d4e0"/>
+    <text x="125" y="42" text-anchor="middle" font-size="19" font-weight="700" fill="#1d4e89">Kullanıcı</text>
+    <rect x="30" y="62" width="190" height="62" rx="10" fill="#fff" stroke="#c9d4e0"/><text x="125" y="88" text-anchor="middle" font-size="15">3B harita</text><text x="125" y="110" text-anchor="middle" font-size="13" fill="#5b6776">gerçek uçuş analizi</text>
+    <rect x="30" y="136" width="190" height="62" rx="10" fill="#fff" stroke="#c9d4e0"/><text x="125" y="162" text-anchor="middle" font-size="15">Uçuş simülasyonu</text><text x="125" y="184" text-anchor="middle" font-size="13" fill="#5b6776">rota karşılaştırma</text>
+    <rect x="30" y="210" width="190" height="62" rx="10" fill="#fff" stroke="#c9d4e0"/><text x="125" y="236" text-anchor="middle" font-size="15">REST API, WebSocket</text><text x="125" y="258" text-anchor="middle" font-size="13" fill="#5b6776">anahtar ve rol</text>
+    <rect x="300" y="10" width="610" height="300" rx="14" fill="#e8eff7" stroke="#1d4e89" stroke-width="2"/>
+    <text x="605" y="42" text-anchor="middle" font-size="19" font-weight="700" fill="#1d4e89">docker compose</text>
+    <rect x="325" y="62" width="170" height="110" rx="10" fill="#1d4e89"/><text x="410" y="96" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">api</text><text x="410" y="122" text-anchor="middle" font-size="13" fill="#e8eff7">FastAPI; hafif hesap,</text><text x="410" y="142" text-anchor="middle" font-size="13" fill="#e8eff7">zamanlayıcılar (SIGMET</text><text x="410" y="160" text-anchor="middle" font-size="13" fill="#e8eff7">15 dk, GFS ön indirme)</text>
+    <rect x="525" y="62" width="170" height="110" rx="10" fill="#1d4e89"/><text x="610" y="96" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">worker</text><text x="610" y="122" text-anchor="middle" font-size="13" fill="#e8eff7">uzun işler: analiz,</text><text x="610" y="142" text-anchor="middle" font-size="13" fill="#e8eff7">backtest, gece veri</text><text x="610" y="160" text-anchor="middle" font-size="13" fill="#e8eff7">hattı, model eğitimi</text>
+    <rect x="725" y="62" width="165" height="110" rx="10" fill="#10243e"/><text x="807" y="96" text-anchor="middle" font-size="20" font-weight="700" fill="#fff">db</text><text x="807" y="122" text-anchor="middle" font-size="13" fill="#e8eff7">PostgreSQL 16: uçuşlar,</text><text x="807" y="142" text-anchor="middle" font-size="13" fill="#e8eff7">görev kuyruğu, kilit,</text><text x="807" y="160" text-anchor="middle" font-size="13" fill="#e8eff7">SIGMET, ML örnekleri</text>
+    <rect x="325" y="192" width="565" height="48" rx="10" fill="#fff" stroke="#c9d4e0"/><text x="607" y="222" text-anchor="middle" font-size="14">Paylaşılan disk: ERA5 dilimleri · OpenSky önbelleği · GFS küpleri · model deposu</text>
+    <rect x="325" y="252" width="565" height="44" rx="10" fill="#fff" stroke="#c9d4e0"/><text x="607" y="280" text-anchor="middle" font-size="14">yedek (günlük + OneDrive) · prometheus (izleme)</text>
+    <rect x="970" y="10" width="220" height="300" rx="14" fill="#f4f7fb" stroke="#c9d4e0"/>
+    <text x="1080" y="42" text-anchor="middle" font-size="19" font-weight="700" fill="#1d4e89">Dış kaynaklar</text>
+    <text x="1080" y="82" text-anchor="middle" font-size="15">OpenSky</text><text x="1080" y="114" text-anchor="middle" font-size="15">Copernicus ERA5</text><text x="1080" y="146" text-anchor="middle" font-size="15">ARCO-ERA5 (yedek)</text><text x="1080" y="178" text-anchor="middle" font-size="15">NOAA GFS</text><text x="1080" y="210" text-anchor="middle" font-size="15">NOAA AWC SIGMET</text><text x="1080" y="242" text-anchor="middle" font-size="15">IEM PIREP</text><text x="1080" y="274" text-anchor="middle" font-size="15">NOAA MADIS EDR</text>
+    <line x1="240" y1="160" x2="320" y2="117" stroke="#5b6776" stroke-width="3" marker-end="url(#o2)"/>
+    <line x1="910" y1="160" x2="965" y2="160" stroke="#5b6776" stroke-width="3" marker-end="url(#o2)"/>
+    <line x1="965" y1="175" x2="915" y2="175" stroke="#5b6776" stroke-width="3" marker-end="url(#o2)"/>
+    <text x="600" y="350" text-anchor="middle" font-size="16" fill="#1f2933">Açılış sırası: db hazır → şema öncesi doğrulanmış yedek → şema güncellemesi → api + worker. İşçi çökerse görev kaybolmaz, yeniden kuyruğa girer.</text>
+  </svg>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>9</span></div>
+</section>
+
+<!-- DEMO 1 -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">9 · Sistem çalışırken: gerçek uçuş</div>
+  <h2>THY322, 15 Ocak 2019: gerçek ADS-B izi üzerinde türbülans göstergesi</h2>
+  <div class="iki" style="grid-template-columns: 2.1fr 1fr; gap:8mm">
+    <img class="ekran" src="../ekranlar/01_harita3d_THY322.jpg">
+    <ul class="dar">
+      <li>1614 gerçek konum noktası (OpenSky)</li>
+      <li>Her nokta, uçağın barometrik irtifasındaki ERA5 rüzgârıyla eşlendi</li>
+      <li>Renk: TI1 riski; gri: hesaplanmadı (kalkış/tırmanış)</li>
+      <li>İzdeki ~1 saatlik boşlukta OpenSky'da kayıt yok; sistem boşluğu <b>doldurmuyor</b></li>
+      <li>Analiz süresi: 0,23 saniye</li>
+    </ul>
+  </div>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>10</span></div>
+</section>
+
+<!-- DEMO 2 -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">10 · Sistem çalışırken: rota önerisi</div>
+  <h2>Aynı koridorda: riskli bölümden kaçan rota ve bedeli</h2>
+  <div class="iki" style="grid-template-columns: 2.1fr 1fr; gap:8mm">
+    <img class="ekran" src="../ekranlar/02_simulasyon_turbulanstan_kacinma.jpg">
+    <div>
+      <ul class="dar">
+        <li><b>Büyük daire, FL350:</b> ~214 NM, ~26 dakikalık riskli bölüm (kırmızı)</li>
+        <li><b>Öneri:</b> yanal sapma; riskli nokta 13 → 0</li>
+        <li><b>Bedel:</b> +8 dakika, %9,5 yakıt (tahmini)</li>
+        <li>Daha ucuz seçenek (bir üst seviye) de tabloda: 1 riskli nokta bırakıyor; <b>takas dispeçerin kararı</b></li>
+      </ul>
+      <p class="kaynak">Ağsız demo paketiyle, temiz kurulumdan alınmış gerçek çıktı. Yakıt açık kaynak OpenAP modeliyle tahmindir, ölçüm değildir.</p>
+    </div>
+  </div>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>11</span></div>
+</section>
+
+<!-- GÜNCEL VAKA -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">11 · Güncel vaka: 25 Ekim 2026</div>
+  <h2>Gerçek bir uçuş, gerçek bir uyarının içinden geçti</h2>
+  <div class="iki" style="grid-template-columns: 1.9fr 1fr; gap:8mm">
+    <img class="ekran" src="../ekranlar/04_simulasyon_guncel_vaka_arsiv_sigmet.jpg">
+    <div>
+      <ul class="dar">
+        <li><b>THY4QR İstanbul → Madrid:</b> seyrin tamamı ADS-B'li, 11.180 noktada TI1</li>
+        <li>Belgrad şiddetli türbülans SIGMET'i (LYBA U04, FL260–380, 12:06–15:30) içindeki <b>730 noktanın %100'ü</b> riskli; dışarıda %12,8</li>
+        <li>Aynı gün Londra → Antalya: içeride %96,8, dışarıda %37,5</li>
+        <li>Simülasyonda rota çevresindeki 14 aktif SIGMET sert kısıt: koridorda hepsinden kaçan rota yok, sistem <b>ÖNERİ YOK</b> der</li>
+      </ul>
+      <p class="kaynak">Keşifsel: SIGMET gözlem değil uyarıdır; iki uçuş, noktalar bağımsız değil. SIGMET'ler o gün AWC'den alınmış, değiştirilmemiş arşiv mesajları; ekranda canlı uyarı olmadıkları yazar.</p>
+    </div>
+  </div>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>12</span></div>
+</section>
+
+<!-- BİLMEDİĞİNİ SÖYLER -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">12 · Sistem bilmediğini söyler</div>
+  <h2>Kötü günde ne olur?</h2>
+  <div class="iki" style="grid-template-columns: 1.55fr 1fr; gap:8mm">
+    <img class="ekran" src="../ekranlar/05_simulasyon_ariza_tatbikati.jpg">
+    <div>
+      <table style="font-size:13.5pt">
+        <tr><th>Durum</th><th>Sistemin davranışı</th></tr>
+        <tr><td>Hava verisi kapsam dışı</td><td>Risk "0" değil, <b>"hesaplanmadı"</b></td></tr>
+        <tr><td>Güvenli rota yok</td><td><b>"ÖNERİ YOK"</b>; normal rota önerilmez</td></tr>
+        <tr><td>SIGMET veritabanına erişilemedi</td><td>Kritik uyarı; "SIGMET yok" denmez, sonuç önbelleğe alınmaz</td></tr>
+        <tr><td>ML girdisi eğitim desteği dışında</td><td>ML çıktısı verilmez (Türkiye %2,9, güncel vaka %6,5 nokta)</td></tr>
+      </table>
+      <p class="kaynak">Ekrandaki arıza SENTETİK bir tatbikattır: yalnız demo kurulumunda, yalnız o istek için taklit edilir ve ekranda öyle etiketlenir.</p>
+    </div>
+  </div>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>13</span></div>
+</section>
+
+<!-- KANIT 1 -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">13 · Kanıt: gösterge ne kadar güvenilir?</div>
+  <h2>Bağımsız etiketle ölçtük: orta düzey, ve bunu söylüyoruz</h2>
+  <div class="iki" style="grid-template-columns: 0.85fr 1.15fr">
+    <img src="../../sonuclar/2026-10-18/roc_ti1_ri.png" style="width:100%">
+    <div>
+      <table>
+        <tr><th>Ölçüm</th><th>Sonuç (%95 güven aralığı)</th></tr>
+        <tr><td>TI1, 15.940 seyir PIREP'i, 163 gün</td><td><b>0,673</b> [0,661–0,684]</td></tr>
+        <tr><td>TI1, eşikte (7·10⁻⁷)</td><td>yakalama 0,50 · yanlış alarm 0,25</td></tr>
+        <tr><td>Makine öğrenmesi modeli − TI1</td><td><b>+0,033</b> [+0,018; +0,049] → devreye girdi</td></tr>
+        <tr><td>Uçağın ölçtüğü EDR (MADIS, 45.075 ölçüm)</td><td>TI1 0,722 · model 0,775</td></tr>
+      </table>
+      <ul class="dar" style="margin-top:4mm">
+        <li><b>Altın test günleri:</b> 16 gün dondurulup hiçbir eğitime sokulmadı.</li>
+        <li><b>Gün gruplu doğrulama:</b> aynı günün raporları hem eğitimde hem testte olmaz.</li>
+        <li>Rastgele tahmin = 0,5. Literatürdeki 0,86–0,90 değerleri farklı bölme ve etiketle; doğrudan kıyaslanamaz.</li>
+      </ul>
+    </div>
+  </div>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>14</span></div>
+</section>
+
+<!-- KANIT 2 -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">14 · Kanıt: önerilen rota gerçekten daha az türbülanslı mı?</div>
+  <h2>Algoritmanın hiç görmediği pilot raporlarıyla sınadık</h2>
+  <div class="iki" style="grid-template-columns: 1.05fr 1fr">
+    <img src="../../sonuclar/2026-10-29_bagimsiz_backtest/bagimsiz_backtest.png" style="width:100%">
+    <div>
+      <ul class="dar">
+        <li>ABD kuzeydoğusu: 8 şehir çifti × 48 gün × 3 kalkış × 2 seviye = <b>2.304 rota</b></li>
+        <li>Her rotanın çevresindeki pilot raporlarında orta ve üstü türbülans payı:<br>büyük daire 0,687 · önerilen rota <b>0,610</b></li>
+        <li>Oran <b>0,71 [0,58; 0,90]</b>: aralığın tamamı 1'in altında → anlamlı azalma</li>
+        <li>Tırmanma stratejisinde 0,51 [0,21; 0,97]</li>
+      </ul>
+      <div class="vurgu" style="font-size:14pt; margin-top:5mm"><b>Dürüst not:</b> 48 günün tamamında 0,83 [0,66; 1,03], anlamlı değil.
+      Tek bölge, simüle rota, pilotlar türbülans görünce rapor verme eğiliminde. Bu bir ispat değil, <b>bağımsız veriyle tutarlı kanıt</b>.</div>
+    </div>
+  </div>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>15</span></div>
+</section>
+
+<!-- MÜHENDİSLİK -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">15 · Sistem ne kadar sağlam?</div>
+  <h2>Prototip değil, işletilebilir bir sistem</h2>
+  <div class="uc" style="margin-bottom:7mm">
+    <div class="kart"><div class="sayi">1.300</div><div class="sayi-alt">otomatik test (birim, veritabanı, gerçek veri, tarayıcı); her değişiklikte sürekli entegrasyon</div></div>
+    <div class="kart"><div class="sayi">0,23 sn</div><div class="sayi-alt">tek uçuş analizi (hedef ≤ 10 sn). 16 eşzamanlı rota isteğinde p95 3,95 sn (hedef ≤ 5 sn)</div></div>
+    <div class="kart"><div class="sayi">%0</div><div class="sayi-alt">yük testinde hata oranı; işçi dakikada 467 görev işledi</div></div>
+  </div>
+  <div class="iki">
+    <ul class="dar">
+      <li>Görev kuyruğu ve dağıtık kilit: işler kaybolmaz, dış kaynağa aynı anda tek indirme</li>
+      <li>Model kapısı: yeni model ancak öncekini ve TI1'i geçerse devreye girer; geri alınabilir</li>
+    </ul>
+    <ul class="dar">
+      <li>Günlük veritabanı yedeği + bulut kopyası</li>
+      <li>İnternetsiz demo: depoyla gelen gerçek uçuş ve ERA5 dilimiyle çalışır</li>
+    </ul>
+  </div>
+  <p class="kaynak">Ölçümler: dizüstü bilgisayar (i7-13700H, WSL2), 1 ve 19 Ekim 2026; test sayısı 1 Kasım 2026.</p>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>16</span></div>
+</section>
+
+<!-- DÜNYA VE TÜRKİYE -->
+<section class="s sik"><div class="bant"></div>
+  <div class="ust">16 · Dünyada ve Türkiye'de durum</div>
+  <h2>Parçalar var; bu bileşim ve Türkiye uygulaması yok</h2>
+  <table style="font-size:13.5pt">
+    <tr><th style="width:24%">Çalışma</th><th>Gerçek uçuş izi</th><th>Yalnız açık veri</th><th>Rota önerisi</th><th>Sızıntısız doğrulama</th><th>Çalışan sistem</th><th>Türkiye</th></tr>
+    <tr><td>Zhu vd. 2026 (TR Part C)</td><td class="m g">?</td><td class="m t">kısmen</td><td class="m e">✓</td><td class="m g">?</td><td class="m g">?</td><td class="m h">✗</td></tr>
+    <tr><td>Gökdeniz ve Ülkü 2026 (Türk ekip)</td><td class="m h">✗</td><td class="m t">kısmen</td><td class="m h">✗</td><td class="m h">✗</td><td class="m h">✗</td><td class="m h">✗ ABD verisi</td></tr>
+    <tr><td>Muñoz-Esparza vd. 2020</td><td class="m h">✗</td><td class="m h">✗</td><td class="m h">✗</td><td class="m g">?</td><td class="m g">?</td><td class="m h">✗</td></tr>
+    <tr><td>Cheung 2018 (A* kaçınma)</td><td class="m g">?</td><td class="m g">?</td><td class="m e">✓</td><td class="m h">✗</td><td class="m h">✗</td><td class="m h">✗</td></tr>
+    <tr><td>Açık kaynak benzerleri (GitHub)</td><td class="m t">kısmen</td><td class="m e">✓</td><td class="m t">kısmen</td><td class="m t">kısmen</td><td class="m e">✓ prototip</td><td class="m h">✗</td></tr>
+    <tr><td>SkyPath (ticari)</td><td class="m e">✓</td><td class="m h">✗</td><td class="m g">?</td><td class="m g">yayımlanmamış</td><td class="m e">✓</td><td class="m g">?</td></tr>
+    <tr class="biz"><td>Bu proje</td><td class="m e">✓</td><td class="m e">✓</td><td class="m e">✓</td><td class="m e">✓</td><td class="m e">✓</td><td class="m t">hesap ✓ · doğrulama ✗</td></tr>
+  </table>
+  <p style="font-size:13pt; margin:3mm 0 0">962 çalışma (OpenAlex) ve ~70 proje (GitHub) tarandı: <b>Türkiye için havacılık türbülansı tahmini/rota çalışması bulunamadı</b>;
+  tek Türk ekip de ABD verisi kullandı. "Dünyada ilk" iddiamız yok; farkımız <b>bileşim ve doğrulama titizliği</b>. <span style="color:var(--gri)">"?" = yayında bilgi yok.</span></p>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>17</span></div>
+</section>
+
+<!-- SINIRLAR -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">17 · Dürüst sınırlar</div>
+  <h2>Neyi iddia etmiyoruz?</h2>
+  <div class="iki">
+    <ul class="dar">
+      <li><b>Türkiye'de başarı ölçülmedi.</b> Pilot raporu ve uçak EDR'si Türkiye için kamuya açık değil. Model Türkiye'de çalışıyor (girdilerin %97'si ABD aralığında) ama orada ölçülmedi.</li>
+      <li><b>Yalnız seyir ve açık hava türbülansı.</b> Fırtına, dağ dalgası ve alçak irtifa kapsam dışı.</li>
+      <li><b>Ölçek:</b> ERA5 ~25 km ve saatlik; türbülans yüzlerce metre ölçeğinde.</li>
+    </ul>
+    <ul class="dar">
+      <li><b>Resmî ürünlerle (GTG/WAFS) kıyaslanmadı.</b> "Mevcuttan iyi" demiyoruz.</li>
+      <li><b>Yakıt</b> açık kaynak modelle tahmin; ölçüm değil.</li>
+      <li><b>Son kullanıcı testi yapılmadı</b> (dispeçer, pilot).</li>
+      <li>OpenSky verisi ticari olmayan araştırma içindir.</li>
+    </ul>
+  </div>
+  <div class="mavikutu" style="margin-top:7mm; font-size:17pt">Çıktılar sertifikalı EDR değildir. Sistem operasyonel karar aracı değil, <b>karar destek aracıdır</b>.</div>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>18</span></div>
+</section>
+
+<!-- YOL HARİTASI -->
+<section class="s"><div class="bant"></div>
+  <div class="ust">18 · Yol haritası</div>
+  <h2>Bundan sonra: önce ölç, sonra genişlet</h2>
+  <div class="uc">
+    <div class="kart"><h3>1 · Türkiye etiketi</h3><p>TUSAŞ, Boeing, Airbus, DLR, NASA (dış uzman önerisi), MGM ve IATA'ya
+    resmî veri talebi; taslaklar hazır. Sistem 30 Eylül'den beri Türkiye SIGMET'lerini arşivliyor: 161 kayıt, 5'i türbülans uyarısı.</p></div>
+    <div class="kart"><h3>2 · Etiketsiz bölgeye taşıma</h3><p>Literatürdeki iki yol: transfer öğrenme (Zhu vd. 2026) ve fizik bilgili model.
+    İlk adım: Türkiye türbülans SIGMET'leriyle gösterge karşılaştırması.</p></div>
+    <div class="kart"><h3>3 · Kapsamı büyütmek</h3><p>Tırmanma/alçalma için <b>ayrı</b> model: ek basınç seviyeleri, konvektif enerji, arazi
+    (Türkiye'de dağ dalgası önemli). GTG/WAFS kıyası; dispeçerle kullanılabilirlik testi.</p></div>
+  </div>
+  <div class="vurgu">İlke: <b>doğrulama karnesi olmayan bir tahmin ürünü eklenmez.</b> Her yeni özellik, önce bağımsız veriyle ölçülür.</div>
+  <div class="alt"><span>Türbülans Tespit ve Rota Optimizasyonu</span><span>19</span></div>
+</section>
+
+<!-- KAPANIŞ -->
+<section class="s kapak">
+  <span class="rozet">Özet</span>
+  <h1 style="font-size:31pt">Görünmeyen türbülansı ölçülebilir hâle getirdik;<br>ölçtüğümüz sınırı rota kararına taşıdık.</h1>
+  <div class="alt-baslik" style="font-size:16pt">
+  ✓ Yalnızca açık veriyle, gerçek uçuş izleri üzerinde çalışan bir sistem<br>
+  ✓ Göstergenin güvenilirliği bağımsız etiketle, sızıntısız yöntemle ölçüldü<br>
+  ✓ Güvenlik resmî uyarılardan, risk azaltma ölçülmüş göstergeden<br>
+  ✓ Türkiye'ye uygulanabilir; doğrulama için kurumsal veri talepleri hazır</div>
+  <div class="kim">Teşekkürler · Sorularınız?<br><span style="opacity:.8">Sertifikalı EDR değildir; karar destek aracıdır.</span></div>
+</section>
+
+</body></html>

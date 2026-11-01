@@ -15,8 +15,11 @@ VENV="${VENV:-$HOME/.venvs/turbulans/bin}"
 if [ ! -d "$KLON/.git" ]; then
   git clone "$ANA_DEPO" "$KLON"
 fi
+ENV_KOPYA=0
+cmp -s "$KLON/.env" "$KLON/.env.demo" 2>/dev/null && ENV_KOPYA=1
 git -C "$KLON" pull --ff-only
-[ -f "$KLON/.env" ] || cp "$KLON/.env.demo" "$KLON/.env"
+# .env değiştirilmemiş bir .env.demo kopyasıysa yeni demo ayarlarıyla yenilenir; elle düzenlenmişse dokunulmaz.
+if [ ! -f "$KLON/.env" ] || [ "$ENV_KOPYA" = 1 ]; then cp "$KLON/.env.demo" "$KLON/.env"; fi
 
 cat > "$PORTLAR" <<'YAML'
 services:

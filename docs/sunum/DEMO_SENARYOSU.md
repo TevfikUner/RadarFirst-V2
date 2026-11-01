@@ -4,8 +4,9 @@ Jüri sunumundaki canlı demo ve yedek video için adım adım akış. Demo, dep
 demo paketiyle (THY322, 15 Ocak 2019, gerçek OpenSky izi + ERA5 dilimi) **ağ
 bağlantısı ve kimlik bilgisi olmadan** çalışır. Aşağıdaki tüm sayılar bu paketle
 14 Ekim 2026'da temiz demo klonunda (yalnız depodaki ERA5 dilimi ve örnek kısıtlı sahalar, ağsız provada) alınmış gerçek çıktılardır; ekran görüntüleri `ekranlar/`
-klasöründedir ve `turbulans-demo-ekranlari` ile yeniden üretilir (son yenileme 19 Ekim 2026,
-temiz klon, commit `071ecdb`; sayılar değişmedi: %9,55 ek yakıt, ~26 dk riskli bölüm).
+klasöründedir ve `turbulans-demo-ekranlari` ile yeniden üretilir (son yenileme 1 Kasım 2026, `scripts/sunum_paketi.sh`,
+temiz klon, commit `9e0996d`, ağsız prova; 4 ve 5 numaralı ekranlar yeni; THY322 sayıları değişmedi: %9,55 ek yakıt,
+~26 dk riskli bölüm, +7,8 dk; Malatya → Musul 30 NM, %6,1).
 
 Sistem sertifikalı EDR üretmez; karar destek aracıdır. Demo boyunca bu cümle
 en az bir kez söylenmelidir.
@@ -45,7 +46,7 @@ en az bir kez söylenmelidir.
    Kapsayıcıların da ağa çıkmadığını sınamak için demo klonunda
    `docker-compose.override.yml` ile `api`, `worker` ve `demo` servislerine
    `dns: [127.0.0.1]` verin. 5 ve 14 Ekim 2026 provaları bu düzenle geçti: kapsayıcılar dış
-   adres çözemedi, tarayıcıda yalnız Esri karoları (~600–650 istek) kesildi, üç adım da
+   adres çözemedi, tarayıcıda yalnız Esri karoları (~600–650 istek; 1 Kasım beş adımda 774) kesildi, adımlar
    tamamlandı. Sayılar geliştirme yığınından farklı çıkabilir: orada daha geniş
    `ocak_2019_turbulans.nc` küpü kullanılır ve senaryo 4'te FL370 seçilir; anlatım
    temiz klonun sonucuna göredir.
@@ -70,7 +71,7 @@ en az bir kez söylenmelidir.
 | 3 | 0:30 | 3B harita, sol panel | Model paneli ve lejanttaki TI1 notunu gösterin | "TI1'in tek başına güvenilirliği kanıtlanmadı: seyir irtifasındaki 15.940 PIREP'te ROC-AUC 0,67. Bu not ekranda her zaman duruyor." |
 | 4 | 1:30 | Rota simülasyonu | 41.0, 29.0 → 40.5, 43.5; 35000 ft (doğu yönü, tek FL); 15.01.2019 20:00; A320; **Simüle Et** | "Büyük daire rotasında FL350'de yaklaşık 214 NM, 26 dakikalık riskli bölüm var; kırmızı çizilen kısım. Seçim kuralı önce riskli nokta sayısına, sonra yakıta bakar; bu yüzden sistem riskli nokta içermeyen en ucuz seçeneği öneriyor: 105 NM sola yanal sapma; riskli bölüm tamamen atlatılıyor, bedeli +7,8 dakika ve %9,5 yakıt. Seçenekler tablosunda daha ucuz alternatif de duruyor: aynı yönün bir üst yasal seviyesi FL370 daha yüksek irtifada %2,0 daha az yakıt yakıyor (OpenAP, kütleye ve irtifaya bağlı) ama 1 riskli nokta bırakıyor. TI1 kanıtlanmış bir gösterge olmadığı için bu takas dispeçerin kararıdır; sistem iki seçeneği bedeliyle gösterir." (Ekran: `ekranlar/02_…`) |
 | 5 | 1:00 | Rota simülasyonu | 38.35, 38.31 → 36.34, 43.13 (Malatya → Musul); **Simüle Et** | "Bu kez sert kısıt: normal rota örnek kısıtlı sahaya 11 noktada giriyor, önerilen rota hiç girmiyor (30 NM sola sapma, bedeli %6,1 seyir yakıtı). Bu bölge ERA5 diliminin dışında; ekranda türbülans riski '0' değil 'hesaplanmadı' yazıyor, çünkü veri yokken risk yok demek en tehlikeli hata olurdu. SIGMET de aynı sert kısıt mekanizmasıyla çalışıyor." (Ekran: `ekranlar/03_…`) |
-| 5b | 1:00 | Rota simülasyonu | Senaryo seçici: "İstanbul → Madrid (25 Ekim 2026), gerçek arşiv SIGMET'leri"; **Simüle Et** | "Güncel bir gün. Gerçek THY4QR uçuşu Belgrad'ın şiddetli türbülans SIGMET'inin (LYBA U04, FL260–380) içinden geçti; o 730 noktanın tamamında TI1 riskli, dışında %12,8 (keşifsel, iki uçuş). O gün Balkanlar–İtalya hattında 15 TURB/TS SIGMET'i aktifti. Sistem hepsini sert kısıt alıyor ve koridorda hepsinden kaçan rota bulamıyor: ÖNERİ YOK diyor, uydurma rota çizmiyor. SIGMET'ler o gün AWC'den alınmış arşiv mesajları; ekranda canlı uyarı olmadıkları yazıyor." (Sonuç: `docs/sonuclar/2026-11-01_guncel_vaka/`) |
+| 5b | 1:00 | Rota simülasyonu | Senaryo seçici: "İstanbul → Madrid (25 Ekim 2026), gerçek arşiv SIGMET'leri"; **Simüle Et** | "Güncel bir gün. Gerçek THY4QR uçuşu Belgrad'ın şiddetli türbülans SIGMET'inin (LYBA U04, FL260–380) içinden geçti; o 730 noktanın tamamında TI1 riskli, dışında %12,8 (keşifsel, iki uçuş). O pencerede rota çevresinde 14 TURB/TS SIGMET'i aktifti. Sistem hepsini sert kısıt alıyor ve koridorda hepsinden kaçan rota bulamıyor: ÖNERİ YOK diyor, uydurma rota çizmiyor. SIGMET'ler o gün AWC'den alınmış arşiv mesajları; ekranda canlı uyarı olmadıkları yazıyor." (Ekran: `ekranlar/04_…`; sonuç: `docs/sonuclar/2026-11-01_guncel_vaka/`) |
 | 6 | 0:30 | Slayt | ML ve doğrulama sonuçları slaytına geçin | "Model sonuçlarını canlı değil, ölçülmüş haliyle gösteriyorum. Sistem sertifikalı EDR üretmez; karar destek aracıdır." |
 
 Demo paketinde olmayanlar, slaytla gösterilir:

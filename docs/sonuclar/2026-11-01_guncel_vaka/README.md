@@ -40,7 +40,7 @@ Kapının içinde kalmak Avrupa'da becerinin kanıtı değildir; Avrupa'da becer
 Senaryo seçicide "İstanbul → Madrid (25 Ekim 2026), gerçek arşiv SIGMET'leri". Hava verisi
 `demo/era5/era5_THY4QR_2026-10-25.nc` (rota ±400 km, 300/250/200 hPa, 11–17 UTC). SIGMET'ler
 `demo/sigmet/sigmetler_2026-10-25_istanbul_madrid.json`: o pencerede kutuyla kesişen 19 gerçek mesajın tamamı
-(seçme yapılmadı). FL340, 11:45 UTC kalkışta 15'i rota kısıtına giriyor ve koridorda hepsinden kaçan rota yok:
+(seçme yapılmadı). FL340, 11:45 UTC kalkışta temiz demo kurulumunda 14'ü rota kısıtına giriyor (geliştirme DB'sinde kutu dışından bir mesajla 15) ve koridorda hepsinden kaçan rota yok:
 sistem ÖNERİ YOK der. Yalnız LYBA yüklenseydi 140 km yanal sapma bulunuyordu; bu yüzden fikstür seçilmedi.
 
 Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır.

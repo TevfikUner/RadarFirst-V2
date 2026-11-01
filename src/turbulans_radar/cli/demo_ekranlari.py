@@ -38,6 +38,9 @@ SENARYOLAR = {
         "irtifa_ft": 35000,
         "zaman": "2019-01-15T20:00",
     },
+    # Senaryo seçiciden (web/veri/senaryolar.json); alanları ve arıza taklidini sayfa doldurur.
+    "04_simulasyon_guncel_vaka_arsiv_sigmet": {"senaryo": "istanbul_madrid_arsiv_sigmet"},
+    "05_simulasyon_ariza_tatbikati": {"senaryo": "sigmet_erisilemedi"},
 }
 
 
@@ -102,15 +105,19 @@ def simulasyon(sayfa, taban_url, anahtar, senaryo, yol):
     sayfa.dispatch_event("#giris-anahtar", "change")
     _kosul_bekle(sayfa, "document.querySelectorAll('#ucak-modeli option[value=\"A320\"]').length > 0", timeout=30_000)
     sayfa.select_option("#ucak-modeli", "A320")
-    for kimlik, deger in (
-        ("#baslangic-enlem", senaryo["baslangic"][0]),
-        ("#baslangic-boylam", senaryo["baslangic"][1]),
-        ("#bitis-enlem", senaryo["bitis"][0]),
-        ("#bitis-boylam", senaryo["bitis"][1]),
-        ("#irtifa-ft", senaryo["irtifa_ft"]),
-    ):
-        sayfa.fill(kimlik, str(deger))
-    sayfa.fill("#zaman", senaryo["zaman"])
+    if "senaryo" in senaryo:
+        _kosul_bekle(sayfa, f"document.querySelectorAll('#senaryo option[value=\"{senaryo['senaryo']}\"]').length > 0")
+        sayfa.select_option("#senaryo", senaryo["senaryo"])
+    else:
+        for kimlik, deger in (
+            ("#baslangic-enlem", senaryo["baslangic"][0]),
+            ("#baslangic-boylam", senaryo["baslangic"][1]),
+            ("#bitis-enlem", senaryo["bitis"][0]),
+            ("#bitis-boylam", senaryo["bitis"][1]),
+            ("#irtifa-ft", senaryo["irtifa_ft"]),
+        ):
+            sayfa.fill(kimlik, str(deger))
+        sayfa.fill("#zaman", senaryo["zaman"])
     sayfa.click("#simule-et-buton")
     _kosul_bekle(sayfa, "document.getElementById('s-optimize-sure').innerText.trim().length > 0", timeout=120_000)
     _kosul_bekle(sayfa, SAAT_ILERLEDI, timeout=60_000)

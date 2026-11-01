@@ -8,7 +8,11 @@
 Önerilen sıra. Ayrıntı ve kanıt tarama raporunda; numaralar aşağıdaki öncelik listesine bağlanır.
 
 **A. Bu hafta (5 Kasım sunumundan önce)**
-1. **1–4 Kasım: demo ekranları ve sunum paketi yenileme (önerilen ilk iş).** Ekranlar 19 Ekim, paket
+1. ~~**1–4 Kasım: demo ekranları ve sunum paketi yenileme**~~ (1 Kasım: temiz klon `9e0996d`, ağsız prova, 5 ekran
+   (04 güncel vaka, 05 arıza tatbikatı yeni), `~/sunum_paketi_20261101` 479 MB, OneDrive kopyası SHA256 9/9 OK.
+   Komite sunumu 20 slayt `docs/sunum/KOMITE_SUNUMU_2026-11-01.pdf`, kaynağı artık depoda
+   (`docs/sunum/kaynak/komite_sunumu.html`, `python scripts/komite_sunumu.py`); masaüstünde danışman önerisi adlı kopya.
+   Model paneli ROC-AUC/OOD ekranı demo yığınında model olmadığı için alınmadı; OOD slayt 13'te tabloyla.) Eski not: Ekranlar 19 Ekim, paket
    (`sunum_paketi_20261027`) `e73fdd8`; S-3 seçici, S-4 arıza tatbikatı, OOD kapısı, model paneli (ROC-AUC),
    `katman_cevrelenmiyor` ve Ri notu ikisinde de yok. WSL temiz klonundan (5532/8100) `turbulans-demo-ekranlari`,
    ardından `bash scripts/sunum_paketi.sh`; OneDrive'a kopya + SHA256. Bitene kadar `docker builder prune`
@@ -48,13 +52,13 @@
      Tek başına "FL440" (çoğunlukla yazım hatalı CB tepesi) bandı daraltmaz.
 - Kalan:
   5. İsteğe bağlı SXS6MG (Londra → Antalya), aynı adımlar (+30 dk).
-  6. Demo ekranları ve sunum paketi yenilenir (A.1 ile birleşir); yeni senaryonun ekranı da alınır. Yeni kod Docker
-     imajına girmeden demo yığınında senaryo çalışmaz (imaj yeniden derlenir).
+  6. ~~Demo ekranları ve sunum paketi~~ (1 Kasım, A.1). Temiz demoda rota çevresinde 14 aktif SIGMET (geliştirme
+     DB'sinde fikstür kutusu dışından bir mesajla 15); belgeler temiz demonun sayısını kullanır.
   9. MADIS EDR 25 Ekim: kontrol edilmedi (bir günlük MADIS dosyası indirmek gerekir; Avrupa'da açık EDR seyrek,
      11 günde 28 hafif+). IEM PIREP o gün Avrupa'da 0 (IEM yalnız Kuzey Amerika/Pasifik).
 - Trino girişi: her yeni süreçte tarayıcıda OAuth ekranı açılır. Kalıcı çözüm `keyring` + `keyrings.alt` (WSL venv,
   depo dışı düz dosya); Claude'un kurulumu izin denetimince engellendi, kullanıcı isterse kendisi kurar. Kurulmazsa sorgular
-  tek süreçte toplanır.
+  tek süreçte toplanır. **1 Kasım: kullanıcı erteledi** (acelesi yok); yeni OpenSky sorgusu gerekince yeniden sorulur.
 
 **B. Kullanıcı kararı bekleyenler** (31 Ekim: kullanıcı "önerdiğin seçeneği uygula" dedi; öneriler uygulandı)
 5. ~~Masaüstü `yedekler/` eski şifreli bundle/mirror'ları~~ (31 Ekim: **silinmedi**. Şifre 1 Ekim'de değişti, dosyalar
@@ -87,8 +91,8 @@
     `eslestirme.py` modu ve eşiğin yeniden seçimi (ONAY).
 14. Türkiye TURB SIGMET ↔ TI1 (madde 29; 5 TURB SIGMET için GFS arşivi yok, küçük ERA5 kutusu, ONAY); Faz 2 (madde 30);
     `rojak` kıyası (madde 31).
-15. `Turbulence-db-dondurma` / `Turbulence-db-tatbikat` DROP ve `docker builder prune` (~32 GB; madde 25, sunum
-    paketi yenilendikten sonra, ONAY);
+15. `Turbulence-db-dondurma` / `Turbulence-db-tatbikat` DROP ve `docker builder prune` (~32 GB; madde 25, ONAY).
+    **1 Kasım, kullanıcı kararı: veritabanından hiçbir şey vize dönemi bitmeden silinmez**; vizeden sonra konuşulur.
     #25 yerel Swagger (kotasız internet).
 
 ## Öncelik sırası (28 Ekim 2026 gece, kurul raporu sonrası)
@@ -169,7 +173,7 @@ ve sağlayıcı sınırları). Değişen bir koşul yok.
 **5. Teslim sonrası / koşullu**
 25. `Turbulence-db-dondurma` ve `Turbulence-db-tatbikat` (1 Kasım geri yükleme tatbikatı kopyası; Claude'un
     `dropdb`'si izin denetiminde reddedildi) DROP ve `docker builder prune` (~32 GB, 1 Kasım); hepsi geri
-    alınamaz, ONAY.
+    alınamaz, ONAY. **Vize dönemi bitene kadar ertelendi (kullanıcı, 1 Kasım).**
 26. Kurul #30: GTG/WAFS kıyası; MGM ve IATA Turbulence Aware başvurusu (kullanıcı, dış iletişim). 30 Ekim: TUSAŞ,
     Boeing, Airbus, DLR, NASA, MGM ve IATA için e-posta taslakları hazır (masaüstü, depo dışı); danışman onayı bekliyor.
 27. P0-7 hibrit topoloji ADR'si (yalnız B planına geçilirse).
