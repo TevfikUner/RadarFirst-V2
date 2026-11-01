@@ -41,3 +41,22 @@ def test_md_html_tablo_liste_kod_ve_baglanti():
     assert "<table>" in html and "<code>x</code>" in html and "<b>y</b>" in html
     assert html.count("<ul>") == 2 and "&lt;k&gt;" in html
     assert '<a href="../a.md"><code>yol</code></a>' in html
+
+
+def test_ic_atiflar_yeni_numaraya_cevrilir_protokol_ve_diger_belgeler_kalir():
+    metin = (
+        "# Sonuçlar\n\n## 0. Paket\n\n### 0.4 MADIS\n\n## 2. Model — §2.1–2.2 tarihçe\n\n### 2.1 Holdout\n\n### 2.2 Geçmiş\n\n"
+        "Bkz. §0.4, §0'dadır, §1–§2, protokol §2.1, (§10), `docs/SISTEM_KARTI.md` §2.\n\n```\n§0.4\n```\n"
+    )
+    sonuc = br.bolumu_numarala(metin, 4, "Sonuçlar")
+    assert "## 4.2 Model — §4.2.1–4.2.2 tarihçe" in sonuc
+    assert "Bkz. §4.0.4, §4.0'dadır, §1–§2, protokol §2.1, (§10), `docs/SISTEM_KARTI.md` §2." in sonuc
+    assert "```\n§0.4\n```" in sonuc
+
+
+def test_diger_bolume_atif_o_bolumun_numarasini_alir():
+    diger = [("SONUCLAR.md", "Sonuçlar", 4, {"0", "0.1"}), ("ILGILI_CALISMALAR.md", "İlgili Çalışmalar", 2, {"8"})]
+    sonuc = br.bolumu_numarala(
+        "# K\n\nbkz. `SONUCLAR.md` §0.1; İlgili Çalışmalar §8; `SONUCLAR.md` §7.\n", 5, "K", diger
+    )
+    assert "bkz. §4.0.1; İlgili Çalışmalar §2.8; `SONUCLAR.md` §7." in sonuc
