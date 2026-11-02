@@ -183,6 +183,8 @@ def ag_acilis_sorunlari(ortam=None, kaynak=config, anahtarlari_denetle=True) -> 
         sorunlar.append("KISITLI_SAHA_ORNEK_VERI_YUKLE: örnek kısıtlı sahalar açık; false yapın")
     if getattr(kaynak, "DEMO_SIGMET_FIKSTURU_YUKLE", getattr(config, "DEMO_SIGMET_FIKSTURU_YUKLE")):
         sorunlar.append("DEMO_SIGMET_FIKSTURU_YUKLE: arşiv SIGMET fikstürü açık; false yapın")
+    if getattr(kaynak, "ARIZA_TAKLIDI_ETKIN", getattr(config, "ARIZA_TAKLIDI_ETKIN")):
+        sorunlar.append("ARIZA_TAKLIDI_ETKIN: demo arıza tatbikatı açık; false yapın")
     if not getattr(kaynak, "MODEL_BUTUNLUK_ZORUNLU", getattr(config, "MODEL_BUTUNLUK_ZORUNLU")):
         sorunlar.append("MODEL_BUTUNLUK_ZORUNLU: model bütünlük denetimi kapalı; true yapın")
     return sorunlar

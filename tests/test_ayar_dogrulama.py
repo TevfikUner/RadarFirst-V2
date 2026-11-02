@@ -109,6 +109,7 @@ def test_guclu_uretim_ayarlariyla_ag_acilisi_serbest():
         ({}, {"KISITLI_SAHA_ORNEK_VERI_YUKLE": True}, "KISITLI_SAHA_ORNEK_VERI_YUKLE"),
         ({}, {"MODEL_BUTUNLUK_ZORUNLU": False}, "MODEL_BUTUNLUK_ZORUNLU"),
         ({}, {"DEMO_SIGMET_FIKSTURU_YUKLE": True}, "DEMO_SIGMET_FIKSTURU_YUKLE"),
+        ({}, {"ARIZA_TAKLIDI_ETKIN": True}, "ARIZA_TAKLIDI_ETKIN"),
         ({"API_YAYIN_ADRESI": "", "AG_ACILISI": "1", "API_ANAHTARI": "kisa"}, {}, "API_ANAHTARI"),
     ],
 )
