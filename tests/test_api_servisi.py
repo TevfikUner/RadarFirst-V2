@@ -22,6 +22,7 @@ import time
 from datetime import UTC, datetime, timedelta
 
 import httpx
+import numpy as np
 import pandas as pd
 import pytest
 from sqlalchemy import text
@@ -35,6 +36,7 @@ from turbulans_radar.api.yollar import ucuslar as ucus_yollari
 from turbulans_radar.depo import gorev_deposu
 from turbulans_radar.depo import veritabani as vt
 from turbulans_radar.isci import gorev_iscisi
+from turbulans_radar.rota.rota_optimizasyonu import koridoru_kapsayan_kutu
 
 
 @pytest.fixture(autouse=True)
@@ -2109,7 +2111,28 @@ async def test_gfs_isitmasi_aralikta_tek_gorev_kuyruga_alir(monkeypatch):
     assert await api_servisi._gfs_isitma_adimi(6 * 3600) == "g1"
     assert await api_servisi._gfs_isitma_adimi(6 * 3600) is None
     assert olusturulanlar[0][0] == "canli_veri"
-    assert olusturulanlar[0][1]["kutu"] == [36.0, 42.0, 26.0, 45.0]
+    assert olusturulanlar[0][1]["kutu"] == koridoru_kapsayan_kutu(36.0, 42.0, 26.0, 45.0)
+
+
+@pytest.mark.parametrize(
+    "rota",
+    [
+        ((40.98, 28.82), (39.93, 32.86)),
+        ((36.0, 26.0), (42.0, 45.0)),
+        ((42.0, 26.0), (36.0, 45.0)),
+    ],
+)
+def test_gfs_isitma_kupu_kutudaki_rotanin_canli_istegini_kapsar(rota):
+    from turbulans_radar.rota.rota_optimizasyonu import _a_yildiz_pay_derecesi
+    from turbulans_radar.veri.veri_saglayicilari import GfsThreddsSaglayici, Kutu, _canli_istegi_hizala
+
+    saglayici, an = GfsThreddsSaglayici(), pd.Timestamp("2026-11-02T12:00Z")
+    enlemler, boylamlar = np.array([rota[0][0], rota[1][0]]), np.array([rota[0][1], rota[1][1]])
+    istek = Kutu(enlemler.min(), enlemler.max(), boylamlar.min(), boylamlar.max())
+    istek, *_ = _canli_istegi_hizala(istek.genislet(_a_yildiz_pay_derecesi(enlemler) - 1.0), an, an, saglayici)
+    isitma, *_ = _canli_istegi_hizala(Kutu(*koridoru_kapsayan_kutu(36.0, 42.0, 26.0, 45.0)), an, an, saglayici)
+    assert isitma.enlem_min <= istek.enlem_min and isitma.enlem_maks >= istek.enlem_maks
+    assert isitma.boylam_min <= istek.boylam_min and isitma.boylam_maks >= istek.boylam_maks
 
 
 async def test_gfs_isitmasi_hatadan_sonra_kisa_surede_yeniden_dener(monkeypatch):

@@ -149,6 +149,7 @@ from turbulans_radar.rota.rota_optimizasyonu import (
     UCAK_PROFILLERI,
     AntimeridyenHatasi,
     AtsAgiKullanilamazHatasi,
+    koridoru_kapsayan_kutu,
     rota_simulasyonu_olustur,
     veri_kupune_eris,
 )
@@ -332,7 +333,7 @@ async def _gfs_isitma_adimi(aralik_saniye, simdi: datetime | None = None) -> str
     gorev_id = await gorev_olustur(
         "canli_veri",
         parametreler={
-            "kutu": list(config.CANLI_ISITMA_KUTUSU),
+            "kutu": koridoru_kapsayan_kutu(*config.CANLI_ISITMA_KUTUSU),
             "baslangic": simdi.isoformat(),
             "saat_sayisi": config.CANLI_ISITMA_SAAT_SAYISI,
         },

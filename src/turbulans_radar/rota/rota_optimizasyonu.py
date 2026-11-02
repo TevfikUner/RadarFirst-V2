@@ -238,6 +238,19 @@ def _a_yildiz_pay_derecesi(enlemler):
     return _km_boylam_derecesine_cevir(config.ROTA_MAKS_YANAL_SAPMA_KM, enlemler) + 1.0
 
 
+def koridoru_kapsayan_kutu(enlem_min, enlem_maks, boylam_min, boylam_maks) -> list[float]:
+    """Bu kutunun içindeki her rotanın canlı küp isteğini (veri_kupunu_sec: nokta kutusu +
+    A* payı - 1°) karşılayacak kadar genişletilmiş kutu. GFS ısıtması bununla indirilir;
+    genişletilmezse katalog 'tam kapsama' aradığı için ısıtılmış küp hiçbir rotaya yaramaz."""
+    pay = _a_yildiz_pay_derecesi(np.array([enlem_min, enlem_maks], dtype=float)) - 1.0
+    return [
+        max(-90.0, enlem_min - pay),
+        min(90.0, enlem_maks + pay),
+        max(-180.0, boylam_min - pay),
+        min(180.0, boylam_maks + pay),
+    ]
+
+
 def _tahmini_varis_zamanlari(enlemler, boylamlar, zaman_iso, tas_ms):
     """Rota noktalarına yaklaşık (rüzgarsız, TAS'ın %80'i) varış zamanları --
     uzun bir rotada küp seçiminin/canlı indirmenin tüm uçuş süresini kapsaması için."""
