@@ -40,7 +40,7 @@ geri yükleme adımları `db_yedekleri/migration_oncesi/` altındaki en yeni dum
 ## 4. Yedek ve geri yükleme
 
 - Günlük yedek kendiliğinden: `db_yedekleri/turbulans_YYYYAAGG.dump` + `dosyalar_YYYYAAGG.tar.gz`,
-  disk dışı şifreli kopya OneDrive'da (README "Veritabanı yedeği"). Kontrol: `/saglik` `yedek: tamam`.
+  disk dışı şifreli kopya OneDrive'da (docs/KILAVUZ.md "Veritabanı yedeği"). Kontrol: `/saglik` `yedek: tamam`.
 - Tatbikat: `docker compose exec yedek sh /geri_yukleme_tatbikati.sh`; rapor
   `db_yedekleri/tatbikat/`. Denendi: 20 Ekim, GEÇTİ (4 sn, yedek servisi 512 MB sınırıyla).
 - Geri yükleme (mevcut tablolar silinir):
@@ -79,7 +79,7 @@ Denendi: 19 Ekim ("güncel", istek yok); ilk gerçek yenileme 29 Ekim.
 ## 7. Anahtar ve şifre rotasyonu
 
 - **API anahtarı:** `.env` `API_ANAHTARLARI`'na yeni `kimlik:rol:anahtar` eklenir,
-  `docker compose up -d api`, istemciler geçince eskisi çıkarılır (README "Güvenlik ve sağlamlık").
+  `docker compose up -d api`, istemciler geçince eskisi çıkarılır (docs/KILAVUZ.md "Güvenlik ve sağlamlık").
 - **Uygulama DB rolü şifresi:** `.env` `UYGULAMA_POSTGRES_PASSWORD` değiştirilir,
   `sh otomasyon/uygulama_rolu_olustur.sh` (rol şifresini günceller; önce `"Turbulence-db-test"` ile),
   sonra `docker compose up -d api worker`.
@@ -105,4 +105,4 @@ Denendi: 19 Ekim ("güncel", istek yok); ilk gerçek yenileme 29 Ekim.
 | Gece işi `yarida_kaldi` | Bilgisayar uykuya geçti | Aynı gün en çok 3 kez kendiliğinden yeniden dener |
 | Rota 429 | IP başına 20 hesap/dk | Önbellekteki rota sayılmaz; NAT'lı kurulumda `ROTA_HESABI_DAKIKADA_MAKS` |
 | `migrate_yedegi` başarısız | DB erişilemiyor ya da disk dolu | `docker compose logs migrate_yedegi`; yer aç, §1 başlat |
-| "Bağımlılık taraması" kırmızı | Yeni yayımlanan bağımlılık açığı | `pip-audit` çıktısındaki paketi README "Bağımlılık kilidi"ndeki `uv pip compile --upgrade-package` ile yükselt |
+| "Bağımlılık taraması" kırmızı | Yeni yayımlanan bağımlılık açığı | `pip-audit` çıktısındaki paketi docs/KILAVUZ.md "Bağımlılık kilidi"ndeki `uv pip compile --upgrade-package` ile yükselt |

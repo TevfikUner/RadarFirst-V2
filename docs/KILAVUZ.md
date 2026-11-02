@@ -1521,7 +1521,7 @@ Bağlantı bilgisi `alembic.ini`'ye yazılmaz; `migrations/env.py`, tıpkı
 `veritabani.py` gibi, `.env`'den okur. Docker'da şema `migrate` servisinde güncellenir; ondan
 hemen önce `migrate_yedegi` `db_yedekleri/migration_oncesi/`'ne `pg_restore -l` ile doğrulanmış
 bir dump yazar (en yeni 5'i tutulur, `MIGRATION_YEDEK_SAKLA`). Yedek alınamazsa migration ve API
-başlamaz. Geri dönüş: README "Veritabanı yedeği"ndeki `pg_restore` komutu bu dosyayla.
+başlamaz. Geri dönüş: "Veritabanı yedeği" bölümündeki `pg_restore` komutu bu dosyayla.
 
 ### Veritabanı yedeği
 

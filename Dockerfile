@@ -10,7 +10,7 @@ FROM python:3.12-slim@sha256:a6e34c598f2467ed0e9a8d349809fcd8b5c603269512df273a0
 WORKDIR /app
 
 # requirements.lock: requirements.txt'nin Linux/Python 3.12 için tüm geçişli
-# bağımlılıklarıyla, hash'li çözümü (bkz. README "Bağımlılık kilidi") --
+# bağımlılıklarıyla, hash'li çözümü (bkz. docs/KILAVUZ.md "Bağımlılık kilidi") --
 # her derleme aynı paketleri kurar, değiştirilmiş bir paket kurulmaz.
 COPY requirements.lock requirements-era5.lock ./
 RUN pip install --no-cache-dir --require-hashes -r requirements.lock \
