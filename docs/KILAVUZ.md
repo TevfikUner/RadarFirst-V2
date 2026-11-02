@@ -777,7 +777,11 @@ normalize eder, böylece eşleştirme, risk katmanları ve A* kaynağı bilmez.
   önce bitmiş canlı küpler (dosya + kayıt) otomatik silinir.
 - **Önceden ısıtma:** `POST /api/v1/veri/canli/hazirla` (örn. n8n her GFS
   döngüsünden sonra sık kullanılan bölgeler için) ilk rota isteğinin indirme
-  süresini beklemesini önler.
+  süresini beklemesini önler. Katalog rota isteğinin kutusunu (noktalar + A*
+  koridoru, ±`ROTA_MAKS_YANAL_SAPMA_KM`) TAMAMEN kapsayan küp aradığı için
+  verilen kutu bu koridoru da içermelidir; otomatik ısıtma (`CANLI_ISITMA_SAAT`)
+  `CANLI_ISITMA_KUTUSU`'nu koridor payıyla kendisi genişletir (36–42°K/26–45°D
+  → ~29–49°K/19–52°D, ~1,7 MB).
 - Yeni bir sağlayıcı (örn. ECMWF Open Data -- GRIB2, Docker/Linux'ta)
   `VeriSaglayici` arayüzünü uygulayarak eklenir.
 
@@ -1521,7 +1525,7 @@ Bağlantı bilgisi `alembic.ini`'ye yazılmaz; `migrations/env.py`, tıpkı
 `veritabani.py` gibi, `.env`'den okur. Docker'da şema `migrate` servisinde güncellenir; ondan
 hemen önce `migrate_yedegi` `db_yedekleri/migration_oncesi/`'ne `pg_restore -l` ile doğrulanmış
 bir dump yazar (en yeni 5'i tutulur, `MIGRATION_YEDEK_SAKLA`). Yedek alınamazsa migration ve API
-başlamaz. Geri dönüş: README "Veritabanı yedeği"ndeki `pg_restore` komutu bu dosyayla.
+başlamaz. Geri dönüş: "Veritabanı yedeği" bölümündeki `pg_restore` komutu bu dosyayla.
 
 ### Veritabanı yedeği
 

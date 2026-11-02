@@ -212,7 +212,7 @@ services:
 
   # Günlük veritabanı yedeği: ml_ornekleri/edr_ornekleri haftalarca indirilen
   # veriden üretildi, volume kaybolursa yeniden indirmek aylar sürer. Yedekler
-  # ./db_yedekleri'nde (depoya konmaz); geri yükleme README "Veritabanı yedeği".
+  # ./db_yedekleri'nde (depoya konmaz); geri yükleme docs/KILAVUZ.md "Veritabanı yedeği".
   yedek:
     image: postgres:16@sha256:9e2cf6287f25c3151f4c9421ccce2b17f3e60061c111a29165e0d2cdd9ff0a97
     mem_limit: 512m
@@ -237,7 +237,7 @@ services:
       - ./opensky_onbellek:/kaynak/opensky_onbellek:ro
       - ./model_deposu:/kaynak/model_deposu:ro
     # Disk dışı kopya için docker-compose.override.yml'de /dis_yedek bağlanır
-    # (makineye özgü yol, depoya girmez; bkz. README "Veritabanı yedeği").
+    # (makineye özgü yol, depoya girmez; bkz. docs/KILAVUZ.md "Veritabanı yedeği").
     # Doluysa disk dışı kopya gpg ile şifrelenir (.env: YEDEK_PAROLA_DOSYASI).
     secrets: [yedek_parolasi]
     entrypoint: ["sh", "/db_yedekle.sh"]
@@ -288,7 +288,7 @@ services:
       - prometheus_veri:/prometheus
     secrets: [prometheus_anahtari]
 
-  # TLS sonlandıran ters vekil (P0-1, bkz. otomasyon/Caddyfile, README "TLS vekili").
+  # TLS sonlandıran ters vekil (P0-1, bkz. otomasyon/Caddyfile, docs/KILAVUZ.md "TLS vekili").
   #   docker compose --profile uretim up -d
   # API host portu 127.0.0.1'de kalır; dışarıya yalnız vekil açılır.
   vekil:

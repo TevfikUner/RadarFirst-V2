@@ -2,6 +2,14 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-11-02
+
+- ✅ Proje taraması: ruff/format/mypy temiz, 1306 test geçti, servisler sağlıklı, 51 giriş noktası çalışıyor, Alembic head güncel.
+- ✅ Hata: GFS ısıtma küpü (34–44°K/24–47°D) hiçbir rotanın koridor kutusunu kapsamıyordu (İST–ANK bile 33–47,75/22–39,75 istiyor); her bölgede ilk rota rüzgârsız dönüyordu. Isıtma artık A* payıyla genişletiliyor (~29–49/19–52, ~1,7 MB).
+- ✅ Güvenlik: `requirements-era5.lock` pyasn1 0.6.4 → 0.6.5 (pip-audit, 4 GHSA).
+- ✅ Ağa açık kurulumda `ARIZA_TAKLIDI_ETKIN` de reddediliyor (DEMO_SIGMET gibi); `.env.uretim.example`'a demo bayrakları.
+- ✅ Belgelerde README'den KILAVUZ.md'ye taşınan bölümlere giden 10 eski atıf düzeltildi.
+
 ## 2026-11-01
 
 - ✅ SIGMET irtifa bandı: AWC alanı boşsa ham metinden (`FL290/380`, `SFC/FL100`, `TOP FL420`…) okunuyor; `turbulans-sigmet --irtifa-onar` 445 eski kaydı onardı (LYBA U03/U04 dahil).
