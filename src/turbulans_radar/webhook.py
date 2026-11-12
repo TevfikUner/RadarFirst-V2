@@ -130,16 +130,18 @@ def webhook_gonder(url: str, govde, zaman_asimi: float = 10.0) -> bool:
         return False
     ip = adresler[0].split("%", 1)[0]
     ip_metni = f"[{ip}]" if ":" in ip else ip
+    port_eki = f":{parcalar.port}" if parcalar.port else ""
+    kimlik = parcalar.netloc.rpartition("@")[0]
     sabit_url = urlunsplit(
         (
             parcalar.scheme,
-            ip_metni + (f":{parcalar.port}" if parcalar.port else ""),
+            (f"{kimlik}@" if kimlik else "") + ip_metni + port_eki,
             parcalar.path or "/",
             parcalar.query,
             "",
         )
     )
-    host_basligi = host + (f":{parcalar.port}" if parcalar.port else "")
+    host_basligi = (f"[{host}]" if ":" in host else host) + port_eki
     uzantilar = {"sni_hostname": host} if parcalar.scheme == "https" else {}
     with httpx.Client(timeout=zaman_asimi) as istemci:
         istemci.post(sabit_url, json=govde, headers={"Host": host_basligi}, extensions=uzantilar)
