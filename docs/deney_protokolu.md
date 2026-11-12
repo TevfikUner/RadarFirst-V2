@@ -410,3 +410,29 @@ günlerine aynen uygulanır. Çıktı `docs/sonuclar/2026-10-31_kesifsel_gosterg
   üzerine yazılmaz. Kod `turbulans-uyari-alani`.
 - **Geçerlilik tehditleri:** 3 seviye, tek bölge, 41 gün, birkaç yüz PIREP; PIREP'ler trafik ve raporlama
   yanlılığı taşır (orta-üstü payı yüksek). ERA5'te 6 saatlik DIV farkı analiz artımlarını da içerir.
+
+## 14. Türkiye TURB SIGMET alanında TI1 (madde 29; 12 Kasım 2026, TI1 hesaplanmadan yazıldı)
+
+**Amaç:** Bölgesel uyuşmazlık itirazına (eşik ve modeller ABD verisinden) ilk Türkiye kanıtı: Türk FIR'larında
+yayımlanan TURB SIGMET'lerin alanında ERA5 TI1, aynı saatte ve aynı irtifa bandında SIGMET'in hemen çevresinden
+daha sık mı riskli? **Keşifsel**; rota kararını, eşiği ve modeli değiştirmez. Sonuç ne çıkarsa raporlanır.
+
+- **SIGMET'ler:** `sigmetler` tablosu, tehlike TURB, FIR LTAA ya da LTBB, geçerlilik başlangıcı 30 Eylül 2026 ile
+  (çalıştırma anı − `ERA5_YAYIN_GECIKMESI_GUN`) arasında. 12 Kasım'da sorgu 6 kayıt veriyor (hepsi LTAA,
+  13 Ekim–7 Kasım, hepsinin bandı dolu); TI1'e bakılmadan sayıldı. Kullanılan kimlikler rapora yazılır.
+- **Hava:** ERA5 (CDS), SIGMET'in geçerlilik penceresindeki tam saatler, gün başına bir istek, poligon kutusu
+  + halka + 1° pay; `ERA5_BASINC_SEVIYELERI_HPA` (350–150 hPa).
+- **Örnekleme:** SIGMET başına 6.000 rastgele nokta (tohum = SIGMET sırası): zaman pencere içindeki tam saatlerden,
+  irtifa SIGMET bandı ∩ FL280–FL430 (küpün seviyelerinin içi) aralığında düzgün, konum poligon kutusunun 300 km
+  genişletilmiş hâlinde düzgün. **İçeride** = poligonun içinde; **halka** = dışında ve poligona ≤ 300 km. Bant
+  kesişimi boşsa SIGMET düşer, nedeni yazılır.
+- **Ölçüt:** riskli oranı (TI1 > `kaynak_ti1_esigi("era5")`) içeride ve halkada; fark d = içeride − halka.
+  Birincil özet: SIGMET'ler eşit ağırlıklı ortalama d ve SIGMET bloklu bootstrap %95 GA (10.000 tekrar, tohum 0);
+  d > 0 olan SIGMET sayısı. İkincil: medyan log10 TI1 farkı.
+- **Okuma:** GA alt > 0 ve SIGMET'lerin çoğunda d > 0 ise "TI1 Türk TURB SIGMET alanlarında çevresinden daha sık
+  riskli"; GA sıfırı kapsıyorsa "fark gösterilemedi". Bu bir tutarlılık gözlemidir, doğrulama değildir.
+- **Geçerlilik tehditleri:** 6 SIGMET, tek FIR, tek kaynak; SIGMET gözlem değil uyarıdır ve NWP rehberliğinden
+  (TI1'e benzer göstergelerden) türetilmiş olabilir, yani bağımsız değildir; noktalar uzaysal olarak bağımlıdır
+  (SIGMET içi GA verilmez); ERA5 reanalizdir, operasyonel tahmin değildir.
+- **Çıktı:** `docs/sonuclar/2026-11-12_turkiye_sigmet_ti1/` (`sigmet_alan.json` + README); bir kez, dosya varsa
+  üzerine yazılmaz. Kod `turbulans-sigmet-alan`.

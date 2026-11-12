@@ -97,7 +97,7 @@
 **D. Sunum sonrası**
 13. MİM-02 (madde 10); A2/VER-09 (madde 12; birleşik EDR ızgarada da TI1'den iyi, ilk aday); Fikir 10'un
     `eslestirme.py` modu ve eşiğin yeniden seçimi (ONAY).
-14. Türkiye TURB SIGMET ↔ TI1 (madde 29; 5 TURB SIGMET için GFS arşivi yok, küçük ERA5 kutusu, ONAY); Faz 2 (madde 30);
+14. ~~Türkiye TURB SIGMET ↔ TI1~~ (12 Kasım, protokol §14, `2026-11-12_turkiye_sigmet_ti1/`: 4 SIGMET, +0,028 [−0,020; +0,067], fark gösterilemedi; SIGMET biriktikçe yeniden); Faz 2 (madde 30);
     `rojak` kıyası (madde 31).
 15. `Turbulence-db-dondurma` / `Turbulence-db-tatbikat` DROP ve `docker builder prune` (~32 GB; madde 25, ONAY).
     **1 Kasım, kullanıcı kararı: veritabanından hiçbir şey vize dönemi bitmeden silinmez**; vizeden sonra konuşulur.
@@ -160,7 +160,7 @@ ve sağlayıcı sınırları). Değişen bir koşul yok.
 16. GFS topluluk oranı, Fikir 18 devamı, Fikir 20, Fikir 23, F7 rüzgâr asimilasyonu (veri bütçesi, ONAY).
 17. Daha fazla OpenSky uçuşu (önce kota hesabı, ONAY); F5 yakıt sütunu (migration, ONAY).
 18. Gece işinin yeniden açılması (kullanıcı emri; `ML_GECE_ISI_SAATI`).
-29. **(30 Ekim, vize sonrası)** Türkiye TURB SIGMET'leri ↔ TI1 kıyası: 30 Eylül'den biriken LTAA/LTBB SIGMET'lerinin
+29. ~~(30 Ekim, vize sonrası) Türkiye TURB SIGMET'leri ↔ TI1 kıyası~~ (12 Kasım, §14: 6 LTAA TURB SIGMET'inin 4'ü kullanılabildi, içeride − halka riskli oranı +0,028 [−0,020; +0,067], 3/4 pozitif, fark gösterilemedi; `turbulans-sigmet-alan`, SIGMET biriktikçe yeni klasörle bir kez daha). Eski not: 30 Eylül'den biriken LTAA/LTBB SIGMET'lerinin
     zaman ve alanında canlı GFS ile TI1; bölgesel uyuşmazlık itirazına ilk Türkiye kanıtı (küçük örneklem).
 30. **(30 Ekim)** Faz 2, tırmanma/alçalma için ayrı model: 400–850 hPa, CAPE, arazi; FL100–FL280 PIREP'leri konvektif /
     dağ dalgası / rüzgâr kesmesi diye ayrı etiket. Seyir modeline karıştırılmaz. Dayanak: Lee ve Chun (2025).
