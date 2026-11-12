@@ -2,6 +2,11 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-11-12
+
+- ✅ Hızlı tarama: ruff/format/mypy temiz, servisler sağlıklı; 11:02 GFS ısıtması DNS hatası verdi, 11:31'de kendiliğinden toparlandı.
+- ✅ Hata: `webhook_gonder` IP'ye sabitlerken URL'deki `kullanici:sifre@` kısmını düşürüyordu (basic-auth'lu n8n kimliksiz istek alıyordu) ve IPv6 literal host'ta `Host` başlığı köşeli parantezsizdi; ikisi düzeltildi, testli.
+
 ## 2026-11-02
 
 - ✅ Proje taraması: ruff/format/mypy temiz, 1306 test geçti, servisler sağlıklı, 51 giriş noktası çalışıyor, Alembic head güncel.

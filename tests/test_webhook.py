@@ -110,6 +110,13 @@ class _SahteIstemci:
             "n8n.ornek.com",
             "n8n.ornek.com",
         ),
+        (
+            "https://kul:sif@n8n.ornek.com:8443/h",
+            "93.184.216.34",
+            "https://kul:sif@93.184.216.34:8443/h",
+            "n8n.ornek.com:8443",
+            "n8n.ornek.com",
+        ),
     ],
 )
 def test_gonderim_dogrulanan_ipye_sabitlenir_ve_ikinci_dns_sorgusu_yapilmaz(
@@ -132,6 +139,18 @@ def test_gonderim_dogrulanan_ipye_sabitlenir_ve_ikinci_dns_sorgusu_yapilmaz(
     ((giden_url, basliklar, uzantilar),) = _SahteIstemci.istekler
     assert giden_url == beklenen_url and basliklar == {"Host": host}
     assert uzantilar.get("sni_hostname") == sni
+
+
+def test_ipv6_literal_hostta_host_basligi_koseli_parantezli(monkeypatch):
+    adres = "2606:2800:220:1::1"
+    monkeypatch.setattr(
+        wh.socket, "getaddrinfo", lambda h, port, proto=0: [(socket.AF_INET6, socket.SOCK_STREAM, 6, "", (adres, port))]
+    )
+    _SahteIstemci.istekler = []
+    monkeypatch.setattr(wh.httpx, "Client", _SahteIstemci)
+    assert wh.webhook_gonder(f"http://[{adres}]:5678/h", {}) is True
+    ((giden_url, basliklar, _),) = _SahteIstemci.istekler
+    assert giden_url == f"http://[{adres}]:5678/h" and basliklar == {"Host": f"[{adres}]:5678"}
 
 
 def test_herhangi_bir_adres_ic_agdaysa_hic_gonderilmez(monkeypatch):
