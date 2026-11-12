@@ -10,7 +10,10 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ✅ MADIS 25 Ekim (keşifsel): LYBA SIGMET içinde yalnız 3 EDR gözlemi, hepsi hafif altı; örneklem karar vermeye yetmiyor.
 - ✅ MİM-02: rota fonksiyonu adımlara bölündü; 12 senaryoda çıktı bayt bayt aynı, 1298 test geçti.
 - ✅ Türkiye TURB SIGMET ↔ TI1 (§14, keşifsel): 4 SIGMET, içeride − halka +0,028 [−0,020; +0,067], fark gösterilemedi.
-- ⚠️ E8 yedek video iptal (kullanıcı); madde 1 temizlik (DB DROP + 32 GB önbellek) açık ONAY bekliyor.
+- ✅ Temizlik (ONAY): Docker derleme önbelleği silindi, 37,8 GB açıldı; sonraki derleme bağımlılıkları yeniden indirir.
+- ⚠️ 2 kopya DB'nin `dropdb`'si izin denetiminde reddedildi; komut YAPILACAKLAR 1.1'de, kullanıcı çalıştıracak.
+- ✅ YAPILACAKLAR yeniden yazıldı: biten maddeler silindi; kullanıcı işleri / yarım kalanlar / iyileştirme / araştırma.
+- ⚠️ E8 yedek video iptal (kullanıcı).
 
 ## 2026-11-02
 
