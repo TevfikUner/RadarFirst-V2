@@ -8,6 +8,7 @@ Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak iç
 - ✅ Hata: `webhook_gonder` IP'ye sabitlerken URL'deki `kullanici:sifre@` kısmını düşürüyordu (basic-auth'lu n8n kimliksiz istek alıyordu) ve IPv6 literal host'ta `Host` başlığı köşeli parantezsizdi; ikisi düzeltildi, testli.
 - ✅ #11/ATM-05: 28 Eki–4 Kas GFS koşuları UCAR'dan silinmişti; 5–12 Kas koşuları indirildi (35 dosya, 13 MB). ERA5 kıyası ~17 Kasım'da.
 - ✅ MADIS 25 Ekim (keşifsel): LYBA SIGMET içinde yalnız 3 EDR gözlemi, hepsi hafif altı; örneklem karar vermeye yetmiyor.
+- ✅ MİM-02: rota fonksiyonu adımlara bölündü; 12 senaryoda çıktı bayt bayt aynı, 1298 test geçti.
 - ⚠️ E8 yedek video iptal (kullanıcı); madde 1 temizlik (DB DROP + 32 GB önbellek) açık ONAY bekliyor.
 
 ## 2026-11-02

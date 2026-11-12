@@ -136,7 +136,7 @@ Kurul A ve B grubu bitti (PR #140–#145). Gece işi 28 Ekim'den beri kullanıc�
 9. ~~Kurul #29 (P3, VER-08 devamı): OOD kapısı~~ (29 Ekim, `ml/destek_kapisi.py`, `turbulans-ml-destek`): destek
    dışı girdide `/turbulans/tahmin` ML/konformal çıktı vermez. Türkiye %2,9, ABD altın kontrol %4,2 kapanıyor;
    marjinal kapı Türkiye'yi ayırmıyor (`docs/sonuclar/2026-10-29_ood_kapisi/`).
-10. **MİM-02:** `rota_simulasyonu_olustur` bölme (altın çıktı ile bayt bayt aynı; sunum sonrası).
+10. ~~MİM-02~~ (12 Kasım): `rota_simulasyonu_olustur` 470 → ~200 satır; iç içe 8 kapanış yerine `_RotaBaglami` (aday, yakıt önbellekleri) + `_ats_planli_yolu`, `_kacinma_adaylari`, `_yakit_bandi`, `_rota_bulgulari`, `_ats_ozeti`. 12 senaryoda (koridor, ATS, SIGMET, öneri yok, kapsam dışı, maliyet kuralı, B738, FRA hatası) rota + CZML çıktısı master ile bayt bayt aynı (`uretim_zamani` hariç); 1.298 test geçti.
 11. **Kurul #25 / MİM-08:** yerel Swagger (kotasız internette; statik katman değişince Docker CesiumJS'i yeniden indirir).
 12. **A2 / VER-09 (sunum sonrası):** birleşik EDR ya da ML'in rota cezasına girmesi (eşik seçimi ve GFS doğrulaması önce).
 13. **ATM-06:** GTG referans AUC'si yalnız Sharman vd. (2006) tam metni bulunursa.
@@ -359,7 +359,7 @@ jüri sorularına doğrudan yanıt verenler önde.
 
 ## 20 Ekim denetiminden ertelenenler (`docs/denetim/2026-10-20/DENETIM.md` §8)
 
-- [ ] **5 Kasım sunumundan sonra:** `rota_simulasyonu_olustur` (~460 satır, iç içe kapanışlar ortak
+- [x] (12 Kasım, MİM-02 yukarıda) **5 Kasım sunumundan sonra:** `rota_simulasyonu_olustur` (~460 satır, iç içe kapanışlar ortak
   yerel durumu paylaşıyor) adım fonksiyonlarına bölünür. Önce master'dan altın çıktı alınır
   (koridor + ATS, 4 senaryo, rota + CZML JSON); bölmeden sonra çıktı bayt bayt aynı olmalı
   (D-5'te #126 böyle doğrulandı).

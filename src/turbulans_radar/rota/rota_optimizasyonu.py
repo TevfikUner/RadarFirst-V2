@@ -70,6 +70,7 @@ bölüm/brifing brifing.py, dispeç bulguları bulgular.py, CZML czml.py'dedir.
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Any
 
 import numpy as np
@@ -611,6 +612,342 @@ def _kisitli_saha_katmanini_hazirla(kisitli_sahalar, enlemler_gc, boylamlar_gc, 
     return katman, {**ozet, "durum": "uygulandi"}
 
 
+@dataclass
+class _RotaBaglami:
+    """rota_simulasyonu_olustur adımlarının paylaştığı durum: uçak ve yakıt modeli, hava küpü, sert kısıt
+    katmanları, planlanan seviye ve aday başına yakıt önbellekleri."""
+
+    ucak_modeli_kodu: str
+    profil: dict
+    yakit_modeli: str
+    zaman_iso: Any
+    irtifa_m: float
+    veri_kupu: Any
+    ruzgarli_mi: bool
+    sigmet_katmani: Any
+    saha_katmani: Any
+    seyir_onbellegi: dict = field(default_factory=dict)
+    yakit_ozetleri: dict = field(default_factory=dict)
+
+    @property
+    def tas_ms(self):
+        return self.profil["tas_ms"]
+
+    def seviye_ekstrasi(self, eski_irtifa_m, yeni_irtifa_m):
+        ek = performans_modeli.seviye_degisimi_ek_yakiti(
+            self.ucak_modeli_kodu, eski_irtifa_m, yeni_irtifa_m, self.tas_ms, DIKEY_HIZ_FT_DK
+        )
+        if ek is None:
+            return _irtifa_degisimi_maliyeti(eski_irtifa_m, yeni_irtifa_m, self.profil["yakit_akisi_kg_saat"])
+        return 0.0, ek
+
+    def aday(self, strateji, enlemler, boylamlar, aday_irtifa_m, yanal_sapma_km=0.0, ekstra=(0.0, 0.0)):
+        saniye, zamanlar = _rotayi_zamanla(
+            enlemler, boylamlar, aday_irtifa_m, self.zaman_iso, self.tas_ms, self.veri_kupu, self.ruzgarli_mi
+        )
+        if self.ruzgarli_mi:
+            eslesme = rota_eslesmesi(enlemler, boylamlar, aday_irtifa_m, zamanlar, self.veri_kupu)
+            ti1 = eslesme["ti1_indeksi"].to_numpy(dtype=float)
+            birlesik = (
+                eslesme["birlesik_edr"].to_numpy(dtype=float)
+                if "birlesik_edr" in eslesme
+                else np.full(len(ti1), np.nan)
+            )
+            maks_ti1, riskli_sayisi = _ti1_ozeti_cikar(ti1)
+            iz_bulutu_sayisi = duyarli_nokta_sayisi(eslesme["iz_bulutu_duyarli"])
+        else:
+            ti1 = birlesik = None
+            maks_ti1, riskli_sayisi, iz_bulutu_sayisi = None, 0, None
+        return {
+            "strateji": strateji,
+            "enlem": enlemler,
+            "boylam": boylamlar,
+            "irtifa_m": aday_irtifa_m,
+            "zamanlar": zamanlar,
+            "saniye": saniye,
+            "ekstra_saniye": ekstra[0],
+            "ekstra_yakit_kg": ekstra[1],
+            "yakit_modeli": self.yakit_modeli,
+            "maks_ti1": maks_ti1,
+            "riskli_sayisi": riskli_sayisi,
+            "ti1": ti1,
+            "birlesik_edr": birlesik,
+            "iz_bulutu_sayisi": iz_bulutu_sayisi,
+            "sigmet_ihlali": (
+                self.sigmet_katmani.rota_ihlal_sayisi(enlemler, boylamlar, zamanlar, aday_irtifa_m)
+                if self.sigmet_katmani
+                else 0
+            ),
+            "kisitli_saha_ihlali": (
+                self.saha_katmani.rota_ihlal_sayisi(enlemler, boylamlar, zamanlar, aday_irtifa_m)
+                if self.saha_katmani
+                else 0
+            ),
+            "yanal_sapma_km": yanal_sapma_km,
+        }
+
+    def seyir_yakiti(self, aday, oran=None):
+        oran = config.ROTA_SEYIR_KUTLE_ORANI if oran is None else oran
+        anahtar = (aday["saniye"], aday["irtifa_m"], oran)
+        if anahtar not in self.seyir_onbellegi:
+            self.seyir_onbellegi[anahtar] = performans_modeli.seyir_yakiti(
+                self.ucak_modeli_kodu, aday["saniye"], self.tas_ms, aday["irtifa_m"], kutle_orani=oran
+            )
+        return self.seyir_onbellegi[anahtar]
+
+    def _yakit_ozeti(self, aday):
+        anahtar = id(aday)
+        if anahtar not in self.yakit_ozetleri:
+            seyir = self.seyir_yakiti(aday)
+            if seyir is None:
+                seyir = {"yakit_kg": self.profil["yakit_akisi_kg_saat"] * (aday["saniye"] / 3600.0), "nox_kg": None}
+            self.yakit_ozetleri[anahtar] = (aday, seyir["yakit_kg"] + aday["ekstra_yakit_kg"], seyir["nox_kg"])
+        return self.yakit_ozetleri[anahtar]
+
+    def toplam_yakit_kg(self, aday):
+        """Seyir yakıtı (OpenAP ya da sabit tablo) + seviye geçişlerinin ek yakıtı (bkz. seviye_ekstrasi)."""
+        return self._yakit_ozeti(aday)[1]
+
+    def nox_kg(self, aday):
+        return self._yakit_ozeti(aday)[2]
+
+    def kutleli_yakit_kg(self, aday, oran):
+        seyir = self.seyir_yakiti(aday, oran)
+        if seyir is None:
+            return None
+        ek = 0.0
+        if aday["irtifa_m"] != self.irtifa_m:
+            ek = performans_modeli.seviye_degisimi_ek_yakiti(
+                self.ucak_modeli_kodu, self.irtifa_m, aday["irtifa_m"], self.tas_ms, DIKEY_HIZ_FT_DK, kutle_orani=oran
+            )
+        return seyir["yakit_kg"] + ek
+
+
+def _ats_yolu_bulucu(b: _RotaBaglami, ag, uclar, meydanlar):
+    def _ats_yolu(aday_irtifa_m, katmanlar):
+        return _ats_ile_rota_ara(
+            ag,
+            *uclar,
+            aday_irtifa_m,
+            b.zaman_iso,
+            b.tas_ms,
+            b.veri_kupu if b.ruzgarli_mi else None,
+            katmanlar,
+            meydanlar,
+        )
+
+    return _ats_yolu
+
+
+def _ats_planli_yolu(b: _RotaBaglami, ag, ats_yolu, uclar, seviye):
+    """ATS ağındaki en hızlı yol (normal rota); bulunamazsa nedenini (FRA saati, FRA penceresi,
+    bağlantı) söyleyen AtsAgiKullanilamazHatasi."""
+    planli = ats_yolu(b.irtifa_m, [])
+    kalkis_utc = pd.Timestamp(b.zaman_iso)
+    kalkis_utc = kalkis_utc.tz_localize("UTC") if kalkis_utc.tzinfo is None else kalkis_utc.tz_convert("UTC")
+    if planli is None and not ag.fra_acik_mi(kalkis_utc):
+        raise AtsAgiKullanilamazHatasi(
+            f"Serbest Rota Sahası (FRA) {kalkis_utc:%H:%M} UTC'de uygulanmıyor (yalnızca "
+            f"{ag.fra_saatleri_metni()}, AIP ENR 1.3); bu saatte ATS yolları (ENR 3.1) gerekir ve ağda yok. "
+            "Koridor modunu kullanın ya da FRA saatinde planlayın."
+        )
+    tod = _ats_dugum_zamani(kalkis_utc, uclar[0], uclar[1], b.tas_ms)
+    tod_gec = tod + _zaman_belirsizligi(tod - kalkis_utc)
+    if planli is None and not ag.fra_penceresinde_mi(kalkis_utc, tod_gec):
+        raise AtsAgiKullanilamazHatasi(
+            f"FRA uçuşu FRA kapanmadan önce FRATURK'tan çıkmalı ({ag.fra_saatleri_metni()}, AIP ENR 1.3 "
+            f"§5.5.2.1); {kalkis_utc:%H:%M} UTC kalkışla tahmini ToD {tod:%H:%M} UTC (belirsizlik payıyla "
+            f"{tod_gec:%H:%M}). Daha erken planlayın ya da koridor modunu kullanın."
+        )
+    if planli is None:
+        raise AtsAgiKullanilamazHatasi(
+            f"ToC/ToD ATS ağına bağlanamadı (en yakın nokta {config.ATS_AGI_BAGLANTI_KM:.0f} km'den uzak) ya da "
+            f"FL{seviye['fl']}'de bu iki nokta arasında ATS rotası yok."
+        )
+    return planli
+
+
+def _kacinma_adaylari(b: _RotaBaglami, seviye, enlemler_gc, boylamlar_gc, ats_yolu, ats_yollari) -> list[dict]:
+    """ÇOK FAKTÖRLÜ karşılaştırma: (1) YANAL -- A* ile büyük daire etrafındaki ızgarada (ATS modunda ağda),
+    risk katmanlarına (TI1 cezası + SIGMET yasağı) göre en ucuz yol; (2/3) İRTİFA -- aynı yatay rotada aynı
+    yönün bir üst/alt yasal FL (gerçek tırmanma/alçalma bedeliyle, bkz. _irtifa_degisimi_maliyeti). Bazı CAT
+    katmanları ve SIGMET'ler irtifaya bağlıdır; seviye değiştirmek bazen en ucuz güvenli seçenektir.
+    ats_yolu None ise koridor modu; ATS modunda bulunan yollar ats_yollari'na strateji adıyla yazılır."""
+    adaylar: list[dict] = []
+    sert_katmanlar = [k for k in (b.sigmet_katmani, b.saha_katmani) if k is not None]
+    ti1_onbellegi: dict = {}
+    risk_katmanlari = ([Ti1CezaKatmani(b.veri_kupu, onbellek=ti1_onbellegi)] if b.ruzgarli_mi else []) + sert_katmanlar
+    pareto_cezalari = config.ROTA_PARETO_CEZALARI_SANIYE if b.ruzgarli_mi else []
+    irtifa_secenekleri = (
+        _komsu_yasal_seviyeler(seviye, b.veri_kupu, enlemler_gc, boylamlar_gc, b.zaman_iso) if b.ruzgarli_mi else {}
+    )
+    if ats_yolu is None:
+        for strateji_adi, katmanlar in [
+            ("yanal", risk_katmanlari),
+            *(
+                (
+                    f"yanal_ceza_{c:g}",
+                    [Ti1CezaKatmani(b.veri_kupu, ceza_saniye=c, onbellek=ti1_onbellegi), *sert_katmanlar],
+                )
+                for c in pareto_cezalari
+            ),
+        ]:
+            yanal = _a_yildiz_ile_rota_ara(
+                enlemler_gc,
+                boylamlar_gc,
+                b.irtifa_m,
+                b.zaman_iso,
+                b.tas_ms,
+                b.veri_kupu if b.ruzgarli_mi else None,
+                katmanlar,
+            )
+            if yanal is not None:
+                adaylar.append(b.aday(strateji_adi, yanal[0], yanal[1], b.irtifa_m, yanal_sapma_km=yanal[2]))
+        for strateji_adi, yeni_irtifa_m in irtifa_secenekleri.items():
+            ekstra = b.seviye_ekstrasi(b.irtifa_m, yeni_irtifa_m)
+            adaylar.append(b.aday(strateji_adi, enlemler_gc, boylamlar_gc, yeni_irtifa_m, ekstra=ekstra))
+        return adaylar
+    for strateji_adi, aday_irtifa_m in {"ats_alternatif": b.irtifa_m, **irtifa_secenekleri}.items():
+        yol = ats_yolu(aday_irtifa_m, risk_katmanlari)
+        if yol is None:
+            continue
+        ats_yollari[strateji_adi] = yol
+        ekstra = b.seviye_ekstrasi(b.irtifa_m, aday_irtifa_m)
+        adaylar.append(b.aday(strateji_adi, yol[0], yol[1], aday_irtifa_m, ekstra=ekstra))
+    for ceza in pareto_cezalari:
+        strateji_adi = f"ats_ceza_{ceza:g}"
+        yol = ats_yolu(
+            b.irtifa_m, [Ti1CezaKatmani(b.veri_kupu, ceza_saniye=ceza, onbellek=ti1_onbellegi), *sert_katmanlar]
+        )
+        if yol is not None:
+            ats_yollari[strateji_adi] = yol
+            adaylar.append(b.aday(strateji_adi, yol[0], yol[1], b.irtifa_m))
+    return adaylar
+
+
+def _yakit_bandi(b: _RotaBaglami, normal, en_iyi) -> dict | None:
+    if not (b.yakit_modeli == "openap" and config.ROTA_KUTLE_BANDI):
+        return None
+    oranlar = sorted({*config.ROTA_KUTLE_BANDI, config.ROTA_SEYIR_KUTLE_ORANI})
+    yuzdeler = []
+    for oran in oranlar:
+        n_kg, o_kg = b.kutleli_yakit_kg(normal, oran), b.kutleli_yakit_kg(en_iyi, oran)
+        yuzdeler.append(100.0 * (n_kg - o_kg) / n_kg if n_kg else None)
+    gecerli = [y for y in yuzdeler if y is not None]
+    return {
+        "kutle_oranlari": oranlar,
+        "yakit_tasarrufu_yuzde": yuzdeler,
+        "en_dusuk": min(gecerli) if gecerli else None,
+        "en_yuksek": max(gecerli) if gecerli else None,
+        "aciklama": "Aynı iki rota için seyir başı kütlesi MTOW'un bu oranlarıyla yeniden hesaplandı; rota seçimi "
+        "ROTA_SEYIR_KUTLE_ORANI ile yapıldı. Kütle bilinmediği için tek bir değer yerine bu aralık okunmalıdır.",
+    }
+
+
+def _rota_bulgulari(
+    b: _RotaBaglami,
+    kup_adi,
+    normal,
+    en_iyi,
+    sigmet_kontrolu,
+    guvenli_rota_bulundu_mu,
+    kisitli_saha_kontrolu,
+    veri_durumu,
+    seviye,
+    ufuk,
+) -> list[dict]:
+    bulgular = _bulgulari_olustur(
+        b.ruzgarli_mi,
+        b.veri_kupu,
+        kup_adi,
+        normal,
+        en_iyi,
+        b.irtifa_m,
+        sigmet_kontrolu,
+        guvenli_rota_bulundu_mu,
+        kisitli_saha_kontrolu,
+        veri_durumu.get("canli_hata") or (CANLI_VERI_HAZIRLANIYOR if veri_durumu.get("canli_hazirlaniyor") else None),
+        seviye,
+    )
+    if b.ruzgarli_mi:
+        katman_bulgusu = katman_cevrelenmiyor_bulgusu(b.veri_kupu, {normal["irtifa_m"], en_iyi["irtifa_m"]})
+        if katman_bulgusu is not None:
+            bulgular.append(katman_bulgusu)
+    if b.ruzgarli_mi and veri_kupu_kaynagi(b.veri_kupu) == "gfs" and ufuk["ongoru_belirsiz"]:
+        bulgular.append(
+            _bulgu(
+                "ongoru_belirsiz",
+                "uyari",
+                f"Kalkışa ~{ufuk['kalkisa_kalan_saat']:.0f} saat var. CAT'in yeri topluluk tahminleriyle ancak "
+                f"~24–48 saat önceden tutarlı öngörülebildi (Lee, 2025); bu ufkun ötesinde riskli alanların yeri "
+                f"belirsizdir. Kalkıştan önceki {config.GUVENILIR_ONGORU_SAAT} saat içinde yeniden hesaplayın. "
+                "Sınır literatürden alındı, kalibre edilmedi.",
+                kalkisa_kalan_saat=ufuk["kalkisa_kalan_saat"],
+                guvenilir_ongoru_saat=config.GUVENILIR_ONGORU_SAAT,
+            )
+        )
+    return bulgular
+
+
+def _ruzgar_verisi_kaynagi(b: _RotaBaglami, veri_durumu) -> str:
+    if b.ruzgarli_mi:
+        return "gfs_tahmin" if veri_kupu_kaynagi(b.veri_kupu) == "gfs" else "era5_gercek"
+    if veri_durumu.get("canli_hazirlaniyor"):
+        return "canli_veri_hazirlaniyor"
+    return "canli_veri_alinamadi" if veri_durumu.get("canli_hata") else "era5_kapsam_disi"
+
+
+def _yakit_modeli_ozeti(b: _RotaBaglami) -> dict:
+    return {
+        "kaynak": b.yakit_modeli,
+        "baslangic_kutle_kg": performans_modeli.baslangic_kutlesi_kg(b.ucak_modeli_kodu),
+        "kutle_orani_notu": "Seyir başı kütlesi MTOW x ROTA_SEYIR_KUTLE_ORANI; parametrik varsayım, kalibre edilmedi.",
+        "aciklama": (
+            performans_modeli.KAYNAK_NOTU
+            if b.yakit_modeli == "openap"
+            else "Sabit tipik yakıt akışı; irtifa ve kütleye bağlı değil."
+        )
+        + " Mutlak yakıt değil, aynı tipteki rotalar arası karşılaştırmadır.",
+        "openap_surumu": performans_modeli.openap_surumu() if b.yakit_modeli == "openap" else None,
+    }
+
+
+def _rota_uretim_bilgisi(b: _RotaBaglami, arama_uzayi, secim_kurali) -> dict:
+    return uretim_bilgisi(
+        b.veri_kupu if b.ruzgarli_mi else None,
+        parametreler={
+            "arama_uzayi": arama_uzayi,
+            "maks_yanal_sapma_km": config.ROTA_MAKS_YANAL_SAPMA_KM,
+            "maks_sapma_acisi_derece": config.ROTA_MAKS_SAPMA_ACISI_DERECE,
+            "ti1_ceza_saniye": TURBULANS_CEZASI_SANIYE,
+            "secim_kurali": secim_kurali,
+            **({"riskli_dakika_bedeli_dk": config.ROTA_RISKLI_DAKIKA_BEDELI_DK} if secim_kurali == "maliyet" else {}),
+        },
+    )
+
+
+def _ats_ozeti(ag, ats_yollari, en_iyi, uclar, meydanlar, enlemler_gc, boylamlar_gc) -> dict | None:
+    if ag is None:
+        return None
+    optimize_yolu = ats_yollari.get(en_iyi["strateji"], ats_yollari["yok"])
+    return {
+        "kaynak": ag.kaynak,
+        "etiket": ag.etiket(),
+        "normal_rota": hava_yolu_agi.rota_ozeti(*ats_yollari["yok"][2:]),
+        "optimize_rota": hava_yolu_agi.rota_ozeti(*optimize_yolu[2:]),
+        "uyarilar": list(
+            dict.fromkeys(
+                u for yol in (ats_yollari["yok"], optimize_yolu) for u in ag.rol_uyarilari(yol[2], *uclar, *meydanlar)
+            )
+            | dict.fromkeys(filter(None, [ag.airac_uyarisi()]))
+        ),
+        "buyuk_daire_km": sum(
+            buyuk_daire_mesafesi_km(enlemler_gc[i], boylamlar_gc[i], enlemler_gc[i + 1], boylamlar_gc[i + 1])
+            for i in range(len(enlemler_gc) - 1)
+        ),
+    }
+
+
 @ayri_esik_baglaminda
 def rota_simulasyonu_olustur(
     baslangic_enlem,
@@ -656,6 +993,8 @@ def rota_simulasyonu_olustur(
     """
     if ucak_modeli_kodu not in UCAK_PROFILLERI:
         raise ValueError(f"Bilinmeyen uçak modeli: '{ucak_modeli_kodu}'. Geçerli seçenekler: {list(UCAK_PROFILLERI)}")
+    if arama_uzayi not in ("koridor", "ats"):
+        raise ValueError(f"Bilinmeyen arama_uzayi: {arama_uzayi!r} (koridor | ats)")
 
     secim_kurali = secim_kurali or config.ROTA_SECIM_KURALI
     if secim_kurali not in SECIM_KURALLARI:
@@ -663,14 +1002,6 @@ def rota_simulasyonu_olustur(
     profil = UCAK_PROFILLERI[ucak_modeli_kodu]
     tas_ms = profil["tas_ms"]
     yakit_modeli = "openap" if performans_modeli.kullanilabilir_mi(ucak_modeli_kodu) else "sabit"
-
-    def _seviye_ekstrasi(eski_irtifa_m, yeni_irtifa_m):
-        ek = performans_modeli.seviye_degisimi_ek_yakiti(
-            ucak_modeli_kodu, eski_irtifa_m, yeni_irtifa_m, tas_ms, DIKEY_HIZ_FT_DK
-        )
-        if ek is None:
-            return _irtifa_degisimi_maliyeti(eski_irtifa_m, yeni_irtifa_m, profil["yakit_akisi_kg_saat"])
-        return 0.0, ek
 
     seviye = ucus_seviyeleri.seviye_plani(
         irtifa_ft,
@@ -687,7 +1018,7 @@ def rota_simulasyonu_olustur(
             "Kısıt ve risk geometrisi -180..180 düzleminde hesaplandığı için sonuç güvence sayılamazdı."
         )
 
-    veri_durumu = {}
+    veri_durumu: dict = {}
     if veri_kupu is None:
         veri_kupu = veri_kupune_eris(
             enlemler_gc,
@@ -705,125 +1036,34 @@ def rota_simulasyonu_olustur(
     saha_katmani, kisitli_saha_kontrolu = _kisitli_saha_katmanini_hazirla(
         kisitli_sahalar, enlemler_gc, boylamlar_gc, zaman_iso, tas_ms
     )
+    baglam = _RotaBaglami(
+        ucak_modeli_kodu,
+        profil,
+        yakit_modeli,
+        zaman_iso,
+        irtifa_m,
+        veri_kupu,
+        ruzgarli_mi,
+        sigmet_katmani,
+        saha_katmani,
+    )
 
-    def _aday(strateji, enlemler, boylamlar, aday_irtifa_m, yanal_sapma_km=0.0, ekstra=(0.0, 0.0)):
-        saniye, zamanlar = _rotayi_zamanla(
-            enlemler, boylamlar, aday_irtifa_m, zaman_iso, tas_ms, veri_kupu, ruzgarli_mi
-        )
-        if ruzgarli_mi:
-            eslesme = rota_eslesmesi(enlemler, boylamlar, aday_irtifa_m, zamanlar, veri_kupu)
-            ti1 = eslesme["ti1_indeksi"].to_numpy(dtype=float)
-            birlesik = (
-                eslesme["birlesik_edr"].to_numpy(dtype=float)
-                if "birlesik_edr" in eslesme
-                else np.full(len(ti1), np.nan)
-            )
-            maks_ti1, riskli_sayisi = _ti1_ozeti_cikar(ti1)
-            iz_bulutu_sayisi = duyarli_nokta_sayisi(eslesme["iz_bulutu_duyarli"])
-        else:
-            ti1 = birlesik = None
-            maks_ti1, riskli_sayisi, iz_bulutu_sayisi = None, 0, None
-        return {
-            "strateji": strateji,
-            "enlem": enlemler,
-            "boylam": boylamlar,
-            "irtifa_m": aday_irtifa_m,
-            "zamanlar": zamanlar,
-            "saniye": saniye,
-            "ekstra_saniye": ekstra[0],
-            "ekstra_yakit_kg": ekstra[1],
-            "yakit_modeli": yakit_modeli,
-            "maks_ti1": maks_ti1,
-            "riskli_sayisi": riskli_sayisi,
-            "ti1": ti1,
-            "birlesik_edr": birlesik,
-            "iz_bulutu_sayisi": iz_bulutu_sayisi,
-            "sigmet_ihlali": (
-                sigmet_katmani.rota_ihlal_sayisi(enlemler, boylamlar, zamanlar, aday_irtifa_m) if sigmet_katmani else 0
-            ),
-            "kisitli_saha_ihlali": (
-                saha_katmani.rota_ihlal_sayisi(enlemler, boylamlar, zamanlar, aday_irtifa_m) if saha_katmani else 0
-            ),
-            "yanal_sapma_km": yanal_sapma_km,
-        }
-
-    yakit_ozetleri = {}
-    seyir_onbellegi = {}
-
-    def _seyir_yakiti(aday, oran=None):
-        oran = config.ROTA_SEYIR_KUTLE_ORANI if oran is None else oran
-        anahtar = (aday["saniye"], aday["irtifa_m"], oran)
-        if anahtar not in seyir_onbellegi:
-            seyir_onbellegi[anahtar] = performans_modeli.seyir_yakiti(
-                ucak_modeli_kodu, aday["saniye"], tas_ms, aday["irtifa_m"], kutle_orani=oran
-            )
-        return seyir_onbellegi[anahtar]
-
-    def _aday_yakit_ozeti(aday):
-        anahtar = id(aday)
-        if anahtar not in yakit_ozetleri:
-            seyir = _seyir_yakiti(aday)
-            if seyir is None:
-                seyir = {"yakit_kg": profil["yakit_akisi_kg_saat"] * (aday["saniye"] / 3600.0), "nox_kg": None}
-            yakit_ozetleri[anahtar] = (aday, seyir["yakit_kg"] + aday["ekstra_yakit_kg"], seyir["nox_kg"])
-        return yakit_ozetleri[anahtar]
-
-    def _aday_toplam_yakit_kg(aday):
-        return _aday_yakit_ozeti(aday)[1]
-
-    def _aday_nox_kg(aday):
-        return _aday_yakit_ozeti(aday)[2]
-
-    ats_yollari = {}
+    uclar = ((baslangic_enlem, baslangic_boylam), (bitis_enlem, bitis_boylam))
+    meydanlar = (kalkis_meydani, varis_meydani)
+    ats_yollari: dict = {}
+    ag = ats_yolu = None
     if arama_uzayi == "ats":
         ag = ats_agi or hava_yolu_agi.agi_yukle()
         if ag is None:
             raise AtsAgiKullanilamazHatasi(
                 f"ATS ağı yüklü değil ({config.ATS_AGI_DOSYASI}); bkz. docs/veri_hazirlama/ATS_AGI_HAZIRLAMA.md."
             )
-        uclar = ((baslangic_enlem, baslangic_boylam), (bitis_enlem, bitis_boylam))
-
-        def _ats_yolu(aday_irtifa_m, katmanlar):
-            return _ats_ile_rota_ara(
-                ag,
-                *uclar,
-                aday_irtifa_m,
-                zaman_iso,
-                tas_ms,
-                veri_kupu if ruzgarli_mi else None,
-                katmanlar,
-                (kalkis_meydani, varis_meydani),
-            )
-
-        planli = _ats_yolu(irtifa_m, [])
-        kalkis_utc = pd.Timestamp(zaman_iso)
-        kalkis_utc = kalkis_utc.tz_localize("UTC") if kalkis_utc.tzinfo is None else kalkis_utc.tz_convert("UTC")
-        if planli is None and not ag.fra_acik_mi(kalkis_utc):
-            raise AtsAgiKullanilamazHatasi(
-                f"Serbest Rota Sahası (FRA) {kalkis_utc:%H:%M} UTC'de uygulanmıyor (yalnızca "
-                f"{ag.fra_saatleri_metni()}, AIP ENR 1.3); bu saatte ATS yolları (ENR 3.1) gerekir ve ağda yok. "
-                "Koridor modunu kullanın ya da FRA saatinde planlayın."
-            )
-        tod = _ats_dugum_zamani(kalkis_utc, uclar[0], uclar[1], tas_ms)
-        tod_gec = tod + _zaman_belirsizligi(tod - kalkis_utc)
-        if planli is None and not ag.fra_penceresinde_mi(kalkis_utc, tod_gec):
-            raise AtsAgiKullanilamazHatasi(
-                f"FRA uçuşu FRA kapanmadan önce FRATURK'tan çıkmalı ({ag.fra_saatleri_metni()}, AIP ENR 1.3 "
-                f"§5.5.2.1); {kalkis_utc:%H:%M} UTC kalkışla tahmini ToD {tod:%H:%M} UTC (belirsizlik payıyla "
-                f"{tod_gec:%H:%M}). Daha erken planlayın ya da koridor modunu kullanın."
-            )
-        if planli is None:
-            raise AtsAgiKullanilamazHatasi(
-                f"ToC/ToD ATS ağına bağlanamadı (en yakın nokta {config.ATS_AGI_BAGLANTI_KM:.0f} km'den uzak) ya da "
-                f"FL{seviye['fl']}'de bu iki nokta arasında ATS rotası yok."
-            )
+        ats_yolu = _ats_yolu_bulucu(baglam, ag, uclar, meydanlar)
+        planli = _ats_planli_yolu(baglam, ag, ats_yolu, uclar, seviye)
         ats_yollari["yok"] = planli
-        normal = _aday("yok", planli[0], planli[1], irtifa_m)
-    elif arama_uzayi == "koridor":
-        ag = None
-        normal = _aday("yok", enlemler_gc, boylamlar_gc, irtifa_m)
+        normal = baglam.aday("yok", planli[0], planli[1], irtifa_m)
     else:
-        raise ValueError(f"Bilinmeyen arama_uzayi: {arama_uzayi!r} (koridor | ats)")
+        normal = baglam.aday("yok", enlemler_gc, boylamlar_gc, irtifa_m)
     guvenli_rota_bulundu_mu = True
     adaylar: list[dict] = []
 
@@ -832,62 +1072,8 @@ def rota_simulasyonu_olustur(
         # bir sapma göstermek yerine optimize rota normal rotayla BİREBİR AYNI.
         en_iyi = normal
     else:
-        # ÇOK FAKTÖRLÜ karşılaştırma: (1) YANAL -- A* ile büyük daire
-        # etrafındaki ızgarada, risk katmanlarına (TI1 cezası + SIGMET yasağı)
-        # göre en ucuz yol; (2/3) İRTİFA -- aynı yatay rotada aynı yönün bir üst/alt
-        # yasal FL (gerçek tırmanma/alçalma bedeliyle, bkz.
-        # _irtifa_degisimi_maliyeti). Bazı CAT katmanları ve SIGMET'ler
-        # irtifaya bağlıdır; seviye değiştirmek bazen en ucuz güvenli seçenektir.
-        sert_katmanlar = [k for k in (sigmet_katmani, saha_katmani) if k is not None]
-        ti1_onbellegi = {}
-        risk_katmanlari = ([Ti1CezaKatmani(veri_kupu, onbellek=ti1_onbellegi)] if ruzgarli_mi else []) + sert_katmanlar
-        pareto_cezalari = config.ROTA_PARETO_CEZALARI_SANIYE if ruzgarli_mi else []
-        irtifa_secenekleri = (
-            _komsu_yasal_seviyeler(seviye, veri_kupu, enlemler_gc, boylamlar_gc, zaman_iso) if ruzgarli_mi else {}
-        )
-        if ag is None:
-            for strateji_adi, katmanlar in [
-                ("yanal", risk_katmanlari),
-                *(
-                    (
-                        f"yanal_ceza_{c:g}",
-                        [Ti1CezaKatmani(veri_kupu, ceza_saniye=c, onbellek=ti1_onbellegi), *sert_katmanlar],
-                    )
-                    for c in pareto_cezalari
-                ),
-            ]:
-                yanal = _a_yildiz_ile_rota_ara(
-                    enlemler_gc,
-                    boylamlar_gc,
-                    irtifa_m,
-                    zaman_iso,
-                    tas_ms,
-                    veri_kupu if ruzgarli_mi else None,
-                    katmanlar,
-                )
-                if yanal is not None:
-                    adaylar.append(_aday(strateji_adi, yanal[0], yanal[1], irtifa_m, yanal_sapma_km=yanal[2]))
-            for strateji_adi, yeni_irtifa_m in irtifa_secenekleri.items():
-                ekstra = _seviye_ekstrasi(irtifa_m, yeni_irtifa_m)
-                adaylar.append(_aday(strateji_adi, enlemler_gc, boylamlar_gc, yeni_irtifa_m, ekstra=ekstra))
-        else:
-            for strateji_adi, aday_irtifa_m in {"ats_alternatif": irtifa_m, **irtifa_secenekleri}.items():
-                yol = _ats_yolu(aday_irtifa_m, risk_katmanlari)
-                if yol is None:
-                    continue
-                ats_yollari[strateji_adi] = yol
-                ekstra = _seviye_ekstrasi(irtifa_m, aday_irtifa_m)
-                adaylar.append(_aday(strateji_adi, yol[0], yol[1], aday_irtifa_m, ekstra=ekstra))
-            for ceza in pareto_cezalari:
-                strateji_adi = f"ats_ceza_{ceza:g}"
-                yol = _ats_yolu(
-                    irtifa_m, [Ti1CezaKatmani(veri_kupu, ceza_saniye=ceza, onbellek=ti1_onbellegi), *sert_katmanlar]
-                )
-                if yol is not None:
-                    ats_yollari[strateji_adi] = yol
-                    adaylar.append(_aday(strateji_adi, yol[0], yol[1], irtifa_m))
-
-        secilen = en_iyi_adayi_sec(adaylar, normal, _aday_toplam_yakit_kg, secim_kurali)
+        adaylar = _kacinma_adaylari(baglam, seviye, enlemler_gc, boylamlar_gc, ats_yolu, ats_yollari)
+        secilen = en_iyi_adayi_sec(adaylar, normal, baglam.toplam_yakit_kg, secim_kurali)
         if secilen is not None:
             en_iyi = secilen
         else:
@@ -899,92 +1085,42 @@ def rota_simulasyonu_olustur(
     if arama_uzayi == "koridor" and ruzgarli_mi:
         yol = _a_yildiz_ile_rota_ara(enlemler_gc, boylamlar_gc, irtifa_m, zaman_iso, tas_ms, veri_kupu, [])
         if yol is not None:
-            ruzgar_optimum = _aday("ruzgar_optimum", yol[0], yol[1], irtifa_m, yanal_sapma_km=yol[2])
+            ruzgar_optimum = baglam.aday("ruzgar_optimum", yol[0], yol[1], irtifa_m, yanal_sapma_km=yol[2])
     for a in (normal, ruzgar_optimum, en_iyi, *adaylar):
-        a["tahmini_nox_kg"] = _aday_nox_kg(a)
+        a["tahmini_nox_kg"] = baglam.nox_kg(a)
     referans_karsilastirmasi = (
-        _referans_karsilastirmasi(normal, ruzgar_optimum, en_iyi, _aday_toplam_yakit_kg, tas_ms, arama_uzayi)
+        _referans_karsilastirmasi(normal, ruzgar_optimum, en_iyi, baglam.toplam_yakit_kg, tas_ms, arama_uzayi)
         if ruzgarli_mi
         else None
     )
 
-    normal_yakit_kg = _aday_toplam_yakit_kg(normal)
-    # Yakıt = seyir yakıtı (OpenAP ya da sabit tablo) + seviye geçişlerinin ek yakıtı (bkz. _seviye_ekstrasi).
-    optimize_yakit_kg = _aday_toplam_yakit_kg(en_iyi)
+    normal_yakit_kg = baglam.toplam_yakit_kg(normal)
+    optimize_yakit_kg = baglam.toplam_yakit_kg(en_iyi)
     optimize_saniye = en_iyi["saniye"] + en_iyi["ekstra_saniye"]
-
-    def _kutleli_yakit_kg(aday, oran):
-        seyir = _seyir_yakiti(aday, oran)
-        if seyir is None:
-            return None
-        ek = 0.0
-        if aday["irtifa_m"] != irtifa_m:
-            ek = performans_modeli.seviye_degisimi_ek_yakiti(
-                ucak_modeli_kodu, irtifa_m, aday["irtifa_m"], tas_ms, DIKEY_HIZ_FT_DK, kutle_orani=oran
-            )
-        return seyir["yakit_kg"] + ek
-
-    yakit_bandi = None
-    if yakit_modeli == "openap" and config.ROTA_KUTLE_BANDI:
-        oranlar = sorted({*config.ROTA_KUTLE_BANDI, config.ROTA_SEYIR_KUTLE_ORANI})
-        yuzdeler = []
-        for oran in oranlar:
-            n_kg, o_kg = _kutleli_yakit_kg(normal, oran), _kutleli_yakit_kg(en_iyi, oran)
-            yuzdeler.append(100.0 * (n_kg - o_kg) / n_kg if n_kg else None)
-        gecerli = [y for y in yuzdeler if y is not None]
-        yakit_bandi = {
-            "kutle_oranlari": oranlar,
-            "yakit_tasarrufu_yuzde": yuzdeler,
-            "en_dusuk": min(gecerli) if gecerli else None,
-            "en_yuksek": max(gecerli) if gecerli else None,
-            "aciklama": "Aynı iki rota için seyir başı kütlesi MTOW'un bu oranlarıyla yeniden hesaplandı; rota seçimi "
-            "ROTA_SEYIR_KUTLE_ORANI ile yapıldı. Kütle bilinmediği için tek bir değer yerine bu aralık okunmalıdır.",
-        }
-    secenekler = pareto_secenekleri([normal, *adaylar], en_iyi, normal, _aday_toplam_yakit_kg)
-    bulgular = _bulgulari_olustur(
-        ruzgarli_mi,
-        veri_kupu,
+    yakit_bandi = _yakit_bandi(baglam, normal, en_iyi)
+    secenekler = pareto_secenekleri([normal, *adaylar], en_iyi, normal, baglam.toplam_yakit_kg)
+    ufuk = planlama_ufku(zaman_iso)
+    bulgular = _rota_bulgulari(
+        baglam,
         kup_adi,
         normal,
         en_iyi,
-        irtifa_m,
         sigmet_kontrolu,
         guvenli_rota_bulundu_mu,
         kisitli_saha_kontrolu,
-        veri_durumu.get("canli_hata") or (CANLI_VERI_HAZIRLANIYOR if veri_durumu.get("canli_hazirlaniyor") else None),
+        veri_durumu,
         seviye,
+        ufuk,
     )
-    if ruzgarli_mi:
-        katman_bulgusu = katman_cevrelenmiyor_bulgusu(veri_kupu, {normal["irtifa_m"], en_iyi["irtifa_m"]})
-        if katman_bulgusu is not None:
-            bulgular.append(katman_bulgusu)
-    ufuk = planlama_ufku(zaman_iso)
-    if ruzgarli_mi and veri_kupu_kaynagi(veri_kupu) == "gfs" and ufuk["ongoru_belirsiz"]:
-        bulgular.append(
-            _bulgu(
-                "ongoru_belirsiz",
-                "uyari",
-                f"Kalkışa ~{ufuk['kalkisa_kalan_saat']:.0f} saat var. CAT'in yeri topluluk tahminleriyle ancak "
-                f"~24–48 saat önceden tutarlı öngörülebildi (Lee, 2025); bu ufkun ötesinde riskli alanların yeri "
-                f"belirsizdir. Kalkıştan önceki {config.GUVENILIR_ONGORU_SAAT} saat içinde yeniden hesaplayın. "
-                "Sınır literatürden alındı, kalibre edilmedi.",
-                kalkisa_kalan_saat=ufuk["kalkisa_kalan_saat"],
-                guvenilir_ongoru_saat=config.GUVENILIR_ONGORU_SAAT,
-            )
-        )
+    optimize_ozeti = {
+        **_rota_ozeti(en_iyi, optimize_yakit_kg, optimize_saniye),
+        "maks_yanal_sapma_km": en_iyi["yanal_sapma_km"],
+        "maks_yanal_sapma_yonu": yanal_sapma_yonu(en_iyi["enlem"], en_iyi["boylam"]),
+        "ortalama_ruzgar_bileseni_kt": _ortalama_ruzgar_bileseni_kt(en_iyi, tas_ms),
+    }
 
     sonuc = {
-        "ruzgar_verisi_kaynagi": (
-            ("gfs_tahmin" if veri_kupu_kaynagi(veri_kupu) == "gfs" else "era5_gercek")
-            if ruzgarli_mi
-            else (
-                "canli_veri_hazirlaniyor"
-                if veri_durumu.get("canli_hazirlaniyor")
-                else "canli_veri_alinamadi"
-                if veri_durumu.get("canli_hata")
-                else "era5_kapsam_disi"
-            )
-        ),
+        "ruzgar_verisi_kaynagi": _ruzgar_verisi_kaynagi(baglam, veri_durumu),
         "aciklama": " ".join(b["metin"] for b in bulgular),
         "bulgular": [{k: b[k] for k in ("kod", "seviye", "parametreler")} for b in bulgular],
         "ucak_modeli": ucak_modeli_kodu,
@@ -1001,14 +1137,7 @@ def rota_simulasyonu_olustur(
             **_rota_ozeti(normal, normal_yakit_kg, normal["saniye"]),
             "ortalama_ruzgar_bileseni_kt": _ortalama_ruzgar_bileseni_kt(normal, tas_ms),
         },
-        "optimize_rota": (
-            optimize_ozeti := {
-                **_rota_ozeti(en_iyi, optimize_yakit_kg, optimize_saniye),
-                "maks_yanal_sapma_km": en_iyi["yanal_sapma_km"],
-                "maks_yanal_sapma_yonu": yanal_sapma_yonu(en_iyi["enlem"], en_iyi["boylam"]),
-                "ortalama_ruzgar_bileseni_kt": _ortalama_ruzgar_bileseni_kt(en_iyi, tas_ms),
-            }
-        ),
+        "optimize_rota": optimize_ozeti,
         "referans_karsilastirmasi": referans_karsilastirmasi,
         "kabin_onerisi": kabin_onerisi(optimize_ozeti["riskli_bolumler"]),
         "iz_bulutu_seviye_bilgisi": iz_bulutu_seviye_bilgisi(en_iyi, veri_kupu) if ruzgarli_mi else None,
@@ -1027,58 +1156,12 @@ def rota_simulasyonu_olustur(
         "co2_farki_kg": normal_yakit_kg * CO2_KG_PER_KG_YAKIT - optimize_yakit_kg * CO2_KG_PER_KG_YAKIT,
         "yakit_tasarrufu_yuzde_araligi": yakit_bandi,
         "ti1_guvenilirlik_notu": TI1_GUVENILIRLIK_NOTU,
-        "yakit_modeli": {
-            "kaynak": yakit_modeli,
-            "baslangic_kutle_kg": performans_modeli.baslangic_kutlesi_kg(ucak_modeli_kodu),
-            "kutle_orani_notu": "Seyir başı kütlesi MTOW x ROTA_SEYIR_KUTLE_ORANI; parametrik varsayım, kalibre edilmedi.",
-            "aciklama": (
-                performans_modeli.KAYNAK_NOTU
-                if yakit_modeli == "openap"
-                else "Sabit tipik yakıt akışı; irtifa ve kütleye bağlı değil."
-            )
-            + " Mutlak yakıt değil, aynı tipteki rotalar arası karşılaştırmadır.",
-            "openap_surumu": performans_modeli.openap_surumu() if yakit_modeli == "openap" else None,
-        },
-        "uretim_bilgisi": uretim_bilgisi(
-            veri_kupu if ruzgarli_mi else None,
-            parametreler={
-                "arama_uzayi": arama_uzayi,
-                "maks_yanal_sapma_km": config.ROTA_MAKS_YANAL_SAPMA_KM,
-                "maks_sapma_acisi_derece": config.ROTA_MAKS_SAPMA_ACISI_DERECE,
-                "ti1_ceza_saniye": TURBULANS_CEZASI_SANIYE,
-                "secim_kurali": secim_kurali,
-                **(
-                    {"riskli_dakika_bedeli_dk": config.ROTA_RISKLI_DAKIKA_BEDELI_DK}
-                    if secim_kurali == "maliyet"
-                    else {}
-                ),
-            },
-        ),
+        "yakit_modeli": _yakit_modeli_ozeti(baglam),
+        "uretim_bilgisi": _rota_uretim_bilgisi(baglam, arama_uzayi, secim_kurali),
         "secenekler": secenekler,
         "kapsam": kapsam(arama_uzayi, *((ag.kaynak, ag.etiket()) if ag is not None else ())),
         "planlama_ufku": ufuk,
-        "ats": (
-            None
-            if ag is None
-            else {
-                "kaynak": ag.kaynak,
-                "etiket": ag.etiket(),
-                "normal_rota": hava_yolu_agi.rota_ozeti(*ats_yollari["yok"][2:]),
-                "optimize_rota": hava_yolu_agi.rota_ozeti(*ats_yollari.get(en_iyi["strateji"], ats_yollari["yok"])[2:]),
-                "uyarilar": list(
-                    dict.fromkeys(
-                        u
-                        for yol in (ats_yollari["yok"], ats_yollari.get(en_iyi["strateji"], ats_yollari["yok"]))
-                        for u in ag.rol_uyarilari(yol[2], *uclar, kalkis_meydani, varis_meydani)
-                    )
-                    | dict.fromkeys(filter(None, [ag.airac_uyarisi()]))
-                ),
-                "buyuk_daire_km": sum(
-                    buyuk_daire_mesafesi_km(enlemler_gc[i], boylamlar_gc[i], enlemler_gc[i + 1], boylamlar_gc[i + 1])
-                    for i in range(len(enlemler_gc) - 1)
-                ),
-            }
-        ),
+        "ats": _ats_ozeti(ag, ats_yollari, en_iyi, uclar, meydanlar, enlemler_gc, boylamlar_gc),
     }
     sonuc["brifing_karti"] = brifing_karti(sonuc)
     return sonuc
