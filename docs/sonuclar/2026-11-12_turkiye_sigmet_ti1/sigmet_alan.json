@@ -1,0 +1,169 @@
+{
+  "protokol": "docs/deney_protokolu.md §14",
+  "parametreler": {
+    "firler": [
+      "LTAA",
+      "LTBB"
+    ],
+    "ilk_gun": "2026-09-30",
+    "son_baslangic": "2026-11-07T15:14:42.748608+00:00",
+    "ti1_esigi": 7e-07,
+    "halka_km": 300.0,
+    "nokta": 6000,
+    "fl_araligi": [
+      280,
+      430
+    ],
+    "bootstrap_tekrar": 10000
+  },
+  "commit": "1f4b64ea8be9d55716b575e6e06c84cae44820b3",
+  "uretim_zamani": "2026-11-12T15:14:42+00:00",
+  "kayitlar": [
+    {
+      "id": 34458,
+      "fir": "LTAA",
+      "seri_no": "4",
+      "gecerlilik": [
+        "2026-10-13T06:00:00+00:00",
+        "2026-10-13T09:00:00+00:00"
+      ],
+      "bant_ft": [
+        30000,
+        35000
+      ],
+      "fl_bandi": [
+        300.0,
+        350.0
+      ],
+      "saatler": 4,
+      "nokta": 6000,
+      "iceride_nokta": 215,
+      "iceride_riskli_orani": 0.05116279069767442,
+      "iceride_medyan_log10_ti1": -6.4463668197945285,
+      "halka_nokta": 4728,
+      "halka_riskli_orani": 0.021150592216582064,
+      "halka_medyan_log10_ti1": -6.670899404924722,
+      "fark": 0.030012198481092354,
+      "medyan_log10_farki": 0.22453258513019314
+    },
+    {
+      "id": 66449,
+      "fir": "LTAA",
+      "seri_no": "5",
+      "gecerlilik": [
+        "2026-10-22T14:50:00+00:00",
+        "2026-10-22T17:00:00+00:00"
+      ],
+      "bant_ft": [
+        null,
+        25000
+      ],
+      "dustu": "bant FL280–430 ile kesişmiyor"
+    },
+    {
+      "id": 67122,
+      "fir": "LTAA",
+      "seri_no": "6",
+      "gecerlilik": [
+        "2026-10-22T17:00:00+00:00",
+        "2026-10-22T19:00:00+00:00"
+      ],
+      "bant_ft": [
+        null,
+        25000
+      ],
+      "dustu": "bant FL280–430 ile kesişmiyor"
+    },
+    {
+      "id": 82118,
+      "fir": "LTAA",
+      "seri_no": "14",
+      "gecerlilik": [
+        "2026-10-27T19:00:00+00:00",
+        "2026-10-27T23:00:00+00:00"
+      ],
+      "bant_ft": [
+        26000,
+        36000
+      ],
+      "fl_bandi": [
+        280.0,
+        360.0
+      ],
+      "saatler": 5,
+      "nokta": 6000,
+      "iceride_nokta": 1286,
+      "iceride_riskli_orani": 0.1150855365474339,
+      "iceride_medyan_log10_ti1": -6.610558852076115,
+      "halka_nokta": 3646,
+      "halka_riskli_orani": 0.07131102578167856,
+      "halka_medyan_log10_ti1": -6.720747397789281,
+      "fark": 0.04377451076575535,
+      "medyan_log10_farki": 0.11018854571316616
+    },
+    {
+      "id": 83227,
+      "fir": "LTAA",
+      "seri_no": "18",
+      "gecerlilik": [
+        "2026-10-27T23:20:00+00:00",
+        "2026-10-28T03:20:00+00:00"
+      ],
+      "bant_ft": [
+        26000,
+        36000
+      ],
+      "fl_bandi": [
+        280.0,
+        360.0
+      ],
+      "saatler": 4,
+      "nokta": 6000,
+      "iceride_nokta": 1157,
+      "iceride_riskli_orani": 0.19273984442523767,
+      "iceride_medyan_log10_ti1": -6.419909217335287,
+      "halka_nokta": 3886,
+      "halka_riskli_orani": 0.11399897066392177,
+      "halka_medyan_log10_ti1": -6.636941741931224,
+      "fark": 0.0787408737613159,
+      "medyan_log10_farki": 0.21703252459593703
+    },
+    {
+      "id": 127129,
+      "fir": "LTAA",
+      "seri_no": "12",
+      "gecerlilik": [
+        "2026-11-07T15:00:00+00:00",
+        "2026-11-07T19:00:00+00:00"
+      ],
+      "bant_ft": [
+        25000,
+        33000
+      ],
+      "fl_bandi": [
+        280.0,
+        330.0
+      ],
+      "saatler": 5,
+      "nokta": 4803,
+      "iceride_nokta": 383,
+      "iceride_riskli_orani": 0.0,
+      "iceride_medyan_log10_ti1": -6.623323249805931,
+      "halka_nokta": 3545,
+      "halka_riskli_orani": 0.04118476727785614,
+      "halka_medyan_log10_ti1": -6.692469003956165,
+      "fark": -0.04118476727785614,
+      "medyan_log10_farki": 0.0691457541502345
+    }
+  ],
+  "havuz": {
+    "sigmet": 4,
+    "ortalama_fark": 0.027835703932576866,
+    "ga95": [
+      -0.019944947766953266,
+      0.06655870494126001
+    ],
+    "pozitif_sigmet": 3
+  },
+  "okuma": "fark gösterilemedi"
+}
