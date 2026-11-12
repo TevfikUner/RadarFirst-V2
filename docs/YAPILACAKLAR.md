@@ -17,14 +17,19 @@
    `katman_cevrelenmiyor` ve Ri notu ikisinde de yok. WSL temiz klonundan (5532/8100) `turbulans-demo-ekranlari`,
    ardından `bash scripts/sunum_paketi.sh`; OneDrive'a kopya + SHA256. Bitene kadar `docker builder prune`
    **yapılmaz** (CesiumJS önbellekte). `DEMO_SENARYOSU` sayıları kontrol edilir.
-2. **3 Kasım: #11 devamı + ATM-05 (madde 4, ONAY 28 Ekim).** `turbulans-tahmin-ufku --indir --baslangic
+2. **12 Kasım durumu:** 3 Kasım'da yapılmadı; 28 Ekim–4 Kasım koşuları UCAR'dan silindi (kalıcı boşluk). 12 Kasım
+   (ONAY): `--indir --baslangic 2026-11-07T00 --bitis 2026-11-12T12` 35 dosya, 13 MB (yalnız 12 Kas 12Z henüz
+   yayınlanmamıştı, ~19 Kasım'a kadar indirilebilir). Araç bir geçerlilik zamanını üç ufuk (f000/f024/f048) birlikte
+   varsa kullandığı için ERA5 kıyası **~17 Kasım**'da (ERA5 12 Kasım'ı yayınlayınca) tek seferde:
+   `turbulans-tahmin-ufku --indir --baslangic 2026-11-12T12 --bitis 2026-11-12T12`, sonra iki aralık (23–28 Eki ve
+   7–12 Kas) `--era5` ile; ~11 gün, eşik farkı çıkarsa `.env` değişikliği ONAY. Eski not: **3 Kasım: #11 devamı + ATM-05 (madde 4, ONAY 28 Ekim).** `turbulans-tahmin-ufku --indir --baslangic
    2026-10-28T12 --bitis 2026-11-03T00` (~15 MB; 28 Ekim 12Z koşusu 4–5 Kasım'da UCAR'dan silinir). ERA5 kıyas aracı
    31 Ekim'de yazıldı (`--era5`; 23 Ekim ile CDS'ten denendi, 1 MB önbellekte). İndirmeden sonra:
    `CDSAPI_RC=<CDSAPI_RC_DOSYASI> turbulans-tahmin-ufku --era5 --baslangic 2026-10-23T00 --bitis 2026-11-03T00
    --cikti docs/sonuclar/2026-11-03_tahmin_ufku` (ERA5 ~5 gün gecikmeli: ~29 Ekim'e kadarki zamanlar, ~7 CDS isteği,
    ~7 MB). ATM-05 eşlemesi aynı raporda; eşik farkı çıkarsa `.env` değişikliği ONAY.
-3. **5 Kasım: E8 yedek video ve soğuk açılış provası** (madde 22). 1. madde bitmeden çekilmez.
-4. **5 Kasım Perşembe 23:55: Hafta 6 ilerleme raporu.** Hafta aralığı kullanıcıya sorulur (öneri 30 Ekim–5 Kasım);
+3. ~~5 Kasım: E8 yedek video ve soğuk açılış provası~~ (12 Kasım, kullanıcı: gerek kalmadı, iptal).
+4. ~~5 Kasım Perşembe 23:55: Hafta 6 ilerleme raporu~~ (12 Kasım: kullanıcı gönderildiğini söyledi; 12 Kasım raporu da gönderildi). Hafta aralığı kullanıcıya sorulur (öneri 30 Ekim–5 Kasım);
    Hafta 5 e-postasının gönderildiği doğrulanır (madde 2).
 
 **A2. Komite için güncel ve kapsamı iyi vaka (31 Ekim, kullanıcı kararı: önce bu; sonraki oturumda)**
@@ -54,8 +59,11 @@
   5. İsteğe bağlı SXS6MG (Londra → Antalya), aynı adımlar (+30 dk).
   6. ~~Demo ekranları ve sunum paketi~~ (1 Kasım, A.1). Temiz demoda rota çevresinde 14 aktif SIGMET (geliştirme
      DB'sinde fikstür kutusu dışından bir mesajla 15); belgeler temiz demonun sayısını kullanır.
-  9. MADIS EDR 25 Ekim: kontrol edilmedi (bir günlük MADIS dosyası indirmek gerekir; Avrupa'da açık EDR seyrek,
-     11 günde 28 hafif+). IEM PIREP o gün Avrupa'da 0 (IEM yalnız Kuzey Amerika/Pasifik).
+  9. ~~MADIS EDR 25 Ekim~~ (12 Kasım, keşifsel, elle yapılan kontrol; CLI'a dönüşmeden rapora sayı yazılmaz): gün indirildi
+     (`madis_edr/2026/10/25.parquet`, 172.382 seyir gözlemi; Avrupa kutusunda 5.985, 42'si hafif, orta+ yok). LYBA U04
+     (12:06–15:30, FL260–380) içinde yalnız 3 gözlem, üçü de hafif altı; THY4QR'ın ±1 sa/100 km'sinde 68 gözlem (7 hafif,
+     tek uçak, 12:11–12:17, FL370, ~42,4–43°K/17–18°D, SIGMET poligonunun dışında); SXS6MG çevresinde 19, hepsi hafif altı.
+     Örneklem SIGMET'i ne doğruluyor ne yalanlıyor. IEM PIREP o gün Avrupa'da 0.
 - Trino girişi: her yeni süreçte tarayıcıda OAuth ekranı açılır. Kalıcı çözüm `keyring` + `keyrings.alt` (WSL venv,
   depo dışı düz dosya); Claude'un kurulumu izin denetimince engellendi, kullanıcı isterse kendisi kurar. Kurulmazsa sorgular
   tek süreçte toplanır. **1 Kasım: kullanıcı erteledi** (acelesi yok); yeni OpenSky sorgusu gerekince yeniden sorulur.
@@ -377,7 +385,7 @@ jüri sorularına doğrudan yanıt verenler önde.
   2026-11-03T00` (UCAR yalnız son ~7,5 günün koşularını tutar; ~15 MB), sonra tüm aralıkla (23 Ekim–3 Kasım)
   yeniden rapor. Aynı gün ERA5 kıyası: ERA5'in yayınlandığı geçerlilik zamanları (~5 gün gecikme) için küçük
   CDS kutusu, GFS f000/f024/f048 TI1'i ERA5 TI1'ine karşı (31 Ekim: `turbulans-tahmin-ufku --era5`).
-- [ ] **5 Kasım:** E8 yedek demo videosu (3–5 dk, metin `docs/sunum/DEMO_SENARYOSU.md` §4;
+- [x] (12 Kasım: iptal, kullanıcı "gerek kalmadı") **5 Kasım:** E8 yedek demo videosu (3–5 dk, metin `docs/sunum/DEMO_SENARYOSU.md` §4;
   ekranlar temiz klondan).
 - [ ] Sunum konuşulmaya başlanınca: E7 kullanılabilirlik oturumları (katılımcı bulmak zaman alır).
 - [ ] **Rapor tesliminden hemen önce (komite Y-1):** `python scripts/beyan_sayimlari.py --kontrol`;
