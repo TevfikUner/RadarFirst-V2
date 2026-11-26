@@ -2,6 +2,14 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-11-26
+
+- ✅ P5 canlı demo: `scripts/canli_demo.sh` + `.env.canli.ornek`; çalışan yığında `--baslatma` ile denendi, SIGMET 149 kayıt yenilendi (PR #171).
+- ✅ P4 kanıt sayfası: `/harita/kanit.html`; sayılar `turbulans-kanit-paneli` ile sonuç JSON'larından, elle sayı yok. Rota testinde "0,71" GMO, pay oranı 0,89 olarak ayrı yazıldı.
+- ✅ P2 ATC talep önerisi: değerlendirilen adaylardan en fazla 3 seçenek, 1. = önerilen rota (FPL ile aynı FL), yarım daire kuralı; karar değişmiyor (test).
+- ⚠️ P5 tam çalıştırma yapılmadı: `files-demo` imajı yok, derleme kotalı internette yüzlerce MB indirir. API imajı yeniden derlenene kadar betik "GFS koşu: bilinmiyor" yazar.
+- ⏳ Sırada P1 (PIREP kanıt katmanı, AWC belgesi doğrulanacak) ve P3 (canlı panel; ADS-B kotası/ban riski için önce sorulacak).
+
 ## 2026-11-12
 
 - ✅ Hızlı tarama: ruff/format/mypy temiz, servisler sağlıklı; 11:02 GFS ısıtması DNS hatası verdi, 11:31'de kendiliğinden toparlandı.
