@@ -1,0 +1,298 @@
+{
+ "olusturma_zamani": "2026-11-26T14:47:30+00:00",
+ "derleme_commit": "a6011f1",
+ "uyari": "Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır.",
+ "kartlar": {
+  "pirep_dogrulamasi": {
+   "kaynak": "docs/sonuclar/2026-10-18/sonuc_paketi.json",
+   "betik": "turbulans-ml-degerlendirme --kesme 2026-10-18 --cikti docs/sonuclar/2026-10-18",
+   "depoda": true,
+   "durum": "tamam",
+   "veri": "ml_ornekleri: IEM PIREP, seyir irtifası, saatlik ERA5 özellikleri; etiket orta ve üstü",
+   "test_yontemi": "altın test günleri",
+   "uretim_zamani": "2026-10-18T00:24:59+00:00",
+   "commit": "5ddcd40",
+   "test": {
+    "rapor": 1583,
+    "orta_ustu": 754,
+    "gun": 16
+   },
+   "tum_veri": {
+    "rapor": 15940,
+    "orta_ustu": 8481,
+    "gun": 163
+   },
+   "skorlar": [
+    {
+     "ad": "TI1",
+     "roc_auc": 0.6745615662985989,
+     "roc_auc_ga": [
+      0.6412097943178889,
+      0.706087284575627
+     ]
+    },
+    {
+     "ad": "Birleşik EDR",
+     "roc_auc": 0.6879665507322428,
+     "roc_auc_ga": [
+      0.6557772661891925,
+      0.7169809152499852
+     ]
+    },
+    {
+     "ad": "Model",
+     "roc_auc": 0.7077420624382066,
+     "roc_auc_ga": [
+      0.6767244857153795,
+      0.7378142477271682
+     ]
+    },
+    {
+     "ad": "1/Ri",
+     "roc_auc": 0.654626071486851,
+     "roc_auc_ga": [
+      0.6271242667686698,
+      0.6808623494164685
+     ]
+    }
+   ],
+   "esik": {
+    "ad": "TI1_ESIK_ORTA_SIDDETLI",
+    "deger": 7e-07,
+    "pod": 0.5013262599469496,
+    "pofd": 0.24849215922798554,
+    "far": 0.3527397260273973
+   },
+   "roc_noktalari": [
+    [
+     0.010856453558504222,
+     0.06631299734748011
+    ],
+    [
+     0.031363088057901084,
+     0.14854111405835543
+    ],
+    [
+     0.06031363088057901,
+     0.22413793103448276
+    ],
+    [
+     0.09408926417370325,
+     0.3063660477453581
+    ],
+    [
+     0.13630880579010857,
+     0.3594164456233422
+    ],
+    [
+     0.1712907117008444,
+     0.41909814323607425
+    ],
+    [
+     0.22074788902291917,
+     0.4708222811671088
+    ],
+    [
+     0.2605548854041013,
+     0.5265251989389921
+    ],
+    [
+     0.31845597104945716,
+     0.5782493368700266
+    ],
+    [
+     0.3703256936067551,
+     0.6180371352785146
+    ],
+    [
+     0.4149577804583836,
+     0.6604774535809018
+    ],
+    [
+     0.47285886610373945,
+     0.7029177718832891
+    ],
+    [
+     0.5283474065138721,
+     0.7360742705570292
+    ],
+    [
+     0.5753920386007237,
+     0.7785145888594165
+    ],
+    [
+     0.6344993968636912,
+     0.8209549071618037
+    ],
+    [
+     0.6960193003618818,
+     0.8567639257294429
+    ],
+    [
+     0.7780458383594693,
+     0.8978779840848806
+    ],
+    [
+     0.8443908323281062,
+     0.9270557029177718
+    ],
+    [
+     0.9215922798552473,
+     0.9602122015915119
+    ]
+   ],
+   "roc_aciklamasi": "TI1, altın test günleri; eğitim günlerinde seçilen yüzdelik eşiklerde POFD–POD"
+  },
+  "rota_backtest": {
+   "kaynak": "docs/sonuclar/2026-10-29_bagimsiz_backtest/bagimsiz_backtest.json",
+   "betik": "turbulans-bagimsiz-backtest (protokol §11)",
+   "depoda": true,
+   "durum": "tamam",
+   "veri": "NE-ABD ERA5, 48 gün; 8 şehir çifti × kalkış [12, 15, 18] UTC × FL [340, 370]; IEM PIREP (1218 rapor)",
+   "uretim_zamani": "2026-10-29T11:29:14.001333+00:00",
+   "commit": "6e74b1a",
+   "tup": {
+    "yaricap_km": 50.0,
+    "irtifa_ft": 2000.0,
+    "zaman_saat": 1.0
+   },
+   "esik_gunu_sayisi": 7,
+   "senaryo": 2304,
+   "surumler": [
+    {
+     "ad": "Eşik günleri hariç (birincil, bağımsız günler)",
+     "rota": 908,
+     "gun": 38,
+     "bd_payi": 0.6868686868686869,
+     "astar_payi": 0.6098484848484849,
+     "pay_orani": 0.8878676470588236,
+     "bd_tupu": [
+      204,
+      93
+     ],
+     "astar_tupu": [
+      161,
+      103
+     ],
+     "gmo": 0.712592804111936,
+     "gmo_ga": [
+      0.5759555272185609,
+      0.8993105023743518
+     ]
+    },
+    {
+     "ad": "Eşik günleri dahil (48 günün tamamı)",
+     "rota": 1107,
+     "gun": 45,
+     "bd_payi": 0.6443850267379679,
+     "astar_payi": 0.6,
+     "pay_orani": 0.9311203319502074,
+     "bd_tupu": [
+      241,
+      133
+     ],
+     "astar_tupu": [
+      198,
+      132
+     ],
+     "gmo": 0.8278008298755187,
+     "gmo_ga": [
+      0.6599409986242492,
+      1.0336716036584617
+     ]
+    }
+   ],
+   "karar": "azaltti"
+  },
+  "sigmet_alan": {
+   "kaynak": "docs/sonuclar/2026-11-12_turkiye_sigmet_ti1/sigmet_alan.json",
+   "betik": "turbulans-sigmet-alan --cikti docs/sonuclar/2026-11-12_turkiye_sigmet_ti1",
+   "depoda": true,
+   "durum": "tamam",
+   "veri": "LTAA/LTBB TURB SIGMET'leri (2026-09-30 sonrası), ERA5 TI1 eşiği 7e-07, halka 300 km, FL280–430",
+   "uretim_zamani": "2026-11-12T15:14:42+00:00",
+   "commit": "1f4b64e",
+   "sigmet": 4,
+   "pozitif_sigmet": 3,
+   "ortalama_fark": 0.027835703932576866,
+   "ga": [
+    -0.019944947766953266,
+    0.06655870494126001
+   ],
+   "okuma": "fark gösterilemedi",
+   "kayitlar": [
+    {
+     "ad": "LTAA 4",
+     "baslangic": "2026-10-13T06:00:00+00:00",
+     "iceride": 0.05116279069767442,
+     "halka": 0.021150592216582064,
+     "fark": 0.030012198481092354
+    },
+    {
+     "ad": "LTAA 5",
+     "baslangic": "2026-10-22T14:50:00+00:00",
+     "iceride": null,
+     "halka": null,
+     "fark": null
+    },
+    {
+     "ad": "LTAA 6",
+     "baslangic": "2026-10-22T17:00:00+00:00",
+     "iceride": null,
+     "halka": null,
+     "fark": null
+    },
+    {
+     "ad": "LTAA 14",
+     "baslangic": "2026-10-27T19:00:00+00:00",
+     "iceride": 0.1150855365474339,
+     "halka": 0.07131102578167856,
+     "fark": 0.04377451076575535
+    },
+    {
+     "ad": "LTAA 18",
+     "baslangic": "2026-10-27T23:20:00+00:00",
+     "iceride": 0.19273984442523767,
+     "halka": 0.11399897066392177,
+     "fark": 0.0787408737613159
+    },
+    {
+     "ad": "LTAA 12",
+     "baslangic": "2026-11-07T15:00:00+00:00",
+     "iceride": 0.0,
+     "halka": 0.04118476727785614,
+     "fark": -0.04118476727785614
+    }
+   ]
+  },
+  "sanal_pirep": {
+   "kaynak": "ciktilar/sanal_pirep_dogrulama.json",
+   "betik": "turbulans-sanal-pirep dogrula",
+   "depoda": false,
+   "durum": "tamam",
+   "veri": "ml_ornekleri PIREP'leri çevresinde OpenSky izleri (sanal PIREP)",
+   "uretim_zamani": "2026-10-01T22:00:22.344980+00:00",
+   "uretim_zamani_kaynagi": "dosya değişiklik zamanı",
+   "commit": null,
+   "pod": {
+    "isabet": 1,
+    "degerlendirilebilir": 8,
+    "oran": 0.125,
+    "guven_araligi_95": [
+     0.0224,
+     0.4709
+    ]
+   },
+   "pofd": {
+    "isabet": 0,
+    "degerlendirilebilir": 8,
+    "oran": 0.0,
+    "guven_araligi_95": [
+     0.0,
+     0.3244
+    ]
+   },
+   "secilen_pirep": 20
+  }
+ }
+}

@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Türbülans Radar — Kanıt</title>
+<style>
+  :root {
+    color-scheme: dark;
+    --zemin: #111317; --kart: #1a1d22; --cizgi: #2c3036; --izgara: #2a2e34;
+    --metin: #eceff3; --ikincil: #9aa3ad; --seri: #338ced; --referans: #7d8590;
+    --iyi: #0aac23; --uyari: #d28e05;
+  }
+  html, body { margin: 0; background: var(--zemin); color: var(--metin); font-family: system-ui, sans-serif; }
+  header { display: flex; flex-wrap: wrap; align-items: baseline; gap: 16px; padding: 16px 24px; border-bottom: 1px solid var(--cizgi); }
+  header h1 { font-size: 18px; margin: 0; }
+  header nav a { color: #9fc5f0; margin-right: 14px; font-size: 13px; text-decoration: none; }
+  header nav a:hover { text-decoration: underline; }
+  main { max-width: 1120px; margin: 0 auto; padding: 16px 24px 40px; }
+  .ust-not { color: var(--ikincil); font-size: 12px; margin: 4px 0 16px; }
+  .kart { background: var(--kart); border: 1px solid var(--cizgi); border-radius: 8px; padding: 16px 18px; margin-bottom: 18px; }
+  .kart h2 { font-size: 16px; margin: 0 0 4px; }
+  .kart .soru { color: var(--ikincil); font-size: 13px; margin: 0 0 12px; }
+  .karolar { display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 12px; }
+  .karo { background: #14171b; border: 1px solid var(--cizgi); border-radius: 6px; padding: 10px 12px; min-width: 150px; }
+  .karo .deger { font-size: 22px; font-weight: 600; }
+  .karo .etiket { font-size: 11px; color: var(--ikincil); }
+  .karo .ga { font-size: 12px; color: var(--ikincil); }
+  .iki-sutun { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  table { border-collapse: collapse; font-size: 12.5px; width: 100%; }
+  th, td { text-align: left; padding: 4px 8px; border-bottom: 1px solid var(--cizgi); }
+  th { color: var(--ikincil); font-weight: 500; }
+  td.sayi, th.sayi { text-align: right; font-variant-numeric: tabular-nums; }
+  svg { display: block; max-width: 100%; height: auto; }
+  svg text { fill: var(--ikincil); font-size: 11px; }
+  .okuma { font-size: 13px; line-height: 1.5; margin: 10px 0 0; }
+  .kaynak { margin-top: 12px; padding-top: 8px; border-top: 1px solid var(--cizgi); font-size: 11.5px; color: var(--ikincil); line-height: 1.6; }
+  .kaynak code { color: #c8d0d9; }
+  .hata { color: #eb6263; font-size: 13px; }
+  .rozet { display: inline-block; font-size: 11px; padding: 1px 6px; border-radius: 10px; border: 1px solid var(--cizgi); color: var(--ikincil); margin-left: 6px; }
+  footer { color: var(--ikincil); font-size: 12px; text-align: center; padding: 8px 24px 24px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>Türbülans Radar — Kanıt</h1>
+  <nav>
+    <a href="ucus_simulasyonu.html">Rota simülasyonu</a>
+    <a href="harita3d.html">3B harita</a>
+  </nav>
+</header>
+<main>
+  <p class="ust-not" id="ust-not">Yükleniyor…</p>
+  <div id="kartlar"></div>
+</main>
+<footer id="altbilgi">Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır.</footer>
+<script src="kanit.js"></script>
+</body>
+</html>
