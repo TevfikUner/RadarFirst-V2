@@ -877,3 +877,28 @@ def test_demo_arsiv_sigmeti_bulguda_canli_uyari_degil_diye_etiketlenir():
     assert arsiv["sigmet_kontrolu"]["demo_arsivi_mi"] is True
     assert {b["kod"]: b for b in arsiv["bulgular"]}["sigmet_demo_arsivi"]["seviye"] == "uyari"
     assert "canlı uyarı değildir" in arsiv["aciklama"]
+
+
+def test_atc_talebi_karari_degistirmez_ve_fpl_ile_tutarli(gercek_senaryo, monkeypatch):
+    from turbulans_radar.rota import rota_optimizasyonu, ucus_seviyeleri
+
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320", sigmetler=[], kisitli_sahalar=[])
+    talep = sonuc["atc_talebi"]
+    assert talep["gerekli"] is True and 1 <= len(talep["secenekler"]) <= 3
+    birinci = talep["secenekler"][0]
+    assert birinci["secilen"] and birinci["hedef_fl"] == sonuc["optimize_rota"]["fl"]
+    assert f"F{birinci['hedef_fl']:03d}" in sonuc["fpl_madde15"]["madde15"].split()[0]
+    yasal = ucus_seviyeleri.yasal_seyir_seviyeleri(
+        sonuc["seviye_plani"]["manyetik_iz"], sonuc["seviye_plani"]["azami_fl"]
+    )
+    assert all(s["hedef_fl"] in yasal for s in talep["secenekler"])
+
+    monkeypatch.setattr(rota_optimizasyonu, "atc_talep_onerisi", lambda *a, **k: None)
+    talepsiz = rota_simulasyonu_olustur(*gercek_senaryo["riskli"], "A320", sigmetler=[], kisitli_sahalar=[])
+    assert talepsiz["optimize_rota"] == sonuc["optimize_rota"]
+    assert talepsiz["kacinma_stratejisi"] == sonuc["kacinma_stratejisi"]
+
+
+def test_atc_talebi_riskisiz_rotada_gerekmez(gercek_senaryo):
+    sonuc = rota_simulasyonu_olustur(*gercek_senaryo["riskisiz"], "A320", sigmetler=[], kisitli_sahalar=[])
+    assert sonuc["atc_talebi"]["gerekli"] is False and sonuc["atc_talebi"]["secenekler"] == []

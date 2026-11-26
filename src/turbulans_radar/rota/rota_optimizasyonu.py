@@ -95,6 +95,7 @@ from turbulans_radar.rota.a_yildiz import (
     _ats_ile_rota_ara,
     _zaman_belirsizligi,
 )
+from turbulans_radar.rota.atc_talebi import atc_talep_onerisi
 from turbulans_radar.rota.brifing import (
     _nokta_hucre_uzunluklari_km,
     _noktalari_paketle,
@@ -1159,6 +1160,9 @@ def rota_simulasyonu_olustur(
         "yakit_modeli": _yakit_modeli_ozeti(baglam),
         "uretim_bilgisi": _rota_uretim_bilgisi(baglam, arama_uzayi, secim_kurali),
         "secenekler": secenekler,
+        "atc_talebi": atc_talep_onerisi(
+            adaylar, en_iyi, normal, baglam.toplam_yakit_kg, seviye, arama_uzayi, guvenli_rota_bulundu_mu
+        ),
         "kapsam": kapsam(arama_uzayi, *((ag.kaynak, ag.etiket()) if ag is not None else ())),
         "planlama_ufku": ufuk,
         "ats": _ats_ozeti(ag, ats_yollari, en_iyi, uclar, meydanlar, enlemler_gc, boylamlar_gc),

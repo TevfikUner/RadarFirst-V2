@@ -393,6 +393,31 @@ class RotaSecenegiYaniti(BaseModel):
     noktalar: list[RotaNoktasiYaniti]
 
 
+class AtcTalepSecenegiYaniti(BaseModel):
+    """ATC'den istenecek seçenek (ATC onayına tabidir); 1. seçenek önerilen rotadır."""
+
+    sira: int
+    strateji: str
+    secilen: bool
+    tur: str
+    hedef: str
+    hedef_fl: int
+    sapma_nm: int | None = None
+    yon: str | None = None
+    talep_metni: str
+    kalan_riskli_nokta: int
+    ek_sure_dk: float
+    ek_yakit_kg: float
+    ek_yakit_yuzde: float
+
+
+class AtcTalebiYaniti(BaseModel):
+    gerekli: bool
+    neden: str | None = None
+    secenekler: list[AtcTalepSecenegiYaniti] = []
+    aciklama: str
+
+
 class UretimBilgisiYaniti(BaseModel):
     """Sonucun hangi yazılım sürümü, hava verisi, eşik ve (varsa) modelle
     üretildiği; hesaplanmayan alanlar None'dır."""
@@ -536,6 +561,7 @@ class RotaSimulasyonuYaniti(BaseModel):
     co2_farki_kg: float
     yakit_tasarrufu_yuzde_araligi: YakitBandiYaniti | None = None
     secenekler: list[RotaSecenegiYaniti] = []
+    atc_talebi: AtcTalebiYaniti | None = None
     kapsam: KapsamYaniti | None = None
     planlama_ufku: PlanlamaUfkuYaniti | None = None
     ats: AtsRotaYaniti | None = None

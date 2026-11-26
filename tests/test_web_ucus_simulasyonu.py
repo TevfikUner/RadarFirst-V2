@@ -121,6 +121,30 @@ def test_kalan_risk_yoksa_kabin_bildirimi_cikmaz(canli_sunucu, tarayici_sayfasi)
     assert not sayfa.is_visible("#kabin-bildirimi")
     assert not sayfa.is_visible("#riskli-bolumler-kutusu")
     assert "Kabin: ek öneri yok." in sayfa.inner_text("#brifing-karti")
+    assert "ATC talebi gerekmiyor" in sayfa.inner_text("#atc-talebi-kutusu")
+
+
+def test_riskli_rotada_atc_talep_onerisi_sirali_ve_kopyalanabilir(canli_sunucu, tarayici_sayfasi):
+    sayfa = tarayici_sayfasi["sayfa"]
+    _simule_et(
+        canli_sunucu,
+        sayfa,
+        {
+            "#baslangic-enlem": "40.90",
+            "#baslangic-boylam": "29.30",
+            "#bitis-enlem": "40.60",
+            "#bitis-boylam": "43.10",
+            "#irtifa-ft": "35000",
+        },
+        "2019-01-15T19:00",
+    )
+    if sayfa.inner_text("#s-normal-turbulans").strip() in ("hesaplanmadı", "yok"):
+        return
+    kutu = sayfa.inner_text("#atc-talebi-kutusu")
+    assert "ATC onayına tabidir" in kutu and "Sistem trafiği bilmez" in kutu
+    assert "önerilen rota" in sayfa.inner_text("#atc-talebi-listesi li:first-child")
+    assert sayfa.locator("#atc-talebi-listesi code").first.inner_text().startswith("REQUEST ")
+    assert not [h for h in tarayici_sayfasi["hatalar"] if "TypeError" in h or "ReferenceError" in h]
 
 
 def test_kalan_riskte_bolumler_ve_kabin_onerisi_dispecer_dilinde(canli_sunucu, tarayici_sayfasi):
