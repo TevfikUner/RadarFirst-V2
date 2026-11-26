@@ -1067,6 +1067,7 @@ def _canli_gfs_kontrolu():
         "durum": durum,
         "son_basari_yas_saat": round(yas_saat, 1) if yas_saat is not None else None,
         "son_basarili_indirme": son_basari,
+        "model_calisma_zamani": (kayit.get("son_ozet") or {}).get("model_calisma_zamani"),
         "son_deneme": kayit["son_deneme_zamani"],
         "ardisik_hata_sayisi": kayit["ardisik_hata_sayisi"],
         "son_hata": kayit["son_hata"],

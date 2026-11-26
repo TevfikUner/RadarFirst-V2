@@ -66,6 +66,14 @@ pip install -e .
 turbulans-demo        # ciktilar/turbulans_haritasi_THY322_2019-01-15.html
 ```
 
+### Canlı demo
+
+`scripts/canli_demo.sh`: `.env` yoksa [.env.canli.ornek](.env.canli.ornek)'ten kopyalar (canlı GFS açık,
+SIGMET 15 dk'da bir, arşiv fikstürü ve arıza taklidi kapalı), `docker compose --profile demo up -d`
+çalıştırır, API'yi bekler, SIGMET'i yeniler ve bağlantıları, API anahtarını, GFS koşusu ile SIGMET
+tazeliğini yazar. Yığın zaten çalışıyorsa `--baslatma` yalnız yoklar. Kimlik bilgisi gerekmez;
+ilk derleme internet ister.
+
 Demo anahtarları herkesçe bilinir; bu yığını ağa açmayın. Gerçek kurulum (OpenSky, CDS,
 PostgreSQL, Alembic): [Kılavuz → Kurulum](docs/KILAVUZ.md#kurulum). Jüri demo akışı:
 [DEMO_SENARYOSU](docs/sunum/DEMO_SENARYOSU.md).

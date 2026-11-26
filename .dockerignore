@@ -52,5 +52,6 @@ docs/
 scripts/
 .githooks/
 .env.demo
+.env.canli.ornek
 .env.uretim.example
 *.postman_collection.json
