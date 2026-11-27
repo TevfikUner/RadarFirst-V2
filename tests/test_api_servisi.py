@@ -2090,6 +2090,19 @@ def test_gfs_isitmasi_acikken_uzun_suredir_basari_yoksa_bayat(monkeypatch):
     assert "bayat" in api_servisi._SAGLIKSIZ_DURUMLAR
 
 
+def test_canli_gfs_kontrolu_model_calisma_zamanini_verir(monkeypatch):
+    monkeypatch.setattr(config, "CANLI_HAVA_VERISI_ETKIN", True)
+    kayit = {
+        "son_basari_zamani": datetime.now(UTC),
+        "son_deneme_zamani": datetime.now(UTC),
+        "ardisik_hata_sayisi": 0,
+        "son_hata": None,
+        "son_ozet": {"dosya": "gfs.nc", "model_calisma_zamani": "2026-11-26T06:00:00+00:00"},
+    }
+    monkeypatch.setattr(api_servisi, "kaynak_durumlarini_getir", lambda anahtarlar: [kayit])
+    assert api_servisi._canli_gfs_kontrolu()["model_calisma_zamani"] == "2026-11-26T06:00:00+00:00"
+
+
 async def test_gfs_isitmasi_aralikta_tek_gorev_kuyruga_alir(monkeypatch):
     olusturulanlar = []
 
