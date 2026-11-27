@@ -2,6 +2,14 @@
 
 Her oturumun kısa özeti, en yeni üstte. Telefondan (GitHub mobil) okunmak için kısa tutulur.
 
+## 2026-11-27
+
+- ✅ Birleşti: P5 canlı demo (#171), P4 kanıt sayfası (#172), P2 ATC talep önerisi (#173), jüri bulguları (#174); hepsinde CI 7/7, yerel 1336 test.
+- ✅ Jüri #1: "0,71" pay oranı değil odds oranı; rapor/özet/sistem kartı/sunum akışı/slayt kaynağı düzeltildi (paylar %68,7 → %61,0, pay oranı 0,89), BITIRME_RAPORU md+pdf yeniden üretildi.
+- ✅ Koddaki sohbet kalıntıları ("bkz. konuşma geçmişi" vb.) 7 yerde nötr yorumla değişti; yalnız yorum.
+- ✅ Dependabot: Prometheus 3.16 (#163), Caddy 2.11 (#169). ⚠️ Postgres yamalı imajı (#170) DB konteynerini yeniden kuracağı için bekletildi.
+- ⚠️ Birleşen kod çalışan API imajında değil (derleme kotalı internette yapılmadı); kalanlar YAPILACAKLAR 3.0'da.
+
 ## 2026-11-26
 
 - ✅ P5 canlı demo: `scripts/canli_demo.sh` + `.env.canli.ornek`; çalışan yığında `--baslatma` ile denendi, SIGMET 149 kayıt yenilendi (PR #171).

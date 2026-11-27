@@ -44,11 +44,26 @@ Açık işlerin tek listesi. **Biten madde silinir** (12 Kasım 2026, kullanıc�
 
 ## 3. Proje iyileştirme (önem sırasıyla)
 
-0. **Hafta 8 görevleri (26 Kasım):** P1 PIREP kanıt katmanı (AWC Data API belgesi okunup gerçek istekle doğrulanacak;
-   50 NM kuralı backtest'in 50 km tüpünden farklı, ekranda ikisi ayrı yazılmalı) (2–3 sa); P3 canlı Türkiye/ABD paneli
-   (adsb.fi 30 sn yenileme günlük kota ve ban riski: önce kullanıcıya sor) (4–6 sa); P2'nin isteğe bağlı ADS-B trafik
-   satırı (`CANLI_ADSB_ETKIN`, aynı risk); P5 betiğinin tam çalıştırılması ve API imajının yeniden derlenmesi (kotasız
-   internette, 1.7 ile birlikte).
+0. **Hafta 8 kalanları (27 Kasım; P2, P4, P5 ve jüri 0,71 düzeltmesi bitti):**
+   - **P1 PIREP kanıt katmanı** (rota simülasyonunda "Pilot raporları (bağımsız kanıt)"): `GET /api/v1/kanit/pirep`,
+     son 48 sa AWC Data API (önce https://aviationweather.gov/data/api/ belgesi okunup gerçek istekle doğrulanır),
+     eskisi IEM (`dogrulama/bagimsiz_kanit.py` yeniden kullanılır). Eşleşme 50 NM / ±2.000 ft / ±1 sa; backtest tüpü
+     50 km, ekranda ikisi ayrı yazılmalı. NEG/LGT/MOD/SEV/EXTRM ayrıştırıcısı MOD+ tanımında `pirep_siddet_sinifi` ile
+     tutarlı olmalı. ABD "seçilmiş örnek" senaryosu. PIREP'in rota kararına girmediği testle. (2–3 sa)
+   - **P3 canlı Türkiye/ABD paneli** (`web/canli.html`): adsb.fi 20–30 sn yenileme günlük kotayı (`CANLI_ADSB_GUNLUK_MAKS_ISTEK`)
+     ve tek yarıçaplı (≤250 NM) sorguyu zorlar; Türkiye için birkaç sorgu gerekir. **Ban riski: başlamadan önce
+     kullanıcıya sor.** Risk ızgarası için yeni uç nokta gerekir (`CANLI_ISITMA_*` yalnız küp ön indirmesi). (4–6 sa)
+   - **P2 isteğe bağlı ADS-B trafik satırı** ("FL360: 4 uçak — yoğun"): her rota isteğinde adsb.fi sorgusu; aynı
+     risk, önce sor. (1 sa)
+   - **Birleşen kodun çalışan yığına alınması (kotasız internette, 1.7/2.2 ile):** P2 (`atc_talebi`) ve P5
+     (`/saglik` GFS koşu zamanı) API imajında yok; `docker compose build api worker` sonrası `canli_demo.sh` tam
+     çalıştırılır (şu an "GFS koşu: bilinmiyor" yazar), `files-demo` imajı ilk kez derlenir. (1 sa)
+   - **Postgres imaj güncellemesi (Dependabot #170, 16 → 16 yamalı imaj):** birleştirilmedi; bir sonraki `up`'ta DB
+     konteyneri yeniden kurulur. Günün yedeği `db_yedekleri/`'nde doğrulanıp kotasız internette birleştirilir. (0,5 sa)
+   - **Jüri kalanları (sunum içeriği, kullanıcı onayıyla):** MADIS slaytında yalnız 1 orta+ ölçüm olduğu; PUE502
+     başarısızlık vakası; %46,3 uyarı oranı; `PROJE_REHBERI.md` durum diyagramının kodla eşlenmesi. Yeni komite PDF'i
+     `scripts/komite_sunumu.py` ile üretilince slayt 14'teki 0,71 düzeltmesi de girer (eski tarihli PDF'ler değişmedi). (2–3 sa)
+   - Yeni bir sonuç paketi eklenirse `turbulans-kanit-paneli` yeniden çalıştırılır (`web/veri/kanit.json`; test uyarır).
 
 1. **Demo: ABD vakası + ML modeli** (OPS-05) ve iki seçim kuralının (`sozluksel` / `maliyet`, A1) yan yana gösterimi;
    Docker'lı uçtan uca doğrulama gerekir. (6–8 sa)
