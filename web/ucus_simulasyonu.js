@@ -263,7 +263,7 @@ function sonucPanelDoldur(sonuc) {
     }
   }
 
-  // Madde 6 (bkz. konuşma geçmişi): TI1'in tek başına doğrulanmadığı notu
+  // Uzman raporu madde 6: TI1'in tek başına doğrulanmadığı notu
   // sunucudan (turbulans_indeksleri.TI1_GUVENILIRLIK_NOTU) geldiği gibi
   // gösterilir -- metin değişirse arayüz otomatik güncellenir.
   document.getElementById("ti1-guvenilirlik-notu").textContent = sonuc.ti1_guvenilirlik_notu
