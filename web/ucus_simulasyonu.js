@@ -263,7 +263,7 @@ function sonucPanelDoldur(sonuc) {
     }
   }
 
-  // Madde 6 (bkz. konuşma geçmişi): TI1'in tek başına doğrulanmadığı notu
+  // Uzman raporu madde 6: TI1'in tek başına doğrulanmadığı notu
   // sunucudan (turbulans_indeksleri.TI1_GUVENILIRLIK_NOTU) geldiği gibi
   // gösterilir -- metin değişirse arayüz otomatik güncellenir.
   document.getElementById("ti1-guvenilirlik-notu").textContent = sonuc.ti1_guvenilirlik_notu
@@ -272,6 +272,41 @@ function sonucPanelDoldur(sonuc) {
 
   kabinBildirimiGoster(sonuc);
   brifingKartiniGoster(sonuc);
+  atcTalebiniGoster(sonuc);
+}
+
+function atcTalebiniGoster(sonuc) {
+  const kutu = document.getElementById("atc-talebi-kutusu");
+  const liste = document.getElementById("atc-talebi-listesi");
+  const talep = sonuc.atc_talebi;
+  liste.replaceChildren();
+  if (!talep) { kutu.style.display = "none"; return; }
+  kutu.style.display = "block";
+  const isaretli = (deger, basamak) => (deger > 0 ? "+" : "") + deger.toFixed(basamak);
+  if (!talep.gerekli) {
+    const satir = document.createElement("li");
+    satir.style.listStyle = "none";
+    satir.textContent = talep.neden || "ATC talebi gerekmiyor.";
+    liste.append(satir);
+  }
+  for (const s of talep.secenekler || []) {
+    const satir = document.createElement("li");
+    satir.style.marginBottom = "3px";
+    const baslik = document.createElement("div");
+    baslik.textContent = `${s.hedef}${s.secilen ? " ✓ (önerilen rota)" : ""} · kalan riskli nokta ${s.kalan_riskli_nokta} · ` +
+      `${isaretli(s.ek_sure_dk, 1)} dk · ${isaretli(s.ek_yakit_kg, 0)} kg yakıt`;
+    const metin = document.createElement("code");
+    metin.textContent = s.talep_metni;
+    metin.style.userSelect = "all";
+    metin.style.cursor = "copy";
+    metin.title = "Tıklayınca kopyalanır";
+    metin.addEventListener("click", () => {
+      if (navigator.clipboard) navigator.clipboard.writeText(s.talep_metni).then(() => { metin.title = "Kopyalandı"; }, () => {});
+    });
+    satir.append(baslik, metin);
+    liste.append(satir);
+  }
+  document.getElementById("atc-talebi-notu").textContent = talep.aciklama || "";
 }
 
 // Brifing kartı: sunucunun ürettiği 3 satırlık özet (rota_optimizasyonu.brifing_karti).

@@ -2844,6 +2844,129 @@
   },
   "components": {
     "schemas": {
+      "AtcTalebiYaniti": {
+        "properties": {
+          "gerekli": {
+            "type": "boolean",
+            "title": "Gerekli"
+          },
+          "neden": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Neden"
+          },
+          "secenekler": {
+            "items": {
+              "$ref": "#/components/schemas/AtcTalepSecenegiYaniti"
+            },
+            "type": "array",
+            "title": "Secenekler",
+            "default": []
+          },
+          "aciklama": {
+            "type": "string",
+            "title": "Aciklama"
+          }
+        },
+        "type": "object",
+        "required": [
+          "gerekli",
+          "aciklama"
+        ],
+        "title": "AtcTalebiYaniti"
+      },
+      "AtcTalepSecenegiYaniti": {
+        "properties": {
+          "sira": {
+            "type": "integer",
+            "title": "Sira"
+          },
+          "strateji": {
+            "type": "string",
+            "title": "Strateji"
+          },
+          "secilen": {
+            "type": "boolean",
+            "title": "Secilen"
+          },
+          "tur": {
+            "type": "string",
+            "title": "Tur"
+          },
+          "hedef": {
+            "type": "string",
+            "title": "Hedef"
+          },
+          "hedef_fl": {
+            "type": "integer",
+            "title": "Hedef Fl"
+          },
+          "sapma_nm": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sapma Nm"
+          },
+          "yon": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Yon"
+          },
+          "talep_metni": {
+            "type": "string",
+            "title": "Talep Metni"
+          },
+          "kalan_riskli_nokta": {
+            "type": "integer",
+            "title": "Kalan Riskli Nokta"
+          },
+          "ek_sure_dk": {
+            "type": "number",
+            "title": "Ek Sure Dk"
+          },
+          "ek_yakit_kg": {
+            "type": "number",
+            "title": "Ek Yakit Kg"
+          },
+          "ek_yakit_yuzde": {
+            "type": "number",
+            "title": "Ek Yakit Yuzde"
+          }
+        },
+        "type": "object",
+        "required": [
+          "sira",
+          "strateji",
+          "secilen",
+          "tur",
+          "hedef",
+          "hedef_fl",
+          "talep_metni",
+          "kalan_riskli_nokta",
+          "ek_sure_dk",
+          "ek_yakit_kg",
+          "ek_yakit_yuzde"
+        ],
+        "title": "AtcTalepSecenegiYaniti",
+        "description": "ATC'den istenecek seçenek (ATC onayına tabidir); 1. seçenek önerilen rotadır."
+      },
       "AtsNoktasiYaniti": {
         "properties": {
           "nokta": {
@@ -5553,6 +5676,16 @@
             "type": "array",
             "title": "Secenekler",
             "default": []
+          },
+          "atc_talebi": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/AtcTalebiYaniti"
+              },
+              {
+                "type": "null"
+              }
+            ]
           },
           "kapsam": {
             "anyOf": [

@@ -44,6 +44,12 @@ Açık işlerin tek listesi. **Biten madde silinir** (12 Kasım 2026, kullanıc�
 
 ## 3. Proje iyileştirme (önem sırasıyla)
 
+0. **Hafta 8 görevleri (26 Kasım):** P1 PIREP kanıt katmanı (AWC Data API belgesi okunup gerçek istekle doğrulanacak;
+   50 NM kuralı backtest'in 50 km tüpünden farklı, ekranda ikisi ayrı yazılmalı) (2–3 sa); P3 canlı Türkiye/ABD paneli
+   (adsb.fi 30 sn yenileme günlük kota ve ban riski: önce kullanıcıya sor) (4–6 sa); P2'nin isteğe bağlı ADS-B trafik
+   satırı (`CANLI_ADSB_ETKIN`, aynı risk); P5 betiğinin tam çalıştırılması ve API imajının yeniden derlenmesi (kotasız
+   internette, 1.7 ile birlikte).
+
 1. **Demo: ABD vakası + ML modeli** (OPS-05) ve iki seçim kuralının (`sozluksel` / `maliyet`, A1) yan yana gösterimi;
    Docker'lı uçtan uca doğrulama gerekir. (6–8 sa)
 2. **A2 / VER-09:** birleşik EDR ya da ML'in rota cezasına girmesi (eşik seçimi ve GFS doğrulaması önce); Fikir 10'un
