@@ -86,7 +86,7 @@ def test_kapsam_disi_bolge_durustce_ruzgarsiz_sonuc_doner():
 
 
 def test_ti1_guvenilirlik_notu_her_yanitta_bulunur():
-    """Madde 6 (bkz. konuşma geçmişi): TI1 bağımsız olarak doğrulanmadığı için
+    """Uzman raporu madde 6: TI1 bağımsız olarak doğrulanmadığı için
     bu not, kapsam içi/dışı fark etmeksizin HER rota yanıtında bulunmalı."""
     from turbulans_radar.fizik.turbulans_indeksleri import TI1_GUVENILIRLIK_NOTU
 
@@ -158,7 +158,7 @@ def test_gercek_era5_turbulans_varsa_tamamen_atlatilir(gercek_senaryo):
     assert sonuc["optimize_rota"]["noktalar"] != sonuc["normal_rota"]["noktalar"]
     # Çok faktörlü karşılaştırma (yanal A* vs irtifa değişimi) gerçek
     # ERA5 verisiyle bu rotada İRTİFA stratejisinin (tırmanma) daha ucuz
-    # olduğunu buluyor -- bkz. konuşma geçmişi (yanal: -%7.1, irtifa: -%2.7).
+    # olduğunu buluyor (yanal: -%7.1, irtifa: -%2.7).
     assert sonuc["kacinma_stratejisi"] in ("yanal", "irtifa_yukari", "irtifa_asagi")
     if sonuc["kacinma_stratejisi"] != "yanal":
         assert sonuc["optimize_rota"]["irtifa_ft"] != sonuc["normal_rota"]["irtifa_ft"]

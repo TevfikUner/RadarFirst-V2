@@ -20,7 +20,7 @@ def _km_boylam_derecesine_cevir(km, enlemler):
     dizisindeki EN KÖTÜ (en yüksek mutlak enlem, 75°'ye kadar kelepçeli)
     değer kullanılır -- rotanın herhangi bir noktasında en az `km` kadar
     kapsama garanti edilir (düz bir derece değeri kullanmak yüksek enlemde
-    gerçek km'yi olduğundan dar gösterirdi, bkz. konuşma geçmişi)."""
+    gerçek km'yi olduğundan dar gösterirdi)."""
     enlem = min(float(np.max(np.abs(enlemler))), 75.0)
     return km / (_KM_PER_DERECE_ENLEM * math.cos(math.radians(enlem)))
 

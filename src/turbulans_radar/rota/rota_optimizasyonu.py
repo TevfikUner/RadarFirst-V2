@@ -1068,7 +1068,7 @@ def rota_simulasyonu_olustur(
     adaylar: list[dict] = []
 
     if normal["riskli_sayisi"] == 0 and normal["sigmet_ihlali"] == 0 and normal["kisitli_saha_ihlali"] == 0:
-        # Kaçınılacak risk YOK -- kullanıcıyla netleştirilen ilkeyle, uydurma
+        # Kaçınılacak risk YOK -- tasarım ilkesi: uydurma
         # bir sapma göstermek yerine optimize rota normal rotayla BİREBİR AYNI.
         en_iyi = normal
     else:
