@@ -15,8 +15,8 @@ yazılmış protokolle, modelin görmediği 79 yeni günde (7.769 PIREP) model T
 [+0,018; +0,035] farkla geçer (0,685'e karşı 0,658); bu fark 18 Ekim altın günlerindeki
 farka (+0,033) yakındır. Model yine de ROC-AUC 0,69 civarında kaldığı için güvenlik SIGMET sert
 kısıtına dayanır; TI1 yasaklamaz, adaylar arasında seçimde yakıttan önce gelir. Bağımsız rota
-backtest'inde (NE-ABD, A*'ın saptığı 908 rota) PIREP tüpündeki orta ve üstü payının oranı 0,71
-[0,58; 0,90] çıkmıştır. Doğrulama ABD verisiyledir; Türkiye için beceri ölçülmemiştir.
+backtest'inde (NE-ABD, A*'ın saptığı 908 rota) PIREP tüpündeki orta ve üstü rapor payı %68,7'den
+%61,0'a inmiştir (pay oranı 0,89; odds oranı 0,71 [0,58; 0,90]). Doğrulama ABD verisiyledir; Türkiye için beceri ölçülmemiştir.
 
 Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır.
 

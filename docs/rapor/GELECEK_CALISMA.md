@@ -14,7 +14,7 @@ güvenlik garantisi veremez. Bu yüzden güvenlik SIGMET ve kısıtlı saha sert
 yumuşak kısıttır, yasaklamaz ama adaylar arasında seçimde yakıttan önce gelir. Bu ayrım ürünün
 davranışına taşındı: her yanıt güvenilirlik notu, üretim bilgisi ve gerektiğinde "belirsiz" ya da
 "kapsam dışı" durumu taşır. Bağımsız rota backtest'i (NE-ABD) önerilen rotaların PIREP tüpündeki
-orta ve üstü payını 0,71 [0,58; 0,90] oranına indirdiğini gösterir; tek bölge ve simüle rota
+orta ve üstü rapor payını %68,7'den %61,0'a indirdiğini gösterir (odds oranı 0,71 [0,58; 0,90]); tek bölge ve simüle rota
 olduğu için bu bir operasyonel kazanç iddiası değildir.
 
 Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır.

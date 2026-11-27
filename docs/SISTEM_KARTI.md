@@ -504,7 +504,7 @@ gerçek bir uçuşta tek bilgi kaynağı olarak kullanılamaz.
   8 şehir çifti × 48 gün × 3 kalkış × 2 FL (2.304 rota, ağsız); ölçüt TI1'in ve A*'ın görmediği
   IEM PIREP'leri (tüp 50 km, ±2000 ft, ±1 sa). TI1 eşiğinin seçildiği 7 gün çıkarılınca A*'ın
   sapma önerdiği 908 rotada A* tüpündeki raporların orta-üstü payı 0,610, büyük dairede 0,687:
-  göreli maruziyet oranı 0,71 [0,58; 0,90] (gün bloklu %95 GA). Net etiketle 0,60 [0,43; 0,86];
+  pay oranı 0,89; odds oranı (GMO) 0,71 [0,58; 0,90] (gün bloklu %95 GA). Net etiketle 0,60 [0,43; 0,86];
   48 günün tamamında 0,83 [0,66; 1,03] (1'i içeriyor). Raporlama yanlılığı, tüp örtüşmesi ve tek
   bölge nedeniyle bu, TI1 sapmalarının bağımsız kanıtla tutarlı olduğunu gösterir; kaçınılan
   türbülans miktarı ya da Türkiye'de beceri değildir (`docs/sonuclar/2026-10-29_bagimsiz_backtest/`).

@@ -171,8 +171,9 @@ THY322 1 Ocak 2019 0,00 / 0,20 / 0,00; THY322 15 Ocak 2019 0,24 / 0,39 / 0,02
 (bağımsız kanıtlı tek uçuş) bu veritabanında yok; açıklaması `docs/SISTEM_KARTI.md` §6'da.
 
 Bağımsız toplu ölçüm (29 Ekim, protokol §11): NE-ABD'de 2.304 simüle rota; TI1 eşiğinin seçildiği
-günler hariç, A*'ın sapma önerdiği 908 rotada PIREP tüpündeki orta-üstü payının göreli maruziyet
-oranı (A* / büyük daire) 0,71 [0,58; 0,90]; 48 günün tamamında 0,83 [0,66; 1,03]
+günler hariç, A*'ın sapma önerdiği 908 rotada PIREP tüpündeki orta-üstü rapor payı büyük dairede
+%68,7, A*'ta %61,0 (pay oranı 0,89); orta-üstü raporların odds oranı (A* / büyük daire, GMO) 0,71
+[0,58; 0,90]; 48 günün tamamında GMO 0,83 [0,66; 1,03]
 ([paket](../sonuclar/2026-10-29_bagimsiz_backtest/README.md)).
 
 ## 1. Fizik çekirdeği (Madde 2) — tarihçe, 5 Ekim
