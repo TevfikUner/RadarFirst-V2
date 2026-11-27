@@ -176,7 +176,7 @@ def ti1_indeksi_hesapla(vws, deformasyon):
     return np.abs(vws) * deformasyon
 
 
-# DÜRÜSTLÜK NOTU (madde 6, bkz. konuşma geçmişi): TI1'in TEK BAŞINA gerçek
+# DÜRÜSTLÜK NOTU (uzman raporu madde 6): TI1'in TEK BAŞINA gerçek
 # türbülans olaylarını ayırt ettiği BAĞIMSIZ olarak kanıtlanmamıştır. Seyir
 # irtifasındaki 15940 PIREP'te (163 gün, çevreleyen katman fiziği) TI1'in tek başına
 # ayırt ediciliği orta düzeydedir (ROC-AUC 0.67; altın test günlerinde 0.67; sayılar
@@ -204,7 +204,7 @@ def ti1_den_edr_proxy_olcegine_cevir(ti1_degeri, olceklendirme_katsayisi=0.27):
     """
     TI1'in tipik değer aralığı (~1e-7 - 1e-6 s^-2) EDR'nin alışılan 0-1
     aralığıyla doğrudan karşılaştırılabilir değil. Burada TI1'i, eski
-    kodunla aynı yerlerde kullanılabilecek 0'a yakın-1'e yakın bir "proxy"
+    kodla aynı yerlerde kullanılabilecek 0'a yakın-1'e yakın bir "proxy"
     ölçeğine sıkıştırıyoruz (tanh ile doygunlaştırma). Varsayılan katsayı
     (0.27), config.EDR_OLCEKLENDIRME_KATSAYISI ile AYNIDIR -- EDR ölçümüne
     değil, seyir irtifasındaki IEM PIREP sınıf koduna uyduruldu (bkz.

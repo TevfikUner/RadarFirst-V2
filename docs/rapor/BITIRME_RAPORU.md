@@ -21,8 +21,8 @@ yazılmış protokolle, modelin görmediği 79 yeni günde (7.769 PIREP) model T
 [+0,018; +0,035] farkla geçer (0,685'e karşı 0,658); bu fark 18 Ekim altın günlerindeki
 farka (+0,033) yakındır. Model yine de ROC-AUC 0,69 civarında kaldığı için güvenlik SIGMET sert
 kısıtına dayanır; TI1 yasaklamaz, adaylar arasında seçimde yakıttan önce gelir. Bağımsız rota
-backtest'inde (NE-ABD, A*'ın saptığı 908 rota) PIREP tüpündeki orta ve üstü payının oranı 0,71
-[0,58; 0,90] çıkmıştır. Doğrulama ABD verisiyledir; Türkiye için beceri ölçülmemiştir.
+backtest'inde (NE-ABD, A*'ın saptığı 908 rota) PIREP tüpündeki orta ve üstü rapor payı %68,7'den
+%61,0'a inmiştir (pay oranı 0,89; odds oranı 0,71 [0,58; 0,90]). Doğrulama ABD verisiyledir; Türkiye için beceri ölçülmemiştir.
 
 Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır.
 
@@ -629,8 +629,9 @@ THY322 1 Ocak 2019 0,00 / 0,20 / 0,00; THY322 15 Ocak 2019 0,24 / 0,39 / 0,02
 (bağımsız kanıtlı tek uçuş) bu veritabanında yok; açıklaması `docs/SISTEM_KARTI.md` §6'da.
 
 Bağımsız toplu ölçüm (29 Ekim, protokol §11): NE-ABD'de 2.304 simüle rota; TI1 eşiğinin seçildiği
-günler hariç, A*'ın sapma önerdiği 908 rotada PIREP tüpündeki orta-üstü payının göreli maruziyet
-oranı (A* / büyük daire) 0,71 [0,58; 0,90]; 48 günün tamamında 0,83 [0,66; 1,03]
+günler hariç, A*'ın sapma önerdiği 908 rotada PIREP tüpündeki orta-üstü rapor payı büyük dairede
+%68,7, A*'ta %61,0 (pay oranı 0,89); orta-üstü raporların odds oranı (A* / büyük daire, GMO) 0,71
+[0,58; 0,90]; 48 günün tamamında GMO 0,83 [0,66; 1,03]
 ([paket](../sonuclar/2026-10-29_bagimsiz_backtest/README.md)).
 
 ## 4.1 Fizik çekirdeği (Madde 2) — tarihçe, 5 Ekim
@@ -1232,7 +1233,7 @@ güvenlik garantisi veremez. Bu yüzden güvenlik SIGMET ve kısıtlı saha sert
 yumuşak kısıttır, yasaklamaz ama adaylar arasında seçimde yakıttan önce gelir. Bu ayrım ürünün
 davranışına taşındı: her yanıt güvenilirlik notu, üretim bilgisi ve gerektiğinde "belirsiz" ya da
 "kapsam dışı" durumu taşır. Bağımsız rota backtest'i (NE-ABD) önerilen rotaların PIREP tüpündeki
-orta ve üstü payını 0,71 [0,58; 0,90] oranına indirdiğini gösterir; tek bölge ve simüle rota
+orta ve üstü rapor payını %68,7'den %61,0'a indirdiğini gösterir (odds oranı 0,71 [0,58; 0,90]); tek bölge ve simüle rota
 olduğu için bu bir operasyonel kazanç iddiası değildir.
 
 Çıktılar sertifikalı EDR değildir; sistem operasyonel karar aracı değil, karar destek aracıdır.

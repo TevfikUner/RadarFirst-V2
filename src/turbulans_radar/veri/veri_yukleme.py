@@ -334,8 +334,8 @@ def trino_baglantisi_olustur():
 
     NOT: Bu artık kullanıcı adı/şifre ile DOĞRUDAN kimlik doğrulaması yapmaz.
     İlk sorgu çalıştırıldığında bir tarayıcı penceresi açılır (veya konsola
-    bir URL basılır) ve OpenSky hesabınla web üzerinden giriş yapman istenir.
-    Bu, senin CLI'da denediğin '--external-authentication' bayrağının Python
+    bir URL basılır) ve OpenSky hesabıyla web üzerinden giriş yapılır.
+    Bu, Trino CLI'daki '--external-authentication' bayrağının Python
     karşılığıdır.
     """
     kullanici_adi, _ = kimlik_bilgilerini_al()
