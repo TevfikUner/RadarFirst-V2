@@ -102,7 +102,8 @@ def atc_talep_onerisi(
     normal_yakit = yakit_fonksiyonu(normal)
     uygun = [a for a in adaylar if a["sigmet_ihlali"] == 0 and a["kisitli_saha_ihlali"] == 0]
     siralama = sorted(uygun, key=lambda a: (a is not en_iyi, a["riskli_sayisi"], yakit_fonksiyonu(a)))
-    secenekler, metinler = [], set()
+    secenekler: list[dict] = []
+    metinler: set[str] = set()
     for aday in siralama:
         talep = _talep(aday, planli_fl, arama_uzayi)
         if talep is None or talep["hedef_fl"] not in yasal or talep["talep_metni"] in metinler:
