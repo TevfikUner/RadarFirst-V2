@@ -673,7 +673,7 @@ async def test_harita3d_sayfasi_sunuluyor(istemci):
     assert betik.status_code == 200 and "maplibregl" in betik.text
 
 
-@pytest.mark.parametrize("sayfa", ["harita3d.html", "ucus_simulasyonu.html"])
+@pytest.mark.parametrize("sayfa", ["harita3d.html", "ucus_simulasyonu.html", "kanit.html"])
 async def test_harita_sayfalarinda_csp_var_ve_satir_ici_betik_yok(istemci, sayfa):
     import re
 
